@@ -1,0 +1,13 @@
+{
+  "name": "Maçonnerie Thibeault · Factures",
+  "short_name": "Thibeault",
+  "description": "Capture mobile et contrôle administratif des dépenses.",
+  "start_url": "/capture",
+  "display": "standalone",
+  "background_color": "#f6f8fb",
+  "theme_color": "#173b55",
+  "lang": "fr-CA",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
