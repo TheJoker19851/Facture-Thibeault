@@ -18,6 +18,7 @@ type Transaction = {
   status: "À vérifier" | "À valider" | "Validée";
   reconciliation: "Non rapprochée" | "Rapprochée" | "Facture manquante";
   issue?: string;
+  correction?: string;
   imageCount: number;
   invoiceNumber: string;
   note: string;
@@ -28,6 +29,82 @@ type PhotoItem = {
   url: string;
   name: string;
 };
+
+type AccountCategory = {
+  code: string;
+  label: string;
+};
+
+type CreditCard = {
+  id: string;
+  lastFour: string;
+  holder: string;
+  function: string;
+  startDate: string;
+  endDate?: string;
+  status: "Actif" | "Inactif";
+};
+
+type CardPeriod = {
+  id: string;
+  label: string;
+  start: string;
+  end: string;
+  statementLabel: string;
+};
+
+const accountCategories: AccountCategory[] = [
+  { code: "33544", label: "Essence" },
+  { code: "33556", label: "Entretien roulant" },
+  { code: "33557", label: "Réparation équipement" },
+  { code: "43400", label: "CCQ" },
+  { code: "33500", label: "Matériaux divers" },
+  { code: "42112", label: "Frais bureau" },
+  { code: "42104", label: "Pénalité/amende" },
+  { code: "33537", label: "Chauffage des travaux" },
+  { code: "33539", label: "Rebus" },
+  { code: "33526", label: "Divers" },
+  { code: "34019", label: "Équipement de sécurité" },
+  { code: "42102", label: "Taxes licence permis" },
+  { code: "34016", label: "Voyage et pension" },
+  { code: "11155", label: "Avance à l'administrateur" },
+  { code: "45670", label: "Promotion" },
+  { code: "33558", label: "Immatriculation" },
+  { code: "33536", label: "Location équipement" },
+  { code: "33555", label: "Entretien camion lourd" },
+  { code: "33554", label: "Location camion" },
+  { code: "34014", label: "Formation" },
+  { code: "33540", label: "Transport matériel" },
+  { code: "33518", label: "Maçonnerie" },
+  { code: "15250", label: "Mise de fonds achat tracteur" },
+  { code: "11160", label: "Dépôt garantie" },
+];
+
+const creditCards: CreditCard[] = [
+  { id: "CARD-01", lastFour: "2481", holder: "Keven Tremblay", function: "Propriétaire", startDate: "2026-01-01", status: "Actif" },
+  { id: "CARD-02", lastFour: "2286", holder: "Patrice Savard", function: "Contremaître", startDate: "2026-01-01", status: "Actif" },
+  { id: "CARD-03", lastFour: "7184", holder: "Stéphane Deschêsne", function: "Contremaître", startDate: "2026-01-01", status: "Actif" },
+  { id: "CARD-05", lastFour: "0383", holder: "Olivier Simard", function: "Contremaître", startDate: "2026-01-01", status: "Actif" },
+  { id: "CARD-06", lastFour: "9294", holder: "Martial Tremblay", function: "Contremaître", startDate: "2026-01-01", status: "Actif" },
+  { id: "CARD-07", lastFour: "9295", holder: "Keven Lavoie", function: "Contremaître", startDate: "2026-01-01", status: "Actif" },
+  { id: "CARD-08", lastFour: "9309", holder: "Simon Murray", function: "Contremaître", startDate: "2026-01-01", status: "Actif" },
+  { id: "CARD-09", lastFour: "2250", holder: "Michel Fortier", function: "Contremaître", startDate: "2026-01-01", status: "Actif" },
+  { id: "CARD-10", lastFour: "9291", holder: "Michel Simard", function: "Contremaître", startDate: "2026-01-01", status: "Actif" },
+  { id: "CARD-11", lastFour: "9298", holder: "Dave Émond", function: "Contremaître", startDate: "2026-01-01", status: "Actif" },
+  { id: "CARD-04", lastFour: "2141", holder: "Réal Savard", function: "Contremaître", startDate: "2026-01-01", status: "Inactif" },
+];
+
+const cardPeriods: CardPeriod[] = [
+  { id: "2026-06", label: "10 juin → 09 juillet 2026", start: "2026-06-10", end: "2026-07-09", statementLabel: "Relevé Mastercard · juin" },
+  { id: "2026-07", label: "10 juillet → 09 août 2026", start: "2026-07-10", end: "2026-08-09", statementLabel: "Relevé Mastercard · juillet" },
+  { id: "2026-05", label: "10 mai → 09 juin 2026", start: "2026-05-10", end: "2026-06-09", statementLabel: "Relevé Mastercard · mai" },
+];
+
+const accountCodeByCategory = new Map(accountCategories.map((account) => [account.label, account.code]));
+
+function accountCodeFor(category: string) {
+  return accountCodeByCategory.get(category) ?? "—";
+}
 
 const transactions: Transaction[] = [
   {
@@ -42,7 +119,8 @@ const transactions: Transaction[] = [
     total: 184.37,
     status: "À vérifier",
     reconciliation: "Non rapprochée",
-    issue: "La somme des lignes ne couvre pas le sous-total",
+    issue: "Sous-total incomplet : une ligne de 64,37 $ est absente des photos reçues.",
+    correction: "Ajouter la page manquante ou corriger les lignes avant de valider la facture.",
     imageCount: 3,
     invoiceNumber: "CAN-84219",
     note: "Facture multipage détectée. Vérifier les lignes manquantes avant validation.",
@@ -59,6 +137,8 @@ const transactions: Transaction[] = [
     total: 62.14,
     status: "À valider",
     reconciliation: "Rapprochée",
+    issue: "Compte comptable à confirmer : le SKU 07654856 n'est pas encore validé.",
+    correction: "Choisir le compte 33526 — Divers, ou confirmer une autre catégorie.",
     imageCount: 1,
     invoiceNumber: "CT-119402",
     note: "SKU reconnu dans la base locale; contrôle de catégorie en attente.",
@@ -91,6 +171,8 @@ const transactions: Transaction[] = [
     total: 438.0,
     status: "À valider",
     reconciliation: "Non rapprochée",
+    issue: "Bon de livraison non joint à la facture.",
+    correction: "Ajouter la page du bon de livraison ou confirmer la date et le chantier.",
     imageCount: 2,
     invoiceNumber: "LEP-2026-081",
     note: "Deux pages regroupées automatiquement; validation administrative requise.",
@@ -146,6 +228,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
   const [selectedId, setSelectedId] = useState<string>(transactions[0].id);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Toutes");
+  const [periodId, setPeriodId] = useState(cardPeriods[0].id);
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [queueState, setQueueState] = useState<"idle" | "uploading" | "sent">("idle");
   const [isOnline, setIsOnline] = useState(true);
@@ -165,6 +248,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
   }, []);
 
   const selected = transactions.find((transaction) => transaction.id === selectedId) ?? transactions[0];
+  const selectedPeriod = cardPeriods.find((period) => period.id === periodId) ?? cardPeriods[0];
   const filteredTransactions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return transactions.filter((transaction) => {
@@ -266,11 +350,11 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
       <section className="content-area">
         <header className="topbar"><div className="breadcrumbs"><span>Maçonnerie Thibeault</span><span>/</span><strong>{navItems.find((item) => item.id === view)?.label ?? "Tableau de bord"}</strong></div><div className="topbar-actions"><span className="demo-note">Données de démonstration</span><button className="icon-button" aria-label="Notifications">♧<span className="notification-dot" /></button><button className="avatar avatar-gold small" onClick={() => { setRole("WORKER"); setView("capture"); }} aria-label="Ouvrir le mode travailleur">K</button></div></header>
         <div className="page-content">
-          {view === "dashboard" && <Dashboard onNavigate={goTo} />}
+          {view === "dashboard" && <Dashboard onNavigate={goTo} period={selectedPeriod} onPeriodChange={setPeriodId} />}
           {view === "transactions" && <TransactionsPage items={filteredTransactions} query={query} setQuery={setQuery} statusFilter={statusFilter} setStatusFilter={setStatusFilter} onOpen={(id) => { setSelectedId(id); setView("transaction" as View); }} />}
           {view === "review" && <ReviewPage items={transactions.filter((item) => item.status !== "Validée")} onOpen={(id) => { setSelectedId(id); setView("transaction" as View); }} />}
-          {view === "reconciliation" && <ReconciliationPage />}
-          {view === "reports" && <ReportsPage />}
+          {view === "reconciliation" && <ReconciliationPage period={selectedPeriod} onPeriodChange={setPeriodId} />}
+          {view === "reports" && <ReportsPage period={selectedPeriod} onPeriodChange={setPeriodId} />}
           {view === "archives" && <ArchivesPage onNotify={notify} />}
           {view === "settings" && <SettingsPage />}
           {(view as string) === "transaction" && <TransactionDetail transaction={selected} onBack={() => setView("transactions")} onNotify={notify} />}
@@ -285,10 +369,14 @@ function PageHeading({ eyebrow, title, description, action }: { eyebrow: string;
   return <div className="page-heading"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p className="muted heading-description">{description}</p></div>{action}</div>;
 }
 
-function Dashboard({ onNavigate }: { onNavigate: (view: View) => void }) {
+function PeriodSelector({ period, onChange }: { period: CardPeriod; onChange: (id: string) => void }) {
+  return <label className="period-selector"><span>Période des cartes</span><select value={period.id} onChange={(event) => onChange(event.target.value)}>{cardPeriods.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select><small>Toutes les cartes actives utilisent ce même cycle.</small></label>;
+}
+
+function Dashboard({ onNavigate, period, onPeriodChange }: { onNavigate: (view: View) => void; period: CardPeriod; onPeriodChange: (id: string) => void }) {
   return <>
     <PageHeading eyebrow="Vue d’ensemble" title="Bonjour Kim" description="Voici ce qui mérite votre attention aujourd’hui." action={<button className="primary-button" onClick={() => onNavigate("transactions")}><span>＋</span> Voir les transactions</button>} />
-    <div className="filter-strip"><span className="filter-label">Période</span><button className="filter-select">01 août 2026 <span>→</span> 13 août 2026 <b>⌄</b></button><span className="filter-divider" /><button className="filter-select muted-select">Toutes les personnes <b>⌄</b></button><span className="live-indicator"><span className="status-dot" /> Mise à jour en direct</span></div>
+    <div className="filter-strip"><PeriodSelector period={period} onChange={onPeriodChange} /><span className="filter-divider" /><button className="filter-select muted-select">Toutes les personnes <b>⌄</b></button><span className="live-indicator"><span className="status-dot" /> Mise à jour en direct</span></div>
     <section className="kpi-grid">
       <KpiCard label="Total de la période" value="1 497,83 $" delta="+12,4 %" caption="vs période précédente" icon="◒" tone="blue" />
       <KpiCard label="Transactions" value="18" delta="5" caption="à traiter" icon="▤" tone="teal" />
@@ -297,7 +385,7 @@ function Dashboard({ onNavigate }: { onNavigate: (view: View) => void }) {
     </section>
     <div className="dashboard-grid">
       <section className="panel attention-panel"><div className="panel-header"><div><p className="eyebrow">Priorités</p><h2>À vérifier maintenant</h2></div><button className="text-button" onClick={() => onNavigate("review")}>Voir les 3 <span>→</span></button></div><div className="attention-list"><AttentionRow tone="gold" label="Lignes incomplètes" title="CANAC · 184,37 $" detail="TX-2026-0048 · 3 photos" onClick={() => onNavigate("review")} /><AttentionRow tone="rose" label="Facture manquante" title="Canadian Tire · 184,37 $" detail="Relevé du 12 juil. · carte 2481" onClick={() => onNavigate("reconciliation")} /><AttentionRow tone="blue" label="SKU à valider" title="Matelas Outbound" detail="Canadian Tire · 07654856" onClick={() => onNavigate("review")} /></div></section>
-      <section className="panel period-panel"><div className="panel-header"><div><p className="eyebrow">Répartition</p><h2>Dépenses par catégorie</h2></div><button className="icon-button">•••</button></div><div className="bar-chart"><Bar label="Matériaux divers" value="38%" width="82%" color="blue" /><Bar label="Essence" value="24%" width="55%" color="teal" /><Bar label="Location équipement" value="19%" width="44%" color="gold" /><Bar label="Maçonnerie" value="11%" width="26%" color="slate" /></div><div className="chart-total"><span>Total avant taxes</span><strong>1 289,42 $</strong></div></section>
+      <section className="panel period-panel"><div className="panel-header"><div><p className="eyebrow">Répartition · {period.label}</p><h2>Dépenses par compte</h2></div><button className="icon-button">•••</button></div><div className="bar-chart"><Bar label="33500 · Matériaux divers" value="38%" width="82%" color="blue" /><Bar label="33544 · Essence" value="24%" width="55%" color="teal" /><Bar label="33536 · Location équipement" value="19%" width="44%" color="gold" /><Bar label="33518 · Maçonnerie" value="11%" width="26%" color="slate" /></div><div className="chart-total"><span>Total avant taxes</span><strong>1 289,42 $</strong></div></section>
     </div>
     <section className="panel recent-panel"><div className="panel-header"><div><p className="eyebrow">Dernières entrées</p><h2>Transactions récentes</h2></div><button className="text-button" onClick={() => onNavigate("transactions")}>Tout voir <span>→</span></button></div><TransactionTable items={transactions.slice(0, 4)} compact onOpen={(id) => { onNavigate("transactions"); void id; }} /></section>
   </>;
@@ -320,11 +408,11 @@ function TransactionsPage({ items, query, setQuery, statusFilter, setStatusFilte
 }
 
 function TransactionTable({ items, compact = false, onOpen }: { items: Transaction[]; compact?: boolean; onOpen?: (id: string) => void }) {
-  return <div className={`table-wrap ${compact ? "compact" : ""}`}><table><thead><tr><th>Transaction</th><th>Date</th><th>Fournisseur</th><th>Titulaire</th><th>Chantier</th><th>Montant</th><th>État</th><th /></tr></thead><tbody>{items.map((item) => <tr key={item.id} onClick={() => onOpen?.(item.id)}><td><div className="transaction-id"><span className="receipt-icon">▧</span><span><strong>{item.id}</strong><small>{item.invoiceNumber} · {item.imageCount} photo{item.imageCount > 1 ? "s" : ""}</small></span></div></td><td>{formatDate(item.date)}</td><td><strong>{item.vendor}</strong><small>{item.category}</small></td><td>{item.person}<small>Carte ···· {item.card}</small></td><td>{item.project}</td><td><strong>{formatCurrency(item.total)}</strong></td><td><span className={statusClass(item.status)}>{item.status}</span><small className="table-substatus">{item.reconciliation}</small></td><td><button className="row-menu" onClick={(event) => { event.stopPropagation(); onOpen?.(item.id); }} aria-label={`Ouvrir ${item.id}`}>→</button></td></tr>)}</tbody></table>{items.length === 0 && <div className="empty-state"><span>⌕</span><strong>Aucune transaction trouvée</strong><p>Modifiez vos filtres pour élargir la recherche.</p></div>}</div>;
+  return <div className={`table-wrap ${compact ? "compact" : ""}`}><table><thead><tr><th>Transaction</th><th>Date</th><th>Fournisseur</th><th>Titulaire</th><th>Chantier</th><th>Montant</th><th>État</th><th /></tr></thead><tbody>{items.map((item) => <tr key={item.id} onClick={() => onOpen?.(item.id)}><td><div className="transaction-id"><span className="receipt-icon">▧</span><span><strong>{item.id}</strong><small>{item.invoiceNumber} · {item.imageCount} photo{item.imageCount > 1 ? "s" : ""}</small></span></div></td><td>{formatDate(item.date)}</td><td><strong>{item.vendor}</strong><small>{accountCodeFor(item.category)} · {item.category}</small></td><td>{item.person}<small>Carte ···· {item.card}</small></td><td>{item.project}</td><td><strong>{formatCurrency(item.total)}</strong></td><td><span className={statusClass(item.status)}>{item.status}</span><small className="table-substatus">{item.reconciliation}</small></td><td><button className="row-menu" onClick={(event) => { event.stopPropagation(); onOpen?.(item.id); }} aria-label={`Ouvrir ${item.id}`}>→</button></td></tr>)}</tbody></table>{items.length === 0 && <div className="empty-state"><span>⌕</span><strong>Aucune transaction trouvée</strong><p>Modifiez vos filtres pour élargir la recherche.</p></div>}</div>;
 }
 
 function ReviewPage({ items, onOpen }: { items: Transaction[]; onOpen: (id: string) => void }) {
-  return <><PageHeading eyebrow="File de traitement" title="À vérifier" description="Les exceptions sont regroupées par raison pour accélérer la validation." action={<button className="secondary-button">Assigner la sélection</button>} /><div className="review-summary"><div><span className="summary-icon gold">!</span><strong>3</strong><span>exceptions actives</span></div><div><span className="summary-icon rose">◷</span><strong>1</strong><span>depuis plus de 24 h</span></div><div><span className="summary-icon blue">⌁</span><strong>2</strong><span>nécessitent une photo</span></div></div><div className="review-groups"><section className="panel"><div className="panel-header"><div><p className="eyebrow">Priorité haute</p><h2>Contrôles à résoudre</h2></div><span className="badge badge-warning">3 dossiers</span></div><div className="review-list">{items.map((item) => <button className="review-row" key={item.id} onClick={() => onOpen(item.id)}><span className="review-check" /><span className="review-icon">{item.issue?.includes("lignes") ? "≋" : item.category === "Divers" ? "⌁" : "!"}</span><span className="review-content"><strong>{item.issue ?? "Vérification administrative requise"}</strong><span>{item.vendor} · {formatCurrency(item.total)} · {item.id}</span></span><span className="review-date">{formatDate(item.date)}</span><span className="row-arrow">→</span></button>)}</div></section><aside className="panel review-guide"><p className="eyebrow">Règle métier</p><h2>Un seul champ en alerte à la fois.</h2><p>Les contrôles sont ciblés pour que Kim ne perde pas de temps dans une mer d’avertissements. Une correction humaine reste prioritaire sur toute nouvelle proposition IA.</p><div className="rule-list"><span>✓</span>Écart monétaire toléré: 0,01 $</div><div className="rule-list"><span>✓</span>Carte absente non bloquante si le dossier est connu</div><div className="rule-list"><span>✓</span>Doublon potentiel jamais supprimé automatiquement</div></aside></div></>;
+  return <><PageHeading eyebrow="File de traitement" title="À vérifier" description="Les exceptions sont regroupées par raison pour accélérer la validation." action={<button className="secondary-button">Assigner la sélection</button>} /><div className="review-summary"><div><span className="summary-icon gold">!</span><strong>3</strong><span>exceptions actives</span></div><div><span className="summary-icon rose">◷</span><strong>1</strong><span>depuis plus de 24 h</span></div><div><span className="summary-icon blue">⌁</span><strong>2</strong><span>nécessitent une photo</span></div></div><div className="review-groups"><section className="panel"><div className="panel-header"><div><p className="eyebrow">Priorité haute</p><h2>Contrôles à résoudre</h2></div><span className="badge badge-warning">3 dossiers</span></div><div className="review-list">{items.map((item) => <button className="review-row" key={item.id} onClick={() => onOpen(item.id)}><span className="review-check" /><span className="review-icon">{item.issue?.includes("Sous-total") ? "≋" : item.category === "Divers" ? "⌁" : "!"}</span><span className="review-content"><strong>{item.issue ?? "Vérification administrative requise"}</strong><span>{item.correction ?? "Correction humaine requise avant validation."}</span><small>{item.vendor} · {formatCurrency(item.total)} · {item.id}</small></span><span className="review-date">{formatDate(item.date)}</span><span className="row-arrow">→</span></button>)}</div></section><aside className="panel review-guide"><p className="eyebrow">Règle métier</p><h2>Un seul champ en alerte à la fois.</h2><p>Les contrôles sont ciblés pour que Kim ne perde pas de temps dans une mer d’avertissements. Une correction humaine reste prioritaire sur toute nouvelle proposition IA.</p><div className="rule-list"><span>✓</span>Écart monétaire toléré: 0,01 $</div><div className="rule-list"><span>✓</span>Carte absente non bloquante si le dossier est connu</div><div className="rule-list"><span>✓</span>Doublon potentiel jamais supprimé automatiquement</div></aside></div></>;
 }
 
 function TransactionDetail({ transaction, onBack, onNotify }: { transaction: Transaction; onBack: () => void; onNotify: (message: string) => void }) {
@@ -347,7 +435,8 @@ function TransactionDetail({ transaction, onBack, onNotify }: { transaction: Tra
       </section>
       <aside className="detail-form">
         <div className="form-section"><div className="section-heading"><span>01</span><div><p className="eyebrow">Provenance</p><h2>Source de la transaction</h2></div></div><div className="provenance-card"><div className="avatar avatar-blue">K</div><div><strong>{transaction.submittedBy}</strong><span>Soumis le {formatDate(transaction.date)} · appareil mobile</span></div><span className="verified-mark">✓</span></div><div className="field-grid"><Field label="Personne associée" value={transaction.person} /><Field label="Carte détectée" value={`•••• ${transaction.card}`} hint="Concordance confirmée" tone="success" /><Field label="Dossier source" value="/dépôts/chantier" /><Field label="Réception" value={`${formatDate(transaction.date)} · 14:32`} /></div></div>
-        <div className="form-section"><div className="section-heading"><span>02</span><div><p className="eyebrow">Facture</p><h2>Données principales</h2></div></div><div className="field-grid"><Field label="Fournisseur" value={transaction.vendor} /><Field label="No facture" value={transaction.invoiceNumber} /><Field label="Date de facture" value={formatDate(transaction.date)} /><Field label="Chantier" value={transaction.project} /><Field label="Catégorie" value={transaction.category} wide /></div></div>
+        <div className="form-section"><div className="section-heading"><span>02</span><div><p className="eyebrow">Facture</p><h2>Données principales</h2></div></div><div className="field-grid"><Field label="Fournisseur" value={transaction.vendor} /><Field label="No facture" value={transaction.invoiceNumber} /><Field label="Date de facture" value={formatDate(transaction.date)} /><Field label="Chantier" value={transaction.project} /><Field label="Catégorie" value={transaction.category} /><Field label="Compte comptable" value={`${accountCodeFor(transaction.category)} · ${transaction.category}`} wide /></div></div>
+        {transaction.issue && <div className="detail-alert"><div className="detail-alert-icon">!</div><div><p className="eyebrow">Action requise avant validation</p><strong>{transaction.issue}</strong><span>{transaction.correction ?? "Correction humaine requise avant validation."}</span></div></div>}
         <div className="form-section"><div className="section-heading"><span>03</span><div><p className="eyebrow">Montants</p><h2>Contrôle comptable</h2></div><span className="control-ok">✓ Contrôles 4/4</span></div><div className="amount-card"><div><span>Sous-total</span><strong>160,35 $</strong></div><div><span>TPS</span><strong>8,02 $</strong></div><div><span>TVQ</span><strong>16,00 $</strong></div><div className="amount-total"><span>Total</span><strong>{formatCurrency(transaction.total)}</strong></div></div></div>
         <div className="form-section"><div className="section-heading"><span>04</span><div><p className="eyebrow">Articles</p><h2>Lignes extraites</h2></div><button className="text-button">＋ Ajouter</button></div><div className="line-items"><div className="line-item"><span>01</span><div><strong>Matériaux / pièce</strong><small>Description originale conservée</small></div><strong>120,00 $</strong></div><div className="line-item warning-line"><span>02</span><div><strong>Article à confirmer</strong><small>Information absente de la page analysée</small></div><strong>—</strong></div></div><div className="field-note">{transaction.note}</div></div>
         <div className="audit-footer">{saved ? "Dernière correction enregistrée à l’instant" : "Dernière analyse IA · il y a 8 min"}<button className="text-button">Voir l’audit →</button></div>
@@ -360,15 +449,17 @@ function Field({ label, value, hint, tone, wide = false }: { label: string; valu
   return <label className={`field ${wide ? "wide" : ""}`}><span>{label}</span><div className="field-value">{value}<span className="field-edit">✎</span></div>{hint && <small className={tone === "success" ? "hint-success" : ""}>{hint}</small>}</label>;
 }
 
-function ReconciliationPage() {
-  return <><PageHeading eyebrow="Contrôle des relevés" title="Rapprochement" description="Comparez les lignes du relevé avec les factures présentes, sans forcer les cas ambigus." action={<button className="primary-button"><span>↑</span> Importer un relevé</button>} /><div className="reconciliation-toolbar"><div className="period-card"><span className="card-icon">▣</span><div><span>Période sélectionnée</span><strong>10 juin → 09 juillet 2026</strong></div><button className="icon-button">⌄</button></div><div className="period-card"><span className="card-icon teal">▤</span><div><span>Carte</span><strong>Toutes les cartes actives</strong></div><button className="icon-button">⌄</button></div></div><div className="reconciliation-stats"><StatTile label="Lignes du relevé" value="24" /><StatTile label="Rapprochées" value="20" tone="success" /><StatTile label="À vérifier" value="2" tone="warning" /><StatTile label="Factures manquantes" value="2" tone="danger" /></div><section className="panel reconciliation-panel"><div className="panel-header"><div><p className="eyebrow">Relevé Mastercard</p><h2>Correspondances et exceptions</h2></div><button className="secondary-button">Exporter les exceptions</button></div><div className="statement-list"><StatementRow date="12 juil. 2026" vendor="Canadian Tire" amount="184,37 $" status="FACTURE MANQUANTE" tone="danger" /><StatementRow date="10 juil. 2026" vendor="Esso" amount="91,52 $" status="RAPPROCHÉE · TX-2026-0046" tone="success" /><StatementRow date="08 juil. 2026" vendor="Béton Montréal" amount="721,80 $" status="RAPPROCHÉE · TX-2026-0044" tone="success" /><StatementRow date="07 juil. 2026" vendor="Location Équipement Plus" amount="438,00 $" status="ÉCART DE DATE" tone="warning" /></div></section></>;
+function ReconciliationPage({ period, onPeriodChange }: { period: CardPeriod; onPeriodChange: (id: string) => void }) {
+  return <><PageHeading eyebrow="Contrôle des relevés" title="Rapprochement" description="Chaque relevé est comparé aux factures reçues pour la même période et la même carte." action={<button className="primary-button"><span>↑</span> Importer un relevé</button>} /><div className="reconciliation-toolbar"><PeriodSelector period={period} onChange={onPeriodChange} /><div className="period-card"><span className="card-icon teal">▤</span><div><span>Cartes incluses</span><strong>{creditCards.filter((card) => card.status === "Actif").length} cartes actives · titulaires associés</strong></div><button className="icon-button">⌄</button></div></div><div className="card-roster">{creditCards.filter((card) => card.status === "Actif").map((card) => <span className="card-chip" key={card.id}><b>•••• {card.lastFour}</b><span>{card.holder}</span></span>)}</div><div className="reconciliation-stats"><StatTile label="Lignes du relevé" value="24" /><StatTile label="Rapprochées" value="20" tone="success" /><StatTile label="À vérifier" value="2" tone="warning" /><StatTile label="Factures manquantes" value="2" tone="danger" /></div><section className="panel reconciliation-panel"><div className="panel-header"><div><p className="eyebrow">{period.statementLabel} · {period.label}</p><h2>Correspondances et exceptions</h2></div><button className="secondary-button">Exporter les exceptions</button></div><div className="reconciliation-explainer"><span className="summary-icon rose">!</span><div><strong>La facture manquante est expliquée ici, pas seulement signalée.</strong><span>Kim voit immédiatement la carte, le titulaire, le montant et l’action à entreprendre.</span></div></div><div className="statement-list"><StatementRow date="12 juil. 2026" vendor="Canadian Tire" amount="184,37 $" card="2481" holder="Keven Tremblay" status="FACTURE MANQUANTE" tone="danger" reason="Aucune facture reçue pour la carte 2481 dans cette période." action="Demander la facture au titulaire Keven Tremblay; vérifier aussi le dépôt mobile." /><StatementRow date="10 juil. 2026" vendor="Esso" amount="91,52 $" card="7184" holder="Stéphane Deschêsne" status="RAPPROCHÉE · TX-2026-0046" tone="success" reason="Facture trouvée et montant concordant." action="Aucune action — conserver la preuve." /><StatementRow date="08 juil. 2026" vendor="Béton Montréal" amount="721,80 $" card="9294" holder="Martial Tremblay" status="RAPPROCHÉE · TX-2026-0044" tone="success" reason="Facture trouvée; compte 33518 · Maçonnerie identifié." action="Aucune action — prêt pour la comptabilité." /><StatementRow date="07 juil. 2026" vendor="Location Équipement Plus" amount="438,00 $" card="0383" holder="Olivier Simard" status="ÉCART DE DATE" tone="warning" reason="Facture reçue, mais la date ne correspond pas à la ligne du relevé." action="Confirmer la date de facture et le bon de livraison avant rapprochement." /></div></section></>;
 }
 
 function StatTile({ label, value, tone = "" }: { label: string; value: string; tone?: string }) { return <div className={`stat-tile ${tone}`}><span>{label}</span><strong>{value}</strong></div>; }
-function StatementRow({ date, vendor, amount, status, tone }: { date: string; vendor: string; amount: string; status: string; tone: string }) { return <div className="statement-row"><span className="statement-date">{date}</span><span className="statement-vendor"><strong>{vendor}</strong><small>Carte •••• 2481</small></span><strong className="statement-amount">{amount}</strong><span className={`statement-status ${tone}`}><span className="status-dot" />{status}</span><button className="row-menu">→</button></div>; }
+function StatementRow({ date, vendor, amount, card, holder, status, tone, reason, action }: { date: string; vendor: string; amount: string; card: string; holder: string; status: string; tone: string; reason: string; action: string }) { return <div className="statement-row"><span className="statement-date">{date}</span><span className="statement-vendor"><strong>{vendor}</strong><small>Carte •••• {card} · {holder}</small></span><strong className="statement-amount">{amount}</strong><span className={`statement-status ${tone}`}><span className="status-dot" />{status}</span><div className="statement-resolution"><strong>Pourquoi</strong><span>{reason}</span><strong>À faire</strong><span>{action}</span></div><button className="row-menu">→</button></div>; }
 
-function ReportsPage() {
-  return <><PageHeading eyebrow="Analyse" title="Rapports" description="Des périodes libres, les mêmes axes que le template, des totaux calculés côté backend." action={<button className="primary-button"><span>⇩</span> Exporter en Excel</button>} /><div className="report-filter-grid"><div><span>Date de début</span><strong>01 août 2026</strong></div><div><span>Date de fin</span><strong>13 août 2026</strong></div><div><span>Titulaire</span><strong>Tous les titulaires⌄</strong></div><div><span>Chantier</span><strong>Tous les chantiers⌄</strong></div></div><div className="report-layout"><section className="panel report-total"><p className="eyebrow">Résumé de période</p><h2>1 497,83 $</h2><p className="muted">18 transactions · 13 validées</p><div className="report-breakdown"><div><span>Avant taxes</span><strong>1 289,42 $</strong></div><div><span>TPS</span><strong>64,47 $</strong></div><div><span>TVQ</span><strong>143,94 $</strong></div></div></section><section className="panel report-table"><div className="panel-header"><div><p className="eyebrow">Résumé par titulaire</p><h2>Qui dépense quoi</h2></div><button className="text-button">Détails →</button></div><div className="mini-table"><div><span>Keven Tremblay</span><strong>492,37 $</strong></div><div><span>Patrice Savard</span><strong>284,14 $</strong></div><div><span>Stéphane Deschêsne</span><strong>241,52 $</strong></div><div><span>Olivier Simard</span><strong>438,00 $</strong></div></div></section></div><section className="panel report-table full-width"><div className="panel-header"><div><p className="eyebrow">Résumé par catégorie comptable</p><h2>Répartition avant taxes</h2></div><button className="secondary-button">Enregistrer ce rapport</button></div><div className="category-report"><div><span><b>33500</b> Matériaux divers</span><strong>492,37 $</strong></div><div><span><b>33544</b> Essence</span><strong>309,84 $</strong></div><div><span><b>33536</b> Location équipement</span><strong>438,00 $</strong></div><div><span><b>33518</b> Maçonnerie</span><strong>49,21 $</strong></div></div></section></>;
+function ReportsPage({ period, onPeriodChange }: { period: CardPeriod; onPeriodChange: (id: string) => void }) {
+  const accountTotals = new Map([["33500", 492.37], ["33544", 309.84], ["33536", 438], ["33518", 49.21]]);
+  const cardTotals = new Map([["2481", 492.37], ["2286", 62.14], ["7184", 91.52], ["0383", 438], ["9294", 721.8]]);
+  return <><PageHeading eyebrow="Analyse" title="Rapports" description="Générez le tableau que Kim reporte dans le programme de comptabilité, sur le même cycle que les cartes." action={<button className="primary-button"><span>⇩</span> Exporter en Excel</button>} /><div className="report-filter-grid"><PeriodSelector period={period} onChange={onPeriodChange} /><div><span>Titulaire</span><strong>Tous les titulaires⌄</strong></div><div><span>Chantier</span><strong>Tous les chantiers⌄</strong></div><div><span>État</span><strong>Validées et à valider⌄</strong></div></div><div className="report-period-note"><span className="status-dot" /><strong>{period.label}</strong><span>· période commune aux {creditCards.filter((card) => card.status === "Actif").length} cartes actives</span></div><div className="report-layout"><section className="panel report-total"><p className="eyebrow">Résumé de période</p><h2>1 497,83 $</h2><p className="muted">18 transactions · 13 validées</p><div className="report-breakdown"><div><span>Avant taxes</span><strong>1 289,42 $</strong></div><div><span>TPS</span><strong>64,47 $</strong></div><div><span>TVQ</span><strong>143,94 $</strong></div></div></section><section className="panel report-table"><div className="panel-header"><div><p className="eyebrow">Résumé par titulaire et carte</p><h2>Qui dépense quoi</h2></div><button className="text-button">Détails →</button></div><div className="mini-table card-total-list">{creditCards.filter((card) => card.status === "Actif").map((card) => <div key={card.id}><span><b>•••• {card.lastFour}</b> {card.holder}</span><strong>{formatCurrency(cardTotals.get(card.lastFour) ?? 0)}</strong></div>)}</div></section></div><section className="panel report-table full-width"><div className="panel-header"><div><p className="eyebrow">Résumé par catégorie comptable</p><h2>Répartition avant taxes · compte utilisé par Kim</h2></div><button className="secondary-button">Enregistrer ce rapport</button></div><div className="account-report-head"><span>Compte</span><span>Catégorie</span><span>Total avant taxes</span></div><div className="category-report">{accountCategories.map((account) => <div key={account.code}><span><b>{account.code}</b></span><span>{account.label}</span><strong>{formatCurrency(accountTotals.get(account.code) ?? 0)}</strong></div>)}</div></section></>;
 }
 
 function ArchivesPage({ onNotify }: { onNotify: (message: string) => void }) {
@@ -378,11 +469,13 @@ function ArchivesPage({ onNotify }: { onNotify: (message: string) => void }) {
 function SettingsPage() {
   const sections = [
     ["Utilisateurs et accès", "Comptes, rôles, personnes, cartes autorisées", "12 comptes"],
-    ["Référentiels métier", "Catégories, chantiers, fournisseurs et aliases", "27 catégories · 6 chantiers"],
+    ["Cartes et titulaires", "Association officielle entre chaque carte et sa personne", "10 actives · 1 inactive"],
+    ["Comptes comptables", "Codes et catégories utilisés dans le rapport de Kim", `${accountCategories.length} comptes`],
+    ["Référentiels métier", "Chantiers, fournisseurs et aliases", "6 chantiers"],
     ["Produits et SKU", "Base Canadian Tire, enrichissement et validations", "2 SKU suivis"],
     ["Contrôles et seuils", "Tolérance monétaire, doublons et règles de validation", "0,01 $"],
     ["Intelligence artificielle", "Fournisseur, modèle, schéma et seuils de confiance", "Gemini · prêt à brancher"],
     ["Archivage", "Rappels, export, vérification et politique de purge", "Mode manuel"],
   ];
-  return <><PageHeading eyebrow="Administration" title="Configuration" description="Toutes les données qui peuvent évoluer restent administrables sans modifier le code." action={<button className="primary-button">＋ Ajouter une règle</button>} /><section className="settings-list">{sections.map(([title, description, meta], index) => <button className="settings-row" key={title}><span className={`settings-number n${index + 1}`}>0{index + 1}</span><span className="settings-copy"><strong>{title}</strong><span>{description}</span></span><span className="settings-meta">{meta}</span><span className="row-arrow">→</span></button>)}</section><div className="config-note"><span>i</span><p><strong>La configuration est en mode démonstration.</strong> Les prochaines mutations seront protégées par les permissions ADMIN côté Convex.</p></div></>;
+  return <><PageHeading eyebrow="Administration" title="Configuration" description="Les cartes, titulaires et comptes comptables restent administrables sans modifier le code." action={<button className="primary-button">＋ Ajouter une règle</button>} /><section className="settings-list">{sections.map(([title, description, meta], index) => <button className="settings-row" key={title}><span className={`settings-number n${index + 1}`}>0{index + 1}</span><span className="settings-copy"><strong>{title}</strong><span>{description}</span></span><span className="settings-meta">{meta}</span><span className="row-arrow">→</span></button>)}</section><section className="panel reference-preview"><div className="panel-header"><div><p className="eyebrow">Source de vérité</p><h2>Cartes actuellement associées</h2></div><span className="badge badge-success">{creditCards.filter((card) => card.status === "Actif").length} actives</span></div><div className="reference-grid">{creditCards.map((card) => <div className={`reference-card ${card.status === "Inactif" ? "inactive" : ""}`} key={card.id}><strong>•••• {card.lastFour}</strong><span>{card.holder}</span><small>{card.id} · {card.status}</small></div>)}</div></section><section className="panel reference-preview"><div className="panel-header"><div><p className="eyebrow">Tableau comptable</p><h2>Comptes disponibles dans les rapports</h2></div><span className="badge badge-neutral">{accountCategories.length} catégories</span></div><div className="account-chip-list">{accountCategories.map((account) => <span key={account.code}><b>{account.code}</b>{account.label}</span>)}</div></section><div className="config-note"><span>i</span><p><strong>La configuration est en mode démonstration.</strong> Les prochaines mutations seront protégées par les permissions ADMIN côté Convex.</p></div></>;
 }

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, readFile, readdir } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import test from "node:test";
 
 async function render(pathname = "/") {
@@ -33,6 +33,8 @@ test("server-renders the Thibeault administration shell", async () => {
   assert.match(html, /Tableau de bord/);
   assert.match(html, /Données de démonstration/);
   assert.match(html, /À vérifier/);
+  assert.match(html, /33544 · Essence/);
+  assert.match(html, /Période des cartes/);
   assert.match(html, /manifest\.webmanifest/);
   assert.doesNotMatch(html, /Your site is taking shape|react-loading-skeleton|codex-preview/);
 });
