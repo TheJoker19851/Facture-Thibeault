@@ -7,18 +7,28 @@ import { firebaseAuth, firebaseConfigured } from "../../firebase/client";
 export { firebaseConfigured };
 
 export function FirebaseShell({ children }: { children: ReactNode }) {
+  const previewMode = process.env.NEXT_PUBLIC_FIREBASE_PREVIEW_MODE === "true";
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(firebaseConfigured);
+  const [hydrated, setHydrated] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!firebaseAuth) return;
-    return onAuthStateChanged(firebaseAuth, (nextUser) => {
+    if (!firebaseAuth) {
+      setHydrated(true);
+      return;
+    }
+    setLoading(true);
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (nextUser) => {
       setUser(nextUser);
       setLoading(false);
     });
+    setHydrated(true);
+    return unsubscribe;
   }, []);
 
-  if (!firebaseConfigured || !firebaseAuth) return children;
+  if (previewMode || !firebaseConfigured) return children;
+  if (!hydrated) return children;
+  if (!firebaseAuth) return children;
   if (loading) return <div className="firebase-gate">Vérification de la session…</div>;
   if (!user) return <FirebaseSignIn />;
   return children;

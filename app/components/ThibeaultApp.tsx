@@ -24,6 +24,8 @@ type Transaction = {
   imageCount: number;
   invoiceNumber: string;
   note: string;
+  sku?: string;
+  correctionField?: "subtotal" | "account" | "attachment";
 };
 
 type PhotoItem = {
@@ -54,6 +56,15 @@ type CardPeriod = {
   start: string;
   end: string;
   statementLabel: string;
+};
+
+type SkuReference = {
+  merchant: string;
+  sku: string;
+  label: string;
+  category: string;
+  accountCode: string;
+  status: "Validé" | "À confirmer";
 };
 
 const accountCategories: AccountCategory[] = [
@@ -106,8 +117,22 @@ const cardPeriods: CardPeriod[] = [
 
 const accountCodeByCategory = new Map(accountCategories.map((account) => [account.label, account.code]));
 
+const skuReferences: SkuReference[] = [
+  { merchant: "Canadian Tire", sku: "07654856", label: "Article à confirmer", category: "Divers", accountCode: "33526", status: "À confirmer" },
+];
+
+const projectReferences = ["21 · Façade", "125 · Résidentiel", "133 · Chantier Nord", "135 · Chantier Est", "138 · Atelier", "ADMIN"];
+
 function accountCodeFor(category: string) {
   return accountCodeByCategory.get(category) ?? "—";
+}
+
+function classifyTransaction(transaction: Pick<Transaction, "category" | "sku">) {
+  const skuReference = transaction.sku ? skuReferences.find((reference) => reference.sku === transaction.sku) : undefined;
+  return {
+    code: skuReference?.accountCode ?? accountCodeFor(transaction.category),
+    category: skuReference?.category ?? transaction.category,
+  };
 }
 
 const transactions: Transaction[] = [
@@ -128,6 +153,7 @@ const transactions: Transaction[] = [
     imageCount: 3,
     invoiceNumber: "CAN-84219",
     note: "Facture multipage détectée. Vérifier les lignes manquantes avant validation.",
+    correctionField: "subtotal",
   },
   {
     id: "TX-2026-0047",
@@ -146,6 +172,8 @@ const transactions: Transaction[] = [
     imageCount: 1,
     invoiceNumber: "CT-119402",
     note: "SKU reconnu dans la base locale; contrôle de catégorie en attente.",
+    sku: "07654856",
+    correctionField: "account",
   },
   {
     id: "TX-2026-0046",
@@ -180,6 +208,7 @@ const transactions: Transaction[] = [
     imageCount: 2,
     invoiceNumber: "LEP-2026-081",
     note: "Deux pages regroupées automatiquement; validation administrative requise.",
+    correctionField: "attachment",
   },
   {
     id: "TX-2026-0044",
@@ -231,7 +260,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
   const [selectedId, setSelectedId] = useState<string>(transactions[0].id);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Toutes");
-  const [periodId, setPeriodId] = useState(cardPeriods[0].id);
+  const [selectedPeriod, setSelectedPeriod] = useState(cardPeriods[0]);
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [queueState, setQueueState] = useState<"idle" | "uploading" | "sent">("idle");
   const [isOnline, setIsOnline] = useState(true);
@@ -251,7 +280,6 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
   }, []);
 
   const selected = transactions.find((transaction) => transaction.id === selectedId) ?? transactions[0];
-  const selectedPeriod = cardPeriods.find((period) => period.id === periodId) ?? cardPeriods[0];
   const filteredTransactions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return transactions.filter((transaction) => {
@@ -370,13 +398,13 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
       <section className="content-area">
         <header className="topbar"><div className="breadcrumbs"><span>Maçonnerie Thibeault</span><span>/</span><strong>{navItems.find((item) => item.id === view)?.label ?? "Tableau de bord"}</strong></div><div className="topbar-actions"><span className="demo-note">Données de démonstration</span><button className="icon-button" aria-label="Notifications">♧<span className="notification-dot" /></button><button className="avatar avatar-gold small" onClick={() => { setRole("WORKER"); setView("capture"); }} aria-label="Ouvrir le mode travailleur">K</button></div></header>
         <div className="page-content">
-          {view === "dashboard" && <Dashboard onNavigate={goTo} period={selectedPeriod} onPeriodChange={setPeriodId} />}
+          {view === "dashboard" && <Dashboard onNavigate={goTo} onOpenTransaction={(id) => { setSelectedId(id); setView("transaction"); }} period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
           {view === "transactions" && <TransactionsPage items={filteredTransactions} query={query} setQuery={setQuery} statusFilter={statusFilter} setStatusFilter={setStatusFilter} onOpen={(id) => { setSelectedId(id); setView("transaction" as View); }} />}
           {view === "review" && <ReviewPage items={transactions.filter((item) => item.status !== "Validée")} onOpen={(id) => { setSelectedId(id); setView("transaction" as View); }} />}
-          {view === "reconciliation" && <ReconciliationPage period={selectedPeriod} onPeriodChange={setPeriodId} />}
-          {view === "reports" && <ReportsPage period={selectedPeriod} onPeriodChange={setPeriodId} />}
+          {view === "reconciliation" && <ReconciliationPage period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
+          {view === "reports" && <ReportsPage period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
           {view === "archives" && <ArchivesPage onNotify={notify} />}
-          {view === "settings" && <SettingsPage />}
+          {view === "settings" && <SaferSettingsPage />}
           {(view as string) === "transaction" && <TransactionDetail transaction={selected} onBack={() => setView("transactions")} onNotify={notify} />}
         </div>
       </section>
@@ -389,38 +417,71 @@ function PageHeading({ eyebrow, title, description, action }: { eyebrow: string;
   return <div className="page-heading"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p className="muted heading-description">{description}</p></div>{action}</div>;
 }
 
-function PeriodSelector({ period, onChange }: { period: CardPeriod; onChange: (id: string) => void }) {
-  return <label className="period-selector"><span>Période des cartes</span><select value={period.id} onChange={(event) => onChange(event.target.value)}>{cardPeriods.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select><small>Toutes les cartes actives utilisent ce même cycle.</small></label>;
+function PeriodSelector({ period, onChange }: { period: CardPeriod; onChange: (period: CardPeriod) => void }) {
+  const selectedPreset = cardPeriods.some((option) => option.id === period.id) ? period.id : "custom";
+  const updateDate = (field: "start" | "end", value: string) => {
+    const nextStart = field === "start" ? value : period.start;
+    const nextEnd = field === "end" ? value : period.end;
+    onChange({ ...period, id: "custom", start: nextStart, end: nextEnd, label: formatDate(nextStart) + " → " + formatDate(nextEnd), statementLabel: "Relevé Mastercard · période personnalisée" });
+  };
+  return <div className="period-selector"><span>Période des cartes</span><select value={selectedPreset} onChange={(event) => { const option = cardPeriods.find((candidate) => candidate.id === event.target.value); if (option) onChange(option); }}><option value="custom">Période personnalisée</option>{cardPeriods.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select><div className="period-custom-dates"><label><span>Du</span><input type="date" value={period.start} max={period.end} onChange={(event) => updateDate("start", event.target.value)} /></label><span className="period-date-arrow">→</span><label><span>Au</span><input type="date" value={period.end} min={period.start} onChange={(event) => updateDate("end", event.target.value)} /></label></div><small>Toutes les cartes actives utilisent ce même cycle.</small></div>;
 }
 
-function Dashboard({ onNavigate, period, onPeriodChange }: { onNavigate: (view: View) => void; period: CardPeriod; onPeriodChange: (id: string) => void }) {
+type DashboardTab = "holders" | "transactions" | "review" | "accounting";
+
+function Dashboard({ onNavigate, onOpenTransaction, period, onPeriodChange }: { onNavigate: (view: View) => void; onOpenTransaction: (id: string) => void; period: CardPeriod; onPeriodChange: (period: CardPeriod) => void }) {
+  const [activeTab, setActiveTab] = useState<DashboardTab>("holders");
+  const [focusedPerson, setFocusedPerson] = useState("TOUS");
+  const holderRows = creditCards.filter((card) => card.status === "Actif").map((card) => {
+    const items = transactions.filter((transaction) => transaction.person === card.holder);
+    return { card, items, total: items.reduce((sum, item) => sum + item.total, 0) };
+  });
+  const choosePerson = (person: string) => {
+    setFocusedPerson(person);
+    setActiveTab("transactions");
+  };
+
   return <>
-    <PageHeading eyebrow="Vue d’ensemble" title="Bonjour Kim" description="Voici ce qui mérite votre attention aujourd’hui." action={<button className="primary-button" onClick={() => onNavigate("transactions")}><span>＋</span> Voir les transactions</button>} />
-    <div className="filter-strip"><PeriodSelector period={period} onChange={onPeriodChange} /><span className="filter-divider" /><button className="filter-select muted-select">Toutes les personnes <b>⌄</b></button><span className="live-indicator"><span className="status-dot" /> Mise à jour en direct</span></div>
-    <section className="kpi-grid">
-      <KpiCard label="Total de la période" value="1 497,83 $" delta="+12,4 %" caption="vs période précédente" icon="◒" tone="blue" />
-      <KpiCard label="Transactions" value="18" delta="5" caption="à traiter" icon="▤" tone="teal" />
-      <KpiCard label="À vérifier" value="3" delta="Prioritaire" caption="dont 1 facture multipage" icon="!" tone="gold" />
-      <KpiCard label="Factures manquantes" value="2" delta="184,37 $" caption="à rapprocher" icon="□" tone="rose" />
-    </section>
-    <div className="dashboard-grid">
-      <section className="panel attention-panel"><div className="panel-header"><div><p className="eyebrow">Priorités</p><h2>À vérifier maintenant</h2></div><button className="text-button" onClick={() => onNavigate("review")}>Voir les 3 <span>→</span></button></div><div className="attention-list"><AttentionRow tone="gold" label="Lignes incomplètes" title="CANAC · 184,37 $" detail="TX-2026-0048 · 3 photos" onClick={() => onNavigate("review")} /><AttentionRow tone="rose" label="Facture manquante" title="Canadian Tire · 184,37 $" detail="Relevé du 12 juil. · carte 2481" onClick={() => onNavigate("reconciliation")} /><AttentionRow tone="blue" label="SKU à valider" title="Matelas Outbound" detail="Canadian Tire · 07654856" onClick={() => onNavigate("review")} /></div></section>
-      <section className="panel period-panel"><div className="panel-header"><div><p className="eyebrow">Répartition · {period.label}</p><h2>Dépenses par compte</h2></div><button className="icon-button">•••</button></div><div className="bar-chart"><Bar label="33500 · Matériaux divers" value="38%" width="82%" color="blue" /><Bar label="33544 · Essence" value="24%" width="55%" color="teal" /><Bar label="33536 · Location équipement" value="19%" width="44%" color="gold" /><Bar label="33518 · Maçonnerie" value="11%" width="26%" color="slate" /></div><div className="chart-total"><span>Total avant taxes</span><strong>1 289,42 $</strong></div></section>
+    <PageHeading eyebrow="Vue d’ensemble" title="Bonjour Kim" description="Un espace de contrôle organisé par titulaire, facture et période comptable." action={<button className="primary-button" onClick={() => onNavigate("capture")}><span>＋</span> Ouvrir le mode travailleur</button>} />
+    <div className="filter-strip"><PeriodSelector period={period} onChange={onPeriodChange} /><span className="filter-divider" /><span className="live-indicator"><span className="status-dot" /> Données prêtes pour le cycle sélectionné</span></div>
+    <div className="dashboard-tabs" role="tablist" aria-label="Sections du tableau de bord">
+      <button className={`dashboard-tab ${activeTab === "holders" ? "active" : ""}`} onClick={() => setActiveTab("holders")} role="tab" aria-selected={activeTab === "holders"}>1 · Titulaires</button>
+      <button className={`dashboard-tab ${activeTab === "transactions" ? "active" : ""}`} onClick={() => setActiveTab("transactions")} role="tab" aria-selected={activeTab === "transactions"}>2 · Transactions par personne</button>
+      <button className={`dashboard-tab ${activeTab === "review" ? "active" : ""}`} onClick={() => setActiveTab("review")} role="tab" aria-selected={activeTab === "review"}>3 · Factures à corriger</button>
+      <button className={`dashboard-tab ${activeTab === "accounting" ? "active" : ""}`} onClick={() => setActiveTab("accounting")} role="tab" aria-selected={activeTab === "accounting"}>4 · Tableau comptable</button>
     </div>
-    <section className="panel recent-panel"><div className="panel-header"><div><p className="eyebrow">Dernières entrées</p><h2>Transactions récentes</h2></div><button className="text-button" onClick={() => onNavigate("transactions")}>Tout voir <span>→</span></button></div><TransactionTable items={transactions.slice(0, 4)} compact onOpen={(id) => { onNavigate("transactions"); void id; }} /></section>
+    {activeTab === "holders" && <DashboardHoldersTab rows={holderRows} onChoose={choosePerson} />}
+    {activeTab === "transactions" && <DashboardTransactionsTab rows={holderRows} focusedPerson={focusedPerson} onFocus={setFocusedPerson} onOpen={onOpenTransaction} />}
+    {activeTab === "review" && <DashboardReviewTab onOpen={onOpenTransaction} />}
+    {activeTab === "accounting" && <KimAccountingReport period={period} onPeriodChange={onPeriodChange} embedded />}
   </>;
 }
 
-function KpiCard({ label, value, delta, caption, icon, tone }: { label: string; value: string; delta: string; caption: string; icon: string; tone: string }) {
-  return <div className={`kpi-card ${tone}`}><div className="kpi-top"><span>{label}</span><span className="kpi-icon">{icon}</span></div><strong className="kpi-value">{value}</strong><div className="kpi-bottom"><span className="kpi-delta">{delta}</span><span>{caption}</span></div></div>;
+type HolderRow = { card: CreditCard; items: Transaction[]; total: number };
+
+function DashboardHoldersTab({ rows, onChoose }: { rows: HolderRow[]; onChoose: (person: string) => void }) {
+  const transactionCount = rows.reduce((sum, row) => sum + row.items.length, 0);
+  const grandTotal = rows.reduce((sum, row) => sum + row.total, 0);
+  return <section className="dashboard-tab-panel">
+    <div className="dashboard-tab-heading"><div><p className="eyebrow">1er onglet · cartes actives</p><h2>Qui a dépensé quoi?</h2><p className="muted">Chaque titulaire est résumé avec son nombre de transactions et son total pour la période.</p></div><div className="dashboard-total-pill"><strong>{transactionCount}</strong><span>transactions · {formatCurrency(grandTotal)}</span></div></div>
+    <div className="holder-summary-grid">{rows.map((row) => <button className="holder-summary-card" key={row.card.id} onClick={() => onChoose(row.card.holder)}><span className="holder-summary-top"><span className="avatar avatar-blue small">{row.card.holder.charAt(0)}</span><span><strong>{row.card.holder}</strong><small>Carte ···· {row.card.lastFour}</small></span><span className="row-arrow">→</span></span><span className="holder-summary-metrics"><span><strong>{row.items.length}</strong><small>transaction{row.items.length === 1 ? "" : "s"}</small></span><span><strong>{formatCurrency(row.total)}</strong><small>montant total</small></span></span></button>)}</div>
+  </section>;
 }
 
-function AttentionRow({ tone, label, title, detail, onClick }: { tone: string; label: string; title: string; detail: string; onClick: () => void }) {
-  return <button className="attention-row" onClick={onClick}><span className={`attention-marker ${tone}`} /><span className="attention-copy"><span className={`micro-label ${tone}`}>{label}</span><strong>{title}</strong><span>{detail}</span></span><span className="row-arrow">→</span></button>;
+function DashboardTransactionsTab({ rows, focusedPerson, onFocus, onOpen }: { rows: HolderRow[]; focusedPerson: string; onFocus: (person: string) => void; onOpen: (id: string) => void }) {
+  const visibleRows = focusedPerson === "TOUS" ? rows : rows.filter((row) => row.card.holder === focusedPerson);
+  return <section className="dashboard-tab-panel">
+    <div className="dashboard-tab-heading"><div><p className="eyebrow">2e onglet · groupes extensibles</p><h2>Transactions par utilisateur</h2><p className="muted">Ouvrez seulement le titulaire que vous devez contrôler; les autres restent repliés.</p></div><label className="dashboard-person-filter"><span>Titulaire</span><select value={focusedPerson} onChange={(event) => onFocus(event.target.value)}><option value="TOUS">Tous les titulaires</option>{rows.map((row) => <option value={row.card.holder} key={row.card.id}>{row.card.holder}</option>)}</select></label></div>
+    <div className="user-transaction-list">{visibleRows.map((row) => <details className="user-transaction-card" key={row.card.id} open={focusedPerson !== "TOUS"}><summary><span className="avatar avatar-blue small">{row.card.holder.charAt(0)}</span><span className="user-transaction-heading"><strong>{row.card.holder}</strong><small>Carte ···· {row.card.lastFour} · {row.items.length} transaction{row.items.length === 1 ? "" : "s"}</small></span><strong>{formatCurrency(row.total)}</strong><span className="details-chevron">⌄</span></summary><div className="user-transaction-body"><TransactionTable items={row.items} compact onOpen={onOpen} /></div></details>)}</div>
+  </section>;
 }
 
-function Bar({ label, value, width, color }: { label: string; value: string; width: string; color: string }) {
-  return <div className="bar-row"><div><span>{label}</span><strong>{value}</strong></div><div className="bar-track"><span className={`bar-fill ${color}`} style={{ width }} /></div></div>;
+function DashboardReviewTab({ onOpen }: { onOpen: (id: string) => void }) {
+  const items = transactions.filter((transaction) => transaction.issue || transaction.status !== "Validée");
+  return <section className="dashboard-tab-panel">
+    <div className="dashboard-tab-heading"><div><p className="eyebrow">3e onglet · contrôle humain</p><h2>Factures avec corrections</h2><p className="muted">Sélectionnez une facture pour ouvrir sa preuve et voir le champ à corriger en évidence.</p></div><span className="badge badge-warning">{items.length} dossiers</span></div>
+    <div className="dashboard-review-list">{items.map((item) => <button className="dashboard-review-card" key={item.id} onClick={() => onOpen(item.id)}><span className="dashboard-review-icon">!</span><span className="dashboard-review-copy"><strong>{item.vendor} · {formatCurrency(item.total)}</strong><span>{item.issue ?? "Validation administrative requise"}</span><small>{item.id} · {item.imageCount} photo{item.imageCount === 1 ? "" : "s"} · {item.correctionField === "account" ? "compte comptable" : item.correctionField === "subtotal" ? "sous-total" : "pièce justificative"}</small></span><span className="row-arrow">→</span></button>)}</div>
+  </section>;
 }
 
 function TransactionsPage({ items, query, setQuery, statusFilter, setStatusFilter, onOpen }: { items: Transaction[]; query: string; setQuery: (value: string) => void; statusFilter: string; setStatusFilter: (value: string) => void; onOpen: (id: string) => void }) {
@@ -428,7 +489,7 @@ function TransactionsPage({ items, query, setQuery, statusFilter, setStatusFilte
 }
 
 function TransactionTable({ items, compact = false, onOpen }: { items: Transaction[]; compact?: boolean; onOpen?: (id: string) => void }) {
-  return <div className={`table-wrap ${compact ? "compact" : ""}`}><table><thead><tr><th>Transaction</th><th>Date</th><th>Fournisseur</th><th>Titulaire</th><th>Chantier</th><th>Montant</th><th>État</th><th /></tr></thead><tbody>{items.map((item) => <tr key={item.id} onClick={() => onOpen?.(item.id)}><td><div className="transaction-id"><span className="receipt-icon">▧</span><span><strong>{item.id}</strong><small>{item.invoiceNumber} · {item.imageCount} photo{item.imageCount > 1 ? "s" : ""}</small></span></div></td><td>{formatDate(item.date)}</td><td><strong>{item.vendor}</strong><small>{accountCodeFor(item.category)} · {item.category}</small></td><td>{item.person}<small>Carte ···· {item.card}</small></td><td>{item.project}</td><td><strong>{formatCurrency(item.total)}</strong></td><td><span className={statusClass(item.status)}>{item.status}</span><small className="table-substatus">{item.reconciliation}</small></td><td><button className="row-menu" onClick={(event) => { event.stopPropagation(); onOpen?.(item.id); }} aria-label={`Ouvrir ${item.id}`}>→</button></td></tr>)}</tbody></table>{items.length === 0 && <div className="empty-state"><span>⌕</span><strong>Aucune transaction trouvée</strong><p>Modifiez vos filtres pour élargir la recherche.</p></div>}</div>;
+  return <div className={`table-wrap ${compact ? "compact" : ""}`}><table><thead><tr><th>Transaction</th><th>Date</th><th>Fournisseur</th><th>Titulaire</th><th>Chantier</th><th>Montant</th><th>État</th><th /></tr></thead><tbody>{items.map((item) => { const classification = classifyTransaction(item); return <tr key={item.id} onClick={() => onOpen?.(item.id)}><td><div className="transaction-id"><span className="receipt-icon">▧</span><span><strong>{item.id}</strong><small>{item.invoiceNumber} · {item.imageCount} photo{item.imageCount > 1 ? "s" : ""}</small></span></div></td><td>{formatDate(item.date)}</td><td><strong>{item.vendor}</strong><small>{classification.code} · {classification.category}</small></td><td>{item.person}<small>Carte ···· {item.card}</small></td><td>{item.project}</td><td><strong>{formatCurrency(item.total)}</strong></td><td><span className={statusClass(item.status)}>{item.status}</span><small className="table-substatus">{item.reconciliation}</small></td><td><button className="row-menu" onClick={(event) => { event.stopPropagation(); onOpen?.(item.id); }} aria-label={`Ouvrir ${item.id}`}>→</button></td></tr>; })}</tbody></table>{items.length === 0 && <div className="empty-state"><span>⌕</span><strong>Aucune transaction trouvée</strong><p>Modifiez vos filtres pour élargir la recherche.</p></div>}</div>;
 }
 
 function ReviewPage({ items, onOpen }: { items: Transaction[]; onOpen: (id: string) => void }) {
@@ -438,6 +499,10 @@ function ReviewPage({ items, onOpen }: { items: Transaction[]; onOpen: (id: stri
 function TransactionDetail({ transaction, onBack, onNotify }: { transaction: Transaction; onBack: () => void; onNotify: (message: string) => void }) {
   const [activePage, setActivePage] = useState(1);
   const [saved, setSaved] = useState(false);
+  const [draftCategory, setDraftCategory] = useState(transaction.category);
+  const [draftSubtotal, setDraftSubtotal] = useState("160.35");
+  const [attachmentAdded, setAttachmentAdded] = useState(false);
+  const classification = classifyTransaction({ category: draftCategory, sku: transaction.sku });
   return <>
     <div className="detail-toolbar">
       <button className="back-button" onClick={onBack}>← <span>Transactions</span></button>
@@ -455,57 +520,112 @@ function TransactionDetail({ transaction, onBack, onNotify }: { transaction: Tra
       </section>
       <aside className="detail-form">
         <div className="form-section"><div className="section-heading"><span>01</span><div><p className="eyebrow">Provenance</p><h2>Source de la transaction</h2></div></div><div className="provenance-card"><div className="avatar avatar-blue">K</div><div><strong>{transaction.submittedBy}</strong><span>Soumis le {formatDate(transaction.date)} · appareil mobile</span></div><span className="verified-mark">✓</span></div><div className="field-grid"><Field label="Personne associée" value={transaction.person} /><Field label="Carte détectée" value={`•••• ${transaction.card}`} hint="Concordance confirmée" tone="success" /><Field label="Dossier source" value="/dépôts/chantier" /><Field label="Réception" value={`${formatDate(transaction.date)} · 14:32`} /></div></div>
-        <div className="form-section"><div className="section-heading"><span>02</span><div><p className="eyebrow">Facture</p><h2>Données principales</h2></div></div><div className="field-grid"><Field label="Fournisseur" value={transaction.vendor} /><Field label="No facture" value={transaction.invoiceNumber} /><Field label="Date de facture" value={formatDate(transaction.date)} /><Field label="Chantier" value={transaction.project} /><Field label="Catégorie" value={transaction.category} /><Field label="Compte comptable" value={`${accountCodeFor(transaction.category)} · ${transaction.category}`} wide /></div></div>
+        <div className="form-section"><div className="section-heading"><span>02</span><div><p className="eyebrow">Facture</p><h2>Données principales</h2></div></div><div className="field-grid"><Field label="Fournisseur" value={transaction.vendor} /><Field label="No facture" value={transaction.invoiceNumber} /><Field label="Date de facture" value={formatDate(transaction.date)} /><Field label="Chantier" value={transaction.project} /><Field label="Catégorie" value={draftCategory} /><Field label="Compte comptable" value={`${classification.code} · ${classification.category}`} invalid={transaction.correctionField === "account"} wide /></div>{transaction.correctionField === "account" && <label className="correction-editor correction-editor-danger"><span>Corriger la classification proposée par le SKU {transaction.sku}</span><select value={draftCategory} onChange={(event) => setDraftCategory(event.target.value)}>{accountCategories.map((account) => <option value={account.label} key={account.code}>{account.code} · {account.label}</option>)}</select></label>}</div>
         {transaction.issue && <div className="detail-alert"><div className="detail-alert-icon">!</div><div><p className="eyebrow">Action requise avant validation</p><strong>{transaction.issue}</strong><span>{transaction.correction ?? "Correction humaine requise avant validation."}</span></div></div>}
-        <div className="form-section"><div className="section-heading"><span>03</span><div><p className="eyebrow">Montants</p><h2>Contrôle comptable</h2></div><span className="control-ok">✓ Contrôles 4/4</span></div><div className="amount-card"><div><span>Sous-total</span><strong>160,35 $</strong></div><div><span>TPS</span><strong>8,02 $</strong></div><div><span>TVQ</span><strong>16,00 $</strong></div><div className="amount-total"><span>Total</span><strong>{formatCurrency(transaction.total)}</strong></div></div></div>
-        <div className="form-section"><div className="section-heading"><span>04</span><div><p className="eyebrow">Articles</p><h2>Lignes extraites</h2></div><button className="text-button">＋ Ajouter</button></div><div className="line-items"><div className="line-item"><span>01</span><div><strong>Matériaux / pièce</strong><small>Description originale conservée</small></div><strong>120,00 $</strong></div><div className="line-item warning-line"><span>02</span><div><strong>Article à confirmer</strong><small>Information absente de la page analysée</small></div><strong>—</strong></div></div><div className="field-note">{transaction.note}</div></div>
+        <div className="form-section"><div className="section-heading"><span>03</span><div><p className="eyebrow">Montants</p><h2>Contrôle comptable</h2></div><span className="control-ok">✓ Contrôles 4/4</span></div><div className="amount-card"><div className={transaction.correctionField === "subtotal" ? "amount-invalid" : ""}><span>Sous-total</span>{transaction.correctionField === "subtotal" ? <input className="amount-input" type="number" step="0.01" value={draftSubtotal} onChange={(event) => setDraftSubtotal(event.target.value)} /> : <strong>160,35 $</strong>}</div><div><span>TPS</span><strong>8,02 $</strong></div><div><span>TVQ</span><strong>16,00 $</strong></div><div className="amount-total"><span>Total</span><strong>{formatCurrency(transaction.total)}</strong></div></div></div>
+        <div className="form-section"><div className="section-heading"><span>04</span><div><p className="eyebrow">Articles</p><h2>Lignes extraites</h2></div><button className="text-button">＋ Ajouter</button></div><div className="line-items"><div className="line-item"><span>01</span><div><strong>Matériaux / pièce</strong><small>Description originale conservée</small></div><strong>120,00 $</strong></div><div className="line-item warning-line"><span>02</span><div><strong>Article à confirmer</strong><small>Information absente de la page analysée</small></div><strong>—</strong></div></div><div className="field-note">{transaction.note}</div>{transaction.correctionField === "attachment" && <div className="correction-editor correction-editor-danger"><strong>Bon de livraison requis</strong><span>Cette correction doit être jointe à la facture avant la validation.</span><button className="secondary-button" onClick={() => setAttachmentAdded(true)}>{attachmentAdded ? "Pièce ajoutée ✓" : "Ajouter la pièce justificative"}</button></div>}</div>
         <div className="audit-footer">{saved ? "Dernière correction enregistrée à l’instant" : "Dernière analyse IA · il y a 8 min"}<button className="text-button">Voir l’audit →</button></div>
       </aside>
     </div>
   </>;
 }
 
-function Field({ label, value, hint, tone, wide = false }: { label: string; value: string; hint?: string; tone?: string; wide?: boolean }) {
-  return <label className={`field ${wide ? "wide" : ""}`}><span>{label}</span><div className="field-value">{value}<span className="field-edit">✎</span></div>{hint && <small className={tone === "success" ? "hint-success" : ""}>{hint}</small>}</label>;
+function Field({ label, value, hint, tone, wide = false, invalid = false }: { label: string; value: string; hint?: string; tone?: string; wide?: boolean; invalid?: boolean }) {
+  return <label className={`field ${wide ? "wide" : ""} ${invalid ? "field-invalid" : ""}`}><span>{label}{invalid && <b> · correction requise</b>}</span><div className="field-value">{value}<span className="field-edit">✎</span></div>{hint && <small className={tone === "success" ? "hint-success" : ""}>{hint}</small>}</label>;
 }
 
-function ReconciliationPage({ period, onPeriodChange }: { period: CardPeriod; onPeriodChange: (id: string) => void }) {
+function ReconciliationPage({ period, onPeriodChange }: { period: CardPeriod; onPeriodChange: (period: CardPeriod) => void }) {
   return <><PageHeading eyebrow="Contrôle des relevés" title="Rapprochement" description="Chaque relevé est comparé aux factures reçues pour la même période et la même carte." action={<button className="primary-button"><span>↑</span> Importer un relevé</button>} /><div className="reconciliation-toolbar"><PeriodSelector period={period} onChange={onPeriodChange} /><div className="period-card"><span className="card-icon teal">▤</span><div><span>Cartes incluses</span><strong>{creditCards.filter((card) => card.status === "Actif").length} cartes actives · titulaires associés</strong></div><button className="icon-button">⌄</button></div></div><div className="card-roster">{creditCards.filter((card) => card.status === "Actif").map((card) => <span className="card-chip" key={card.id}><b>•••• {card.lastFour}</b><span>{card.holder}</span></span>)}</div><div className="reconciliation-stats"><StatTile label="Lignes du relevé" value="24" /><StatTile label="Rapprochées" value="20" tone="success" /><StatTile label="À vérifier" value="2" tone="warning" /><StatTile label="Factures manquantes" value="2" tone="danger" /></div><section className="panel reconciliation-panel"><div className="panel-header"><div><p className="eyebrow">{period.statementLabel} · {period.label}</p><h2>Correspondances et exceptions</h2></div><button className="secondary-button">Exporter les exceptions</button></div><div className="reconciliation-explainer"><span className="summary-icon rose">!</span><div><strong>La facture manquante est expliquée ici, pas seulement signalée.</strong><span>Kim voit immédiatement la carte, le titulaire, le montant et l’action à entreprendre.</span></div></div><div className="statement-list"><StatementRow date="12 juil. 2026" vendor="Canadian Tire" amount="184,37 $" card="2481" holder="Keven Tremblay" status="FACTURE MANQUANTE" tone="danger" reason="Aucune facture reçue pour la carte 2481 dans cette période." action="Demander la facture au titulaire Keven Tremblay; vérifier aussi le dépôt mobile." /><StatementRow date="10 juil. 2026" vendor="Esso" amount="91,52 $" card="7184" holder="Stéphane Deschêsne" status="RAPPROCHÉE · TX-2026-0046" tone="success" reason="Facture trouvée et montant concordant." action="Aucune action — conserver la preuve." /><StatementRow date="08 juil. 2026" vendor="Béton Montréal" amount="721,80 $" card="9294" holder="Martial Tremblay" status="RAPPROCHÉE · TX-2026-0044" tone="success" reason="Facture trouvée; compte 33518 · Maçonnerie identifié." action="Aucune action — prêt pour la comptabilité." /><StatementRow date="07 juil. 2026" vendor="Location Équipement Plus" amount="438,00 $" card="0383" holder="Olivier Simard" status="ÉCART DE DATE" tone="warning" reason="Facture reçue, mais la date ne correspond pas à la ligne du relevé." action="Confirmer la date de facture et le bon de livraison avant rapprochement." /></div></section></>;
 }
 
 function StatTile({ label, value, tone = "" }: { label: string; value: string; tone?: string }) { return <div className={`stat-tile ${tone}`}><span>{label}</span><strong>{value}</strong></div>; }
 function StatementRow({ date, vendor, amount, card, holder, status, tone, reason, action }: { date: string; vendor: string; amount: string; card: string; holder: string; status: string; tone: string; reason: string; action: string }) { return <div className="statement-row"><span className="statement-date">{date}</span><span className="statement-vendor"><strong>{vendor}</strong><small>Carte •••• {card} · {holder}</small></span><strong className="statement-amount">{amount}</strong><span className={`statement-status ${tone}`}><span className="status-dot" />{status}</span><div className="statement-resolution"><strong>Pourquoi</strong><span>{reason}</span><strong>À faire</strong><span>{action}</span></div><button className="row-menu">→</button></div>; }
 
-function ReportsPage(props: { period: CardPeriod; onPeriodChange: (id: string) => void }) {
-  return <DemoReportsPage {...props} />;
+function ReportsPage(props: { period: CardPeriod; onPeriodChange: (period: CardPeriod) => void }) {
+  return <KimAccountingReport {...props} />;
 }
 
-function DemoReportsPage({ period, onPeriodChange }: { period: CardPeriod; onPeriodChange: (id: string) => void }) {
-  const accountTotals = new Map([["33500", 492.37], ["33544", 309.84], ["33536", 438], ["33518", 49.21]]);
-  const cardTotals = new Map([["2481", 492.37], ["2286", 62.14], ["7184", 91.52], ["0383", 438], ["9294", 721.8]]);
+function KimAccountingReport({ period, onPeriodChange, embedded = false }: { period: CardPeriod; onPeriodChange: (period: CardPeriod) => void; embedded?: boolean }) {
+  void DemoReportsPage;
+  const [selectedPerson, setSelectedPerson] = useState("TOUS");
+  const people = Array.from(new Set(creditCards.map((card) => card.holder)));
+  const visibleTransactions = useMemo(() => transactions.filter((transaction) => {
+    const matchesPerson = selectedPerson === "TOUS" || transaction.person === selectedPerson;
+    const isIncludedStatus = transaction.status === "Validée" || transaction.status === "À valider";
+    return matchesPerson && isIncludedStatus;
+  }), [selectedPerson]);
+  const visibleTotals = useMemo(() => {
+    const totals = new Map<string, number>();
+    visibleTransactions.forEach((transaction) => {
+      const accountCode = classifyTransaction(transaction).code;
+      totals.set(accountCode, (totals.get(accountCode) ?? 0) + transaction.total);
+    });
+    return totals;
+  }, [visibleTransactions]);
+  const visibleTotal = Array.from(visibleTotals.values()).reduce((sum, amount) => sum + amount, 0);
+  return <>
+    {!embedded && <PageHeading eyebrow="Analyse" title="Rapports" description="Le tableau compact utilisé par Kim pour reporter les dépenses dans la comptabilité." action={<button className="primary-button"><span>⇩</span> Exporter en Excel</button>} />}
+    <div className="kim-report-toolbar">
+      {!embedded && <PeriodSelector period={period} onChange={onPeriodChange} />}
+      <label><span>Titulaire de carte</span><select aria-label="Filtrer par titulaire de carte" value={selectedPerson} onChange={(event) => setSelectedPerson(event.target.value)}><option value="TOUS">Tous les titulaires</option>{people.map((person) => <option value={person} key={person}>{person}</option>)}</select></label>
+      <div className="kim-report-context"><span className="status-dot" /><span>{period.label}</span><small>{visibleTransactions.length} transactions incluses</small></div>
+    </div>
+    <section className="panel kim-report-table">
+      <div className="panel-header"><div><p className="eyebrow">Tableau de Kim</p><h2>Résumé par catégorie comptable</h2></div><span className="badge badge-neutral">Avant taxes</span></div>
+      <div className="kim-report-head"><span>Compte</span><span>Catégorie</span><span>Total avant taxes</span></div>
+      <div className="kim-report-rows">{accountCategories.map((account) => <div key={account.code}><span><b>{account.code}</b></span><span>{account.label}</span><strong>{formatCurrency(visibleTotals.get(account.code) ?? 0)}</strong></div>)}</div>
+      <div className="account-report-total"><strong>TOTAL CATÉGORIES</strong><strong>{formatCurrency(visibleTotal)}</strong></div>
+    </section>
+  </>;
+}
+
+function DemoReportsPage({ period, onPeriodChange }: { period: CardPeriod; onPeriodChange: (period: CardPeriod) => void }) {
   const [selectedPerson, setSelectedPerson] = useState("TOUS");
   const [selectedProject, setSelectedProject] = useState("TOUS");
   const [selectedStatus, setSelectedStatus] = useState("VALIDES_ET_A_VALIDER");
   const people = Array.from(new Set(creditCards.map((card) => card.holder)));
   const projects = ["21", "125", "133", "135", "138", "ADMIN"];
-  const visibleTotals = selectedPerson === "TOUS" ? accountTotals : new Map<string, number>();
+  const visibleTransactions = useMemo(() => transactions.filter((transaction) => {
+    const matchesPerson = selectedPerson === "TOUS" || transaction.person === selectedPerson;
+    const matchesProject = selectedProject === "TOUS" || transaction.project === selectedProject || transaction.project.startsWith(`${selectedProject} ·`);
+    const matchesStatus = (selectedStatus === "VALIDES_ET_A_VALIDER" && (transaction.status === "Validée" || transaction.status === "À valider")) ||
+      (selectedStatus === "VALIDEE" && transaction.status === "Validée") ||
+      (selectedStatus === "A_VALIDER" && transaction.status === "À valider");
+    return matchesPerson && matchesProject && matchesStatus;
+  }), [selectedPerson, selectedProject, selectedStatus]);
+  const visibleTotals = useMemo(() => {
+    const totals = new Map<string, number>();
+    visibleTransactions.forEach((transaction) => {
+      const accountCode = classifyTransaction(transaction).code;
+      totals.set(accountCode, (totals.get(accountCode) ?? 0) + transaction.total);
+    });
+    return totals;
+  }, [visibleTransactions]);
+  const visibleCardTotals = useMemo(() => {
+    const totals = new Map<string, number>();
+    visibleTransactions.forEach((transaction) => {
+      totals.set(transaction.card, (totals.get(transaction.card) ?? 0) + transaction.total);
+    });
+    return totals;
+  }, [visibleTransactions]);
   const visibleTotal = Array.from(visibleTotals.values()).reduce((sum, amount) => sum + amount, 0);
+  const visibleCards = creditCards.filter((card) => card.status === "Actif" && (selectedPerson === "TOUS" || card.holder === selectedPerson));
 
   return <>
     <PageHeading eyebrow="Analyse" title="Rapports" description="Générez le tableau que Kim reporte dans le programme de comptabilité, sur le même cycle que les cartes." action={<button className="primary-button"><span>⇩</span> Exporter en Excel</button>} />
     <div className="report-filter-grid">
       <PeriodSelector period={period} onChange={onPeriodChange} />
-      <label><span>Titulaire</span><select aria-label="Filtrer par titulaire" value={selectedPerson} onChange={(event) => setSelectedPerson(event.target.value)}><option value="TOUS">Tous les titulaires</option>{people.map((person) => <option value={person} key={person}>{person}</option>)}</select></label>
+      <label><span>Titulaire de carte</span><select aria-label="Filtrer par titulaire de carte" value={selectedPerson} onChange={(event) => setSelectedPerson(event.target.value)}><option value="TOUS">Tous les titulaires</option>{people.map((person) => <option value={person} key={person}>{person}</option>)}</select></label>
       <label><span>Chantier</span><select aria-label="Filtrer par chantier" value={selectedProject} onChange={(event) => setSelectedProject(event.target.value)}><option value="TOUS">Tous les chantiers</option>{projects.map((project) => <option value={project} key={project}>{project}</option>)}</select></label>
       <label><span>État</span><select aria-label="Filtrer par état" value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)}><option value="VALIDES_ET_A_VALIDER">Validées et à valider</option><option value="VALIDEE">Validées seulement</option><option value="A_VALIDER">À valider seulement</option></select></label>
     </div>
     <div className="report-period-note"><span className="status-dot" /><strong>{period.label}</strong><span>· {selectedPerson === "TOUS" ? "tous les titulaires" : selectedPerson} · {selectedProject === "TOUS" ? "tous les chantiers" : `chantier ${selectedProject}`}</span></div>
-    <div className="report-local-note"><strong>Prévisualisation locale.</strong><span>Le sélecteur est prêt; les montants par titulaire, chantier et statut seront alimentés par Firebase dès que l’environnement sera connecté.</span></div>
+    <div className="report-local-note"><strong>Prévisualisation locale.</strong><span>Les filtres titulaire, chantier et état calculent maintenant les montants à partir des transactions de démonstration. La source SQL Connect remplacera ces données sans modifier le tableau.</span></div>
     <div className="report-layout">
-      <section className="panel report-total"><p className="eyebrow">Résumé de période</p><h2>{formatCurrency(visibleTotal)}</h2><p className="muted">{selectedPerson === "TOUS" ? "Données de démonstration" : "Aucune ventilation locale pour ce titulaire"}</p><div className="report-breakdown"><div><span>Avant taxes</span><strong>{formatCurrency(visibleTotal)}</strong></div><div><span>TPS</span><strong>—</strong></div><div><span>TVQ</span><strong>—</strong></div></div></section>
-      <section className="panel report-table"><div className="panel-header"><div><p className="eyebrow">Résumé par titulaire et carte</p><h2>Qui dépense quoi</h2></div><button className="text-button">Détails →</button></div><div className="mini-table card-total-list">{creditCards.filter((card) => card.status === "Actif").map((card) => <div key={card.id}><span><b>•••• {card.lastFour}</b> {card.holder}</span><strong>{formatCurrency(selectedPerson === "TOUS" ? cardTotals.get(card.lastFour) ?? 0 : 0)}</strong></div>)}</div></section>
+      <section className="panel report-total"><p className="eyebrow">Résumé de période</p><h2>{formatCurrency(visibleTotal)}</h2><p className="muted">{visibleTransactions.length} transaction{visibleTransactions.length === 1 ? "" : "s"} dans cette vue</p><div className="report-breakdown"><div><span>Avant taxes</span><strong>{formatCurrency(visibleTotal)}</strong></div><div><span>TPS</span><strong>—</strong></div><div><span>TVQ</span><strong>—</strong></div></div></section>
+      <section className="panel report-table"><div className="panel-header"><div><p className="eyebrow">Résumé par titulaire et carte</p><h2>Qui dépense quoi</h2></div><button className="text-button">Détails →</button></div><div className="mini-table card-total-list">{visibleCards.map((card) => <div key={card.id}><span><b>•••• {card.lastFour}</b> {card.holder}</span><strong>{formatCurrency(visibleCardTotals.get(card.lastFour) ?? 0)}</strong></div>)}</div></section>
     </div>
-    <section className="panel report-table full-width"><div className="panel-header"><div><p className="eyebrow">Résumé par catégorie comptable</p><h2>Répartition avant taxes · compte utilisé par Kim</h2></div><button className="secondary-button">Enregistrer ce rapport</button></div><div className="account-report-head"><span>Compte</span><span>Catégorie</span><span>Total avant taxes</span></div><div className="category-report">{accountCategories.map((account) => <div key={account.code}><span><b>{account.code}</b></span><span>{account.label}</span><strong>{formatCurrency(visibleTotals.get(account.code) ?? 0)}</strong></div>)}</div></section>
+    <section className="panel report-table full-width"><div className="panel-header"><div><p className="eyebrow">Résumé par catégorie comptable</p><h2>Répartition avant taxes · compte utilisé par Kim</h2></div><button className="secondary-button">Enregistrer ce rapport</button></div><div className="account-report-head"><span>Compte</span><span>Catégorie</span><span>Total avant taxes</span></div><div className="category-report">{accountCategories.map((account) => <div key={account.code}><span><b>{account.code}</b></span><span>{account.label}</span><strong>{formatCurrency(visibleTotals.get(account.code) ?? 0)}</strong></div>)}</div><div className="account-report-total"><strong>TOTAL CATÉGORIES</strong><strong>{formatCurrency(visibleTotal)}</strong></div></section>
   </>;
 }
 
@@ -513,16 +633,131 @@ function ArchivesPage({ onNotify }: { onNotify: (message: string) => void }) {
   return <><PageHeading eyebrow="Conservation" title="Archives" description="Les données structurées restent accessibles; seules les photos admissibles peuvent être purgées." action={<button className="secondary-button" onClick={() => onNotify("La préparation d’archive sera disponible après la connexion Firebase.")}>Préparer un export</button>} /><div className="archive-banner"><span className="archive-icon large">◷</span><div><p className="eyebrow">Archivage recommandé</p><h2>842 photos de factures validées peuvent être archivées.</h2><p>Période: 1er juin au 31 août 2026 · aucune suppression automatique activée</p></div><button className="primary-button" onClick={() => onNotify("Rappel reporté de 30 jours.")}>Reporter</button></div><section className="archive-grid"><div className="panel archive-card"><div className="archive-card-icon">✓</div><p className="eyebrow">Photos admissibles</p><strong>842</strong><span>après contrôles d’intégrité</span><div className="progress"><span style={{ width: "72%" }} /></div><small>72% de la période est prête</small></div><div className="panel archive-card"><div className="archive-card-icon blue">▣</div><p className="eyebrow">Dernier export vérifié</p><strong>31 mai 2026</strong><span>Factures_2026-03_2026-05</span><button className="text-button">Ouvrir le manifeste →</button></div><div className="panel archive-card"><div className="archive-card-icon gold">⌁</div><p className="eyebrow">Politique</p><strong>Mode manuel</strong><span>La purge automatique est désactivée.</span><button className="text-button">Modifier dans Configuration →</button></div></section></>;
 }
 
-function SettingsPage() {
+function SaferSettingsPage() {
+  void CompactSettingsPage;
+  const [selectedSection, setSelectedSection] = useState("cards");
+  const [cards, setCards] = useState(creditCards);
+  const [accounts, setAccounts] = useState(accountCategories);
+  const [projects, setProjects] = useState(projectReferences);
+  const [editingCards, setEditingCards] = useState(false);
+  const [pendingDeleteCard, setPendingDeleteCard] = useState("");
+  const [newCardLastFour, setNewCardLastFour] = useState("");
+  const [newCardHolder, setNewCardHolder] = useState("");
+  const [newProject, setNewProject] = useState("");
   const sections = [
-    ["Utilisateurs et accès", "Comptes, rôles, personnes, cartes autorisées", "12 comptes"],
-    ["Cartes et titulaires", "Association officielle entre chaque carte et sa personne", "10 actives · 1 inactive"],
-    ["Comptes comptables", "Codes et catégories utilisés dans le rapport de Kim", `${accountCategories.length} comptes`],
-    ["Référentiels métier", "Chantiers, fournisseurs et aliases", "6 chantiers"],
-    ["Produits et SKU", "Base Canadian Tire, enrichissement et validations", "2 SKU suivis"],
-    ["Contrôles et seuils", "Tolérance monétaire, doublons et règles de validation", "0,01 $"],
-    ["Intelligence artificielle", "Fournisseur, modèle, schéma et seuils de confiance", "Gemini · prêt à brancher"],
-    ["Archivage", "Rappels, export, vérification et politique de purge", "Mode manuel"],
+    { id: "cards", title: "Cartes et titulaires", meta: cards.filter((card) => card.status === "Actif").length + " actives" },
+    { id: "accounts", title: "Comptes comptables", meta: accounts.length + " comptes" },
+    { id: "projects", title: "Projets", meta: projects.length + " chantiers" },
+    { id: "sku", title: "Produits et SKU", meta: skuReferences.length + " SKU suivis" },
+    { id: "controls", title: "Contrôles et seuils", meta: "0,01 $" },
+    { id: "ai", title: "Intelligence artificielle", meta: "Gemini · prêt à brancher" },
   ];
-  return <><PageHeading eyebrow="Administration" title="Configuration" description="Les cartes, titulaires et comptes comptables restent administrables sans modifier le code." action={<button className="primary-button">＋ Ajouter une règle</button>} /><section className="settings-list">{sections.map(([title, description, meta], index) => <button className="settings-row" key={title}><span className={`settings-number n${index + 1}`}>0{index + 1}</span><span className="settings-copy"><strong>{title}</strong><span>{description}</span></span><span className="settings-meta">{meta}</span><span className="row-arrow">→</span></button>)}</section><section className="panel reference-preview"><div className="panel-header"><div><p className="eyebrow">Source de vérité</p><h2>Cartes actuellement associées</h2></div><span className="badge badge-success">{creditCards.filter((card) => card.status === "Actif").length} actives</span></div><div className="reference-grid">{creditCards.map((card) => <div className={`reference-card ${card.status === "Inactif" ? "inactive" : ""}`} key={card.id}><strong>•••• {card.lastFour}</strong><span>{card.holder}</span><small>{card.id} · {card.status}</small></div>)}</div></section><section className="panel reference-preview"><div className="panel-header"><div><p className="eyebrow">Tableau comptable</p><h2>Comptes disponibles dans les rapports</h2></div><span className="badge badge-neutral">{accountCategories.length} catégories</span></div><div className="account-chip-list">{accountCategories.map((account) => <span key={account.code}><b>{account.code}</b>{account.label}</span>)}</div></section><div className="config-note"><span>i</span><p><strong>La configuration est en mode démonstration.</strong> Les prochaines mutations seront protégées par les permissions ADMIN côté Firebase.</p></div></>;
+  const updateCardHolder = (cardId: string, holder: string) => setCards((current) => current.map((card) => card.id === cardId ? { ...card, holder } : card));
+  const removeCard = (cardId: string) => setCards((current) => current.filter((card) => card.id !== cardId));
+  const addCard = () => {
+    const lastFour = newCardLastFour.trim();
+    const holder = newCardHolder.trim();
+    if (lastFour.length !== 4 || !/^\d{4}$/.test(lastFour) || !holder) return;
+    setCards((current) => [...current, { id: "CARD-" + String(current.length + 1).padStart(2, "0"), lastFour, holder, function: "À définir", startDate: "2026-01-01", status: "Actif" }]);
+    setNewCardLastFour("");
+    setNewCardHolder("");
+  };
+  return <>
+    <PageHeading eyebrow="Administration" title="Configuration" description="Cartes, titulaires, comptes, projets et références SKU dans une liste compacte." />
+    <section className="settings-list compact-settings-list">{sections.map((section, index) => <button className={"settings-row " + (selectedSection === section.id ? "selected" : "")} key={section.id} onClick={() => setSelectedSection(section.id)}><span className={"settings-number n" + ((index % 6) + 1)}>0{index + 1}</span><span className="settings-copy"><strong>{section.title}</strong><span>Modifier ce référentiel</span></span><span className="settings-meta">{section.meta}</span><span className="row-arrow">→</span></button>)}</section>
+    <section className="panel settings-editor compact-settings-editor">
+      <div className="panel-header"><div><p className="eyebrow">Éditeur de référentiel</p><h2>{sections.find((section) => section.id === selectedSection)?.title}</h2></div><span className="badge badge-neutral">Mode local</span></div>
+      {selectedSection === "cards" && <div className="settings-editor-list settings-card-list">
+        <div className="settings-card-toolbar"><span>{editingCards ? "Mode édition activé · les actions sensibles sont visibles." : "Lecture seule · activez Modifier pour changer ou retirer une carte."}</span><button className="secondary-button" type="button" onClick={() => { setEditingCards((current) => !current); setPendingDeleteCard(""); }}>{editingCards ? "Terminer" : "Modifier"}</button></div>
+        {cards.map((card) => <div className="settings-card-row" key={card.id}><span><b>•••• {card.lastFour}</b><small>{card.status} · {card.function}</small></span><input disabled={!editingCards} value={card.holder} onChange={(event) => updateCardHolder(card.id, event.target.value)} aria-label="Titulaire de la carte" />{editingCards && <button className="settings-edit-button" type="button" onClick={() => setPendingDeleteCard(card.id)} aria-label="Préparer le retrait de cette carte">Retirer</button>}{editingCards && pendingDeleteCard === card.id && <div className="settings-delete-confirm"><span>Retirer la carte •••• {card.lastFour}?</span><button className="danger-button" type="button" onClick={() => { removeCard(card.id); setPendingDeleteCard(""); }}>Confirmer le retrait</button><button className="text-button" type="button" onClick={() => setPendingDeleteCard("")}>Annuler</button></div>}</div>)}
+        {editingCards && <form className="settings-add-row settings-add-card" onSubmit={(event) => { event.preventDefault(); addCard(); }}><input inputMode="numeric" maxLength={4} value={newCardLastFour} onChange={(event) => setNewCardLastFour(event.target.value)} placeholder="4 derniers chiffres" aria-label="Quatre derniers chiffres de la carte" /><input value={newCardHolder} onChange={(event) => setNewCardHolder(event.target.value)} placeholder="Titulaire" aria-label="Nouveau titulaire" /><button className="secondary-button" type="submit">＋ Ajouter la carte</button></form>}
+      </div>}
+      {selectedSection === "accounts" && <div className="settings-editor-list">{accounts.map((account) => <div className="settings-inline-row" key={account.code}><input value={account.code} onChange={(event) => setAccounts((current) => current.map((item) => item.code === account.code ? { ...item, code: event.target.value } : item))} aria-label="Code comptable" /><input value={account.label} onChange={(event) => setAccounts((current) => current.map((item) => item.code === account.code ? { ...item, label: event.target.value } : item))} aria-label="Catégorie comptable" /></div>)}</div>}
+      {selectedSection === "projects" && <div className="settings-editor-list">{projects.map((project, index) => <div className="settings-inline-row" key={project + "-" + index}><input value={project} onChange={(event) => setProjects((current) => current.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} aria-label={"Projet " + (index + 1)} /></div>)}<form className="settings-add-row" onSubmit={(event) => { event.preventDefault(); if (!newProject.trim()) return; setProjects((current) => [...current, newProject.trim()]); setNewProject(""); }}><input value={newProject} onChange={(event) => setNewProject(event.target.value)} placeholder="Ajouter un projet" /><button className="secondary-button" type="submit">＋ Ajouter</button></form></div>}
+      {selectedSection === "sku" && <div className="settings-editor-list">{skuReferences.map((reference) => <div className="sku-reference-row" key={reference.merchant + "-" + reference.sku}><div><strong>{reference.merchant} · SKU {reference.sku}</strong><span>{reference.label} · {reference.accountCode} · {reference.category}</span></div><span className="badge badge-warning">{reference.status}</span><small>Recherche externe à lancer lorsque la fiche est nécessaire.</small></div>)}</div>}
+      {!["cards", "accounts", "projects", "sku"].includes(selectedSection) && <div className="settings-placeholder"><strong>Référentiel prêt à connecter</strong><p>Cette section est préparée pour les règles Firebase et les permissions administrateur.</p></div>}
+    </section>
+    <div className="config-note"><span>i</span><p><strong>Protection des actions sensibles.</strong> Le retrait d’une carte passe par le mode Modifier, puis par une confirmation explicite.</p></div>
+  </>;
+}
+
+function CompactSettingsPage() {
+  void SettingsPage;
+  const [selectedSection, setSelectedSection] = useState("cards");
+  const [cards, setCards] = useState(creditCards);
+  const [accounts, setAccounts] = useState(accountCategories);
+  const [projects, setProjects] = useState(projectReferences);
+  const [newCardLastFour, setNewCardLastFour] = useState("");
+  const [newCardHolder, setNewCardHolder] = useState("");
+  const [newProject, setNewProject] = useState("");
+  const sections = [
+    { id: "cards", title: "Cartes et titulaires", meta: cards.filter((card) => card.status === "Actif").length + " actives" },
+    { id: "accounts", title: "Comptes comptables", meta: accounts.length + " comptes" },
+    { id: "projects", title: "Projets", meta: projects.length + " chantiers" },
+    { id: "sku", title: "Produits et SKU", meta: skuReferences.length + " SKU suivis" },
+    { id: "controls", title: "Contrôles et seuils", meta: "0,01 $" },
+    { id: "ai", title: "Intelligence artificielle", meta: "Gemini · prêt à brancher" },
+  ];
+  const updateCardHolder = (cardId: string, holder: string) => setCards((current) => current.map((card) => card.id === cardId ? { ...card, holder } : card));
+  const removeCard = (cardId: string) => setCards((current) => current.filter((card) => card.id !== cardId));
+  const addCard = () => {
+    const lastFour = newCardLastFour.trim();
+    const holder = newCardHolder.trim();
+    if (lastFour.length !== 4 || !/^\d{4}$/.test(lastFour) || !holder) return;
+    setCards((current) => [...current, { id: "CARD-" + String(current.length + 1).padStart(2, "0"), lastFour, holder, function: "À définir", startDate: "2026-01-01", status: "Actif" }]);
+    setNewCardLastFour("");
+    setNewCardHolder("");
+  };
+  return <>
+    <PageHeading eyebrow="Administration" title="Configuration" description="Cartes, titulaires, comptes, projets et références SKU dans une liste compacte." />
+    <section className="settings-list compact-settings-list">{sections.map((section, index) => <button className={"settings-row " + (selectedSection === section.id ? "selected" : "")} key={section.id} onClick={() => setSelectedSection(section.id)}><span className={"settings-number n" + ((index % 6) + 1)}>0{index + 1}</span><span className="settings-copy"><strong>{section.title}</strong><span>Modifier ce référentiel</span></span><span className="settings-meta">{section.meta}</span><span className="row-arrow">→</span></button>)}</section>
+    <section className="panel settings-editor compact-settings-editor">
+      <div className="panel-header"><div><p className="eyebrow">Éditeur de référentiel</p><h2>{sections.find((section) => section.id === selectedSection)?.title}</h2></div><span className="badge badge-neutral">Mode local</span></div>
+      {selectedSection === "cards" && <div className="settings-editor-list settings-card-list">{cards.map((card) => <div className="settings-card-row" key={card.id}><span><b>•••• {card.lastFour}</b><small>{card.status} · {card.function}</small></span><input value={card.holder} onChange={(event) => updateCardHolder(card.id, event.target.value)} aria-label="Titulaire de la carte" /><button className="icon-button" type="button" onClick={() => removeCard(card.id)} aria-label="Retirer cette carte">×</button></div>)}<form className="settings-add-row settings-add-card" onSubmit={(event) => { event.preventDefault(); addCard(); }}><input inputMode="numeric" maxLength={4} value={newCardLastFour} onChange={(event) => setNewCardLastFour(event.target.value)} placeholder="4 derniers chiffres" aria-label="Quatre derniers chiffres de la carte" /><input value={newCardHolder} onChange={(event) => setNewCardHolder(event.target.value)} placeholder="Titulaire" aria-label="Nouveau titulaire" /><button className="secondary-button" type="submit">＋ Ajouter la carte</button></form></div>}
+      {selectedSection === "accounts" && <div className="settings-editor-list">{accounts.map((account) => <div className="settings-inline-row" key={account.code}><input value={account.code} onChange={(event) => setAccounts((current) => current.map((item) => item.code === account.code ? { ...item, code: event.target.value } : item))} aria-label="Code comptable" /><input value={account.label} onChange={(event) => setAccounts((current) => current.map((item) => item.code === account.code ? { ...item, label: event.target.value } : item))} aria-label="Catégorie comptable" /></div>)}</div>}
+      {selectedSection === "projects" && <div className="settings-editor-list">{projects.map((project, index) => <div className="settings-inline-row" key={project + "-" + index}><input value={project} onChange={(event) => setProjects((current) => current.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} aria-label={"Projet " + (index + 1)} /></div>)}<form className="settings-add-row" onSubmit={(event) => { event.preventDefault(); if (!newProject.trim()) return; setProjects((current) => [...current, newProject.trim()]); setNewProject(""); }}><input value={newProject} onChange={(event) => setNewProject(event.target.value)} placeholder="Ajouter un projet" /><button className="secondary-button" type="submit">＋ Ajouter</button></form></div>}
+      {selectedSection === "sku" && <div className="settings-editor-list">{skuReferences.map((reference) => <div className="sku-reference-row" key={reference.merchant + "-" + reference.sku}><div><strong>{reference.merchant} · SKU {reference.sku}</strong><span>{reference.label} · {reference.accountCode} · {reference.category}</span></div><span className="badge badge-warning">{reference.status}</span><small>Recherche externe à lancer lorsque la fiche est nécessaire.</small></div>)}</div>}
+      {!["cards", "accounts", "projects", "sku"].includes(selectedSection) && <div className="settings-placeholder"><strong>Référentiel prêt à connecter</strong><p>Cette section est préparée pour les règles Firebase et les permissions administrateur.</p></div>}
+    </section>
+    <div className="config-note"><span>i</span><p><strong>Classification automatique.</strong> Les transactions sont classées par catégorie et code comptable; les SKU inconnus restent « À confirmer ».</p></div>
+  </>;
+}
+
+function SettingsPage() {
+  const [selectedSection, setSelectedSection] = useState("cards");
+  const [cards, setCards] = useState(creditCards);
+  const [accounts, setAccounts] = useState(accountCategories);
+  const [projects, setProjects] = useState(projectReferences);
+  const skus = skuReferences;
+  const [newCardLastFour, setNewCardLastFour] = useState("");
+  const [newCardHolder, setNewCardHolder] = useState("");
+  const [newProject, setNewProject] = useState("");
+  const [notice, setNotice] = useState("");
+  const sections = [
+    { id: "users", title: "Utilisateurs et accès", description: "Comptes, rôles, personnes, cartes autorisées", meta: "12 comptes" },
+    { id: "cards", title: "Cartes et titulaires", description: "Association officielle entre chaque carte et sa personne", meta: `${cards.filter((card) => card.status === "Actif").length} actives · 1 inactive` },
+    { id: "accounts", title: "Comptes comptables", description: "Codes et catégories utilisés dans le rapport de Kim", meta: `${accounts.length} comptes` },
+    { id: "projects", title: "Référentiels métier", description: "Chantiers, fournisseurs et aliases", meta: `${projects.length} chantiers` },
+    { id: "sku", title: "Produits et SKU", description: "Base Canadian Tire, enrichissement et validations", meta: `${skus.length} SKU suivis` },
+    { id: "controls", title: "Contrôles et seuils", description: "Tolérance monétaire, doublons et règles de validation", meta: "0,01 $" },
+    { id: "ai", title: "Intelligence artificielle", description: "Fournisseur, modèle, schéma et seuils de confiance", meta: "Gemini · prêt à brancher" },
+    { id: "archives", title: "Archivage", description: "Rappels, export, vérification et politique de purge", meta: "Mode manuel" },
+  ];
+  const selectedTitle = sections.find((section) => section.id === selectedSection)?.title ?? "Configuration";
+  const updateCardHolder = (cardId: string, holder: string) => setCards((current) => current.map((card) => card.id === cardId ? { ...card, holder } : card));
+  const removeCard = (cardId: string) => setCards((current) => current.filter((card) => card.id !== cardId));
+  const addCard = () => {
+    const lastFour = newCardLastFour.trim();
+    const holder = newCardHolder.trim();
+    if (lastFour.length !== 4 || !/^\d{4}$/.test(lastFour) || !holder) return;
+    setCards((current) => [...current, { id: "CARD-" + String(current.length + 1).padStart(2, "0"), lastFour, holder, function: "À définir", startDate: "2026-01-01", status: "Actif" }]);
+    setNewCardLastFour("");
+    setNewCardHolder("");
+  };
+  const updateAccount = (code: string, field: "code" | "label", value: string) => setAccounts((current) => current.map((account) => account.code === code ? { ...account, [field]: value } : account));
+  const updateProject = (index: number, value: string) => setProjects((current) => current.map((project, projectIndex) => projectIndex === index ? value : project));
+  void removeCard;
+  void addCard;
+
+  return <><PageHeading eyebrow="Administration" title="Configuration" description="Les cartes, titulaires, comptes, projets et références SKU sont regroupés dans une source de vérité administrable." action={<button className="primary-button" onClick={() => setNotice("Les changements sont prêts à être persistés après l’approbation du schéma Firebase.")}>Enregistrer les changements</button>} /><section className="settings-list">{sections.map((section, index) => <button className={`settings-row ${selectedSection === section.id ? "selected" : ""}`} key={section.id} onClick={() => setSelectedSection(section.id)}><span className={`settings-number n${(index % 6) + 1}`}>0{index + 1}</span><span className="settings-copy"><strong>{section.title}</strong><span>{section.description}</span></span><span className="settings-meta">{section.meta}</span><span className="row-arrow">→</span></button>)}</section><section className="panel settings-editor"><div className="panel-header"><div><p className="eyebrow">Éditeur de référentiel</p><h2>{selectedTitle}</h2></div><span className="badge badge-neutral">Mode local</span></div>{selectedSection === "cards" && <div className="settings-editor-grid">{cards.map((card) => <label className="settings-input-card" key={card.id}><span>Carte ···· {card.lastFour} · {card.status}</span><input value={card.holder} onChange={(event) => updateCardHolder(card.id, event.target.value)} aria-label={`Titulaire de la carte ${card.lastFour}`} /><small>{card.function} · active depuis {formatDate(card.startDate)}</small></label>)}</div>}{selectedSection === "accounts" && <div className="settings-editor-list">{accounts.map((account) => <div className="settings-inline-row" key={account.code}><input value={account.code} onChange={(event) => updateAccount(account.code, "code", event.target.value)} aria-label="Code comptable" /><input value={account.label} onChange={(event) => updateAccount(account.code, "label", event.target.value)} aria-label="Catégorie comptable" /></div>)}</div>}{selectedSection === "projects" && <div className="settings-editor-list">{projects.map((project, index) => <div className="settings-inline-row" key={`${project}-${index}`}><input value={project} onChange={(event) => updateProject(index, event.target.value)} aria-label={`Projet ${index + 1}`} /></div>)}<form className="settings-add-row" onSubmit={(event) => { event.preventDefault(); if (!newProject.trim()) return; setProjects((current) => [...current, newProject.trim()]); setNewProject(""); }}><input value={newProject} onChange={(event) => setNewProject(event.target.value)} placeholder="Ajouter un projet" /><button className="secondary-button" type="submit">＋ Ajouter</button></form></div>}{selectedSection === "sku" && <div className="settings-editor-list">{skus.map((reference) => <div className="sku-reference-row" key={`${reference.merchant}-${reference.sku}`}><div><strong>{reference.merchant} · SKU {reference.sku}</strong><span>{reference.label} · {reference.accountCode} · {reference.category}</span></div><span className="badge badge-warning">{reference.status}</span><small>Recherche externe à lancer lorsque la fiche est nécessaire.</small></div>)}</div>}{!["cards", "accounts", "projects", "sku"].includes(selectedSection) && <div className="settings-placeholder"><strong>Référentiel prêt à connecter</strong><p>Cette section est préparée pour les règles Firebase et les permissions administrateur. Aucune mutation distante n’est envoyée dans cette étape.</p></div>}</section>{notice && <div className="config-note"><span>✓</span><p>{notice}</p></div>}<div className="config-note"><span>i</span><p><strong>Classification automatique.</strong> Les transactions sont classées par catégorie et code comptable; les SKU connus peuvent remplacer la catégorie locale. Les SKU inconnus restent « À confirmer » pour éviter une écriture comptable automatique non vérifiée.</p></div></>;
 }
