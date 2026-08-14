@@ -1,8 +1,16 @@
 "use client";
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "convex/react";
-import { makeFunctionReference } from "convex/server";
+import { firebaseConfigured } from "../../firebase/client";
+import {
+  subscribeAccountingSummary,
+  subscribeActivePeople,
+  subscribeActiveProjects,
+  type FirebasePerson,
+  type FirebaseProject,
+  type FirebaseReport,
+} from "../../firebase/reports";
+import { uploadInvoicePhotos } from "../../firebase/uploads";
 
 type Role = "WORKER" | "ACCOUNTING" | "ADMIN";
 type View = "dashboard" | "transactions" | "review" | "reconciliation" | "reports" | "archives" | "settings" | "capture" | "transaction";
@@ -30,6 +38,7 @@ type PhotoItem = {
   id: string;
   url: string;
   name: string;
+  file: File;
 };
 
 type AccountCategory = {
@@ -210,18 +219,6 @@ const navItems: Array<{ id: View; label: string; icon: string }> = [
 
 const currency = new Intl.NumberFormat("fr-CA", { style: "currency", currency: "CAD" });
 const dateFormat = new Intl.DateTimeFormat("fr-CA", { day: "2-digit", month: "short", year: "numeric" });
-const listPeopleRef = makeFunctionReference<"query">("references:listActivePeople");
-const listProjectsRef = makeFunctionReference<"query">("references:listActiveProjects");
-const accountingSummaryRef = makeFunctionReference<"query">("reports:accountingSummary");
-
-type ConvexPerson = { _id: string; fullName: string };
-type ConvexProject = { _id: string; code: string; name: string };
-type ConvexReport = {
-  rows: Array<{ code: string; label: string; totalBeforeTaxesCents: number }>;
-  totalBeforeTaxesCents: number;
-  transactionCount: number;
-};
-
 function formatCurrency(value: number) {
   return currency.format(value).replace("CA", "$");
 }
@@ -281,19 +278,36 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
     const files = Array.from(event.target.files ?? []);
     const next = await Promise.all(files.map((file) => new Promise<PhotoItem>((resolve) => {
       const reader = new FileReader();
-      reader.onload = () => resolve({ id: `${file.name}-${file.lastModified}`, url: String(reader.result), name: file.name });
+      reader.onload = () => resolve({ id: `${file.name}-${file.lastModified}`, url: String(reader.result), name: file.name, file });
       reader.readAsDataURL(file);
     })));
     setPhotos((current) => [...current, ...next]);
     if (inputRef.current) inputRef.current.value = "";
   };
 
-  const sendPhotos = () => {
+  const sendPhotos = async () => {
     if (!photos.length) return;
     if (!isOnline) {
       notify("En attente d'envoi — les photos restent sur cet appareil.");
       return;
     }
+    if (firebaseConfigured) {
+      setQueueState("uploading");
+      try {
+        await uploadInvoicePhotos(photos.map((photo, index) => ({ file: photo.file, sequence: index + 1 })));
+        setQueueState("sent");
+        notify("Envoyé ✓");
+        window.setTimeout(() => {
+          setPhotos([]);
+          setQueueState("idle");
+        }, 1200);
+      } catch (error) {
+        setQueueState("idle");
+        notify(error instanceof Error ? error.message : "L’envoi Firebase a échoué.");
+      }
+      return;
+    }
+
     setQueueState("uploading");
     window.setTimeout(() => {
       setQueueState("sent");
@@ -471,8 +485,7 @@ function StatTile({ label, value, tone = "" }: { label: string; value: string; t
 function StatementRow({ date, vendor, amount, card, holder, status, tone, reason, action }: { date: string; vendor: string; amount: string; card: string; holder: string; status: string; tone: string; reason: string; action: string }) { return <div className="statement-row"><span className="statement-date">{date}</span><span className="statement-vendor"><strong>{vendor}</strong><small>Carte •••• {card} · {holder}</small></span><strong className="statement-amount">{amount}</strong><span className={`statement-status ${tone}`}><span className="status-dot" />{status}</span><div className="statement-resolution"><strong>Pourquoi</strong><span>{reason}</span><strong>À faire</strong><span>{action}</span></div><button className="row-menu">→</button></div>; }
 
 function ReportsPage(props: { period: CardPeriod; onPeriodChange: (id: string) => void }) {
-  const connectedToConvex = Boolean(typeof process !== "undefined" && process.env.NEXT_PUBLIC_CONVEX_URL);
-  return connectedToConvex ? <ConnectedReportsPage {...props} /> : <DemoReportsPage {...props} />;
+  return firebaseConfigured ? <ConnectedReportsPage {...props} /> : <DemoReportsPage {...props} />;
 }
 
 function DemoReportsPage({ period, onPeriodChange }: { period: CardPeriod; onPeriodChange: (id: string) => void }) {
@@ -495,7 +508,7 @@ function DemoReportsPage({ period, onPeriodChange }: { period: CardPeriod; onPer
       <label><span>État</span><select aria-label="Filtrer par état" value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)}><option value="VALIDES_ET_A_VALIDER">Validées et à valider</option><option value="VALIDEE">Validées seulement</option><option value="A_VALIDER">À valider seulement</option></select></label>
     </div>
     <div className="report-period-note"><span className="status-dot" /><strong>{period.label}</strong><span>· {selectedPerson === "TOUS" ? "tous les titulaires" : selectedPerson} · {selectedProject === "TOUS" ? "tous les chantiers" : `chantier ${selectedProject}`}</span></div>
-    <div className="report-local-note"><strong>Prévisualisation locale.</strong><span>Le sélecteur est prêt; les montants par titulaire, chantier et statut seront alimentés par la requête Convex dès que l’environnement sera connecté.</span></div>
+    <div className="report-local-note"><strong>Prévisualisation locale.</strong><span>Le sélecteur est prêt; les montants par titulaire, chantier et statut seront alimentés par Firebase dès que l’environnement sera connecté.</span></div>
     <div className="report-layout">
       <section className="panel report-total"><p className="eyebrow">Résumé de période</p><h2>{formatCurrency(visibleTotal)}</h2><p className="muted">{selectedPerson === "TOUS" ? "Données de démonstration" : "Aucune ventilation locale pour ce titulaire"}</p><div className="report-breakdown"><div><span>Avant taxes</span><strong>{formatCurrency(visibleTotal)}</strong></div><div><span>TPS</span><strong>—</strong></div><div><span>TVQ</span><strong>—</strong></div></div></section>
       <section className="panel report-table"><div className="panel-header"><div><p className="eyebrow">Résumé par titulaire et carte</p><h2>Qui dépense quoi</h2></div><button className="text-button">Détails →</button></div><div className="mini-table card-total-list">{creditCards.filter((card) => card.status === "Actif").map((card) => <div key={card.id}><span><b>•••• {card.lastFour}</b> {card.holder}</span><strong>{formatCurrency(selectedPerson === "TOUS" ? cardTotals.get(card.lastFour) ?? 0 : 0)}</strong></div>)}</div></section>
@@ -508,15 +521,35 @@ function ConnectedReportsPage({ period, onPeriodChange }: { period: CardPeriod; 
   const [selectedPersonId, setSelectedPersonId] = useState("TOUS");
   const [selectedProjectId, setSelectedProjectId] = useState("TOUS");
   const [selectedStatus, setSelectedStatus] = useState("VALIDES_ET_A_VALIDER");
-  const people = useQuery(listPeopleRef, {}) as ConvexPerson[] | undefined;
-  const projects = useQuery(listProjectsRef, {}) as ConvexProject[] | undefined;
-  const report = useQuery(accountingSummaryRef, {
-    startDate: period.start,
-    endDate: period.end,
-    personId: selectedPersonId === "TOUS" ? undefined : selectedPersonId,
-    projectId: selectedProjectId === "TOUS" ? undefined : selectedProjectId,
-    status: selectedStatus === "VALIDES_ET_A_VALIDER" ? undefined : selectedStatus,
-  }) as ConvexReport | undefined;
+  const [people, setPeople] = useState<FirebasePerson[]>([]);
+  const [projects, setProjects] = useState<FirebaseProject[]>([]);
+  const [report, setReport] = useState<FirebaseReport | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const onError = (cause: Error) => setError(cause.message);
+    const unsubscribePeople = subscribeActivePeople(setPeople, onError);
+    const unsubscribeProjects = subscribeActiveProjects(setProjects, onError);
+    return () => {
+      unsubscribePeople();
+      unsubscribeProjects();
+    };
+  }, []);
+
+  useEffect(() => {
+    return subscribeAccountingSummary(
+      {
+        startDate: period.start,
+        endDate: period.end,
+        personId: selectedPersonId === "TOUS" ? undefined : selectedPersonId,
+        projectId: selectedProjectId === "TOUS" ? undefined : selectedProjectId,
+        status: selectedStatus === "VALIDES_ET_A_VALIDER" ? undefined : selectedStatus,
+      },
+      setReport,
+      (cause) => setError(cause.message),
+    );
+  }, [period.end, period.start, selectedPersonId, selectedProjectId, selectedStatus]);
+
   const rows = report?.rows ?? [];
   const totalBeforeTaxes = (report?.totalBeforeTaxesCents ?? 0) / 100;
 
@@ -524,21 +557,22 @@ function ConnectedReportsPage({ period, onPeriodChange }: { period: CardPeriod; 
     <PageHeading eyebrow="Analyse" title="Rapports" description="Générez le tableau que Kim reporte dans le programme de comptabilité, sur le même cycle que les cartes." action={<button className="primary-button"><span>⇩</span> Exporter en Excel</button>} />
     <div className="report-filter-grid">
       <PeriodSelector period={period} onChange={onPeriodChange} />
-      <label><span>Titulaire</span><select aria-label="Filtrer par titulaire" value={selectedPersonId} onChange={(event) => setSelectedPersonId(event.target.value)}><option value="TOUS">Tous les titulaires</option>{(people ?? []).map((person) => <option value={person._id} key={person._id}>{person.fullName}</option>)}</select></label>
-      <label><span>Chantier</span><select aria-label="Filtrer par chantier" value={selectedProjectId} onChange={(event) => setSelectedProjectId(event.target.value)}><option value="TOUS">Tous les chantiers</option>{(projects ?? []).map((project) => <option value={project._id} key={project._id}>{project.code} · {project.name}</option>)}</select></label>
+      <label><span>Titulaire</span><select aria-label="Filtrer par titulaire" value={selectedPersonId} onChange={(event) => setSelectedPersonId(event.target.value)}><option value="TOUS">Tous les titulaires</option>{people.map((person) => <option value={person.id} key={person.id}>{person.fullName}</option>)}</select></label>
+      <label><span>Chantier</span><select aria-label="Filtrer par chantier" value={selectedProjectId} onChange={(event) => setSelectedProjectId(event.target.value)}><option value="TOUS">Tous les chantiers</option>{projects.map((project) => <option value={project.id} key={project.id}>{project.code} · {project.name}</option>)}</select></label>
       <label><span>État</span><select aria-label="Filtrer par état" value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)}><option value="VALIDES_ET_A_VALIDER">Validées et à valider</option><option value="VALIDEE">Validées seulement</option><option value="A_VALIDER">À valider seulement</option></select></label>
     </div>
-    <div className="report-period-note"><span className="status-dot" /><strong>{period.label}</strong><span>· données Convex réactives · {report ? `${report.transactionCount} transaction${report.transactionCount === 1 ? "" : "s"}` : "chargement…"}</span></div>
+    <div className="report-period-note"><span className="status-dot" /><strong>{period.label}</strong><span>· données Firebase réactives · {report ? `${report.transactionCount} transaction${report.transactionCount === 1 ? "" : "s"}` : "chargement…"}{report?.fromCache ? " · cache hors ligne" : ""}</span></div>
+    {error && <div className="report-local-note"><strong>Connexion Firebase à vérifier.</strong><span>{error}</span></div>}
     <div className="report-layout">
-      <section className="panel report-total"><p className="eyebrow">Résumé de période</p><h2>{formatCurrency(totalBeforeTaxes)}</h2><p className="muted">Source officielle Convex</p><div className="report-breakdown"><div><span>Avant taxes</span><strong>{formatCurrency(totalBeforeTaxes)}</strong></div><div><span>TPS</span><strong>—</strong></div><div><span>TVQ</span><strong>—</strong></div></div></section>
-      <section className="panel report-table"><div className="panel-header"><div><p className="eyebrow">Tableau comptable</p><h2>Filtre actif</h2></div><span className="badge badge-success">Convex</span></div><div className="mini-table card-total-list"><div><span>Titulaire</span><strong>{selectedPersonId === "TOUS" ? "Tous" : (people ?? []).find((person) => person._id === selectedPersonId)?.fullName ?? "Chargement…"}</strong></div><div><span>Chantier</span><strong>{selectedProjectId === "TOUS" ? "Tous" : (projects ?? []).find((project) => project._id === selectedProjectId)?.code ?? "Chargement…"}</strong></div><div><span>Comptes affichés</span><strong>{rows.length}</strong></div></div></section>
+      <section className="panel report-total"><p className="eyebrow">Résumé de période</p><h2>{formatCurrency(totalBeforeTaxes)}</h2><p className="muted">Source officielle Firebase</p><div className="report-breakdown"><div><span>Avant taxes</span><strong>{formatCurrency(totalBeforeTaxes)}</strong></div><div><span>TPS</span><strong>—</strong></div><div><span>TVQ</span><strong>—</strong></div></div></section>
+      <section className="panel report-table"><div className="panel-header"><div><p className="eyebrow">Tableau comptable</p><h2>Filtre actif</h2></div><span className="badge badge-success">Firebase</span></div><div className="mini-table card-total-list"><div><span>Titulaire</span><strong>{selectedPersonId === "TOUS" ? "Tous" : people.find((person) => person.id === selectedPersonId)?.fullName ?? "Chargement…"}</strong></div><div><span>Chantier</span><strong>{selectedProjectId === "TOUS" ? "Tous" : projects.find((project) => project.id === selectedProjectId)?.code ?? "Chargement…"}</strong></div><div><span>Comptes affichés</span><strong>{rows.length}</strong></div></div></section>
     </div>
     <section className="panel report-table full-width"><div className="panel-header"><div><p className="eyebrow">Résumé par catégorie comptable</p><h2>Répartition avant taxes · compte utilisé par Kim</h2></div><button className="secondary-button">Enregistrer ce rapport</button></div><div className="account-report-head"><span>Compte</span><span>Catégorie</span><span>Total avant taxes</span></div><div className="category-report">{report ? rows.map((row) => <div key={row.code}><span><b>{row.code}</b></span><span>{row.label}</span><strong>{formatCurrency(row.totalBeforeTaxesCents / 100)}</strong></div>) : <div className="report-loading"><span>Chargement des comptes configurés…</span></div>}</div></section>
   </>;
 }
 
 function ArchivesPage({ onNotify }: { onNotify: (message: string) => void }) {
-  return <><PageHeading eyebrow="Conservation" title="Archives" description="Les données structurées restent accessibles; seules les photos admissibles peuvent être purgées." action={<button className="secondary-button" onClick={() => onNotify("La préparation d’archive sera disponible après la connexion Convex.")}>Préparer un export</button>} /><div className="archive-banner"><span className="archive-icon large">◷</span><div><p className="eyebrow">Archivage recommandé</p><h2>842 photos de factures validées peuvent être archivées.</h2><p>Période: 1er juin au 31 août 2026 · aucune suppression automatique activée</p></div><button className="primary-button" onClick={() => onNotify("Rappel reporté de 30 jours.")}>Reporter</button></div><section className="archive-grid"><div className="panel archive-card"><div className="archive-card-icon">✓</div><p className="eyebrow">Photos admissibles</p><strong>842</strong><span>après contrôles d’intégrité</span><div className="progress"><span style={{ width: "72%" }} /></div><small>72% de la période est prête</small></div><div className="panel archive-card"><div className="archive-card-icon blue">▣</div><p className="eyebrow">Dernier export vérifié</p><strong>31 mai 2026</strong><span>Factures_2026-03_2026-05</span><button className="text-button">Ouvrir le manifeste →</button></div><div className="panel archive-card"><div className="archive-card-icon gold">⌁</div><p className="eyebrow">Politique</p><strong>Mode manuel</strong><span>La purge automatique est désactivée.</span><button className="text-button">Modifier dans Configuration →</button></div></section></>;
+  return <><PageHeading eyebrow="Conservation" title="Archives" description="Les données structurées restent accessibles; seules les photos admissibles peuvent être purgées." action={<button className="secondary-button" onClick={() => onNotify("La préparation d’archive sera disponible après la connexion Firebase.")}>Préparer un export</button>} /><div className="archive-banner"><span className="archive-icon large">◷</span><div><p className="eyebrow">Archivage recommandé</p><h2>842 photos de factures validées peuvent être archivées.</h2><p>Période: 1er juin au 31 août 2026 · aucune suppression automatique activée</p></div><button className="primary-button" onClick={() => onNotify("Rappel reporté de 30 jours.")}>Reporter</button></div><section className="archive-grid"><div className="panel archive-card"><div className="archive-card-icon">✓</div><p className="eyebrow">Photos admissibles</p><strong>842</strong><span>après contrôles d’intégrité</span><div className="progress"><span style={{ width: "72%" }} /></div><small>72% de la période est prête</small></div><div className="panel archive-card"><div className="archive-card-icon blue">▣</div><p className="eyebrow">Dernier export vérifié</p><strong>31 mai 2026</strong><span>Factures_2026-03_2026-05</span><button className="text-button">Ouvrir le manifeste →</button></div><div className="panel archive-card"><div className="archive-card-icon gold">⌁</div><p className="eyebrow">Politique</p><strong>Mode manuel</strong><span>La purge automatique est désactivée.</span><button className="text-button">Modifier dans Configuration →</button></div></section></>;
 }
 
 function SettingsPage() {
@@ -552,5 +586,5 @@ function SettingsPage() {
     ["Intelligence artificielle", "Fournisseur, modèle, schéma et seuils de confiance", "Gemini · prêt à brancher"],
     ["Archivage", "Rappels, export, vérification et politique de purge", "Mode manuel"],
   ];
-  return <><PageHeading eyebrow="Administration" title="Configuration" description="Les cartes, titulaires et comptes comptables restent administrables sans modifier le code." action={<button className="primary-button">＋ Ajouter une règle</button>} /><section className="settings-list">{sections.map(([title, description, meta], index) => <button className="settings-row" key={title}><span className={`settings-number n${index + 1}`}>0{index + 1}</span><span className="settings-copy"><strong>{title}</strong><span>{description}</span></span><span className="settings-meta">{meta}</span><span className="row-arrow">→</span></button>)}</section><section className="panel reference-preview"><div className="panel-header"><div><p className="eyebrow">Source de vérité</p><h2>Cartes actuellement associées</h2></div><span className="badge badge-success">{creditCards.filter((card) => card.status === "Actif").length} actives</span></div><div className="reference-grid">{creditCards.map((card) => <div className={`reference-card ${card.status === "Inactif" ? "inactive" : ""}`} key={card.id}><strong>•••• {card.lastFour}</strong><span>{card.holder}</span><small>{card.id} · {card.status}</small></div>)}</div></section><section className="panel reference-preview"><div className="panel-header"><div><p className="eyebrow">Tableau comptable</p><h2>Comptes disponibles dans les rapports</h2></div><span className="badge badge-neutral">{accountCategories.length} catégories</span></div><div className="account-chip-list">{accountCategories.map((account) => <span key={account.code}><b>{account.code}</b>{account.label}</span>)}</div></section><div className="config-note"><span>i</span><p><strong>La configuration est en mode démonstration.</strong> Les prochaines mutations seront protégées par les permissions ADMIN côté Convex.</p></div></>;
+  return <><PageHeading eyebrow="Administration" title="Configuration" description="Les cartes, titulaires et comptes comptables restent administrables sans modifier le code." action={<button className="primary-button">＋ Ajouter une règle</button>} /><section className="settings-list">{sections.map(([title, description, meta], index) => <button className="settings-row" key={title}><span className={`settings-number n${index + 1}`}>0{index + 1}</span><span className="settings-copy"><strong>{title}</strong><span>{description}</span></span><span className="settings-meta">{meta}</span><span className="row-arrow">→</span></button>)}</section><section className="panel reference-preview"><div className="panel-header"><div><p className="eyebrow">Source de vérité</p><h2>Cartes actuellement associées</h2></div><span className="badge badge-success">{creditCards.filter((card) => card.status === "Actif").length} actives</span></div><div className="reference-grid">{creditCards.map((card) => <div className={`reference-card ${card.status === "Inactif" ? "inactive" : ""}`} key={card.id}><strong>•••• {card.lastFour}</strong><span>{card.holder}</span><small>{card.id} · {card.status}</small></div>)}</div></section><section className="panel reference-preview"><div className="panel-header"><div><p className="eyebrow">Tableau comptable</p><h2>Comptes disponibles dans les rapports</h2></div><span className="badge badge-neutral">{accountCategories.length} catégories</span></div><div className="account-chip-list">{accountCategories.map((account) => <span key={account.code}><b>{account.code}</b>{account.label}</span>)}</div></section><div className="config-note"><span>i</span><p><strong>La configuration est en mode démonstration.</strong> Les prochaines mutations seront protégées par les permissions ADMIN côté Firebase.</p></div></>;
 }

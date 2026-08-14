@@ -126,3 +126,8 @@ h2 { margin-bottom: 0; font-size: 17px; letter-spacing: -.02em; }
 @media (max-width: 460px) { .kpi-grid { grid-template-columns: 1fr 1fr; }.kpi-top { min-height: 31px; }.kpi-top > span:first-child { max-width: 75px; line-height: 1.2; }.kpi-bottom { display: grid; gap: 3px; }.report-filter-grid { grid-template-columns: 1fr; }.photo-grid { grid-template-columns: repeat(3, 1fr); }.camera-placeholder { min-height: 270px; }.camera-reticle { width: 88px; height: 88px; }.worker-topbar { padding-inline: 15px; }.topbar-actions .icon-button { display: none; } }
 
 @media (max-width: 820px) { .filter-strip .period-selector { min-width: 100%; }.filter-strip .filter-divider { display: none; }.card-roster { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }.card-chip { flex: 0 0 auto; }.statement-resolution { grid-column: 1 / -1; grid-row: 4; }.account-report-head, .category-report > div { grid-template-columns: 82px minmax(0, 1fr) 100px; gap: 8px; }.reference-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.period-selector { min-width: 0; } }
+ .firebase-gate { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: #f6f8fb; }
+ .firebase-sign-in { width: min(100%, 420px); display: grid; gap: 14px; padding: 32px; background: #fff; border: 1px solid #dce3ec; border-radius: 18px; box-shadow: 0 18px 50px rgb(25 42 70 / 10%); }
+ .firebase-sign-in h1 { margin: 0; }
+ .firebase-sign-in input { width: 100%; margin-top: 6px; padding: 11px 12px; border: 1px solid #cbd5e1; border-radius: 9px; background: #fff; }
+ .firebase-error { margin: 0; color: #b42318; }

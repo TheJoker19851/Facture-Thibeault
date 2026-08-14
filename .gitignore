@@ -34,8 +34,11 @@ yarn-error.log*
 
 # vercel
 .vercel
+.firebaserc
+/.firebase/
 
 /dist/
 /.wrangler/
 /outputs/
 /work/
+/tsconfig.tsbuildinfo

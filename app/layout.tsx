@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { ConvexShell } from "./components/ConvexShell";
+import { FirebaseShell } from "./components/FirebaseShell";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -30,5 +30,5 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="fr"><body className={`${geistSans.variable} ${geistMono.variable}`}><ConvexShell>{children}</ConvexShell></body></html>;
+  return <html lang="fr"><body className={`${geistSans.variable} ${geistMono.variable}`}><FirebaseShell>{children}</FirebaseShell></body></html>;
 }

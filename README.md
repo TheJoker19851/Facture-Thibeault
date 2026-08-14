@@ -1,8 +1,8 @@
 # vinext-starter
 
 A PWA for invoice and expense processing at Maçonnerie Thibeault, running on
-[vinext](https://github.com/cloudflare/vinext) with Convex as the target
-database and active photo storage.
+[vinext](https://github.com/cloudflare/vinext) with Firebase as the target
+database, authentication and private photo storage.
 
 ## Prerequisites
 
@@ -22,13 +22,15 @@ development tranche.
 ## Included Shape
 
 - edit site code under `app/`
-- `convex/schema.ts` is the authoritative target data model
-- `convex/seed-data.ts` contains one-time migration input from the legacy demo
-  data and Kim's official accounting-table image
-- `convex/reports.ts` and `convex/references.ts` expose the first deterministic
-  report queries
-- `app/components/ConvexShell.tsx` connects the UI when
-  `NEXT_PUBLIC_CONVEX_URL` is configured
+- `firebase/schema.ts` documents the authoritative Firestore collections
+- `firebase/seed-data.ts` contains controlled reference-data input from the
+  legacy demo data and Kim's official accounting-table image
+- `firebase/reports.ts` powers the reactive accounting summary and selectors
+- `firebase.json`, `firestore.rules` and `storage.rules` keep the backend
+  closed by default and prepare the Montréal region
+- `docs/EFVP-Quebec.md` records the Québec privacy and data-transfer checklist
+- `app/components/FirebaseShell.tsx` keeps the app in local demo mode until
+  the Firebase web-app variables are configured
 - `db/` and `drizzle/` are legacy starter scaffolding and are not the official
   application data model
 
@@ -99,8 +101,10 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 - `npm test`: build the application and verify the rendered PWA shell
 - `pnpm exec tsc --noEmit`: run the TypeScript check (the legacy Cloudflare
   starter files still require their optional worker type package)
+- `npx firebase-tools emulators:start`: run the local Firebase Auth, Firestore
+  and Storage emulators
 
 ## Learn More
 
 - [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Convex documentation](https://docs.convex.dev/)
+- [Firebase documentation](https://firebase.google.com/docs)

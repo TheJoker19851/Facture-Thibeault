@@ -1,0 +1,42 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function role() {
+      return signedIn() && request.auth.token.role != null
+        ? request.auth.token.role
+        : 'UNKNOWN';
+    }
+
+    function isStaff() {
+      return role() in ['WORKER', 'ACCOUNTING', 'ADMIN'];
+    }
+
+    function isAccountingOrAdmin() {
+      return role() in ['ACCOUNTING', 'ADMIN'];
+    }
+
+    // Invoice evidence is private and restricted to authenticated staff.
+    match /submissions/{submissionId}/{fileName=**} {
+      allow read: if isStaff();
+      allow write: if isStaff()
+        && request.resource.size < 15 * 1024 * 1024
+        && request.resource.contentType.matches('(image/.*|application/pdf)');
+      allow delete: if isAccountingOrAdmin();
+    }
+
+    match /exports/{fileName=**} {
+      allow read: if isAccountingOrAdmin();
+      allow write: if isAccountingOrAdmin();
+      allow delete: if isAccountingOrAdmin();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
