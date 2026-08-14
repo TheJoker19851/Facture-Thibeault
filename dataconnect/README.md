@@ -8,20 +8,29 @@ Thibeault:
 - PostgreSQL database: `facture-thibeault-database`
 - Cloud SQL instance: `facture-thibeault-instance`
 
-No application tables, schema, operations, connector, or seed data are deployed
-yet. `connectorDirs: []` is deliberate until the business schema and the
-connector ID are approved. Do not run `firebase deploy --only dataconnect` until
-those files exist and the SQL diff has been reviewed.
+The first version of the application schema now lives in
+`schema/accounting.gql`, and the read-only `accounting` connector is declared in
+`accounting/`. It covers the current product boundary:
 
-The future model will likely cover users, cards, projects, accounts,
-categories, receipts, receipt images/items, card statements/transactions,
-matches, periods, manual corrections, audit logs, and Canadian Tire SKUs. This
-is a proposal list only, not a database migration.
+- users, cards, and configurable statement periods;
+- projects, expense accounts, tax amounts, and CAD-cent accounting values;
+- transactions with card holder, project, account classification, SKU, and
+  reconciliation state;
+- invoices, private invoice photos, corrections, and audit events;
+- merchant/SKU references for Canadian Tire and other SKU-only suppliers.
 
-Once the schema and operations are approved:
+The connector currently exposes read-only operations protected by Firebase Auth
+(`@auth(level: USER)`). This is intentional: client-side correction mutations
+will not be opened until the role model, audit trail, and Kim/admin permissions
+are reviewed. The local preview continues to use its demonstration data until
+the generated SDK is installed and the Firebase environment is explicitly
+enabled.
 
-1. Add `dataconnect/<connector>/connector.yaml` and the GraphQL schema and
-   operations.
-2. Generate the typed web SDK with `firebase dataconnect:sdk:generate`.
-3. Run the SQL Connect emulator locally and validate the generated operations.
-4. Review the SQL diff, then deploy with `firebase deploy --only dataconnect`.
+Next integration steps:
+
+1. Generate the typed web SDK with `firebase dataconnect:sdk:generate`.
+2. Run the SQL Connect emulator locally and validate the generated operations.
+3. Add a small repository adapter so the dashboard can read cards, periods, and
+   transactions from SQL Connect while retaining a safe demo fallback.
+4. Review the SQL diff and authorization rules, then deploy only after approval
+   with `firebase deploy --only dataconnect`.

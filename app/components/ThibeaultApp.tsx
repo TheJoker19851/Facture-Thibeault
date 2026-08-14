@@ -1,6 +1,7 @@
 "use client";
 
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { accountingReadSource, loadAccountingSnapshot, mapAccountingSnapshot } from "../../firebase/accounting";
 import { firebaseConfigured } from "../../firebase/client";
 import { uploadInvoicePhotos } from "../../firebase/uploads";
 
@@ -115,22 +116,28 @@ const cardPeriods: CardPeriod[] = [
   { id: "2026-05", label: "10 mai → 09 juin 2026", start: "2026-05-10", end: "2026-06-09", statementLabel: "Relevé Mastercard · mai" },
 ];
 
-const accountCodeByCategory = new Map(accountCategories.map((account) => [account.label, account.code]));
-
 const skuReferences: SkuReference[] = [
   { merchant: "Canadian Tire", sku: "07654856", label: "Article à confirmer", category: "Divers", accountCode: "33526", status: "À confirmer" },
 ];
 
 const projectReferences = ["21 · Façade", "125 · Résidentiel", "133 · Chantier Nord", "135 · Chantier Est", "138 · Atelier", "ADMIN"];
 
-function accountCodeFor(category: string) {
-  return accountCodeByCategory.get(category) ?? "—";
-}
+type AppData = {
+  accounts: AccountCategory[];
+  cards: CreditCard[];
+  periods: CardPeriod[];
+  projects: string[];
+  skuReferences: SkuReference[];
+  transactions: Transaction[];
+};
 
-function classifyTransaction(transaction: Pick<Transaction, "category" | "sku">) {
-  const skuReference = transaction.sku ? skuReferences.find((reference) => reference.sku === transaction.sku) : undefined;
+const AppDataContext = createContext<AppData | null>(null);
+
+function classifyTransaction(transaction: Pick<Transaction, "category" | "sku">, data: AppData = demoAppData) {
+  const skuReference = transaction.sku ? data.skuReferences.find((reference) => reference.sku === transaction.sku) : undefined;
+  const accountCode = data.accounts.find((account) => account.label === transaction.category)?.code ?? "—";
   return {
-    code: skuReference?.accountCode ?? accountCodeFor(transaction.category),
+    code: skuReference?.accountCode ?? accountCode,
     category: skuReference?.category ?? transaction.category,
   };
 }
@@ -228,6 +235,19 @@ const transactions: Transaction[] = [
   },
 ];
 
+const demoAppData: AppData = {
+  accounts: accountCategories,
+  cards: creditCards,
+  periods: cardPeriods,
+  projects: projectReferences,
+  skuReferences,
+  transactions,
+};
+
+function useAppData() {
+  return useContext(AppDataContext) ?? demoAppData;
+}
+
 const navItems: Array<{ id: View; label: string; icon: string }> = [
   { id: "dashboard", label: "Tableau de bord", icon: "⌂" },
   { id: "transactions", label: "Transactions", icon: "▤" },
@@ -255,17 +275,39 @@ function statusClass(status: Transaction["status"] | Transaction["reconciliation
 }
 
 export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) {
+  const [appData, setAppData] = useState<AppData>(demoAppData);
+  const [dataSourceState, setDataSourceState] = useState<"demo" | "loading" | "ready" | "error">(accountingReadSource === "firebase-sql-connect" ? "loading" : "demo");
   const [role, setRole] = useState<Role>(initialRole);
   const [view, setView] = useState<View>("dashboard");
-  const [selectedId, setSelectedId] = useState<string>(transactions[0].id);
+  const [selectedId, setSelectedId] = useState<string>(appData.transactions[0]?.id ?? "");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Toutes");
-  const [selectedPeriod, setSelectedPeriod] = useState(cardPeriods[0]);
+  const [selectedPeriod, setSelectedPeriod] = useState<CardPeriod>(appData.periods[0]);
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [queueState, setQueueState] = useState<"idle" | "uploading" | "sent">("idle");
   const [isOnline, setIsOnline] = useState(true);
   const [toast, setToast] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (accountingReadSource !== "firebase-sql-connect") return;
+    let active = true;
+    loadAccountingSnapshot()
+      .then((snapshot) => {
+        if (!active) return;
+        const nextData = mapAccountingSnapshot(snapshot);
+        setAppData(nextData);
+        setSelectedId((current) => nextData.transactions.some((transaction) => transaction.id === current) ? current : (nextData.transactions[0]?.id ?? ""));
+        setSelectedPeriod((current) => nextData.periods.find((period) => period.id === current.id) ?? nextData.periods[0] ?? current);
+        setDataSourceState("ready");
+      })
+      .catch(() => {
+        if (active) setDataSourceState("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     const onOnline = () => setIsOnline(true);
@@ -279,15 +321,23 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
     };
   }, []);
 
-  const selected = transactions.find((transaction) => transaction.id === selectedId) ?? transactions[0];
+  const selected = appData.transactions.find((transaction) => transaction.id === selectedId) ?? appData.transactions[0] ?? demoAppData.transactions[0];
   const filteredTransactions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    return transactions.filter((transaction) => {
+    return appData.transactions.filter((transaction) => {
       const matchesQuery = !normalizedQuery || [transaction.vendor, transaction.person, transaction.project, transaction.category, transaction.id].join(" ").toLowerCase().includes(normalizedQuery);
       const matchesStatus = statusFilter === "Toutes" || transaction.status === statusFilter;
       return matchesQuery && matchesStatus;
     });
-  }, [query, statusFilter]);
+  }, [appData.transactions, query, statusFilter]);
+
+  const dataSourceLabel = dataSourceState === "ready"
+    ? "Firebase SQL Connect"
+    : dataSourceState === "loading"
+      ? "Connexion Firebase…"
+      : dataSourceState === "error"
+        ? "Démo · Firebase indisponible"
+        : "Données de démonstration";
 
   const notify = (message: string) => {
     setToast(message);
@@ -386,7 +436,8 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
   }
 
   return (
-    <main className="app-shell">
+    <AppDataContext.Provider value={appData}>
+      <main className="app-shell">
       <aside className="sidebar">
         <div className="brand-block"><div className="brand-mark"><span className="brand-glyph">MT</span><div><strong>Maçonnerie</strong><span>Thibeault</span></div></div><span className="prototype-pill">Prototype</span></div>
         <div className="workspace-switcher"><span className="avatar avatar-blue">K</span><div><strong>Kim / Administration</strong><span>Équipe dépenses</span></div><span className="chevron">⌄</span></div>
@@ -396,11 +447,11 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
         <div className="sidebar-bottom"><div className="archive-mini"><span className="archive-icon">◷</span><div><strong>Archivage recommandé</strong><span>842 photos admissibles</span></div><span className="arrow">→</span></div><button className="worker-mode-button" onClick={() => goTo("capture")}><span>⌾</span> Ouvrir le mode travailleur</button><div className="user-footer"><span className="avatar avatar-gold">K</span><div><strong>Kim</strong><span>Administratrice</span></div><button className="icon-button" aria-label="Options du compte">•••</button></div></div>
       </aside>
       <section className="content-area">
-        <header className="topbar"><div className="breadcrumbs"><span>Maçonnerie Thibeault</span><span>/</span><strong>{navItems.find((item) => item.id === view)?.label ?? "Tableau de bord"}</strong></div><div className="topbar-actions"><span className="demo-note">Données de démonstration</span><button className="icon-button" aria-label="Notifications">♧<span className="notification-dot" /></button><button className="avatar avatar-gold small" onClick={() => { setRole("WORKER"); setView("capture"); }} aria-label="Ouvrir le mode travailleur">K</button></div></header>
+        <header className="topbar"><div className="breadcrumbs"><span>Maçonnerie Thibeault</span><span>/</span><strong>{navItems.find((item) => item.id === view)?.label ?? "Tableau de bord"}</strong></div><div className="topbar-actions"><span className="demo-note">{dataSourceLabel}</span><button className="icon-button" aria-label="Notifications">♧<span className="notification-dot" /></button><button className="avatar avatar-gold small" onClick={() => { setRole("WORKER"); setView("capture"); }} aria-label="Ouvrir le mode travailleur">K</button></div></header>
         <div className="page-content">
           {view === "dashboard" && <Dashboard onNavigate={goTo} onOpenTransaction={(id) => { setSelectedId(id); setView("transaction"); }} period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
           {view === "transactions" && <TransactionsPage items={filteredTransactions} query={query} setQuery={setQuery} statusFilter={statusFilter} setStatusFilter={setStatusFilter} onOpen={(id) => { setSelectedId(id); setView("transaction" as View); }} />}
-          {view === "review" && <ReviewPage items={transactions.filter((item) => item.status !== "Validée")} onOpen={(id) => { setSelectedId(id); setView("transaction" as View); }} />}
+          {view === "review" && <ReviewPage items={appData.transactions.filter((item) => item.status !== "Validée")} onOpen={(id) => { setSelectedId(id); setView("transaction" as View); }} />}
           {view === "reconciliation" && <ReconciliationPage period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
           {view === "reports" && <ReportsPage period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
           {view === "archives" && <ArchivesPage onNotify={notify} />}
@@ -409,7 +460,8 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
         </div>
       </section>
       {toast && <div className="toast">{toast}</div>}
-    </main>
+      </main>
+    </AppDataContext.Provider>
   );
 }
 
@@ -418,21 +470,23 @@ function PageHeading({ eyebrow, title, description, action }: { eyebrow: string;
 }
 
 function PeriodSelector({ period, onChange }: { period: CardPeriod; onChange: (period: CardPeriod) => void }) {
-  const selectedPreset = cardPeriods.some((option) => option.id === period.id) ? period.id : "custom";
+  const { periods } = useAppData();
+  const selectedPreset = periods.some((option) => option.id === period.id) ? period.id : "custom";
   const updateDate = (field: "start" | "end", value: string) => {
     const nextStart = field === "start" ? value : period.start;
     const nextEnd = field === "end" ? value : period.end;
     onChange({ ...period, id: "custom", start: nextStart, end: nextEnd, label: formatDate(nextStart) + " → " + formatDate(nextEnd), statementLabel: "Relevé Mastercard · période personnalisée" });
   };
-  return <div className="period-selector"><span>Période des cartes</span><select value={selectedPreset} onChange={(event) => { const option = cardPeriods.find((candidate) => candidate.id === event.target.value); if (option) onChange(option); }}><option value="custom">Période personnalisée</option>{cardPeriods.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select><div className="period-custom-dates"><label><span>Du</span><input type="date" value={period.start} max={period.end} onChange={(event) => updateDate("start", event.target.value)} /></label><span className="period-date-arrow">→</span><label><span>Au</span><input type="date" value={period.end} min={period.start} onChange={(event) => updateDate("end", event.target.value)} /></label></div><small>Toutes les cartes actives utilisent ce même cycle.</small></div>;
+  return <div className="period-selector"><span>Période des cartes</span><select value={selectedPreset} onChange={(event) => { const option = periods.find((candidate) => candidate.id === event.target.value); if (option) onChange(option); }}><option value="custom">Période personnalisée</option>{periods.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select><div className="period-custom-dates"><label><span>Du</span><input type="date" value={period.start} max={period.end} onChange={(event) => updateDate("start", event.target.value)} /></label><span className="period-date-arrow">→</span><label><span>Au</span><input type="date" value={period.end} min={period.start} onChange={(event) => updateDate("end", event.target.value)} /></label></div><small>Toutes les cartes actives utilisent ce même cycle.</small></div>;
 }
 
 type DashboardTab = "holders" | "transactions" | "review" | "accounting";
 
 function Dashboard({ onNavigate, onOpenTransaction, period, onPeriodChange }: { onNavigate: (view: View) => void; onOpenTransaction: (id: string) => void; period: CardPeriod; onPeriodChange: (period: CardPeriod) => void }) {
+  const { cards, transactions } = useAppData();
   const [activeTab, setActiveTab] = useState<DashboardTab>("holders");
   const [focusedPerson, setFocusedPerson] = useState("TOUS");
-  const holderRows = creditCards.filter((card) => card.status === "Actif").map((card) => {
+  const holderRows = cards.filter((card) => card.status === "Actif").map((card) => {
     const items = transactions.filter((transaction) => transaction.person === card.holder);
     return { card, items, total: items.reduce((sum, item) => sum + item.total, 0) };
   });
@@ -477,6 +531,7 @@ function DashboardTransactionsTab({ rows, focusedPerson, onFocus, onOpen }: { ro
 }
 
 function DashboardReviewTab({ onOpen }: { onOpen: (id: string) => void }) {
+  const { transactions } = useAppData();
   const items = transactions.filter((transaction) => transaction.issue || transaction.status !== "Validée");
   return <section className="dashboard-tab-panel">
     <div className="dashboard-tab-heading"><div><p className="eyebrow">3e onglet · contrôle humain</p><h2>Factures avec corrections</h2><p className="muted">Sélectionnez une facture pour ouvrir sa preuve et voir le champ à corriger en évidence.</p></div><span className="badge badge-warning">{items.length} dossiers</span></div>
@@ -489,7 +544,8 @@ function TransactionsPage({ items, query, setQuery, statusFilter, setStatusFilte
 }
 
 function TransactionTable({ items, compact = false, onOpen }: { items: Transaction[]; compact?: boolean; onOpen?: (id: string) => void }) {
-  return <div className={`table-wrap ${compact ? "compact" : ""}`}><table><thead><tr><th>Transaction</th><th>Date</th><th>Fournisseur</th><th>Titulaire</th><th>Chantier</th><th>Montant</th><th>État</th><th /></tr></thead><tbody>{items.map((item) => { const classification = classifyTransaction(item); return <tr key={item.id} onClick={() => onOpen?.(item.id)}><td><div className="transaction-id"><span className="receipt-icon">▧</span><span><strong>{item.id}</strong><small>{item.invoiceNumber} · {item.imageCount} photo{item.imageCount > 1 ? "s" : ""}</small></span></div></td><td>{formatDate(item.date)}</td><td><strong>{item.vendor}</strong><small>{classification.code} · {classification.category}</small></td><td>{item.person}<small>Carte ···· {item.card}</small></td><td>{item.project}</td><td><strong>{formatCurrency(item.total)}</strong></td><td><span className={statusClass(item.status)}>{item.status}</span><small className="table-substatus">{item.reconciliation}</small></td><td><button className="row-menu" onClick={(event) => { event.stopPropagation(); onOpen?.(item.id); }} aria-label={`Ouvrir ${item.id}`}>→</button></td></tr>; })}</tbody></table>{items.length === 0 && <div className="empty-state"><span>⌕</span><strong>Aucune transaction trouvée</strong><p>Modifiez vos filtres pour élargir la recherche.</p></div>}</div>;
+  const data = useAppData();
+  return <div className={`table-wrap ${compact ? "compact" : ""}`}><table><thead><tr><th>Transaction</th><th>Date</th><th>Fournisseur</th><th>Titulaire</th><th>Chantier</th><th>Montant</th><th>État</th><th /></tr></thead><tbody>{items.map((item) => { const classification = classifyTransaction(item, data); return <tr key={item.id} onClick={() => onOpen?.(item.id)}><td><div className="transaction-id"><span className="receipt-icon">▧</span><span><strong>{item.id}</strong><small>{item.invoiceNumber} · {item.imageCount} photo{item.imageCount > 1 ? "s" : ""}</small></span></div></td><td>{formatDate(item.date)}</td><td><strong>{item.vendor}</strong><small>{classification.code} · {classification.category}</small></td><td>{item.person}<small>Carte ···· {item.card}</small></td><td>{item.project}</td><td><strong>{formatCurrency(item.total)}</strong></td><td><span className={statusClass(item.status)}>{item.status}</span><small className="table-substatus">{item.reconciliation}</small></td><td><button className="row-menu" onClick={(event) => { event.stopPropagation(); onOpen?.(item.id); }} aria-label={`Ouvrir ${item.id}`}>→</button></td></tr>; })}</tbody></table>{items.length === 0 && <div className="empty-state"><span>⌕</span><strong>Aucune transaction trouvée</strong><p>Modifiez vos filtres pour élargir la recherche.</p></div>}</div>;
 }
 
 function ReviewPage({ items, onOpen }: { items: Transaction[]; onOpen: (id: string) => void }) {
@@ -497,12 +553,13 @@ function ReviewPage({ items, onOpen }: { items: Transaction[]; onOpen: (id: stri
 }
 
 function TransactionDetail({ transaction, onBack, onNotify }: { transaction: Transaction; onBack: () => void; onNotify: (message: string) => void }) {
+  const data = useAppData();
   const [activePage, setActivePage] = useState(1);
   const [saved, setSaved] = useState(false);
   const [draftCategory, setDraftCategory] = useState(transaction.category);
   const [draftSubtotal, setDraftSubtotal] = useState("160.35");
   const [attachmentAdded, setAttachmentAdded] = useState(false);
-  const classification = classifyTransaction({ category: draftCategory, sku: transaction.sku });
+  const classification = classifyTransaction({ category: draftCategory, sku: transaction.sku }, data);
   return <>
     <div className="detail-toolbar">
       <button className="back-button" onClick={onBack}>← <span>Transactions</span></button>
@@ -520,7 +577,7 @@ function TransactionDetail({ transaction, onBack, onNotify }: { transaction: Tra
       </section>
       <aside className="detail-form">
         <div className="form-section"><div className="section-heading"><span>01</span><div><p className="eyebrow">Provenance</p><h2>Source de la transaction</h2></div></div><div className="provenance-card"><div className="avatar avatar-blue">K</div><div><strong>{transaction.submittedBy}</strong><span>Soumis le {formatDate(transaction.date)} · appareil mobile</span></div><span className="verified-mark">✓</span></div><div className="field-grid"><Field label="Personne associée" value={transaction.person} /><Field label="Carte détectée" value={`•••• ${transaction.card}`} hint="Concordance confirmée" tone="success" /><Field label="Dossier source" value="/dépôts/chantier" /><Field label="Réception" value={`${formatDate(transaction.date)} · 14:32`} /></div></div>
-        <div className="form-section"><div className="section-heading"><span>02</span><div><p className="eyebrow">Facture</p><h2>Données principales</h2></div></div><div className="field-grid"><Field label="Fournisseur" value={transaction.vendor} /><Field label="No facture" value={transaction.invoiceNumber} /><Field label="Date de facture" value={formatDate(transaction.date)} /><Field label="Chantier" value={transaction.project} /><Field label="Catégorie" value={draftCategory} /><Field label="Compte comptable" value={`${classification.code} · ${classification.category}`} invalid={transaction.correctionField === "account"} wide /></div>{transaction.correctionField === "account" && <label className="correction-editor correction-editor-danger"><span>Corriger la classification proposée par le SKU {transaction.sku}</span><select value={draftCategory} onChange={(event) => setDraftCategory(event.target.value)}>{accountCategories.map((account) => <option value={account.label} key={account.code}>{account.code} · {account.label}</option>)}</select></label>}</div>
+        <div className="form-section"><div className="section-heading"><span>02</span><div><p className="eyebrow">Facture</p><h2>Données principales</h2></div></div><div className="field-grid"><Field label="Fournisseur" value={transaction.vendor} /><Field label="No facture" value={transaction.invoiceNumber} /><Field label="Date de facture" value={formatDate(transaction.date)} /><Field label="Chantier" value={transaction.project} /><Field label="Catégorie" value={draftCategory} /><Field label="Compte comptable" value={`${classification.code} · ${classification.category}`} invalid={transaction.correctionField === "account"} wide /></div>{transaction.correctionField === "account" && <label className="correction-editor correction-editor-danger"><span>Corriger la classification proposée par le SKU {transaction.sku}</span><select value={draftCategory} onChange={(event) => setDraftCategory(event.target.value)}>{data.accounts.map((account) => <option value={account.label} key={account.code}>{account.code} · {account.label}</option>)}</select></label>}</div>
         {transaction.issue && <div className="detail-alert"><div className="detail-alert-icon">!</div><div><p className="eyebrow">Action requise avant validation</p><strong>{transaction.issue}</strong><span>{transaction.correction ?? "Correction humaine requise avant validation."}</span></div></div>}
         <div className="form-section"><div className="section-heading"><span>03</span><div><p className="eyebrow">Montants</p><h2>Contrôle comptable</h2></div><span className="control-ok">✓ Contrôles 4/4</span></div><div className="amount-card"><div className={transaction.correctionField === "subtotal" ? "amount-invalid" : ""}><span>Sous-total</span>{transaction.correctionField === "subtotal" ? <input className="amount-input" type="number" step="0.01" value={draftSubtotal} onChange={(event) => setDraftSubtotal(event.target.value)} /> : <strong>160,35 $</strong>}</div><div><span>TPS</span><strong>8,02 $</strong></div><div><span>TVQ</span><strong>16,00 $</strong></div><div className="amount-total"><span>Total</span><strong>{formatCurrency(transaction.total)}</strong></div></div></div>
         <div className="form-section"><div className="section-heading"><span>04</span><div><p className="eyebrow">Articles</p><h2>Lignes extraites</h2></div><button className="text-button">＋ Ajouter</button></div><div className="line-items"><div className="line-item"><span>01</span><div><strong>Matériaux / pièce</strong><small>Description originale conservée</small></div><strong>120,00 $</strong></div><div className="line-item warning-line"><span>02</span><div><strong>Article à confirmer</strong><small>Information absente de la page analysée</small></div><strong>—</strong></div></div><div className="field-note">{transaction.note}</div>{transaction.correctionField === "attachment" && <div className="correction-editor correction-editor-danger"><strong>Bon de livraison requis</strong><span>Cette correction doit être jointe à la facture avant la validation.</span><button className="secondary-button" onClick={() => setAttachmentAdded(true)}>{attachmentAdded ? "Pièce ajoutée ✓" : "Ajouter la pièce justificative"}</button></div>}</div>
@@ -535,7 +592,8 @@ function Field({ label, value, hint, tone, wide = false, invalid = false }: { la
 }
 
 function ReconciliationPage({ period, onPeriodChange }: { period: CardPeriod; onPeriodChange: (period: CardPeriod) => void }) {
-  return <><PageHeading eyebrow="Contrôle des relevés" title="Rapprochement" description="Chaque relevé est comparé aux factures reçues pour la même période et la même carte." action={<button className="primary-button"><span>↑</span> Importer un relevé</button>} /><div className="reconciliation-toolbar"><PeriodSelector period={period} onChange={onPeriodChange} /><div className="period-card"><span className="card-icon teal">▤</span><div><span>Cartes incluses</span><strong>{creditCards.filter((card) => card.status === "Actif").length} cartes actives · titulaires associés</strong></div><button className="icon-button">⌄</button></div></div><div className="card-roster">{creditCards.filter((card) => card.status === "Actif").map((card) => <span className="card-chip" key={card.id}><b>•••• {card.lastFour}</b><span>{card.holder}</span></span>)}</div><div className="reconciliation-stats"><StatTile label="Lignes du relevé" value="24" /><StatTile label="Rapprochées" value="20" tone="success" /><StatTile label="À vérifier" value="2" tone="warning" /><StatTile label="Factures manquantes" value="2" tone="danger" /></div><section className="panel reconciliation-panel"><div className="panel-header"><div><p className="eyebrow">{period.statementLabel} · {period.label}</p><h2>Correspondances et exceptions</h2></div><button className="secondary-button">Exporter les exceptions</button></div><div className="reconciliation-explainer"><span className="summary-icon rose">!</span><div><strong>La facture manquante est expliquée ici, pas seulement signalée.</strong><span>Kim voit immédiatement la carte, le titulaire, le montant et l’action à entreprendre.</span></div></div><div className="statement-list"><StatementRow date="12 juil. 2026" vendor="Canadian Tire" amount="184,37 $" card="2481" holder="Keven Tremblay" status="FACTURE MANQUANTE" tone="danger" reason="Aucune facture reçue pour la carte 2481 dans cette période." action="Demander la facture au titulaire Keven Tremblay; vérifier aussi le dépôt mobile." /><StatementRow date="10 juil. 2026" vendor="Esso" amount="91,52 $" card="7184" holder="Stéphane Deschêsne" status="RAPPROCHÉE · TX-2026-0046" tone="success" reason="Facture trouvée et montant concordant." action="Aucune action — conserver la preuve." /><StatementRow date="08 juil. 2026" vendor="Béton Montréal" amount="721,80 $" card="9294" holder="Martial Tremblay" status="RAPPROCHÉE · TX-2026-0044" tone="success" reason="Facture trouvée; compte 33518 · Maçonnerie identifié." action="Aucune action — prêt pour la comptabilité." /><StatementRow date="07 juil. 2026" vendor="Location Équipement Plus" amount="438,00 $" card="0383" holder="Olivier Simard" status="ÉCART DE DATE" tone="warning" reason="Facture reçue, mais la date ne correspond pas à la ligne du relevé." action="Confirmer la date de facture et le bon de livraison avant rapprochement." /></div></section></>;
+  const { cards } = useAppData();
+  return <><PageHeading eyebrow="Contrôle des relevés" title="Rapprochement" description="Chaque relevé est comparé aux factures reçues pour la même période et la même carte." action={<button className="primary-button"><span>↑</span> Importer un relevé</button>} /><div className="reconciliation-toolbar"><PeriodSelector period={period} onChange={onPeriodChange} /><div className="period-card"><span className="card-icon teal">▤</span><div><span>Cartes incluses</span><strong>{cards.filter((card) => card.status === "Actif").length} cartes actives · titulaires associés</strong></div><button className="icon-button">⌄</button></div></div><div className="card-roster">{cards.filter((card) => card.status === "Actif").map((card) => <span className="card-chip" key={card.id}><b>•••• {card.lastFour}</b><span>{card.holder}</span></span>)}</div><div className="reconciliation-stats"><StatTile label="Lignes du relevé" value="24" /><StatTile label="Rapprochées" value="20" tone="success" /><StatTile label="À vérifier" value="2" tone="warning" /><StatTile label="Factures manquantes" value="2" tone="danger" /></div><section className="panel reconciliation-panel"><div className="panel-header"><div><p className="eyebrow">{period.statementLabel} · {period.label}</p><h2>Correspondances et exceptions</h2></div><button className="secondary-button">Exporter les exceptions</button></div><div className="reconciliation-explainer"><span className="summary-icon rose">!</span><div><strong>La facture manquante est expliquée ici, pas seulement signalée.</strong><span>Kim voit immédiatement la carte, le titulaire, le montant et l’action à entreprendre.</span></div></div><div className="statement-list"><StatementRow date="12 juil. 2026" vendor="Canadian Tire" amount="184,37 $" card="2481" holder="Keven Tremblay" status="FACTURE MANQUANTE" tone="danger" reason="Aucune facture reçue pour la carte 2481 dans cette période." action="Demander la facture au titulaire Keven Tremblay; vérifier aussi le dépôt mobile." /><StatementRow date="10 juil. 2026" vendor="Esso" amount="91,52 $" card="7184" holder="Stéphane Deschêsne" status="RAPPROCHÉE · TX-2026-0046" tone="success" reason="Facture trouvée et montant concordant." action="Aucune action — conserver la preuve." /><StatementRow date="08 juil. 2026" vendor="Béton Montréal" amount="721,80 $" card="9294" holder="Martial Tremblay" status="RAPPROCHÉE · TX-2026-0044" tone="success" reason="Facture trouvée; compte 33518 · Maçonnerie identifié." action="Aucune action — prêt pour la comptabilité." /><StatementRow date="07 juil. 2026" vendor="Location Équipement Plus" amount="438,00 $" card="0383" holder="Olivier Simard" status="ÉCART DE DATE" tone="warning" reason="Facture reçue, mais la date ne correspond pas à la ligne du relevé." action="Confirmer la date de facture et le bon de livraison avant rapprochement." /></div></section></>;
 }
 
 function StatTile({ label, value, tone = "" }: { label: string; value: string; tone?: string }) { return <div className={`stat-tile ${tone}`}><span>{label}</span><strong>{value}</strong></div>; }
@@ -547,21 +605,23 @@ function ReportsPage(props: { period: CardPeriod; onPeriodChange: (period: CardP
 
 function KimAccountingReport({ period, onPeriodChange, embedded = false }: { period: CardPeriod; onPeriodChange: (period: CardPeriod) => void; embedded?: boolean }) {
   void DemoReportsPage;
+  const data = useAppData();
+  const { cards, transactions, accounts } = data;
   const [selectedPerson, setSelectedPerson] = useState("TOUS");
-  const people = Array.from(new Set(creditCards.map((card) => card.holder)));
+  const people = Array.from(new Set(cards.map((card) => card.holder)));
   const visibleTransactions = useMemo(() => transactions.filter((transaction) => {
     const matchesPerson = selectedPerson === "TOUS" || transaction.person === selectedPerson;
     const isIncludedStatus = transaction.status === "Validée" || transaction.status === "À valider";
     return matchesPerson && isIncludedStatus;
-  }), [selectedPerson]);
+  }), [selectedPerson, transactions]);
   const visibleTotals = useMemo(() => {
     const totals = new Map<string, number>();
     visibleTransactions.forEach((transaction) => {
-      const accountCode = classifyTransaction(transaction).code;
+      const accountCode = classifyTransaction(transaction, data).code;
       totals.set(accountCode, (totals.get(accountCode) ?? 0) + transaction.total);
     });
     return totals;
-  }, [visibleTransactions]);
+  }, [data, visibleTransactions]);
   const visibleTotal = Array.from(visibleTotals.values()).reduce((sum, amount) => sum + amount, 0);
   return <>
     {!embedded && <PageHeading eyebrow="Analyse" title="Rapports" description="Le tableau compact utilisé par Kim pour reporter les dépenses dans la comptabilité." action={<button className="primary-button"><span>⇩</span> Exporter en Excel</button>} />}
@@ -573,7 +633,7 @@ function KimAccountingReport({ period, onPeriodChange, embedded = false }: { per
     <section className="panel kim-report-table">
       <div className="panel-header"><div><p className="eyebrow">Tableau de Kim</p><h2>Résumé par catégorie comptable</h2></div><span className="badge badge-neutral">Avant taxes</span></div>
       <div className="kim-report-head"><span>Compte</span><span>Catégorie</span><span>Total avant taxes</span></div>
-      <div className="kim-report-rows">{accountCategories.map((account) => <div key={account.code}><span><b>{account.code}</b></span><span>{account.label}</span><strong>{formatCurrency(visibleTotals.get(account.code) ?? 0)}</strong></div>)}</div>
+      <div className="kim-report-rows">{accounts.map((account) => <div key={account.code}><span><b>{account.code}</b></span><span>{account.label}</span><strong>{formatCurrency(visibleTotals.get(account.code) ?? 0)}</strong></div>)}</div>
       <div className="account-report-total"><strong>TOTAL CATÉGORIES</strong><strong>{formatCurrency(visibleTotal)}</strong></div>
     </section>
   </>;
@@ -635,10 +695,11 @@ function ArchivesPage({ onNotify }: { onNotify: (message: string) => void }) {
 
 function SaferSettingsPage() {
   void CompactSettingsPage;
+  const data = useAppData();
   const [selectedSection, setSelectedSection] = useState("cards");
-  const [cards, setCards] = useState(creditCards);
-  const [accounts, setAccounts] = useState(accountCategories);
-  const [projects, setProjects] = useState(projectReferences);
+  const [cards, setCards] = useState(data.cards);
+  const [accounts, setAccounts] = useState(data.accounts);
+  const [projects, setProjects] = useState(data.projects);
   const [editingCards, setEditingCards] = useState(false);
   const [pendingDeleteCard, setPendingDeleteCard] = useState("");
   const [newCardLastFour, setNewCardLastFour] = useState("");
@@ -648,7 +709,7 @@ function SaferSettingsPage() {
     { id: "cards", title: "Cartes et titulaires", meta: cards.filter((card) => card.status === "Actif").length + " actives" },
     { id: "accounts", title: "Comptes comptables", meta: accounts.length + " comptes" },
     { id: "projects", title: "Projets", meta: projects.length + " chantiers" },
-    { id: "sku", title: "Produits et SKU", meta: skuReferences.length + " SKU suivis" },
+    { id: "sku", title: "Produits et SKU", meta: data.skuReferences.length + " SKU suivis" },
     { id: "controls", title: "Contrôles et seuils", meta: "0,01 $" },
     { id: "ai", title: "Intelligence artificielle", meta: "Gemini · prêt à brancher" },
   ];
@@ -674,7 +735,7 @@ function SaferSettingsPage() {
       </div>}
       {selectedSection === "accounts" && <div className="settings-editor-list">{accounts.map((account) => <div className="settings-inline-row" key={account.code}><input value={account.code} onChange={(event) => setAccounts((current) => current.map((item) => item.code === account.code ? { ...item, code: event.target.value } : item))} aria-label="Code comptable" /><input value={account.label} onChange={(event) => setAccounts((current) => current.map((item) => item.code === account.code ? { ...item, label: event.target.value } : item))} aria-label="Catégorie comptable" /></div>)}</div>}
       {selectedSection === "projects" && <div className="settings-editor-list">{projects.map((project, index) => <div className="settings-inline-row" key={project + "-" + index}><input value={project} onChange={(event) => setProjects((current) => current.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} aria-label={"Projet " + (index + 1)} /></div>)}<form className="settings-add-row" onSubmit={(event) => { event.preventDefault(); if (!newProject.trim()) return; setProjects((current) => [...current, newProject.trim()]); setNewProject(""); }}><input value={newProject} onChange={(event) => setNewProject(event.target.value)} placeholder="Ajouter un projet" /><button className="secondary-button" type="submit">＋ Ajouter</button></form></div>}
-      {selectedSection === "sku" && <div className="settings-editor-list">{skuReferences.map((reference) => <div className="sku-reference-row" key={reference.merchant + "-" + reference.sku}><div><strong>{reference.merchant} · SKU {reference.sku}</strong><span>{reference.label} · {reference.accountCode} · {reference.category}</span></div><span className="badge badge-warning">{reference.status}</span><small>Recherche externe à lancer lorsque la fiche est nécessaire.</small></div>)}</div>}
+      {selectedSection === "sku" && <div className="settings-editor-list">{data.skuReferences.map((reference) => <div className="sku-reference-row" key={reference.merchant + "-" + reference.sku}><div><strong>{reference.merchant} · SKU {reference.sku}</strong><span>{reference.label} · {reference.accountCode} · {reference.category}</span></div><span className="badge badge-warning">{reference.status}</span><small>Recherche externe à lancer lorsque la fiche est nécessaire.</small></div>)}</div>}
       {!["cards", "accounts", "projects", "sku"].includes(selectedSection) && <div className="settings-placeholder"><strong>Référentiel prêt à connecter</strong><p>Cette section est préparée pour les règles Firebase et les permissions administrateur.</p></div>}
     </section>
     <div className="config-note"><span>i</span><p><strong>Protection des actions sensibles.</strong> Le retrait d’une carte passe par le mode Modifier, puis par une confirmation explicite.</p></div>

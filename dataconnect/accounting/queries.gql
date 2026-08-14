@@ -1,0 +1,133 @@
+# Read-only operations for the first application integration pass.
+# Client writes stay disabled until Firebase Auth roles and the correction
+# audit workflow are reviewed.
+
+query ListCreditCards @auth(level: USER) {
+  creditCards {
+    id
+    lastFour
+    holder {
+      id
+      displayName
+      role
+      status
+    }
+    cardFunction
+    activeFrom
+    inactiveFrom
+    status
+  }
+}
+
+query ListCardStatementPeriods @auth(level: USER) {
+  cardStatementPeriods {
+    id
+    label
+    startDate
+    endDate
+    statementLabel
+    status
+  }
+}
+
+query ListExpenseAccounts @auth(level: USER) {
+  expenseAccounts {
+    code
+    label
+    status
+  }
+}
+
+query ListProjects @auth(level: USER) {
+  projects {
+    id
+    name
+    status
+  }
+}
+
+query ListSkuReferences @auth(level: USER) {
+  skuReferences {
+    merchant
+    sku
+    productLabel
+    categoryLabel
+    expenseAccount {
+      code
+      label
+    }
+    sourceUrl
+    verificationStatus
+    verifiedAt
+  }
+}
+
+query ListExpenseTransactions @auth(level: USER) {
+  expenseTransactions(limit: 250) {
+    id
+    transactionDate
+    vendor
+    card {
+      id
+      lastFour
+      holder {
+        id
+        displayName
+      }
+    }
+    statementPeriod {
+      id
+      label
+      startDate
+      endDate
+    }
+    project {
+      id
+      name
+    }
+    expenseAccount {
+      code
+      label
+    }
+    categoryLabel
+    sku
+    amountBeforeTaxCents
+    tpsCents
+    tvqCents
+    totalCents
+    currency
+    status
+    reconciliationStatus
+    classificationSource
+    classificationConfidence
+    classificationNote
+    invoiceNumber
+    issue
+  }
+}
+
+query ListInvoicesToReview @auth(level: USER) {
+  invoices(where: {reviewStatus: {eq: "TO_VERIFY"}}) {
+    id
+    vendor
+    invoiceNumber
+    invoiceDate
+    subtotalCents
+    tpsCents
+    tvqCents
+    totalCents
+    reviewStatus
+    storageFolder
+    transaction {
+      id
+      vendor
+      issue
+    }
+    invoicePhotos_on_invoice {
+      id
+      storagePath
+      contentType
+      sequence
+    }
+  }
+}

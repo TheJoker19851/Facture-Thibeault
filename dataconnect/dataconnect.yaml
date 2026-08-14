@@ -8,4 +8,5 @@ schema:
       database: "facture-thibeault-database"
       cloudSql:
         instanceId: "facture-thibeault-instance"
-connectorDirs: []
+connectorDirs:
+  - "accounting"
