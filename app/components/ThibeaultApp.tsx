@@ -2,17 +2,9 @@
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { firebaseConfigured } from "../../firebase/client";
-import {
-  subscribeAccountingSummary,
-  subscribeActivePeople,
-  subscribeActiveProjects,
-  type FirebasePerson,
-  type FirebaseProject,
-  type FirebaseReport,
-} from "../../firebase/reports";
 import { uploadInvoicePhotos } from "../../firebase/uploads";
 
-type Role = "WORKER" | "ACCOUNTING" | "ADMIN";
+type Role = "WORKER" | "KIM" | "ADMIN" | "SUPER_ADMIN";
 type View = "dashboard" | "transactions" | "review" | "reconciliation" | "reports" | "archives" | "settings" | "capture" | "transaction";
 
 type Transaction = {
@@ -485,7 +477,7 @@ function StatTile({ label, value, tone = "" }: { label: string; value: string; t
 function StatementRow({ date, vendor, amount, card, holder, status, tone, reason, action }: { date: string; vendor: string; amount: string; card: string; holder: string; status: string; tone: string; reason: string; action: string }) { return <div className="statement-row"><span className="statement-date">{date}</span><span className="statement-vendor"><strong>{vendor}</strong><small>Carte •••• {card} · {holder}</small></span><strong className="statement-amount">{amount}</strong><span className={`statement-status ${tone}`}><span className="status-dot" />{status}</span><div className="statement-resolution"><strong>Pourquoi</strong><span>{reason}</span><strong>À faire</strong><span>{action}</span></div><button className="row-menu">→</button></div>; }
 
 function ReportsPage(props: { period: CardPeriod; onPeriodChange: (id: string) => void }) {
-  return firebaseConfigured ? <ConnectedReportsPage {...props} /> : <DemoReportsPage {...props} />;
+  return <DemoReportsPage {...props} />;
 }
 
 function DemoReportsPage({ period, onPeriodChange }: { period: CardPeriod; onPeriodChange: (id: string) => void }) {
@@ -514,60 +506,6 @@ function DemoReportsPage({ period, onPeriodChange }: { period: CardPeriod; onPer
       <section className="panel report-table"><div className="panel-header"><div><p className="eyebrow">Résumé par titulaire et carte</p><h2>Qui dépense quoi</h2></div><button className="text-button">Détails →</button></div><div className="mini-table card-total-list">{creditCards.filter((card) => card.status === "Actif").map((card) => <div key={card.id}><span><b>•••• {card.lastFour}</b> {card.holder}</span><strong>{formatCurrency(selectedPerson === "TOUS" ? cardTotals.get(card.lastFour) ?? 0 : 0)}</strong></div>)}</div></section>
     </div>
     <section className="panel report-table full-width"><div className="panel-header"><div><p className="eyebrow">Résumé par catégorie comptable</p><h2>Répartition avant taxes · compte utilisé par Kim</h2></div><button className="secondary-button">Enregistrer ce rapport</button></div><div className="account-report-head"><span>Compte</span><span>Catégorie</span><span>Total avant taxes</span></div><div className="category-report">{accountCategories.map((account) => <div key={account.code}><span><b>{account.code}</b></span><span>{account.label}</span><strong>{formatCurrency(visibleTotals.get(account.code) ?? 0)}</strong></div>)}</div></section>
-  </>;
-}
-
-function ConnectedReportsPage({ period, onPeriodChange }: { period: CardPeriod; onPeriodChange: (id: string) => void }) {
-  const [selectedPersonId, setSelectedPersonId] = useState("TOUS");
-  const [selectedProjectId, setSelectedProjectId] = useState("TOUS");
-  const [selectedStatus, setSelectedStatus] = useState("VALIDES_ET_A_VALIDER");
-  const [people, setPeople] = useState<FirebasePerson[]>([]);
-  const [projects, setProjects] = useState<FirebaseProject[]>([]);
-  const [report, setReport] = useState<FirebaseReport | null>(null);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    const onError = (cause: Error) => setError(cause.message);
-    const unsubscribePeople = subscribeActivePeople(setPeople, onError);
-    const unsubscribeProjects = subscribeActiveProjects(setProjects, onError);
-    return () => {
-      unsubscribePeople();
-      unsubscribeProjects();
-    };
-  }, []);
-
-  useEffect(() => {
-    return subscribeAccountingSummary(
-      {
-        startDate: period.start,
-        endDate: period.end,
-        personId: selectedPersonId === "TOUS" ? undefined : selectedPersonId,
-        projectId: selectedProjectId === "TOUS" ? undefined : selectedProjectId,
-        status: selectedStatus === "VALIDES_ET_A_VALIDER" ? undefined : selectedStatus,
-      },
-      setReport,
-      (cause) => setError(cause.message),
-    );
-  }, [period.end, period.start, selectedPersonId, selectedProjectId, selectedStatus]);
-
-  const rows = report?.rows ?? [];
-  const totalBeforeTaxes = (report?.totalBeforeTaxesCents ?? 0) / 100;
-
-  return <>
-    <PageHeading eyebrow="Analyse" title="Rapports" description="Générez le tableau que Kim reporte dans le programme de comptabilité, sur le même cycle que les cartes." action={<button className="primary-button"><span>⇩</span> Exporter en Excel</button>} />
-    <div className="report-filter-grid">
-      <PeriodSelector period={period} onChange={onPeriodChange} />
-      <label><span>Titulaire</span><select aria-label="Filtrer par titulaire" value={selectedPersonId} onChange={(event) => setSelectedPersonId(event.target.value)}><option value="TOUS">Tous les titulaires</option>{people.map((person) => <option value={person.id} key={person.id}>{person.fullName}</option>)}</select></label>
-      <label><span>Chantier</span><select aria-label="Filtrer par chantier" value={selectedProjectId} onChange={(event) => setSelectedProjectId(event.target.value)}><option value="TOUS">Tous les chantiers</option>{projects.map((project) => <option value={project.id} key={project.id}>{project.code} · {project.name}</option>)}</select></label>
-      <label><span>État</span><select aria-label="Filtrer par état" value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)}><option value="VALIDES_ET_A_VALIDER">Validées et à valider</option><option value="VALIDEE">Validées seulement</option><option value="A_VALIDER">À valider seulement</option></select></label>
-    </div>
-    <div className="report-period-note"><span className="status-dot" /><strong>{period.label}</strong><span>· données Firebase réactives · {report ? `${report.transactionCount} transaction${report.transactionCount === 1 ? "" : "s"}` : "chargement…"}{report?.fromCache ? " · cache hors ligne" : ""}</span></div>
-    {error && <div className="report-local-note"><strong>Connexion Firebase à vérifier.</strong><span>{error}</span></div>}
-    <div className="report-layout">
-      <section className="panel report-total"><p className="eyebrow">Résumé de période</p><h2>{formatCurrency(totalBeforeTaxes)}</h2><p className="muted">Source officielle Firebase</p><div className="report-breakdown"><div><span>Avant taxes</span><strong>{formatCurrency(totalBeforeTaxes)}</strong></div><div><span>TPS</span><strong>—</strong></div><div><span>TVQ</span><strong>—</strong></div></div></section>
-      <section className="panel report-table"><div className="panel-header"><div><p className="eyebrow">Tableau comptable</p><h2>Filtre actif</h2></div><span className="badge badge-success">Firebase</span></div><div className="mini-table card-total-list"><div><span>Titulaire</span><strong>{selectedPersonId === "TOUS" ? "Tous" : people.find((person) => person.id === selectedPersonId)?.fullName ?? "Chargement…"}</strong></div><div><span>Chantier</span><strong>{selectedProjectId === "TOUS" ? "Tous" : projects.find((project) => project.id === selectedProjectId)?.code ?? "Chargement…"}</strong></div><div><span>Comptes affichés</span><strong>{rows.length}</strong></div></div></section>
-    </div>
-    <section className="panel report-table full-width"><div className="panel-header"><div><p className="eyebrow">Résumé par catégorie comptable</p><h2>Répartition avant taxes · compte utilisé par Kim</h2></div><button className="secondary-button">Enregistrer ce rapport</button></div><div className="account-report-head"><span>Compte</span><span>Catégorie</span><span>Total avant taxes</span></div><div className="category-report">{report ? rows.map((row) => <div key={row.code}><span><b>{row.code}</b></span><span>{row.label}</span><strong>{formatCurrency(row.totalBeforeTaxesCents / 100)}</strong></div>) : <div className="report-loading"><span>Chargement des comptes configurés…</span></div>}</div></section>
   </>;
 }
 

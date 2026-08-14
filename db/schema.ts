@@ -1,3 +1,4 @@
 // Legacy starter scaffold only.
-// The official Thibeault data model is now documented in ../firebase/schema.ts.
+// Legacy starter scaffolding only. The official application data model will be
+// approved and documented under ../dataconnect/ before any SQL migration.
 export {};

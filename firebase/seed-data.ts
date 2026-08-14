@@ -1,7 +1,7 @@
 /**
- * Reference data to import into Firestore after the Firebase project is
- * created. This file is input for a controlled seed/import command, not a
- * client-side source of truth.
+ * Reference data from the prototype. This file is not a client-side source of
+ * truth and must not be imported into SQL Connect until the business schema,
+ * ownership rules and migration plan are approved.
  */
 export const initialPeople = [
   ["PERSON-KEVEN-TREMBLAY", "Keven Tremblay", "Propriétaire", "ACTIVE"],

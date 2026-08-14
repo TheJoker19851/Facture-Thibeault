@@ -12,27 +12,30 @@ service firebase.storage {
         : 'UNKNOWN';
     }
 
-    function isStaff() {
-      return role() in ['WORKER', 'ACCOUNTING', 'ADMIN'];
+    function isPrivileged() {
+      return role() in ['KIM', 'ADMIN', 'SUPER_ADMIN'];
     }
 
-    function isAccountingOrAdmin() {
-      return role() in ['ACCOUNTING', 'ADMIN'];
-    }
-
-    // Invoice evidence is private and restricted to authenticated staff.
-    match /submissions/{submissionId}/{fileName=**} {
-      allow read: if isStaff();
-      allow write: if isStaff()
+    // Invoice evidence is private. The current baseline lets any signed-in
+    // user create original images, while only privileged roles may replace or
+    // delete an existing object.
+    match /receipts/{year}/{month}/{receiptId}/{fileName} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && resource == null
+        && request.resource.metadata.ownerUid == request.auth.uid
+        && fileName.matches('original-[0-9]{2}\\.(jpg|jpeg|png|webp|heic)')
         && request.resource.size < 15 * 1024 * 1024
-        && request.resource.contentType.matches('(image/.*|application/pdf)');
-      allow delete: if isAccountingOrAdmin();
+        && request.resource.contentType.matches('(image/jpeg|image/jpg|image/png|image/webp|image/heic)');
+      allow update: if isPrivileged()
+        && fileName.matches('original-[0-9]{2}\\.(jpg|jpeg|png|webp|heic)')
+        && request.resource.size < 15 * 1024 * 1024
+        && request.resource.contentType.matches('(image/jpeg|image/jpg|image/png|image/webp|image/heic)');
+      allow delete: if isPrivileged();
     }
 
     match /exports/{fileName=**} {
-      allow read: if isAccountingOrAdmin();
-      allow write: if isAccountingOrAdmin();
-      allow delete: if isAccountingOrAdmin();
+      allow read, write, delete: if isPrivileged();
     }
 
     match /{allPaths=**} {

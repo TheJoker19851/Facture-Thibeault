@@ -1,8 +1,8 @@
 # vinext-starter
 
 A PWA for invoice and expense processing at Maçonnerie Thibeault, running on
-[vinext](https://github.com/cloudflare/vinext) with Firebase as the target
-database, authentication and private photo storage.
+[vinext](https://github.com/cloudflare/vinext) with Firebase Authentication,
+SQL Connect/PostgreSQL and private Storage.
 
 ## Prerequisites
 
@@ -22,12 +22,13 @@ development tranche.
 ## Included Shape
 
 - edit site code under `app/`
-- `firebase/schema.ts` documents the authoritative Firestore collections
+- `dataconnect/dataconnect.yaml` records the supplied SQL Connect/PostgreSQL
+  service, database, instance and Montréal region
 - `firebase/seed-data.ts` contains controlled reference-data input from the
-  legacy demo data and Kim's official accounting-table image
-- `firebase/reports.ts` powers the reactive accounting summary and selectors
-- `firebase.json`, `firestore.rules` and `storage.rules` keep the backend
-  closed by default and prepare the Montréal region
+  legacy demo data and Kim's official accounting-table image; it is not seeded
+- `firebase/data-connect.ts` prepares the public client connector metadata
+- `firebase.json` and `storage.rules` keep the Firebase boundary closed by
+  default and prepare the Montréal region
 - `docs/EFVP-Quebec.md` records the Québec privacy and data-transfer checklist
 - `app/components/FirebaseShell.tsx` keeps the app in local demo mode until
   the Firebase web-app variables are configured
@@ -101,8 +102,10 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 - `npm test`: build the application and verify the rendered PWA shell
 - `pnpm exec tsc --noEmit`: run the TypeScript check (the legacy Cloudflare
   starter files still require their optional worker type package)
-- `npx firebase-tools emulators:start`: run the local Firebase Auth, Firestore
-  and Storage emulators
+- `npx firebase-tools emulators:start --only auth,storage,dataconnect`: run
+  the local Firebase Auth, Storage and SQL Connect emulators
+- See `docs/Firebase-connection.md` for environment separation, connector
+  generation and deployment gates
 
 ## Learn More
 

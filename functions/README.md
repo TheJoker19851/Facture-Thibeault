@@ -3,7 +3,7 @@
 Privileged workflows belong in Cloud Functions, deployed explicitly to
 `northamerica-northeast1` (Montréal):
 
-- create the Firestore submission record after an authenticated upload;
+- create the SQL Connect receipt record after an authenticated Storage upload;
 - call Gemini server-side and store only validated structured output;
 - write `aiRuns` and `auditLogs`;
 - perform reconciliation, exports and archival jobs;

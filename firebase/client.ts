@@ -6,16 +6,8 @@ import {
   ReCaptchaEnterpriseProvider,
   type AppCheck,
 } from "firebase/app-check";
-import { getAuth, type Auth } from "firebase/auth";
-import {
-  getFirestore,
-  initializeFirestore,
-  persistentLocalCache,
-  persistentMultipleTabManager,
-  type Firestore,
-} from "firebase/firestore";
-import { getFunctions, type Functions } from "firebase/functions";
-import { getStorage, type FirebaseStorage } from "firebase/storage";
+import { connectAuthEmulator, getAuth, type Auth } from "firebase/auth";
+import { connectStorageEmulator, getStorage, type FirebaseStorage } from "firebase/storage";
 
 export const FIREBASE_REGION = "northamerica-northeast1";
 export const FIREBASE_REGION_LABEL = "Montréal, Canada";
@@ -43,26 +35,6 @@ function createFirebaseApp(): FirebaseApp | null {
   return getApps().length > 0 ? getApp() : initializeApp(config);
 }
 
-function createFirestore(app: FirebaseApp): Firestore {
-  if (
-    typeof window === "undefined" ||
-    process.env.NEXT_PUBLIC_FIREBASE_OFFLINE_CACHE !== "true"
-  ) {
-    return getFirestore(app);
-  }
-
-  try {
-    return initializeFirestore(app, {
-      localCache: persistentLocalCache({
-        tabManager: persistentMultipleTabManager(),
-      }),
-    });
-  } catch {
-    // HMR can initialize Firestore more than once. Reuse the existing instance.
-    return getFirestore(app);
-  }
-}
-
 export const firebaseApp = createFirebaseApp();
 function createAppCheck(app: FirebaseApp): AppCheck | null {
   const siteKey = process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_RECAPTCHA_ENTERPRISE_KEY;
@@ -79,15 +51,36 @@ function createAppCheck(app: FirebaseApp): AppCheck | null {
 }
 
 export const firebaseAppCheck = firebaseApp ? createAppCheck(firebaseApp) : null;
-export const firestore = firebaseApp ? createFirestore(firebaseApp) : null;
 export const firebaseAuth: Auth | null =
   firebaseApp && typeof window !== "undefined" ? getAuth(firebaseApp) : null;
 export const firebaseStorage: FirebaseStorage | null = firebaseApp
   ? getStorage(firebaseApp)
   : null;
-export const firebaseFunctions: Functions | null = firebaseApp
-  ? getFunctions(firebaseApp, FIREBASE_REGION)
-  : null;
+
+/**
+ * Local development is opt-in. Keeping this disabled by default prevents a
+ * local browser session from accidentally writing to a shared Firebase
+ * project. The emulator connection calls are safe to repeat during HMR.
+ */
+if (process.env.NEXT_PUBLIC_FIREBASE_USE_EMULATORS === "true") {
+  if (firebaseAuth) {
+    try {
+      connectAuthEmulator(firebaseAuth, "http://127.0.0.1:9099", {
+        disableWarnings: true,
+      });
+    } catch {
+      // The emulator may already be attached during hot module replacement.
+    }
+  }
+
+  if (firebaseStorage) {
+    try {
+      connectStorageEmulator(firebaseStorage, "127.0.0.1", 9199);
+    } catch {
+      // The emulator may already be attached during hot module replacement.
+    }
+  }
+}
 
 /**
  * App Check is deliberately opt-in. Register the web app in Firebase App

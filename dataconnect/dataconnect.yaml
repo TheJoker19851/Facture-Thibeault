@@ -1,0 +1,11 @@
+specVersion: "v1alpha"
+serviceId: "facture-thibeault-service"
+location: "northamerica-northeast1"
+schema:
+  source: "./schema"
+  datasource:
+    postgresql:
+      database: "facture-thibeault-database"
+      cloudSql:
+        instanceId: "facture-thibeault-instance"
+connectorDirs: []

@@ -14,13 +14,16 @@ contraire.
 
 ## Configuration technique prévue
 
-- Cloud Firestore : `northamerica-northeast1` (Montréal).
-- Cloud Storage : bucket régional `northamerica-northeast1` (Montréal).
-- Cloud Functions : `northamerica-northeast1` (Montréal).
-- Firestore Web : cache persistant désactivé par défaut; l’activer seulement
-  sur des appareils gérés et fiables lorsque l’usage hors ligne est requis.
-- Security Rules : refus par défaut; accès conditionné par l’authentification
-  Firebase et les rôles `WORKER`, `ACCOUNTING`, `ADMIN`.
+- Firebase SQL Connect et Cloud SQL PostgreSQL :
+  `northamerica-northeast1` (Montréal).
+- Cloud Storage : bucket régional `northamerica-northeast1` (Montréal), privé.
+- Cloud Functions : `northamerica-northeast1` (Montréal) si elles sont
+  nécessaires pour les traitements privilégiés.
+- SQL Connect Web : cache côté client désactivé par défaut pour les données
+  sensibles; toute politique hors ligne doit être validée séparément.
+- Security Rules et directives SQL Connect `@auth` : refus par défaut; accès
+  conditionné par Firebase Authentication et les futurs rôles `WORKER`, `KIM`,
+  `ADMIN`, `SUPER_ADMIN`.
 - App Check : à activer après enregistrement de l’application et validation
   des flux locaux et de production.
 
