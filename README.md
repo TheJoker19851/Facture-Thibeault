@@ -1,8 +1,8 @@
 # vinext-starter
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+A PWA for invoice and expense processing at Maçonnerie Thibeault, running on
+[vinext](https://github.com/cloudflare/vinext) with Convex as the target
+database and active photo storage.
 
 ## Prerequisites
 
@@ -16,16 +16,21 @@ npm run dev
 npm run build
 ```
 
-This starter does not use `wrangler.jsonc`.
+Production deployment is intentionally out of scope for the current
+development tranche.
 
 ## Included Shape
 
 - edit site code under `app/`
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
+- `convex/schema.ts` is the authoritative target data model
+- `convex/seed-data.ts` contains one-time migration input from the legacy demo
+  data and Kim's official accounting-table image
+- `convex/reports.ts` and `convex/references.ts` expose the first deterministic
+  report queries
+- `app/components/ConvexShell.tsx` connects the UI when
+  `NEXT_PUBLIC_CONVEX_URL` is configured
+- `db/` and `drizzle/` are legacy starter scaffolding and are not the official
+  application data model
 
 ## Workspace Auth Headers
 
@@ -91,10 +96,11 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 
 - `npm run dev`: start local development
 - `npm run build`: verify the vinext build output
-- `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run db:generate`: generate Drizzle migrations after schema changes
+- `npm test`: build the application and verify the rendered PWA shell
+- `pnpm exec tsc --noEmit`: run the TypeScript check (the legacy Cloudflare
+  starter files still require their optional worker type package)
 
 ## Learn More
 
 - [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+- [Convex documentation](https://docs.convex.dev/)

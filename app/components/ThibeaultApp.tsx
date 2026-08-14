@@ -1,6 +1,8 @@
 "use client";
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "convex/react";
+import { makeFunctionReference } from "convex/server";
 
 type Role = "WORKER" | "ACCOUNTING" | "ADMIN";
 type View = "dashboard" | "transactions" | "review" | "reconciliation" | "reports" | "archives" | "settings" | "capture" | "transaction";
@@ -60,6 +62,7 @@ const accountCategories: AccountCategory[] = [
   { code: "43400", label: "CCQ" },
   { code: "33500", label: "Matériaux divers" },
   { code: "42112", label: "Frais bureau" },
+  { code: "33552", label: "Frais de soumission" },
   { code: "42104", label: "Pénalité/amende" },
   { code: "33537", label: "Chauffage des travaux" },
   { code: "33539", label: "Rebus" },
@@ -207,6 +210,17 @@ const navItems: Array<{ id: View; label: string; icon: string }> = [
 
 const currency = new Intl.NumberFormat("fr-CA", { style: "currency", currency: "CAD" });
 const dateFormat = new Intl.DateTimeFormat("fr-CA", { day: "2-digit", month: "short", year: "numeric" });
+const listPeopleRef = makeFunctionReference<"query">("references:listActivePeople");
+const listProjectsRef = makeFunctionReference<"query">("references:listActiveProjects");
+const accountingSummaryRef = makeFunctionReference<"query">("reports:accountingSummary");
+
+type ConvexPerson = { _id: string; fullName: string };
+type ConvexProject = { _id: string; code: string; name: string };
+type ConvexReport = {
+  rows: Array<{ code: string; label: string; totalBeforeTaxesCents: number }>;
+  totalBeforeTaxesCents: number;
+  transactionCount: number;
+};
 
 function formatCurrency(value: number) {
   return currency.format(value).replace("CA", "$");
@@ -456,10 +470,71 @@ function ReconciliationPage({ period, onPeriodChange }: { period: CardPeriod; on
 function StatTile({ label, value, tone = "" }: { label: string; value: string; tone?: string }) { return <div className={`stat-tile ${tone}`}><span>{label}</span><strong>{value}</strong></div>; }
 function StatementRow({ date, vendor, amount, card, holder, status, tone, reason, action }: { date: string; vendor: string; amount: string; card: string; holder: string; status: string; tone: string; reason: string; action: string }) { return <div className="statement-row"><span className="statement-date">{date}</span><span className="statement-vendor"><strong>{vendor}</strong><small>Carte •••• {card} · {holder}</small></span><strong className="statement-amount">{amount}</strong><span className={`statement-status ${tone}`}><span className="status-dot" />{status}</span><div className="statement-resolution"><strong>Pourquoi</strong><span>{reason}</span><strong>À faire</strong><span>{action}</span></div><button className="row-menu">→</button></div>; }
 
-function ReportsPage({ period, onPeriodChange }: { period: CardPeriod; onPeriodChange: (id: string) => void }) {
+function ReportsPage(props: { period: CardPeriod; onPeriodChange: (id: string) => void }) {
+  const connectedToConvex = Boolean(typeof process !== "undefined" && process.env.NEXT_PUBLIC_CONVEX_URL);
+  return connectedToConvex ? <ConnectedReportsPage {...props} /> : <DemoReportsPage {...props} />;
+}
+
+function DemoReportsPage({ period, onPeriodChange }: { period: CardPeriod; onPeriodChange: (id: string) => void }) {
   const accountTotals = new Map([["33500", 492.37], ["33544", 309.84], ["33536", 438], ["33518", 49.21]]);
   const cardTotals = new Map([["2481", 492.37], ["2286", 62.14], ["7184", 91.52], ["0383", 438], ["9294", 721.8]]);
-  return <><PageHeading eyebrow="Analyse" title="Rapports" description="Générez le tableau que Kim reporte dans le programme de comptabilité, sur le même cycle que les cartes." action={<button className="primary-button"><span>⇩</span> Exporter en Excel</button>} /><div className="report-filter-grid"><PeriodSelector period={period} onChange={onPeriodChange} /><div><span>Titulaire</span><strong>Tous les titulaires⌄</strong></div><div><span>Chantier</span><strong>Tous les chantiers⌄</strong></div><div><span>État</span><strong>Validées et à valider⌄</strong></div></div><div className="report-period-note"><span className="status-dot" /><strong>{period.label}</strong><span>· période commune aux {creditCards.filter((card) => card.status === "Actif").length} cartes actives</span></div><div className="report-layout"><section className="panel report-total"><p className="eyebrow">Résumé de période</p><h2>1 497,83 $</h2><p className="muted">18 transactions · 13 validées</p><div className="report-breakdown"><div><span>Avant taxes</span><strong>1 289,42 $</strong></div><div><span>TPS</span><strong>64,47 $</strong></div><div><span>TVQ</span><strong>143,94 $</strong></div></div></section><section className="panel report-table"><div className="panel-header"><div><p className="eyebrow">Résumé par titulaire et carte</p><h2>Qui dépense quoi</h2></div><button className="text-button">Détails →</button></div><div className="mini-table card-total-list">{creditCards.filter((card) => card.status === "Actif").map((card) => <div key={card.id}><span><b>•••• {card.lastFour}</b> {card.holder}</span><strong>{formatCurrency(cardTotals.get(card.lastFour) ?? 0)}</strong></div>)}</div></section></div><section className="panel report-table full-width"><div className="panel-header"><div><p className="eyebrow">Résumé par catégorie comptable</p><h2>Répartition avant taxes · compte utilisé par Kim</h2></div><button className="secondary-button">Enregistrer ce rapport</button></div><div className="account-report-head"><span>Compte</span><span>Catégorie</span><span>Total avant taxes</span></div><div className="category-report">{accountCategories.map((account) => <div key={account.code}><span><b>{account.code}</b></span><span>{account.label}</span><strong>{formatCurrency(accountTotals.get(account.code) ?? 0)}</strong></div>)}</div></section></>;
+  const [selectedPerson, setSelectedPerson] = useState("TOUS");
+  const [selectedProject, setSelectedProject] = useState("TOUS");
+  const [selectedStatus, setSelectedStatus] = useState("VALIDES_ET_A_VALIDER");
+  const people = Array.from(new Set(creditCards.map((card) => card.holder)));
+  const projects = ["21", "125", "133", "135", "138", "ADMIN"];
+  const visibleTotals = selectedPerson === "TOUS" ? accountTotals : new Map<string, number>();
+  const visibleTotal = Array.from(visibleTotals.values()).reduce((sum, amount) => sum + amount, 0);
+
+  return <>
+    <PageHeading eyebrow="Analyse" title="Rapports" description="Générez le tableau que Kim reporte dans le programme de comptabilité, sur le même cycle que les cartes." action={<button className="primary-button"><span>⇩</span> Exporter en Excel</button>} />
+    <div className="report-filter-grid">
+      <PeriodSelector period={period} onChange={onPeriodChange} />
+      <label><span>Titulaire</span><select aria-label="Filtrer par titulaire" value={selectedPerson} onChange={(event) => setSelectedPerson(event.target.value)}><option value="TOUS">Tous les titulaires</option>{people.map((person) => <option value={person} key={person}>{person}</option>)}</select></label>
+      <label><span>Chantier</span><select aria-label="Filtrer par chantier" value={selectedProject} onChange={(event) => setSelectedProject(event.target.value)}><option value="TOUS">Tous les chantiers</option>{projects.map((project) => <option value={project} key={project}>{project}</option>)}</select></label>
+      <label><span>État</span><select aria-label="Filtrer par état" value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)}><option value="VALIDES_ET_A_VALIDER">Validées et à valider</option><option value="VALIDEE">Validées seulement</option><option value="A_VALIDER">À valider seulement</option></select></label>
+    </div>
+    <div className="report-period-note"><span className="status-dot" /><strong>{period.label}</strong><span>· {selectedPerson === "TOUS" ? "tous les titulaires" : selectedPerson} · {selectedProject === "TOUS" ? "tous les chantiers" : `chantier ${selectedProject}`}</span></div>
+    <div className="report-local-note"><strong>Prévisualisation locale.</strong><span>Le sélecteur est prêt; les montants par titulaire, chantier et statut seront alimentés par la requête Convex dès que l’environnement sera connecté.</span></div>
+    <div className="report-layout">
+      <section className="panel report-total"><p className="eyebrow">Résumé de période</p><h2>{formatCurrency(visibleTotal)}</h2><p className="muted">{selectedPerson === "TOUS" ? "Données de démonstration" : "Aucune ventilation locale pour ce titulaire"}</p><div className="report-breakdown"><div><span>Avant taxes</span><strong>{formatCurrency(visibleTotal)}</strong></div><div><span>TPS</span><strong>—</strong></div><div><span>TVQ</span><strong>—</strong></div></div></section>
+      <section className="panel report-table"><div className="panel-header"><div><p className="eyebrow">Résumé par titulaire et carte</p><h2>Qui dépense quoi</h2></div><button className="text-button">Détails →</button></div><div className="mini-table card-total-list">{creditCards.filter((card) => card.status === "Actif").map((card) => <div key={card.id}><span><b>•••• {card.lastFour}</b> {card.holder}</span><strong>{formatCurrency(selectedPerson === "TOUS" ? cardTotals.get(card.lastFour) ?? 0 : 0)}</strong></div>)}</div></section>
+    </div>
+    <section className="panel report-table full-width"><div className="panel-header"><div><p className="eyebrow">Résumé par catégorie comptable</p><h2>Répartition avant taxes · compte utilisé par Kim</h2></div><button className="secondary-button">Enregistrer ce rapport</button></div><div className="account-report-head"><span>Compte</span><span>Catégorie</span><span>Total avant taxes</span></div><div className="category-report">{accountCategories.map((account) => <div key={account.code}><span><b>{account.code}</b></span><span>{account.label}</span><strong>{formatCurrency(visibleTotals.get(account.code) ?? 0)}</strong></div>)}</div></section>
+  </>;
+}
+
+function ConnectedReportsPage({ period, onPeriodChange }: { period: CardPeriod; onPeriodChange: (id: string) => void }) {
+  const [selectedPersonId, setSelectedPersonId] = useState("TOUS");
+  const [selectedProjectId, setSelectedProjectId] = useState("TOUS");
+  const [selectedStatus, setSelectedStatus] = useState("VALIDES_ET_A_VALIDER");
+  const people = useQuery(listPeopleRef, {}) as ConvexPerson[] | undefined;
+  const projects = useQuery(listProjectsRef, {}) as ConvexProject[] | undefined;
+  const report = useQuery(accountingSummaryRef, {
+    startDate: period.start,
+    endDate: period.end,
+    personId: selectedPersonId === "TOUS" ? undefined : selectedPersonId,
+    projectId: selectedProjectId === "TOUS" ? undefined : selectedProjectId,
+    status: selectedStatus === "VALIDES_ET_A_VALIDER" ? undefined : selectedStatus,
+  }) as ConvexReport | undefined;
+  const rows = report?.rows ?? [];
+  const totalBeforeTaxes = (report?.totalBeforeTaxesCents ?? 0) / 100;
+
+  return <>
+    <PageHeading eyebrow="Analyse" title="Rapports" description="Générez le tableau que Kim reporte dans le programme de comptabilité, sur le même cycle que les cartes." action={<button className="primary-button"><span>⇩</span> Exporter en Excel</button>} />
+    <div className="report-filter-grid">
+      <PeriodSelector period={period} onChange={onPeriodChange} />
+      <label><span>Titulaire</span><select aria-label="Filtrer par titulaire" value={selectedPersonId} onChange={(event) => setSelectedPersonId(event.target.value)}><option value="TOUS">Tous les titulaires</option>{(people ?? []).map((person) => <option value={person._id} key={person._id}>{person.fullName}</option>)}</select></label>
+      <label><span>Chantier</span><select aria-label="Filtrer par chantier" value={selectedProjectId} onChange={(event) => setSelectedProjectId(event.target.value)}><option value="TOUS">Tous les chantiers</option>{(projects ?? []).map((project) => <option value={project._id} key={project._id}>{project.code} · {project.name}</option>)}</select></label>
+      <label><span>État</span><select aria-label="Filtrer par état" value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)}><option value="VALIDES_ET_A_VALIDER">Validées et à valider</option><option value="VALIDEE">Validées seulement</option><option value="A_VALIDER">À valider seulement</option></select></label>
+    </div>
+    <div className="report-period-note"><span className="status-dot" /><strong>{period.label}</strong><span>· données Convex réactives · {report ? `${report.transactionCount} transaction${report.transactionCount === 1 ? "" : "s"}` : "chargement…"}</span></div>
+    <div className="report-layout">
+      <section className="panel report-total"><p className="eyebrow">Résumé de période</p><h2>{formatCurrency(totalBeforeTaxes)}</h2><p className="muted">Source officielle Convex</p><div className="report-breakdown"><div><span>Avant taxes</span><strong>{formatCurrency(totalBeforeTaxes)}</strong></div><div><span>TPS</span><strong>—</strong></div><div><span>TVQ</span><strong>—</strong></div></div></section>
+      <section className="panel report-table"><div className="panel-header"><div><p className="eyebrow">Tableau comptable</p><h2>Filtre actif</h2></div><span className="badge badge-success">Convex</span></div><div className="mini-table card-total-list"><div><span>Titulaire</span><strong>{selectedPersonId === "TOUS" ? "Tous" : (people ?? []).find((person) => person._id === selectedPersonId)?.fullName ?? "Chargement…"}</strong></div><div><span>Chantier</span><strong>{selectedProjectId === "TOUS" ? "Tous" : (projects ?? []).find((project) => project._id === selectedProjectId)?.code ?? "Chargement…"}</strong></div><div><span>Comptes affichés</span><strong>{rows.length}</strong></div></div></section>
+    </div>
+    <section className="panel report-table full-width"><div className="panel-header"><div><p className="eyebrow">Résumé par catégorie comptable</p><h2>Répartition avant taxes · compte utilisé par Kim</h2></div><button className="secondary-button">Enregistrer ce rapport</button></div><div className="account-report-head"><span>Compte</span><span>Catégorie</span><span>Total avant taxes</span></div><div className="category-report">{report ? rows.map((row) => <div key={row.code}><span><b>{row.code}</b></span><span>{row.label}</span><strong>{formatCurrency(row.totalBeforeTaxesCents / 100)}</strong></div>) : <div className="report-loading"><span>Chargement des comptes configurés…</span></div>}</div></section>
+  </>;
 }
 
 function ArchivesPage({ onNotify }: { onNotify: (message: string) => void }) {
