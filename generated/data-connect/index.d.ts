@@ -141,6 +141,8 @@ export interface AdminSeedExpenseTransactionVariables {
   totalCents: Int64String;
   currency: string;
   status: string;
+  processingStatus?: string | null;
+  accountingStatus?: string | null;
   reconciliationStatus: string;
   classificationSource?: string | null;
   classificationConfidence?: number | null;
@@ -175,6 +177,8 @@ export interface AdminSeedInvoiceVariables {
   tpsCents?: Int64String | null;
   tvqCents?: Int64String | null;
   totalCents?: Int64String | null;
+  processingStatus?: string | null;
+  accountingStatus?: string | null;
   reviewStatus: string;
   storageFolder?: string | null;
   createdById: string;
@@ -196,6 +200,34 @@ export interface AdminSeedSkuReferenceVariables {
 export interface AuditEvent_Key {
   id: string;
   __typename?: 'AuditEvent_Key';
+}
+
+export interface AutoCommitInvoiceIntakeData {
+  expenseTransaction_upsert: ExpenseTransaction_Key;
+  invoice_upsert: Invoice_Key;
+  invoiceIntake_update?: InvoiceIntake_Key | null;
+}
+
+export interface AutoCommitInvoiceIntakeVariables {
+  receiptId: string;
+  transactionId: string;
+  invoiceId: string;
+  vendor: string;
+  invoiceNumber?: string | null;
+  invoiceDate: DateString;
+  subtotalCents: Int64String;
+  tpsCents: Int64String;
+  tvqCents: Int64String;
+  totalCents: Int64String;
+  currency: string;
+  sku?: string | null;
+  category: string;
+  accountCode: string;
+  cardId: string;
+  statementPeriodId: string;
+  projectId: string;
+  storageFolder: string;
+  classificationNote: string;
 }
 
 export interface CardStatementPeriod_Key {
@@ -369,6 +401,8 @@ export interface ListExpenseTransactionsData {
     totalCents: Int64String;
     currency: string;
     status: string;
+    processingStatus: string;
+    accountingStatus: string;
     reconciliationStatus: string;
     classificationSource?: string | null;
     classificationConfidence?: number | null;
@@ -385,6 +419,8 @@ export interface ListInvoiceIntakesData {
     storageFolder: string;
     photoCount: number;
     status: string;
+    processingStatus: string;
+    accountingStatus: string;
     lastError?: string | null;
     aiModel?: string | null;
     aiConfidence?: number | null;
@@ -405,6 +441,8 @@ export interface ListInvoiceIntakesData {
     classificationConfidence?: number | null;
     classificationStatus?: string | null;
     aiNotes?: string | null;
+    decisionExceptions?: string | null;
+    decisionChecks?: string | null;
     createdAt: TimestampString;
     updatedAt: TimestampString;
   } & InvoiceIntake_Key)[];
@@ -420,6 +458,8 @@ export interface ListInvoicesToReviewData {
     tpsCents?: Int64String | null;
     tvqCents?: Int64String | null;
     totalCents?: Int64String | null;
+    processingStatus: string;
+    accountingStatus: string;
     reviewStatus: string;
     storageFolder?: string | null;
     transaction: {
@@ -479,6 +519,9 @@ export interface MarkInvoiceIntakeAiErrorData {
 export interface MarkInvoiceIntakeAiErrorVariables {
   receiptId: string;
   error: string;
+  accountingStatus?: string | null;
+  decisionExceptions?: string | null;
+  decisionChecks?: string | null;
 }
 
 export interface Project_Key {
@@ -528,6 +571,10 @@ export interface UpdateInvoiceIntakeAiResultVariables {
   classificationConfidence: number;
   classificationStatus: string;
   aiNotes: string;
+  processingStatus?: string | null;
+  accountingStatus?: string | null;
+  decisionExceptions?: string | null;
+  decisionChecks?: string | null;
 }
 
 export interface UpdateInvoiceIntakeReviewData {
@@ -554,6 +601,8 @@ export interface UpdateInvoiceIntakeReviewVariables {
   classificationConfidence: number;
   classificationStatus: string;
   aiNotes: string;
+  decisionExceptions?: string | null;
+  decisionChecks?: string | null;
 }
 
 export interface UpsertCreditCardData {
@@ -888,6 +937,18 @@ export const commitInvoiceIntakeWithoutProjectRef: CommitInvoiceIntakeWithoutPro
 
 export function commitInvoiceIntakeWithoutProject(vars: CommitInvoiceIntakeWithoutProjectVariables): MutationPromise<CommitInvoiceIntakeWithoutProjectData, CommitInvoiceIntakeWithoutProjectVariables>;
 export function commitInvoiceIntakeWithoutProject(dc: DataConnect, vars: CommitInvoiceIntakeWithoutProjectVariables): MutationPromise<CommitInvoiceIntakeWithoutProjectData, CommitInvoiceIntakeWithoutProjectVariables>;
+
+interface AutoCommitInvoiceIntakeRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AutoCommitInvoiceIntakeVariables): MutationRef<AutoCommitInvoiceIntakeData, AutoCommitInvoiceIntakeVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AutoCommitInvoiceIntakeVariables): MutationRef<AutoCommitInvoiceIntakeData, AutoCommitInvoiceIntakeVariables>;
+  operationName: string;
+}
+export const autoCommitInvoiceIntakeRef: AutoCommitInvoiceIntakeRef;
+
+export function autoCommitInvoiceIntake(vars: AutoCommitInvoiceIntakeVariables): MutationPromise<AutoCommitInvoiceIntakeData, AutoCommitInvoiceIntakeVariables>;
+export function autoCommitInvoiceIntake(dc: DataConnect, vars: AutoCommitInvoiceIntakeVariables): MutationPromise<AutoCommitInvoiceIntakeData, AutoCommitInvoiceIntakeVariables>;
 
 interface ListUserProfilesRef {
   /* Allow users to create refs without passing in DataConnect */

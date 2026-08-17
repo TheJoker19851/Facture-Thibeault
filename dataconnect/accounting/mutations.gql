@@ -48,7 +48,9 @@ mutation CreateInvoiceIntake($receiptId: String!, $storageFolder: String!, $phot
     uploaderUid_expr: "auth.uid"
     storageFolder: $storageFolder
     photoCount: $photoCount
-    status: "RECEIVED"
+    status: "PROCESSING"
+    processingStatus: "PROCESSING"
+    accountingStatus: "NOT_POSTED"
     lastError: null
   })
 }
@@ -78,11 +80,17 @@ mutation UpdateInvoiceIntakeAiResult(
   $classificationConfidence: Float!
   $classificationStatus: String!
   $aiNotes: String!
+  $processingStatus: String = "NEEDS_REVIEW"
+  $accountingStatus: String = "NOT_POSTED"
+  $decisionExceptions: String = "[]"
+  $decisionChecks: String = "[]"
 ) @auth(level: NO_ACCESS) {
   invoiceIntake_update(
     key: { receiptId: $receiptId }
     data: {
       status: $status
+      processingStatus: $processingStatus
+      accountingStatus: $accountingStatus
       lastError: null
       aiModel: $aiModel
       aiConfidence: $aiConfidence
@@ -103,16 +111,29 @@ mutation UpdateInvoiceIntakeAiResult(
       classificationConfidence: $classificationConfidence
       classificationStatus: $classificationStatus
       aiNotes: $aiNotes
+      decisionExceptions: $decisionExceptions
+      decisionChecks: $decisionChecks
     }
   )
 }
 
-mutation MarkInvoiceIntakeAiError($receiptId: String!, $error: String!) @auth(level: NO_ACCESS) {
+mutation MarkInvoiceIntakeAiError(
+  $receiptId: String!
+  $error: String!
+  $accountingStatus: String = "NOT_POSTED"
+  $decisionExceptions: String = "[]"
+  $decisionChecks: String = "[]"
+) @auth(level: NO_ACCESS) {
   invoiceIntake_update(
     key: { receiptId: $receiptId }
     data: {
-      status: "AI_ERROR"
+      status: "NEEDS_REVIEW"
+      processingStatus: "NEEDS_REVIEW"
+      accountingStatus: $accountingStatus
       lastError: $error
+      decisionExceptions: $decisionExceptions
+      decisionChecks: $decisionChecks
+      aiNotes: $error
     }
   )
 }
@@ -141,11 +162,15 @@ mutation UpdateInvoiceIntakeReview(
   $classificationConfidence: Float!
   $classificationStatus: String!
   $aiNotes: String!
+  $decisionExceptions: String = "[]"
+  $decisionChecks: String = "[]"
 ) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   invoiceIntake_update(
     key: { receiptId: $receiptId }
     data: {
       status: $status
+      processingStatus: $status
+      accountingStatus: "NOT_POSTED"
       lastError: null
       extractedVendor: $extractedVendor
       extractedInvoiceNumber: $extractedInvoiceNumber
@@ -164,6 +189,8 @@ mutation UpdateInvoiceIntakeReview(
       classificationConfidence: $classificationConfidence
       classificationStatus: $classificationStatus
       aiNotes: $aiNotes
+      decisionExceptions: $decisionExceptions
+      decisionChecks: $decisionChecks
     }
   )
 }
@@ -207,7 +234,9 @@ mutation CommitInvoiceIntake(
     tvqCents: $tvqCents
     totalCents: $totalCents
     currency: $currency
-    status: "TO_VERIFY"
+    status: "VALIDATED"
+    processingStatus: "VALIDATED"
+    accountingStatus: "POSTED"
     reconciliationStatus: "UNMATCHED"
     classificationSource: "KIM_COMMIT"
     classificationConfidence: 1.0
@@ -225,13 +254,17 @@ mutation CommitInvoiceIntake(
     tpsCents: $tpsCents
     tvqCents: $tvqCents
     totalCents: $totalCents
-    reviewStatus: "TO_VERIFY"
+    processingStatus: "VALIDATED"
+    accountingStatus: "POSTED"
+    reviewStatus: "VALIDATED"
     storageFolder: $storageFolder
   })
   invoiceIntake_update(
     key: { receiptId: $receiptId }
     data: {
-      status: "COMMITTED"
+      status: "VALIDATED"
+      processingStatus: "VALIDATED"
+      accountingStatus: "POSTED"
       lastError: null
       classificationSource: "KIM_COMMIT"
       classificationStatus: "COMMITTED"
@@ -274,7 +307,9 @@ mutation CommitInvoiceIntakeWithoutProject(
     tvqCents: $tvqCents
     totalCents: $totalCents
     currency: $currency
-    status: "TO_VERIFY"
+    status: "VALIDATED"
+    processingStatus: "VALIDATED"
+    accountingStatus: "POSTED"
     reconciliationStatus: "UNMATCHED"
     classificationSource: "KIM_COMMIT"
     classificationConfidence: 1.0
@@ -292,16 +327,97 @@ mutation CommitInvoiceIntakeWithoutProject(
     tpsCents: $tpsCents
     tvqCents: $tvqCents
     totalCents: $totalCents
-    reviewStatus: "TO_VERIFY"
+    processingStatus: "VALIDATED"
+    accountingStatus: "POSTED"
+    reviewStatus: "VALIDATED"
     storageFolder: $storageFolder
   })
   invoiceIntake_update(
     key: { receiptId: $receiptId }
     data: {
-      status: "COMMITTED"
+      status: "VALIDATED"
+      processingStatus: "VALIDATED"
+      accountingStatus: "POSTED"
       lastError: null
       classificationSource: "KIM_COMMIT"
       classificationStatus: "COMMITTED"
+      classificationConfidence: 1.0
+    }
+  )
+}
+
+# Server-only automatic posting. The route performs the deterministic decision
+# and this operation is intentionally inaccessible to browser clients.
+mutation AutoCommitInvoiceIntake(
+  $receiptId: String!
+  $transactionId: String!
+  $invoiceId: String!
+  $vendor: String!
+  $invoiceNumber: String
+  $invoiceDate: Date!
+  $subtotalCents: Int64!
+  $tpsCents: Int64!
+  $tvqCents: Int64!
+  $totalCents: Int64!
+  $currency: String!
+  $sku: String
+  $category: String!
+  $accountCode: String!
+  $cardId: String!
+  $statementPeriodId: String!
+  $projectId: String!
+  $storageFolder: String!
+  $classificationNote: String!
+) @auth(level: NO_ACCESS) {
+  expenseTransaction_upsert(data: {
+    id: $transactionId
+    transactionDate: $invoiceDate
+    vendor: $vendor
+    card: { id: $cardId }
+    statementPeriod: { id: $statementPeriodId }
+    project: { id: $projectId }
+    expenseAccount: { code: $accountCode }
+    categoryLabel: $category
+    sku: $sku
+    amountBeforeTaxCents: $subtotalCents
+    tpsCents: $tpsCents
+    tvqCents: $tvqCents
+    totalCents: $totalCents
+    currency: $currency
+    status: "VALIDATED"
+    processingStatus: "AUTO_APPROVED"
+    accountingStatus: "POSTED"
+    reconciliationStatus: "UNMATCHED"
+    classificationSource: "AUTO_DECISION"
+    classificationConfidence: 1.0
+    classificationNote: $classificationNote
+    invoiceNumber: $invoiceNumber
+    issue: null
+  })
+  invoice_upsert(data: {
+    id: $invoiceId
+    transaction: { id: $transactionId }
+    vendor: $vendor
+    invoiceNumber: $invoiceNumber
+    invoiceDate: $invoiceDate
+    subtotalCents: $subtotalCents
+    tpsCents: $tpsCents
+    tvqCents: $tvqCents
+    totalCents: $totalCents
+    processingStatus: "AUTO_APPROVED"
+    accountingStatus: "POSTED"
+    reviewStatus: "VALIDATED"
+    storageFolder: $storageFolder
+  })
+  invoiceIntake_update(
+    key: { receiptId: $receiptId }
+    data: {
+      status: "AUTO_APPROVED"
+      processingStatus: "AUTO_APPROVED"
+      accountingStatus: "POSTED"
+      lastError: null
+      classificationSource: "AUTO_DECISION"
+      classificationStatus: "RESOLVED"
       classificationConfidence: 1.0
     }
   )

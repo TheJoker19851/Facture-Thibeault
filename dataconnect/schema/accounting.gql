@@ -91,7 +91,11 @@ type ExpenseTransaction @table(name: "expense_transactions", key: "id") {
   tvqCents: Int64! @default(value: 0)
   totalCents: Int64!
   currency: String! @default(value: "CAD")
+  # Legacy status is kept during the migration. New code must use the explicit
+  # processing/accounting fields below.
   status: String! @default(value: "TO_VERIFY")
+  processingStatus: String! @default(value: "PROCESSING")
+  accountingStatus: String! @default(value: "NOT_POSTED")
   reconciliationStatus: String! @default(value: "UNMATCHED")
   classificationSource: String
   classificationConfidence: Float
@@ -112,6 +116,8 @@ type Invoice @table(name: "invoices", key: "id") {
   tpsCents: Int64
   tvqCents: Int64
   totalCents: Int64
+  processingStatus: String! @default(value: "PROCESSING")
+  accountingStatus: String! @default(value: "NOT_POSTED")
   reviewStatus: String! @default(value: "TO_VERIFY")
   storageFolder: String
   createdBy: UserProfile
@@ -137,7 +143,11 @@ type InvoiceIntake @table(name: "invoice_intakes", key: "receiptId") {
   uploaderUid: String!
   storageFolder: String!
   photoCount: Int!
-  status: String! @default(value: "RECEIVED")
+  # Legacy status is retained for a safe local migration. The processing
+  # decision is now represented by processingStatus.
+  status: String! @default(value: "PROCESSING")
+  processingStatus: String! @default(value: "PROCESSING")
+  accountingStatus: String! @default(value: "NOT_POSTED")
   lastError: String
   aiModel: String
   aiConfidence: Float
@@ -158,6 +168,10 @@ type InvoiceIntake @table(name: "invoice_intakes", key: "receiptId") {
   classificationConfidence: Float
   classificationStatus: String
   aiNotes: String
+  # JSON arrays preserve multiple structured exceptions/checks without making
+  # the first V1 dependent on a second relational workflow.
+  decisionExceptions: String
+  decisionChecks: String
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }

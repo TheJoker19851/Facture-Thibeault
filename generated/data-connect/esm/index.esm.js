@@ -205,7 +205,7 @@ export const adminListInvoicesRef = (dc) => {
 adminListInvoicesRef.operationName = 'AdminListInvoices';
 
 export function adminListInvoices(dcOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
   return executeQuery(adminListInvoicesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -306,6 +306,18 @@ export function commitInvoiceIntakeWithoutProject(dcOrVars, vars) {
   return executeMutation(commitInvoiceIntakeWithoutProjectRef(dcInstance, inputVars));
 }
 
+export const autoCommitInvoiceIntakeRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AutoCommitInvoiceIntake', inputVars);
+}
+autoCommitInvoiceIntakeRef.operationName = 'AutoCommitInvoiceIntake';
+
+export function autoCommitInvoiceIntake(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(autoCommitInvoiceIntakeRef(dcInstance, inputVars));
+}
+
 export const listUserProfilesRef = (dc) => {
   const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
   dcInstance._useGeneratedSdk();
@@ -314,7 +326,7 @@ export const listUserProfilesRef = (dc) => {
 listUserProfilesRef.operationName = 'ListUserProfiles';
 
 export function listUserProfiles(dcOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
   return executeQuery(listUserProfilesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -327,7 +339,7 @@ export const listCreditCardsRef = (dc) => {
 listCreditCardsRef.operationName = 'ListCreditCards';
 
 export function listCreditCards(dcOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
   return executeQuery(listCreditCardsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -340,7 +352,7 @@ export const listCardStatementPeriodsRef = (dc) => {
 listCardStatementPeriodsRef.operationName = 'ListCardStatementPeriods';
 
 export function listCardStatementPeriods(dcOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
   return executeQuery(listCardStatementPeriodsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -353,7 +365,7 @@ export const listExpenseAccountsRef = (dc) => {
 listExpenseAccountsRef.operationName = 'ListExpenseAccounts';
 
 export function listExpenseAccounts(dcOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
   return executeQuery(listExpenseAccountsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -366,7 +378,7 @@ export const listProjectsRef = (dc) => {
 listProjectsRef.operationName = 'ListProjects';
 
 export function listProjects(dcOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
   return executeQuery(listProjectsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -379,7 +391,7 @@ export const listSkuReferencesRef = (dc) => {
 listSkuReferencesRef.operationName = 'ListSkuReferences';
 
 export function listSkuReferences(dcOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
   return executeQuery(listSkuReferencesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -392,7 +404,7 @@ export const listExpenseTransactionsRef = (dc) => {
 listExpenseTransactionsRef.operationName = 'ListExpenseTransactions';
 
 export function listExpenseTransactions(dcOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
   return executeQuery(listExpenseTransactionsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -405,7 +417,7 @@ export const listInvoicesToReviewRef = (dc) => {
 listInvoicesToReviewRef.operationName = 'ListInvoicesToReview';
 
 export function listInvoicesToReview(dcOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
   return executeQuery(listInvoicesToReviewRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -418,7 +430,7 @@ export const listInvoiceIntakesRef = (dc) => {
 listInvoiceIntakesRef.operationName = 'ListInvoiceIntakes';
 
 export function listInvoiceIntakes(dcOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
   return executeQuery(listInvoiceIntakesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }

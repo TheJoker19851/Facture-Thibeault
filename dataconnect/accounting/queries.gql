@@ -109,6 +109,8 @@ query ListExpenseTransactions @auth(expr: "auth.token.role == 'KIM' || auth.toke
     totalCents
     currency
     status
+    processingStatus
+    accountingStatus
     reconciliationStatus
     classificationSource
     classificationConfidence
@@ -119,7 +121,7 @@ query ListExpenseTransactions @auth(expr: "auth.token.role == 'KIM' || auth.toke
 }
 
 query ListInvoicesToReview @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  invoices(where: {reviewStatus: {eq: "TO_VERIFY"}}) {
+  invoices(where: {processingStatus: {eq: "NEEDS_REVIEW"}}) {
     id
     vendor
     invoiceNumber
@@ -128,6 +130,8 @@ query ListInvoicesToReview @auth(expr: "auth.token.role == 'KIM' || auth.token.r
     tpsCents
     tvqCents
     totalCents
+    processingStatus
+    accountingStatus
     reviewStatus
     storageFolder
     transaction {
@@ -151,6 +155,8 @@ query ListInvoiceIntakes @auth(expr: "auth.token.role == 'KIM' || auth.token.rol
     storageFolder
     photoCount
     status
+    processingStatus
+    accountingStatus
     lastError
     aiModel
     aiConfidence
@@ -171,6 +177,8 @@ query ListInvoiceIntakes @auth(expr: "auth.token.role == 'KIM' || auth.token.rol
     classificationConfidence
     classificationStatus
     aiNotes
+    decisionExceptions
+    decisionChecks
     createdAt
     updatedAt
   }

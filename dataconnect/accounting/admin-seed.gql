@@ -54,6 +54,8 @@ mutation AdminSeedExpenseTransaction(
   $totalCents: Int64!
   $currency: String!
   $status: String!
+  $processingStatus: String = "PROCESSING"
+  $accountingStatus: String = "NOT_POSTED"
   $reconciliationStatus: String!
   $classificationSource: String
   $classificationConfidence: Float
@@ -77,6 +79,8 @@ mutation AdminSeedExpenseTransaction(
     totalCents: $totalCents
     currency: $currency
     status: $status
+    processingStatus: $processingStatus
+    accountingStatus: $accountingStatus
     reconciliationStatus: $reconciliationStatus
     classificationSource: $classificationSource
     classificationConfidence: $classificationConfidence
@@ -96,6 +100,8 @@ mutation AdminSeedInvoice(
   $tpsCents: Int64
   $tvqCents: Int64
   $totalCents: Int64
+  $processingStatus: String = "PROCESSING"
+  $accountingStatus: String = "NOT_POSTED"
   $reviewStatus: String!
   $storageFolder: String
   $createdById: String!
@@ -110,6 +116,8 @@ mutation AdminSeedInvoice(
     tpsCents: $tpsCents
     tvqCents: $tvqCents
     totalCents: $totalCents
+    processingStatus: $processingStatus
+    accountingStatus: $accountingStatus
     reviewStatus: $reviewStatus
     storageFolder: $storageFolder
     createdBy: { id: $createdById }

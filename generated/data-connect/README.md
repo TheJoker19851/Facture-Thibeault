@@ -45,6 +45,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*UpdateInvoiceIntakeReview*](#updateinvoiceintakereview)
   - [*CommitInvoiceIntake*](#commitinvoiceintake)
   - [*CommitInvoiceIntakeWithoutProject*](#commitinvoiceintakewithoutproject)
+  - [*AutoCommitInvoiceIntake*](#autocommitinvoiceintake)
 
 # Accessing the connector
 A connector is a collection of Queries and Mutations. One SDK is generated for each connector - this SDK is generated for the connector `accounting`. You can find more information about connectors in the [Data Connect documentation](https://firebase.google.com/docs/data-connect#how-does).
@@ -852,6 +853,8 @@ export interface ListExpenseTransactionsData {
     totalCents: Int64String;
     currency: string;
     status: string;
+    processingStatus: string;
+    accountingStatus: string;
     reconciliationStatus: string;
     classificationSource?: string | null;
     classificationConfidence?: number | null;
@@ -958,6 +961,8 @@ export interface ListInvoicesToReviewData {
     tpsCents?: Int64String | null;
     tvqCents?: Int64String | null;
     totalCents?: Int64String | null;
+    processingStatus: string;
+    accountingStatus: string;
     reviewStatus: string;
     storageFolder?: string | null;
     transaction: {
@@ -1068,6 +1073,8 @@ export interface ListInvoiceIntakesData {
     storageFolder: string;
     photoCount: number;
     status: string;
+    processingStatus: string;
+    accountingStatus: string;
     lastError?: string | null;
     aiModel?: string | null;
     aiConfidence?: number | null;
@@ -1088,6 +1095,8 @@ export interface ListInvoiceIntakesData {
     classificationConfidence?: number | null;
     classificationStatus?: string | null;
     aiNotes?: string | null;
+    decisionExceptions?: string | null;
+    decisionChecks?: string | null;
     createdAt: TimestampString;
     updatedAt: TimestampString;
   } & InvoiceIntake_Key)[];
@@ -1218,11 +1227,11 @@ import { connectorConfig, adminSeedCreditCard, AdminSeedCreditCardVariables } fr
 
 // The `AdminSeedCreditCard` mutation requires an argument of type `AdminSeedCreditCardVariables`:
 const adminSeedCreditCardVars: AdminSeedCreditCardVariables = {
-  id: ...,
-  lastFour: ...,
-  holderId: ...,
+  id: ..., 
+  lastFour: ..., 
+  holderId: ..., 
   cardFunction: ..., // optional
-  status: ...,
+  status: ..., 
   activeFrom: ..., // optional
 };
 
@@ -1253,11 +1262,11 @@ import { connectorConfig, adminSeedCreditCardRef, AdminSeedCreditCardVariables }
 
 // The `AdminSeedCreditCard` mutation requires an argument of type `AdminSeedCreditCardVariables`:
 const adminSeedCreditCardVars: AdminSeedCreditCardVariables = {
-  id: ...,
-  lastFour: ...,
-  holderId: ...,
+  id: ..., 
+  lastFour: ..., 
+  holderId: ..., 
   cardFunction: ..., // optional
-  status: ...,
+  status: ..., 
   activeFrom: ..., // optional
 };
 
@@ -1342,12 +1351,12 @@ import { connectorConfig, adminSeedSkuReference, AdminSeedSkuReferenceVariables 
 
 // The `AdminSeedSkuReference` mutation requires an argument of type `AdminSeedSkuReferenceVariables`:
 const adminSeedSkuReferenceVars: AdminSeedSkuReferenceVariables = {
-  merchant: ...,
-  sku: ...,
+  merchant: ..., 
+  sku: ..., 
   productLabel: ..., // optional
   categoryLabel: ..., // optional
-  accountCode: ...,
-  verificationStatus: ...,
+  accountCode: ..., 
+  verificationStatus: ..., 
 };
 
 // Call the `adminSeedSkuReference()` function to execute the mutation.
@@ -1377,12 +1386,12 @@ import { connectorConfig, adminSeedSkuReferenceRef, AdminSeedSkuReferenceVariabl
 
 // The `AdminSeedSkuReference` mutation requires an argument of type `AdminSeedSkuReferenceVariables`:
 const adminSeedSkuReferenceVars: AdminSeedSkuReferenceVariables = {
-  merchant: ...,
-  sku: ...,
+  merchant: ..., 
+  sku: ..., 
   productLabel: ..., // optional
   categoryLabel: ..., // optional
-  accountCode: ...,
-  verificationStatus: ...,
+  accountCode: ..., 
+  verificationStatus: ..., 
 };
 
 // Call the `adminSeedSkuReferenceRef()` function to get a reference to the mutation.
@@ -1456,6 +1465,8 @@ export interface AdminSeedExpenseTransactionVariables {
   totalCents: Int64String;
   currency: string;
   status: string;
+  processingStatus?: string | null;
+  accountingStatus?: string | null;
   reconciliationStatus: string;
   classificationSource?: string | null;
   classificationConfidence?: number | null;
@@ -1481,22 +1492,24 @@ import { connectorConfig, adminSeedExpenseTransaction, AdminSeedExpenseTransacti
 
 // The `AdminSeedExpenseTransaction` mutation requires an argument of type `AdminSeedExpenseTransactionVariables`:
 const adminSeedExpenseTransactionVars: AdminSeedExpenseTransactionVariables = {
-  id: ...,
-  transactionDate: ...,
-  vendor: ...,
-  cardId: ...,
-  statementPeriodId: ...,
-  projectId: ...,
-  accountCode: ...,
+  id: ..., 
+  transactionDate: ..., 
+  vendor: ..., 
+  cardId: ..., 
+  statementPeriodId: ..., 
+  projectId: ..., 
+  accountCode: ..., 
   categoryLabel: ..., // optional
   sku: ..., // optional
-  amountBeforeTaxCents: ...,
-  tpsCents: ...,
-  tvqCents: ...,
-  totalCents: ...,
-  currency: ...,
-  status: ...,
-  reconciliationStatus: ...,
+  amountBeforeTaxCents: ..., 
+  tpsCents: ..., 
+  tvqCents: ..., 
+  totalCents: ..., 
+  currency: ..., 
+  status: ..., 
+  processingStatus: ..., // optional
+  accountingStatus: ..., // optional
+  reconciliationStatus: ..., 
   classificationSource: ..., // optional
   classificationConfidence: ..., // optional
   classificationNote: ..., // optional
@@ -1508,7 +1521,7 @@ const adminSeedExpenseTransactionVars: AdminSeedExpenseTransactionVariables = {
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await adminSeedExpenseTransaction(adminSeedExpenseTransactionVars);
 // Variables can be defined inline as well.
-const { data } = await adminSeedExpenseTransaction({ id: ..., transactionDate: ..., vendor: ..., cardId: ..., statementPeriodId: ..., projectId: ..., accountCode: ..., categoryLabel: ..., sku: ..., amountBeforeTaxCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., status: ..., reconciliationStatus: ..., classificationSource: ..., classificationConfidence: ..., classificationNote: ..., invoiceNumber: ..., issue: ..., });
+const { data } = await adminSeedExpenseTransaction({ id: ..., transactionDate: ..., vendor: ..., cardId: ..., statementPeriodId: ..., projectId: ..., accountCode: ..., categoryLabel: ..., sku: ..., amountBeforeTaxCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., status: ..., processingStatus: ..., accountingStatus: ..., reconciliationStatus: ..., classificationSource: ..., classificationConfidence: ..., classificationNote: ..., invoiceNumber: ..., issue: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -1531,22 +1544,24 @@ import { connectorConfig, adminSeedExpenseTransactionRef, AdminSeedExpenseTransa
 
 // The `AdminSeedExpenseTransaction` mutation requires an argument of type `AdminSeedExpenseTransactionVariables`:
 const adminSeedExpenseTransactionVars: AdminSeedExpenseTransactionVariables = {
-  id: ...,
-  transactionDate: ...,
-  vendor: ...,
-  cardId: ...,
-  statementPeriodId: ...,
-  projectId: ...,
-  accountCode: ...,
+  id: ..., 
+  transactionDate: ..., 
+  vendor: ..., 
+  cardId: ..., 
+  statementPeriodId: ..., 
+  projectId: ..., 
+  accountCode: ..., 
   categoryLabel: ..., // optional
   sku: ..., // optional
-  amountBeforeTaxCents: ...,
-  tpsCents: ...,
-  tvqCents: ...,
-  totalCents: ...,
-  currency: ...,
-  status: ...,
-  reconciliationStatus: ...,
+  amountBeforeTaxCents: ..., 
+  tpsCents: ..., 
+  tvqCents: ..., 
+  totalCents: ..., 
+  currency: ..., 
+  status: ..., 
+  processingStatus: ..., // optional
+  accountingStatus: ..., // optional
+  reconciliationStatus: ..., 
   classificationSource: ..., // optional
   classificationConfidence: ..., // optional
   classificationNote: ..., // optional
@@ -1557,7 +1572,7 @@ const adminSeedExpenseTransactionVars: AdminSeedExpenseTransactionVariables = {
 // Call the `adminSeedExpenseTransactionRef()` function to get a reference to the mutation.
 const ref = adminSeedExpenseTransactionRef(adminSeedExpenseTransactionVars);
 // Variables can be defined inline as well.
-const ref = adminSeedExpenseTransactionRef({ id: ..., transactionDate: ..., vendor: ..., cardId: ..., statementPeriodId: ..., projectId: ..., accountCode: ..., categoryLabel: ..., sku: ..., amountBeforeTaxCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., status: ..., reconciliationStatus: ..., classificationSource: ..., classificationConfidence: ..., classificationNote: ..., invoiceNumber: ..., issue: ..., });
+const ref = adminSeedExpenseTransactionRef({ id: ..., transactionDate: ..., vendor: ..., cardId: ..., statementPeriodId: ..., projectId: ..., accountCode: ..., categoryLabel: ..., sku: ..., amountBeforeTaxCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., status: ..., processingStatus: ..., accountingStatus: ..., reconciliationStatus: ..., classificationSource: ..., classificationConfidence: ..., classificationNote: ..., invoiceNumber: ..., issue: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -1619,6 +1634,8 @@ export interface AdminSeedInvoiceVariables {
   tpsCents?: Int64String | null;
   tvqCents?: Int64String | null;
   totalCents?: Int64String | null;
+  processingStatus?: string | null;
+  accountingStatus?: string | null;
   reviewStatus: string;
   storageFolder?: string | null;
   createdById: string;
@@ -1641,25 +1658,27 @@ import { connectorConfig, adminSeedInvoice, AdminSeedInvoiceVariables } from '@f
 
 // The `AdminSeedInvoice` mutation requires an argument of type `AdminSeedInvoiceVariables`:
 const adminSeedInvoiceVars: AdminSeedInvoiceVariables = {
-  id: ...,
-  transactionId: ...,
-  vendor: ...,
+  id: ..., 
+  transactionId: ..., 
+  vendor: ..., 
   invoiceNumber: ..., // optional
   invoiceDate: ..., // optional
   subtotalCents: ..., // optional
   tpsCents: ..., // optional
   tvqCents: ..., // optional
   totalCents: ..., // optional
-  reviewStatus: ...,
+  processingStatus: ..., // optional
+  accountingStatus: ..., // optional
+  reviewStatus: ..., 
   storageFolder: ..., // optional
-  createdById: ...,
+  createdById: ..., 
 };
 
 // Call the `adminSeedInvoice()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await adminSeedInvoice(adminSeedInvoiceVars);
 // Variables can be defined inline as well.
-const { data } = await adminSeedInvoice({ id: ..., transactionId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., reviewStatus: ..., storageFolder: ..., createdById: ..., });
+const { data } = await adminSeedInvoice({ id: ..., transactionId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., processingStatus: ..., accountingStatus: ..., reviewStatus: ..., storageFolder: ..., createdById: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -1682,24 +1701,26 @@ import { connectorConfig, adminSeedInvoiceRef, AdminSeedInvoiceVariables } from 
 
 // The `AdminSeedInvoice` mutation requires an argument of type `AdminSeedInvoiceVariables`:
 const adminSeedInvoiceVars: AdminSeedInvoiceVariables = {
-  id: ...,
-  transactionId: ...,
-  vendor: ...,
+  id: ..., 
+  transactionId: ..., 
+  vendor: ..., 
   invoiceNumber: ..., // optional
   invoiceDate: ..., // optional
   subtotalCents: ..., // optional
   tpsCents: ..., // optional
   tvqCents: ..., // optional
   totalCents: ..., // optional
-  reviewStatus: ...,
+  processingStatus: ..., // optional
+  accountingStatus: ..., // optional
+  reviewStatus: ..., 
   storageFolder: ..., // optional
-  createdById: ...,
+  createdById: ..., 
 };
 
 // Call the `adminSeedInvoiceRef()` function to get a reference to the mutation.
 const ref = adminSeedInvoiceRef(adminSeedInvoiceVars);
 // Variables can be defined inline as well.
-const ref = adminSeedInvoiceRef({ id: ..., transactionId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., reviewStatus: ..., storageFolder: ..., createdById: ..., });
+const ref = adminSeedInvoiceRef({ id: ..., transactionId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., processingStatus: ..., accountingStatus: ..., reviewStatus: ..., storageFolder: ..., createdById: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -1776,11 +1797,11 @@ import { connectorConfig, adminSeedInvoicePhoto, AdminSeedInvoicePhotoVariables 
 
 // The `AdminSeedInvoicePhoto` mutation requires an argument of type `AdminSeedInvoicePhotoVariables`:
 const adminSeedInvoicePhotoVars: AdminSeedInvoicePhotoVariables = {
-  id: ...,
-  invoiceId: ...,
-  storagePath: ...,
-  contentType: ...,
-  sequence: ...,
+  id: ..., 
+  invoiceId: ..., 
+  storagePath: ..., 
+  contentType: ..., 
+  sequence: ..., 
 };
 
 // Call the `adminSeedInvoicePhoto()` function to execute the mutation.
@@ -1810,11 +1831,11 @@ import { connectorConfig, adminSeedInvoicePhotoRef, AdminSeedInvoicePhotoVariabl
 
 // The `AdminSeedInvoicePhoto` mutation requires an argument of type `AdminSeedInvoicePhotoVariables`:
 const adminSeedInvoicePhotoVars: AdminSeedInvoicePhotoVariables = {
-  id: ...,
-  invoiceId: ...,
-  storagePath: ...,
-  contentType: ...,
-  sequence: ...,
+  id: ..., 
+  invoiceId: ..., 
+  storagePath: ..., 
+  contentType: ..., 
+  sequence: ..., 
 };
 
 // Call the `adminSeedInvoicePhotoRef()` function to get a reference to the mutation.
@@ -1893,7 +1914,7 @@ import { connectorConfig, adminDeleteInvoicePhoto, AdminDeleteInvoicePhotoVariab
 
 // The `AdminDeleteInvoicePhoto` mutation requires an argument of type `AdminDeleteInvoicePhotoVariables`:
 const adminDeleteInvoicePhotoVars: AdminDeleteInvoicePhotoVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `adminDeleteInvoicePhoto()` function to execute the mutation.
@@ -1923,7 +1944,7 @@ import { connectorConfig, adminDeleteInvoicePhotoRef, AdminDeleteInvoicePhotoVar
 
 // The `AdminDeleteInvoicePhoto` mutation requires an argument of type `AdminDeleteInvoicePhotoVariables`:
 const adminDeleteInvoicePhotoVars: AdminDeleteInvoicePhotoVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `adminDeleteInvoicePhotoRef()` function to get a reference to the mutation.
@@ -2002,7 +2023,7 @@ import { connectorConfig, adminDeleteInvoice, AdminDeleteInvoiceVariables } from
 
 // The `AdminDeleteInvoice` mutation requires an argument of type `AdminDeleteInvoiceVariables`:
 const adminDeleteInvoiceVars: AdminDeleteInvoiceVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `adminDeleteInvoice()` function to execute the mutation.
@@ -2032,7 +2053,7 @@ import { connectorConfig, adminDeleteInvoiceRef, AdminDeleteInvoiceVariables } f
 
 // The `AdminDeleteInvoice` mutation requires an argument of type `AdminDeleteInvoiceVariables`:
 const adminDeleteInvoiceVars: AdminDeleteInvoiceVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `adminDeleteInvoiceRef()` function to get a reference to the mutation.
@@ -2111,7 +2132,7 @@ import { connectorConfig, adminDeleteExpenseTransaction, AdminDeleteExpenseTrans
 
 // The `AdminDeleteExpenseTransaction` mutation requires an argument of type `AdminDeleteExpenseTransactionVariables`:
 const adminDeleteExpenseTransactionVars: AdminDeleteExpenseTransactionVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `adminDeleteExpenseTransaction()` function to execute the mutation.
@@ -2141,7 +2162,7 @@ import { connectorConfig, adminDeleteExpenseTransactionRef, AdminDeleteExpenseTr
 
 // The `AdminDeleteExpenseTransaction` mutation requires an argument of type `AdminDeleteExpenseTransactionVariables`:
 const adminDeleteExpenseTransactionVars: AdminDeleteExpenseTransactionVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `adminDeleteExpenseTransactionRef()` function to get a reference to the mutation.
@@ -2220,7 +2241,7 @@ import { connectorConfig, adminDeleteInvoiceIntake, AdminDeleteInvoiceIntakeVari
 
 // The `AdminDeleteInvoiceIntake` mutation requires an argument of type `AdminDeleteInvoiceIntakeVariables`:
 const adminDeleteInvoiceIntakeVars: AdminDeleteInvoiceIntakeVariables = {
-  receiptId: ...,
+  receiptId: ..., 
 };
 
 // Call the `adminDeleteInvoiceIntake()` function to execute the mutation.
@@ -2250,7 +2271,7 @@ import { connectorConfig, adminDeleteInvoiceIntakeRef, AdminDeleteInvoiceIntakeV
 
 // The `AdminDeleteInvoiceIntake` mutation requires an argument of type `AdminDeleteInvoiceIntakeVariables`:
 const adminDeleteInvoiceIntakeVars: AdminDeleteInvoiceIntakeVariables = {
-  receiptId: ...,
+  receiptId: ..., 
 };
 
 // Call the `adminDeleteInvoiceIntakeRef()` function to get a reference to the mutation.
@@ -2329,7 +2350,7 @@ import { connectorConfig, adminDeleteCreditCard, AdminDeleteCreditCardVariables 
 
 // The `AdminDeleteCreditCard` mutation requires an argument of type `AdminDeleteCreditCardVariables`:
 const adminDeleteCreditCardVars: AdminDeleteCreditCardVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `adminDeleteCreditCard()` function to execute the mutation.
@@ -2359,7 +2380,7 @@ import { connectorConfig, adminDeleteCreditCardRef, AdminDeleteCreditCardVariabl
 
 // The `AdminDeleteCreditCard` mutation requires an argument of type `AdminDeleteCreditCardVariables`:
 const adminDeleteCreditCardVars: AdminDeleteCreditCardVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `adminDeleteCreditCardRef()` function to get a reference to the mutation.
@@ -2439,8 +2460,8 @@ import { connectorConfig, adminDeleteSkuReference, AdminDeleteSkuReferenceVariab
 
 // The `AdminDeleteSkuReference` mutation requires an argument of type `AdminDeleteSkuReferenceVariables`:
 const adminDeleteSkuReferenceVars: AdminDeleteSkuReferenceVariables = {
-  merchant: ...,
-  sku: ...,
+  merchant: ..., 
+  sku: ..., 
 };
 
 // Call the `adminDeleteSkuReference()` function to execute the mutation.
@@ -2470,8 +2491,8 @@ import { connectorConfig, adminDeleteSkuReferenceRef, AdminDeleteSkuReferenceVar
 
 // The `AdminDeleteSkuReference` mutation requires an argument of type `AdminDeleteSkuReferenceVariables`:
 const adminDeleteSkuReferenceVars: AdminDeleteSkuReferenceVariables = {
-  merchant: ...,
-  sku: ...,
+  merchant: ..., 
+  sku: ..., 
 };
 
 // Call the `adminDeleteSkuReferenceRef()` function to get a reference to the mutation.
@@ -2550,7 +2571,7 @@ import { connectorConfig, adminDeleteProject, AdminDeleteProjectVariables } from
 
 // The `AdminDeleteProject` mutation requires an argument of type `AdminDeleteProjectVariables`:
 const adminDeleteProjectVars: AdminDeleteProjectVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `adminDeleteProject()` function to execute the mutation.
@@ -2580,7 +2601,7 @@ import { connectorConfig, adminDeleteProjectRef, AdminDeleteProjectVariables } f
 
 // The `AdminDeleteProject` mutation requires an argument of type `AdminDeleteProjectVariables`:
 const adminDeleteProjectVars: AdminDeleteProjectVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `adminDeleteProjectRef()` function to get a reference to the mutation.
@@ -2659,7 +2680,7 @@ import { connectorConfig, adminDeleteExpenseAccount, AdminDeleteExpenseAccountVa
 
 // The `AdminDeleteExpenseAccount` mutation requires an argument of type `AdminDeleteExpenseAccountVariables`:
 const adminDeleteExpenseAccountVars: AdminDeleteExpenseAccountVariables = {
-  code: ...,
+  code: ..., 
 };
 
 // Call the `adminDeleteExpenseAccount()` function to execute the mutation.
@@ -2689,7 +2710,7 @@ import { connectorConfig, adminDeleteExpenseAccountRef, AdminDeleteExpenseAccoun
 
 // The `AdminDeleteExpenseAccount` mutation requires an argument of type `AdminDeleteExpenseAccountVariables`:
 const adminDeleteExpenseAccountVars: AdminDeleteExpenseAccountVariables = {
-  code: ...,
+  code: ..., 
 };
 
 // Call the `adminDeleteExpenseAccountRef()` function to get a reference to the mutation.
@@ -2768,7 +2789,7 @@ import { connectorConfig, adminDeleteTaxAccount, AdminDeleteTaxAccountVariables 
 
 // The `AdminDeleteTaxAccount` mutation requires an argument of type `AdminDeleteTaxAccountVariables`:
 const adminDeleteTaxAccountVars: AdminDeleteTaxAccountVariables = {
-  code: ...,
+  code: ..., 
 };
 
 // Call the `adminDeleteTaxAccount()` function to execute the mutation.
@@ -2798,7 +2819,7 @@ import { connectorConfig, adminDeleteTaxAccountRef, AdminDeleteTaxAccountVariabl
 
 // The `AdminDeleteTaxAccount` mutation requires an argument of type `AdminDeleteTaxAccountVariables`:
 const adminDeleteTaxAccountVars: AdminDeleteTaxAccountVariables = {
-  code: ...,
+  code: ..., 
 };
 
 // Call the `adminDeleteTaxAccountRef()` function to get a reference to the mutation.
@@ -2877,7 +2898,7 @@ import { connectorConfig, adminDeleteCardStatementPeriod, AdminDeleteCardStateme
 
 // The `AdminDeleteCardStatementPeriod` mutation requires an argument of type `AdminDeleteCardStatementPeriodVariables`:
 const adminDeleteCardStatementPeriodVars: AdminDeleteCardStatementPeriodVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `adminDeleteCardStatementPeriod()` function to execute the mutation.
@@ -2907,7 +2928,7 @@ import { connectorConfig, adminDeleteCardStatementPeriodRef, AdminDeleteCardStat
 
 // The `AdminDeleteCardStatementPeriod` mutation requires an argument of type `AdminDeleteCardStatementPeriodVariables`:
 const adminDeleteCardStatementPeriodVars: AdminDeleteCardStatementPeriodVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `adminDeleteCardStatementPeriodRef()` function to get a reference to the mutation.
@@ -2986,7 +3007,7 @@ import { connectorConfig, adminDeleteUserProfile, AdminDeleteUserProfileVariable
 
 // The `AdminDeleteUserProfile` mutation requires an argument of type `AdminDeleteUserProfileVariables`:
 const adminDeleteUserProfileVars: AdminDeleteUserProfileVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `adminDeleteUserProfile()` function to execute the mutation.
@@ -3016,7 +3037,7 @@ import { connectorConfig, adminDeleteUserProfileRef, AdminDeleteUserProfileVaria
 
 // The `AdminDeleteUserProfile` mutation requires an argument of type `AdminDeleteUserProfileVariables`:
 const adminDeleteUserProfileVars: AdminDeleteUserProfileVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `adminDeleteUserProfileRef()` function to get a reference to the mutation.
@@ -3101,13 +3122,13 @@ import { connectorConfig, upsertUserProfile, UpsertUserProfileVariables } from '
 
 // The `UpsertUserProfile` mutation requires an argument of type `UpsertUserProfileVariables`:
 const upsertUserProfileVars: UpsertUserProfileVariables = {
-  id: ...,
-  firebaseUid: ...,
-  displayName: ...,
+  id: ..., 
+  firebaseUid: ..., 
+  displayName: ..., 
   email: ..., // optional
   jobTitle: ..., // optional
-  role: ...,
-  status: ...,
+  role: ..., 
+  status: ..., 
 };
 
 // Call the `upsertUserProfile()` function to execute the mutation.
@@ -3137,13 +3158,13 @@ import { connectorConfig, upsertUserProfileRef, UpsertUserProfileVariables } fro
 
 // The `UpsertUserProfile` mutation requires an argument of type `UpsertUserProfileVariables`:
 const upsertUserProfileVars: UpsertUserProfileVariables = {
-  id: ...,
-  firebaseUid: ...,
-  displayName: ...,
+  id: ..., 
+  firebaseUid: ..., 
+  displayName: ..., 
   email: ..., // optional
   jobTitle: ..., // optional
-  role: ...,
-  status: ...,
+  role: ..., 
+  status: ..., 
 };
 
 // Call the `upsertUserProfileRef()` function to get a reference to the mutation.
@@ -3228,11 +3249,11 @@ import { connectorConfig, upsertCreditCard, UpsertCreditCardVariables } from '@f
 
 // The `UpsertCreditCard` mutation requires an argument of type `UpsertCreditCardVariables`:
 const upsertCreditCardVars: UpsertCreditCardVariables = {
-  id: ...,
-  lastFour: ...,
-  holderId: ...,
+  id: ..., 
+  lastFour: ..., 
+  holderId: ..., 
   cardFunction: ..., // optional
-  status: ...,
+  status: ..., 
   activeFrom: ..., // optional
   inactiveFrom: ..., // optional
 };
@@ -3264,11 +3285,11 @@ import { connectorConfig, upsertCreditCardRef, UpsertCreditCardVariables } from 
 
 // The `UpsertCreditCard` mutation requires an argument of type `UpsertCreditCardVariables`:
 const upsertCreditCardVars: UpsertCreditCardVariables = {
-  id: ...,
-  lastFour: ...,
-  holderId: ...,
+  id: ..., 
+  lastFour: ..., 
+  holderId: ..., 
   cardFunction: ..., // optional
-  status: ...,
+  status: ..., 
   activeFrom: ..., // optional
   inactiveFrom: ..., // optional
 };
@@ -3351,9 +3372,9 @@ import { connectorConfig, createInvoiceIntake, CreateInvoiceIntakeVariables } fr
 
 // The `CreateInvoiceIntake` mutation requires an argument of type `CreateInvoiceIntakeVariables`:
 const createInvoiceIntakeVars: CreateInvoiceIntakeVariables = {
-  receiptId: ...,
-  storageFolder: ...,
-  photoCount: ...,
+  receiptId: ..., 
+  storageFolder: ..., 
+  photoCount: ..., 
 };
 
 // Call the `createInvoiceIntake()` function to execute the mutation.
@@ -3383,9 +3404,9 @@ import { connectorConfig, createInvoiceIntakeRef, CreateInvoiceIntakeVariables }
 
 // The `CreateInvoiceIntake` mutation requires an argument of type `CreateInvoiceIntakeVariables`:
 const createInvoiceIntakeVars: CreateInvoiceIntakeVariables = {
-  receiptId: ...,
-  storageFolder: ...,
-  photoCount: ...,
+  receiptId: ..., 
+  storageFolder: ..., 
+  photoCount: ..., 
 };
 
 // Call the `createInvoiceIntakeRef()` function to get a reference to the mutation.
@@ -3465,6 +3486,10 @@ export interface UpdateInvoiceIntakeAiResultVariables {
   classificationConfidence: number;
   classificationStatus: string;
   aiNotes: string;
+  processingStatus?: string | null;
+  accountingStatus?: string | null;
+  decisionExceptions?: string | null;
+  decisionChecks?: string | null;
 }
 ```
 ### Return Type
@@ -3484,34 +3509,38 @@ import { connectorConfig, updateInvoiceIntakeAiResult, UpdateInvoiceIntakeAiResu
 
 // The `UpdateInvoiceIntakeAiResult` mutation requires an argument of type `UpdateInvoiceIntakeAiResultVariables`:
 const updateInvoiceIntakeAiResultVars: UpdateInvoiceIntakeAiResultVariables = {
-  receiptId: ...,
-  status: ...,
-  aiModel: ...,
-  aiConfidence: ...,
-  extractedVendor: ...,
+  receiptId: ..., 
+  status: ..., 
+  aiModel: ..., 
+  aiConfidence: ..., 
+  extractedVendor: ..., 
   extractedInvoiceNumber: ..., // optional
   extractedInvoiceDate: ..., // optional
-  extractedSubtotalCents: ...,
-  extractedTpsCents: ...,
-  extractedTvqCents: ...,
-  extractedTotalCents: ...,
-  extractedCurrency: ...,
+  extractedSubtotalCents: ..., 
+  extractedTpsCents: ..., 
+  extractedTvqCents: ..., 
+  extractedTotalCents: ..., 
+  extractedCurrency: ..., 
   extractedSku: ..., // optional
   extractedCategory: ..., // optional
   extractedProjectId: ..., // optional
   classificationAccountCode: ..., // optional
   classificationCategory: ..., // optional
-  classificationSource: ...,
-  classificationConfidence: ...,
-  classificationStatus: ...,
-  aiNotes: ...,
+  classificationSource: ..., 
+  classificationConfidence: ..., 
+  classificationStatus: ..., 
+  aiNotes: ..., 
+  processingStatus: ..., // optional
+  accountingStatus: ..., // optional
+  decisionExceptions: ..., // optional
+  decisionChecks: ..., // optional
 };
 
 // Call the `updateInvoiceIntakeAiResult()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await updateInvoiceIntakeAiResult(updateInvoiceIntakeAiResultVars);
 // Variables can be defined inline as well.
-const { data } = await updateInvoiceIntakeAiResult({ receiptId: ..., status: ..., aiModel: ..., aiConfidence: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., });
+const { data } = await updateInvoiceIntakeAiResult({ receiptId: ..., status: ..., aiModel: ..., aiConfidence: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., processingStatus: ..., accountingStatus: ..., decisionExceptions: ..., decisionChecks: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -3534,33 +3563,37 @@ import { connectorConfig, updateInvoiceIntakeAiResultRef, UpdateInvoiceIntakeAiR
 
 // The `UpdateInvoiceIntakeAiResult` mutation requires an argument of type `UpdateInvoiceIntakeAiResultVariables`:
 const updateInvoiceIntakeAiResultVars: UpdateInvoiceIntakeAiResultVariables = {
-  receiptId: ...,
-  status: ...,
-  aiModel: ...,
-  aiConfidence: ...,
-  extractedVendor: ...,
+  receiptId: ..., 
+  status: ..., 
+  aiModel: ..., 
+  aiConfidence: ..., 
+  extractedVendor: ..., 
   extractedInvoiceNumber: ..., // optional
   extractedInvoiceDate: ..., // optional
-  extractedSubtotalCents: ...,
-  extractedTpsCents: ...,
-  extractedTvqCents: ...,
-  extractedTotalCents: ...,
-  extractedCurrency: ...,
+  extractedSubtotalCents: ..., 
+  extractedTpsCents: ..., 
+  extractedTvqCents: ..., 
+  extractedTotalCents: ..., 
+  extractedCurrency: ..., 
   extractedSku: ..., // optional
   extractedCategory: ..., // optional
   extractedProjectId: ..., // optional
   classificationAccountCode: ..., // optional
   classificationCategory: ..., // optional
-  classificationSource: ...,
-  classificationConfidence: ...,
-  classificationStatus: ...,
-  aiNotes: ...,
+  classificationSource: ..., 
+  classificationConfidence: ..., 
+  classificationStatus: ..., 
+  aiNotes: ..., 
+  processingStatus: ..., // optional
+  accountingStatus: ..., // optional
+  decisionExceptions: ..., // optional
+  decisionChecks: ..., // optional
 };
 
 // Call the `updateInvoiceIntakeAiResultRef()` function to get a reference to the mutation.
 const ref = updateInvoiceIntakeAiResultRef(updateInvoiceIntakeAiResultVars);
 // Variables can be defined inline as well.
-const ref = updateInvoiceIntakeAiResultRef({ receiptId: ..., status: ..., aiModel: ..., aiConfidence: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., });
+const ref = updateInvoiceIntakeAiResultRef({ receiptId: ..., status: ..., aiModel: ..., aiConfidence: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., processingStatus: ..., accountingStatus: ..., decisionExceptions: ..., decisionChecks: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -3615,6 +3648,9 @@ The `MarkInvoiceIntakeAiError` mutation requires an argument of type `MarkInvoic
 export interface MarkInvoiceIntakeAiErrorVariables {
   receiptId: string;
   error: string;
+  accountingStatus?: string | null;
+  decisionExceptions?: string | null;
+  decisionChecks?: string | null;
 }
 ```
 ### Return Type
@@ -3634,15 +3670,18 @@ import { connectorConfig, markInvoiceIntakeAiError, MarkInvoiceIntakeAiErrorVari
 
 // The `MarkInvoiceIntakeAiError` mutation requires an argument of type `MarkInvoiceIntakeAiErrorVariables`:
 const markInvoiceIntakeAiErrorVars: MarkInvoiceIntakeAiErrorVariables = {
-  receiptId: ...,
-  error: ...,
+  receiptId: ..., 
+  error: ..., 
+  accountingStatus: ..., // optional
+  decisionExceptions: ..., // optional
+  decisionChecks: ..., // optional
 };
 
 // Call the `markInvoiceIntakeAiError()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await markInvoiceIntakeAiError(markInvoiceIntakeAiErrorVars);
 // Variables can be defined inline as well.
-const { data } = await markInvoiceIntakeAiError({ receiptId: ..., error: ..., });
+const { data } = await markInvoiceIntakeAiError({ receiptId: ..., error: ..., accountingStatus: ..., decisionExceptions: ..., decisionChecks: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -3665,14 +3704,17 @@ import { connectorConfig, markInvoiceIntakeAiErrorRef, MarkInvoiceIntakeAiErrorV
 
 // The `MarkInvoiceIntakeAiError` mutation requires an argument of type `MarkInvoiceIntakeAiErrorVariables`:
 const markInvoiceIntakeAiErrorVars: MarkInvoiceIntakeAiErrorVariables = {
-  receiptId: ...,
-  error: ...,
+  receiptId: ..., 
+  error: ..., 
+  accountingStatus: ..., // optional
+  decisionExceptions: ..., // optional
+  decisionChecks: ..., // optional
 };
 
 // Call the `markInvoiceIntakeAiErrorRef()` function to get a reference to the mutation.
 const ref = markInvoiceIntakeAiErrorRef(markInvoiceIntakeAiErrorVars);
 // Variables can be defined inline as well.
-const ref = markInvoiceIntakeAiErrorRef({ receiptId: ..., error: ..., });
+const ref = markInvoiceIntakeAiErrorRef({ receiptId: ..., error: ..., accountingStatus: ..., decisionExceptions: ..., decisionChecks: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -3744,6 +3786,8 @@ export interface UpdateInvoiceIntakeReviewVariables {
   classificationConfidence: number;
   classificationStatus: string;
   aiNotes: string;
+  decisionExceptions?: string | null;
+  decisionChecks?: string | null;
 }
 ```
 ### Return Type
@@ -3763,32 +3807,34 @@ import { connectorConfig, updateInvoiceIntakeReview, UpdateInvoiceIntakeReviewVa
 
 // The `UpdateInvoiceIntakeReview` mutation requires an argument of type `UpdateInvoiceIntakeReviewVariables`:
 const updateInvoiceIntakeReviewVars: UpdateInvoiceIntakeReviewVariables = {
-  receiptId: ...,
-  status: ...,
-  extractedVendor: ...,
+  receiptId: ..., 
+  status: ..., 
+  extractedVendor: ..., 
   extractedInvoiceNumber: ..., // optional
   extractedInvoiceDate: ..., // optional
-  extractedSubtotalCents: ...,
-  extractedTpsCents: ...,
-  extractedTvqCents: ...,
-  extractedTotalCents: ...,
-  extractedCurrency: ...,
+  extractedSubtotalCents: ..., 
+  extractedTpsCents: ..., 
+  extractedTvqCents: ..., 
+  extractedTotalCents: ..., 
+  extractedCurrency: ..., 
   extractedSku: ..., // optional
   extractedCategory: ..., // optional
   extractedProjectId: ..., // optional
   classificationAccountCode: ..., // optional
   classificationCategory: ..., // optional
-  classificationSource: ...,
-  classificationConfidence: ...,
-  classificationStatus: ...,
-  aiNotes: ...,
+  classificationSource: ..., 
+  classificationConfidence: ..., 
+  classificationStatus: ..., 
+  aiNotes: ..., 
+  decisionExceptions: ..., // optional
+  decisionChecks: ..., // optional
 };
 
 // Call the `updateInvoiceIntakeReview()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await updateInvoiceIntakeReview(updateInvoiceIntakeReviewVars);
 // Variables can be defined inline as well.
-const { data } = await updateInvoiceIntakeReview({ receiptId: ..., status: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., });
+const { data } = await updateInvoiceIntakeReview({ receiptId: ..., status: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., decisionExceptions: ..., decisionChecks: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -3811,31 +3857,33 @@ import { connectorConfig, updateInvoiceIntakeReviewRef, UpdateInvoiceIntakeRevie
 
 // The `UpdateInvoiceIntakeReview` mutation requires an argument of type `UpdateInvoiceIntakeReviewVariables`:
 const updateInvoiceIntakeReviewVars: UpdateInvoiceIntakeReviewVariables = {
-  receiptId: ...,
-  status: ...,
-  extractedVendor: ...,
+  receiptId: ..., 
+  status: ..., 
+  extractedVendor: ..., 
   extractedInvoiceNumber: ..., // optional
   extractedInvoiceDate: ..., // optional
-  extractedSubtotalCents: ...,
-  extractedTpsCents: ...,
-  extractedTvqCents: ...,
-  extractedTotalCents: ...,
-  extractedCurrency: ...,
+  extractedSubtotalCents: ..., 
+  extractedTpsCents: ..., 
+  extractedTvqCents: ..., 
+  extractedTotalCents: ..., 
+  extractedCurrency: ..., 
   extractedSku: ..., // optional
   extractedCategory: ..., // optional
   extractedProjectId: ..., // optional
   classificationAccountCode: ..., // optional
   classificationCategory: ..., // optional
-  classificationSource: ...,
-  classificationConfidence: ...,
-  classificationStatus: ...,
-  aiNotes: ...,
+  classificationSource: ..., 
+  classificationConfidence: ..., 
+  classificationStatus: ..., 
+  aiNotes: ..., 
+  decisionExceptions: ..., // optional
+  decisionChecks: ..., // optional
 };
 
 // Call the `updateInvoiceIntakeReviewRef()` function to get a reference to the mutation.
 const ref = updateInvoiceIntakeReviewRef(updateInvoiceIntakeReviewVars);
 // Variables can be defined inline as well.
-const ref = updateInvoiceIntakeReviewRef({ receiptId: ..., status: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., });
+const ref = updateInvoiceIntakeReviewRef({ receiptId: ..., status: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., decisionExceptions: ..., decisionChecks: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -3928,25 +3976,25 @@ import { connectorConfig, commitInvoiceIntake, CommitInvoiceIntakeVariables } fr
 
 // The `CommitInvoiceIntake` mutation requires an argument of type `CommitInvoiceIntakeVariables`:
 const commitInvoiceIntakeVars: CommitInvoiceIntakeVariables = {
-  receiptId: ...,
-  transactionId: ...,
-  invoiceId: ...,
-  vendor: ...,
+  receiptId: ..., 
+  transactionId: ..., 
+  invoiceId: ..., 
+  vendor: ..., 
   invoiceNumber: ..., // optional
-  invoiceDate: ...,
-  subtotalCents: ...,
-  tpsCents: ...,
-  tvqCents: ...,
-  totalCents: ...,
-  currency: ...,
+  invoiceDate: ..., 
+  subtotalCents: ..., 
+  tpsCents: ..., 
+  tvqCents: ..., 
+  totalCents: ..., 
+  currency: ..., 
   sku: ..., // optional
-  category: ...,
-  accountCode: ...,
-  cardId: ...,
-  statementPeriodId: ...,
-  projectId: ...,
-  storageFolder: ...,
-  classificationNote: ...,
+  category: ..., 
+  accountCode: ..., 
+  cardId: ..., 
+  statementPeriodId: ..., 
+  projectId: ..., 
+  storageFolder: ..., 
+  classificationNote: ..., 
 };
 
 // Call the `commitInvoiceIntake()` function to execute the mutation.
@@ -3980,25 +4028,25 @@ import { connectorConfig, commitInvoiceIntakeRef, CommitInvoiceIntakeVariables }
 
 // The `CommitInvoiceIntake` mutation requires an argument of type `CommitInvoiceIntakeVariables`:
 const commitInvoiceIntakeVars: CommitInvoiceIntakeVariables = {
-  receiptId: ...,
-  transactionId: ...,
-  invoiceId: ...,
-  vendor: ...,
+  receiptId: ..., 
+  transactionId: ..., 
+  invoiceId: ..., 
+  vendor: ..., 
   invoiceNumber: ..., // optional
-  invoiceDate: ...,
-  subtotalCents: ...,
-  tpsCents: ...,
-  tvqCents: ...,
-  totalCents: ...,
-  currency: ...,
+  invoiceDate: ..., 
+  subtotalCents: ..., 
+  tpsCents: ..., 
+  tvqCents: ..., 
+  totalCents: ..., 
+  currency: ..., 
   sku: ..., // optional
-  category: ...,
-  accountCode: ...,
-  cardId: ...,
-  statementPeriodId: ...,
-  projectId: ...,
-  storageFolder: ...,
-  classificationNote: ...,
+  category: ..., 
+  accountCode: ..., 
+  cardId: ..., 
+  statementPeriodId: ..., 
+  projectId: ..., 
+  storageFolder: ..., 
+  classificationNote: ..., 
 };
 
 // Call the `commitInvoiceIntakeRef()` function to get a reference to the mutation.
@@ -4100,24 +4148,24 @@ import { connectorConfig, commitInvoiceIntakeWithoutProject, CommitInvoiceIntake
 
 // The `CommitInvoiceIntakeWithoutProject` mutation requires an argument of type `CommitInvoiceIntakeWithoutProjectVariables`:
 const commitInvoiceIntakeWithoutProjectVars: CommitInvoiceIntakeWithoutProjectVariables = {
-  receiptId: ...,
-  transactionId: ...,
-  invoiceId: ...,
-  vendor: ...,
+  receiptId: ..., 
+  transactionId: ..., 
+  invoiceId: ..., 
+  vendor: ..., 
   invoiceNumber: ..., // optional
-  invoiceDate: ...,
-  subtotalCents: ...,
-  tpsCents: ...,
-  tvqCents: ...,
-  totalCents: ...,
-  currency: ...,
+  invoiceDate: ..., 
+  subtotalCents: ..., 
+  tpsCents: ..., 
+  tvqCents: ..., 
+  totalCents: ..., 
+  currency: ..., 
   sku: ..., // optional
-  category: ...,
-  accountCode: ...,
-  cardId: ...,
-  statementPeriodId: ...,
-  storageFolder: ...,
-  classificationNote: ...,
+  category: ..., 
+  accountCode: ..., 
+  cardId: ..., 
+  statementPeriodId: ..., 
+  storageFolder: ..., 
+  classificationNote: ..., 
 };
 
 // Call the `commitInvoiceIntakeWithoutProject()` function to execute the mutation.
@@ -4151,24 +4199,24 @@ import { connectorConfig, commitInvoiceIntakeWithoutProjectRef, CommitInvoiceInt
 
 // The `CommitInvoiceIntakeWithoutProject` mutation requires an argument of type `CommitInvoiceIntakeWithoutProjectVariables`:
 const commitInvoiceIntakeWithoutProjectVars: CommitInvoiceIntakeWithoutProjectVariables = {
-  receiptId: ...,
-  transactionId: ...,
-  invoiceId: ...,
-  vendor: ...,
+  receiptId: ..., 
+  transactionId: ..., 
+  invoiceId: ..., 
+  vendor: ..., 
   invoiceNumber: ..., // optional
-  invoiceDate: ...,
-  subtotalCents: ...,
-  tpsCents: ...,
-  tvqCents: ...,
-  totalCents: ...,
-  currency: ...,
+  invoiceDate: ..., 
+  subtotalCents: ..., 
+  tpsCents: ..., 
+  tvqCents: ..., 
+  totalCents: ..., 
+  currency: ..., 
   sku: ..., // optional
-  category: ...,
-  accountCode: ...,
-  cardId: ...,
-  statementPeriodId: ...,
-  storageFolder: ...,
-  classificationNote: ...,
+  category: ..., 
+  accountCode: ..., 
+  cardId: ..., 
+  statementPeriodId: ..., 
+  storageFolder: ..., 
+  classificationNote: ..., 
 };
 
 // Call the `commitInvoiceIntakeWithoutProjectRef()` function to get a reference to the mutation.
@@ -4179,6 +4227,179 @@ const ref = commitInvoiceIntakeWithoutProjectRef({ receiptId: ..., transactionId
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
 const ref = commitInvoiceIntakeWithoutProjectRef(dataConnect, commitInvoiceIntakeWithoutProjectVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.expenseTransaction_upsert);
+console.log(data.invoice_upsert);
+console.log(data.invoiceIntake_update);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.expenseTransaction_upsert);
+  console.log(data.invoice_upsert);
+  console.log(data.invoiceIntake_update);
+});
+```
+
+## AutoCommitInvoiceIntake
+You can execute the `AutoCommitInvoiceIntake` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+autoCommitInvoiceIntake(vars: AutoCommitInvoiceIntakeVariables): MutationPromise<AutoCommitInvoiceIntakeData, AutoCommitInvoiceIntakeVariables>;
+
+interface AutoCommitInvoiceIntakeRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AutoCommitInvoiceIntakeVariables): MutationRef<AutoCommitInvoiceIntakeData, AutoCommitInvoiceIntakeVariables>;
+}
+export const autoCommitInvoiceIntakeRef: AutoCommitInvoiceIntakeRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+autoCommitInvoiceIntake(dc: DataConnect, vars: AutoCommitInvoiceIntakeVariables): MutationPromise<AutoCommitInvoiceIntakeData, AutoCommitInvoiceIntakeVariables>;
+
+interface AutoCommitInvoiceIntakeRef {
+  ...
+  (dc: DataConnect, vars: AutoCommitInvoiceIntakeVariables): MutationRef<AutoCommitInvoiceIntakeData, AutoCommitInvoiceIntakeVariables>;
+}
+export const autoCommitInvoiceIntakeRef: AutoCommitInvoiceIntakeRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the autoCommitInvoiceIntakeRef:
+```typescript
+const name = autoCommitInvoiceIntakeRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `AutoCommitInvoiceIntake` mutation requires an argument of type `AutoCommitInvoiceIntakeVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface AutoCommitInvoiceIntakeVariables {
+  receiptId: string;
+  transactionId: string;
+  invoiceId: string;
+  vendor: string;
+  invoiceNumber?: string | null;
+  invoiceDate: DateString;
+  subtotalCents: Int64String;
+  tpsCents: Int64String;
+  tvqCents: Int64String;
+  totalCents: Int64String;
+  currency: string;
+  sku?: string | null;
+  category: string;
+  accountCode: string;
+  cardId: string;
+  statementPeriodId: string;
+  projectId: string;
+  storageFolder: string;
+  classificationNote: string;
+}
+```
+### Return Type
+Recall that executing the `AutoCommitInvoiceIntake` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `AutoCommitInvoiceIntakeData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface AutoCommitInvoiceIntakeData {
+  expenseTransaction_upsert: ExpenseTransaction_Key;
+  invoice_upsert: Invoice_Key;
+  invoiceIntake_update?: InvoiceIntake_Key | null;
+}
+```
+### Using `AutoCommitInvoiceIntake`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, autoCommitInvoiceIntake, AutoCommitInvoiceIntakeVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AutoCommitInvoiceIntake` mutation requires an argument of type `AutoCommitInvoiceIntakeVariables`:
+const autoCommitInvoiceIntakeVars: AutoCommitInvoiceIntakeVariables = {
+  receiptId: ..., 
+  transactionId: ..., 
+  invoiceId: ..., 
+  vendor: ..., 
+  invoiceNumber: ..., // optional
+  invoiceDate: ..., 
+  subtotalCents: ..., 
+  tpsCents: ..., 
+  tvqCents: ..., 
+  totalCents: ..., 
+  currency: ..., 
+  sku: ..., // optional
+  category: ..., 
+  accountCode: ..., 
+  cardId: ..., 
+  statementPeriodId: ..., 
+  projectId: ..., 
+  storageFolder: ..., 
+  classificationNote: ..., 
+};
+
+// Call the `autoCommitInvoiceIntake()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await autoCommitInvoiceIntake(autoCommitInvoiceIntakeVars);
+// Variables can be defined inline as well.
+const { data } = await autoCommitInvoiceIntake({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriodId: ..., projectId: ..., storageFolder: ..., classificationNote: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await autoCommitInvoiceIntake(dataConnect, autoCommitInvoiceIntakeVars);
+
+console.log(data.expenseTransaction_upsert);
+console.log(data.invoice_upsert);
+console.log(data.invoiceIntake_update);
+
+// Or, you can use the `Promise` API.
+autoCommitInvoiceIntake(autoCommitInvoiceIntakeVars).then((response) => {
+  const data = response.data;
+  console.log(data.expenseTransaction_upsert);
+  console.log(data.invoice_upsert);
+  console.log(data.invoiceIntake_update);
+});
+```
+
+### Using `AutoCommitInvoiceIntake`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, autoCommitInvoiceIntakeRef, AutoCommitInvoiceIntakeVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AutoCommitInvoiceIntake` mutation requires an argument of type `AutoCommitInvoiceIntakeVariables`:
+const autoCommitInvoiceIntakeVars: AutoCommitInvoiceIntakeVariables = {
+  receiptId: ..., 
+  transactionId: ..., 
+  invoiceId: ..., 
+  vendor: ..., 
+  invoiceNumber: ..., // optional
+  invoiceDate: ..., 
+  subtotalCents: ..., 
+  tpsCents: ..., 
+  tvqCents: ..., 
+  totalCents: ..., 
+  currency: ..., 
+  sku: ..., // optional
+  category: ..., 
+  accountCode: ..., 
+  cardId: ..., 
+  statementPeriodId: ..., 
+  projectId: ..., 
+  storageFolder: ..., 
+  classificationNote: ..., 
+};
+
+// Call the `autoCommitInvoiceIntakeRef()` function to get a reference to the mutation.
+const ref = autoCommitInvoiceIntakeRef(autoCommitInvoiceIntakeVars);
+// Variables can be defined inline as well.
+const ref = autoCommitInvoiceIntakeRef({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriodId: ..., projectId: ..., storageFolder: ..., classificationNote: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = autoCommitInvoiceIntakeRef(dataConnect, autoCommitInvoiceIntakeVars);
 
 // Call `executeMutation()` on the reference to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.

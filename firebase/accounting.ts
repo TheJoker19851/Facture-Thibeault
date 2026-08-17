@@ -77,6 +77,8 @@ export type AppAccountingData = {
     category: string;
     total: number;
     status: "À vérifier" | "À valider" | "Validée";
+    processingStatus?: string;
+    accountingStatus?: string;
     reconciliation: "Non rapprochée" | "Rapprochée" | "Facture manquante";
     issue?: string;
     correction?: string;
@@ -92,6 +94,8 @@ export type AppAccountingData = {
     storageFolder: string;
     photoCount: number;
     status: string;
+    processingStatus?: string;
+    accountingStatus?: string;
     lastError?: string;
     aiModel?: string;
     aiConfidence?: number;
@@ -112,6 +116,8 @@ export type AppAccountingData = {
     classificationConfidence?: number;
     classificationStatus?: string;
     aiNotes?: string;
+    decisionExceptions?: string;
+    decisionChecks?: string;
     createdAt: string;
     updatedAt: string;
   }>;
@@ -158,6 +164,8 @@ export type InvoiceIntakeReviewInput = {
   classificationConfidence: number;
   classificationStatus: string;
   aiNotes: string;
+  decisionExceptions?: string;
+  decisionChecks?: string;
 };
 
 export type InvoiceIntakeCommitInput = {
@@ -268,6 +276,8 @@ export async function saveInvoiceIntakeReview(input: InvoiceIntakeReviewInput) {
     classificationConfidence: input.classificationConfidence,
     classificationStatus: input.classificationStatus,
     aiNotes: input.aiNotes,
+    decisionExceptions: input.decisionExceptions ?? "[]",
+    decisionChecks: input.decisionChecks ?? "[]",
   });
 }
 
@@ -345,7 +355,7 @@ export function centsToCad(cents: string | number | null | undefined) {
 }
 
 function transactionStatus(value: string): AppAccountingData["transactions"][number]["status"] {
-  if (value === "VALIDATED") return "Validée";
+  if (value === "VALIDATED" || value === "AUTO_APPROVED") return "Validée";
   if (value === "TO_VALIDATE") return "À valider";
   return "À vérifier";
 }
@@ -405,7 +415,9 @@ export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccounti
       project: transaction.project ? `${transaction.project.id} · ${transaction.project.name}` : "—",
       category: transaction.expenseAccount?.label ?? transaction.categoryLabel ?? "Divers",
       total: centsToCad(transaction.totalCents),
-      status: transactionStatus(transaction.status),
+      status: transactionStatus(transaction.processingStatus ?? transaction.status),
+      processingStatus: transaction.processingStatus,
+      accountingStatus: transaction.accountingStatus,
       reconciliation: reconciliationStatus(transaction.reconciliationStatus),
       ...(transaction.issue ? { issue: transaction.issue } : {}),
       imageCount: 0,
@@ -419,6 +431,8 @@ export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccounti
       storageFolder: intake.storageFolder,
       photoCount: intake.photoCount,
       status: intake.status,
+      processingStatus: intake.processingStatus,
+      accountingStatus: intake.accountingStatus,
       ...(intake.lastError ? { lastError: intake.lastError } : {}),
       ...(intake.aiModel ? { aiModel: intake.aiModel } : {}),
       ...(intake.aiConfidence != null ? { aiConfidence: intake.aiConfidence } : {}),
@@ -439,6 +453,8 @@ export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccounti
       ...(intake.classificationConfidence != null ? { classificationConfidence: intake.classificationConfidence } : {}),
       ...(intake.classificationStatus ? { classificationStatus: intake.classificationStatus } : {}),
       ...(intake.aiNotes ? { aiNotes: intake.aiNotes } : {}),
+      ...(intake.decisionExceptions ? { decisionExceptions: intake.decisionExceptions } : {}),
+      ...(intake.decisionChecks ? { decisionChecks: intake.decisionChecks } : {}),
       createdAt: intake.createdAt,
       updatedAt: intake.updatedAt,
     })),

@@ -52,6 +52,7 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*UpdateInvoiceIntakeReview*](#updateinvoiceintakereview)
   - [*CommitInvoiceIntake*](#commitinvoiceintake)
   - [*CommitInvoiceIntakeWithoutProject*](#commitinvoiceintakewithoutproject)
+  - [*AutoCommitInvoiceIntake*](#autocommitinvoiceintake)
 
 # TanStack Query Firebase & TanStack React Query
 This SDK provides [React](https://react.dev/) hooks generated specific to your application, for the operations found in the connector `accounting`. These hooks are generated using [TanStack Query Firebase](https://react-query-firebase.invertase.dev/) by our partners at Invertase, a library built on top of [TanStack React Query v5](https://tanstack.com/query/v5/docs/framework/react/overview).
@@ -734,6 +735,8 @@ export interface ListExpenseTransactionsData {
     totalCents: Int64String;
     currency: string;
     status: string;
+    processingStatus: string;
+    accountingStatus: string;
     reconciliationStatus: string;
     classificationSource?: string | null;
     classificationConfidence?: number | null;
@@ -818,6 +821,8 @@ export interface ListInvoicesToReviewData {
     tpsCents?: Int64String | null;
     tvqCents?: Int64String | null;
     totalCents?: Int64String | null;
+    processingStatus: string;
+    accountingStatus: string;
     reviewStatus: string;
     storageFolder?: string | null;
     transaction: {
@@ -906,6 +911,8 @@ export interface ListInvoiceIntakesData {
     storageFolder: string;
     photoCount: number;
     status: string;
+    processingStatus: string;
+    accountingStatus: string;
     lastError?: string | null;
     aiModel?: string | null;
     aiConfidence?: number | null;
@@ -926,6 +933,8 @@ export interface ListInvoiceIntakesData {
     classificationConfidence?: number | null;
     classificationStatus?: string | null;
     aiNotes?: string | null;
+    decisionExceptions?: string | null;
+    decisionChecks?: string | null;
     createdAt: TimestampString;
     updatedAt: TimestampString;
   } & InvoiceIntake_Key)[];
@@ -1071,11 +1080,11 @@ export default function AdminSeedCreditCardComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminSeedCreditCard` Mutation requires an argument of type `AdminSeedCreditCardVariables`:
   const adminSeedCreditCardVars: AdminSeedCreditCardVariables = {
-    id: ...,
-    lastFour: ...,
-    holderId: ...,
+    id: ..., 
+    lastFour: ..., 
+    holderId: ..., 
     cardFunction: ..., // optional
-    status: ...,
+    status: ..., 
     activeFrom: ..., // optional
   };
   mutation.mutate(adminSeedCreditCardVars);
@@ -1175,12 +1184,12 @@ export default function AdminSeedSkuReferenceComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminSeedSkuReference` Mutation requires an argument of type `AdminSeedSkuReferenceVariables`:
   const adminSeedSkuReferenceVars: AdminSeedSkuReferenceVariables = {
-    merchant: ...,
-    sku: ...,
+    merchant: ..., 
+    sku: ..., 
     productLabel: ..., // optional
     categoryLabel: ..., // optional
-    accountCode: ...,
-    verificationStatus: ...,
+    accountCode: ..., 
+    verificationStatus: ..., 
   };
   mutation.mutate(adminSeedSkuReferenceVars);
   // Variables can be defined inline as well.
@@ -1239,6 +1248,8 @@ export interface AdminSeedExpenseTransactionVariables {
   totalCents: Int64String;
   currency: string;
   status: string;
+  processingStatus?: string | null;
+  accountingStatus?: string | null;
   reconciliationStatus: string;
   classificationSource?: string | null;
   classificationConfidence?: number | null;
@@ -1294,22 +1305,24 @@ export default function AdminSeedExpenseTransactionComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminSeedExpenseTransaction` Mutation requires an argument of type `AdminSeedExpenseTransactionVariables`:
   const adminSeedExpenseTransactionVars: AdminSeedExpenseTransactionVariables = {
-    id: ...,
-    transactionDate: ...,
-    vendor: ...,
-    cardId: ...,
-    statementPeriodId: ...,
-    projectId: ...,
-    accountCode: ...,
+    id: ..., 
+    transactionDate: ..., 
+    vendor: ..., 
+    cardId: ..., 
+    statementPeriodId: ..., 
+    projectId: ..., 
+    accountCode: ..., 
     categoryLabel: ..., // optional
     sku: ..., // optional
-    amountBeforeTaxCents: ...,
-    tpsCents: ...,
-    tvqCents: ...,
-    totalCents: ...,
-    currency: ...,
-    status: ...,
-    reconciliationStatus: ...,
+    amountBeforeTaxCents: ..., 
+    tpsCents: ..., 
+    tvqCents: ..., 
+    totalCents: ..., 
+    currency: ..., 
+    status: ..., 
+    processingStatus: ..., // optional
+    accountingStatus: ..., // optional
+    reconciliationStatus: ..., 
     classificationSource: ..., // optional
     classificationConfidence: ..., // optional
     classificationNote: ..., // optional
@@ -1318,7 +1331,7 @@ export default function AdminSeedExpenseTransactionComponent() {
   };
   mutation.mutate(adminSeedExpenseTransactionVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ id: ..., transactionDate: ..., vendor: ..., cardId: ..., statementPeriodId: ..., projectId: ..., accountCode: ..., categoryLabel: ..., sku: ..., amountBeforeTaxCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., status: ..., reconciliationStatus: ..., classificationSource: ..., classificationConfidence: ..., classificationNote: ..., invoiceNumber: ..., issue: ..., });
+  mutation.mutate({ id: ..., transactionDate: ..., vendor: ..., cardId: ..., statementPeriodId: ..., projectId: ..., accountCode: ..., categoryLabel: ..., sku: ..., amountBeforeTaxCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., status: ..., processingStatus: ..., accountingStatus: ..., reconciliationStatus: ..., classificationSource: ..., classificationConfidence: ..., classificationNote: ..., invoiceNumber: ..., issue: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -1367,6 +1380,8 @@ export interface AdminSeedInvoiceVariables {
   tpsCents?: Int64String | null;
   tvqCents?: Int64String | null;
   totalCents?: Int64String | null;
+  processingStatus?: string | null;
+  accountingStatus?: string | null;
   reviewStatus: string;
   storageFolder?: string | null;
   createdById: string;
@@ -1419,22 +1434,24 @@ export default function AdminSeedInvoiceComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminSeedInvoice` Mutation requires an argument of type `AdminSeedInvoiceVariables`:
   const adminSeedInvoiceVars: AdminSeedInvoiceVariables = {
-    id: ...,
-    transactionId: ...,
-    vendor: ...,
+    id: ..., 
+    transactionId: ..., 
+    vendor: ..., 
     invoiceNumber: ..., // optional
     invoiceDate: ..., // optional
     subtotalCents: ..., // optional
     tpsCents: ..., // optional
     tvqCents: ..., // optional
     totalCents: ..., // optional
-    reviewStatus: ...,
+    processingStatus: ..., // optional
+    accountingStatus: ..., // optional
+    reviewStatus: ..., 
     storageFolder: ..., // optional
-    createdById: ...,
+    createdById: ..., 
   };
   mutation.mutate(adminSeedInvoiceVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ id: ..., transactionId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., reviewStatus: ..., storageFolder: ..., createdById: ..., });
+  mutation.mutate({ id: ..., transactionId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., processingStatus: ..., accountingStatus: ..., reviewStatus: ..., storageFolder: ..., createdById: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -1528,11 +1545,11 @@ export default function AdminSeedInvoicePhotoComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminSeedInvoicePhoto` Mutation requires an argument of type `AdminSeedInvoicePhotoVariables`:
   const adminSeedInvoicePhotoVars: AdminSeedInvoicePhotoVariables = {
-    id: ...,
-    invoiceId: ...,
-    storagePath: ...,
-    contentType: ...,
-    sequence: ...,
+    id: ..., 
+    invoiceId: ..., 
+    storagePath: ..., 
+    contentType: ..., 
+    sequence: ..., 
   };
   mutation.mutate(adminSeedInvoicePhotoVars);
   // Variables can be defined inline as well.
@@ -1626,7 +1643,7 @@ export default function AdminDeleteInvoicePhotoComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminDeleteInvoicePhoto` Mutation requires an argument of type `AdminDeleteInvoicePhotoVariables`:
   const adminDeleteInvoicePhotoVars: AdminDeleteInvoicePhotoVariables = {
-    id: ...,
+    id: ..., 
   };
   mutation.mutate(adminDeleteInvoicePhotoVars);
   // Variables can be defined inline as well.
@@ -1720,7 +1737,7 @@ export default function AdminDeleteInvoiceComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminDeleteInvoice` Mutation requires an argument of type `AdminDeleteInvoiceVariables`:
   const adminDeleteInvoiceVars: AdminDeleteInvoiceVariables = {
-    id: ...,
+    id: ..., 
   };
   mutation.mutate(adminDeleteInvoiceVars);
   // Variables can be defined inline as well.
@@ -1814,7 +1831,7 @@ export default function AdminDeleteExpenseTransactionComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminDeleteExpenseTransaction` Mutation requires an argument of type `AdminDeleteExpenseTransactionVariables`:
   const adminDeleteExpenseTransactionVars: AdminDeleteExpenseTransactionVariables = {
-    id: ...,
+    id: ..., 
   };
   mutation.mutate(adminDeleteExpenseTransactionVars);
   // Variables can be defined inline as well.
@@ -1908,7 +1925,7 @@ export default function AdminDeleteInvoiceIntakeComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminDeleteInvoiceIntake` Mutation requires an argument of type `AdminDeleteInvoiceIntakeVariables`:
   const adminDeleteInvoiceIntakeVars: AdminDeleteInvoiceIntakeVariables = {
-    receiptId: ...,
+    receiptId: ..., 
   };
   mutation.mutate(adminDeleteInvoiceIntakeVars);
   // Variables can be defined inline as well.
@@ -2002,7 +2019,7 @@ export default function AdminDeleteCreditCardComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminDeleteCreditCard` Mutation requires an argument of type `AdminDeleteCreditCardVariables`:
   const adminDeleteCreditCardVars: AdminDeleteCreditCardVariables = {
-    id: ...,
+    id: ..., 
   };
   mutation.mutate(adminDeleteCreditCardVars);
   // Variables can be defined inline as well.
@@ -2097,8 +2114,8 @@ export default function AdminDeleteSkuReferenceComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminDeleteSkuReference` Mutation requires an argument of type `AdminDeleteSkuReferenceVariables`:
   const adminDeleteSkuReferenceVars: AdminDeleteSkuReferenceVariables = {
-    merchant: ...,
-    sku: ...,
+    merchant: ..., 
+    sku: ..., 
   };
   mutation.mutate(adminDeleteSkuReferenceVars);
   // Variables can be defined inline as well.
@@ -2192,7 +2209,7 @@ export default function AdminDeleteProjectComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminDeleteProject` Mutation requires an argument of type `AdminDeleteProjectVariables`:
   const adminDeleteProjectVars: AdminDeleteProjectVariables = {
-    id: ...,
+    id: ..., 
   };
   mutation.mutate(adminDeleteProjectVars);
   // Variables can be defined inline as well.
@@ -2286,7 +2303,7 @@ export default function AdminDeleteExpenseAccountComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminDeleteExpenseAccount` Mutation requires an argument of type `AdminDeleteExpenseAccountVariables`:
   const adminDeleteExpenseAccountVars: AdminDeleteExpenseAccountVariables = {
-    code: ...,
+    code: ..., 
   };
   mutation.mutate(adminDeleteExpenseAccountVars);
   // Variables can be defined inline as well.
@@ -2380,7 +2397,7 @@ export default function AdminDeleteTaxAccountComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminDeleteTaxAccount` Mutation requires an argument of type `AdminDeleteTaxAccountVariables`:
   const adminDeleteTaxAccountVars: AdminDeleteTaxAccountVariables = {
-    code: ...,
+    code: ..., 
   };
   mutation.mutate(adminDeleteTaxAccountVars);
   // Variables can be defined inline as well.
@@ -2474,7 +2491,7 @@ export default function AdminDeleteCardStatementPeriodComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminDeleteCardStatementPeriod` Mutation requires an argument of type `AdminDeleteCardStatementPeriodVariables`:
   const adminDeleteCardStatementPeriodVars: AdminDeleteCardStatementPeriodVariables = {
-    id: ...,
+    id: ..., 
   };
   mutation.mutate(adminDeleteCardStatementPeriodVars);
   // Variables can be defined inline as well.
@@ -2568,7 +2585,7 @@ export default function AdminDeleteUserProfileComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminDeleteUserProfile` Mutation requires an argument of type `AdminDeleteUserProfileVariables`:
   const adminDeleteUserProfileVars: AdminDeleteUserProfileVariables = {
-    id: ...,
+    id: ..., 
   };
   mutation.mutate(adminDeleteUserProfileVars);
   // Variables can be defined inline as well.
@@ -2668,13 +2685,13 @@ export default function UpsertUserProfileComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useUpsertUserProfile` Mutation requires an argument of type `UpsertUserProfileVariables`:
   const upsertUserProfileVars: UpsertUserProfileVariables = {
-    id: ...,
-    firebaseUid: ...,
-    displayName: ...,
+    id: ..., 
+    firebaseUid: ..., 
+    displayName: ..., 
     email: ..., // optional
     jobTitle: ..., // optional
-    role: ...,
-    status: ...,
+    role: ..., 
+    status: ..., 
   };
   mutation.mutate(upsertUserProfileVars);
   // Variables can be defined inline as well.
@@ -2774,11 +2791,11 @@ export default function UpsertCreditCardComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useUpsertCreditCard` Mutation requires an argument of type `UpsertCreditCardVariables`:
   const upsertCreditCardVars: UpsertCreditCardVariables = {
-    id: ...,
-    lastFour: ...,
-    holderId: ...,
+    id: ..., 
+    lastFour: ..., 
+    holderId: ..., 
     cardFunction: ..., // optional
-    status: ...,
+    status: ..., 
     activeFrom: ..., // optional
     inactiveFrom: ..., // optional
   };
@@ -2876,9 +2893,9 @@ export default function CreateInvoiceIntakeComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useCreateInvoiceIntake` Mutation requires an argument of type `CreateInvoiceIntakeVariables`:
   const createInvoiceIntakeVars: CreateInvoiceIntakeVariables = {
-    receiptId: ...,
-    storageFolder: ...,
-    photoCount: ...,
+    receiptId: ..., 
+    storageFolder: ..., 
+    photoCount: ..., 
   };
   mutation.mutate(createInvoiceIntakeVars);
   // Variables can be defined inline as well.
@@ -2943,6 +2960,10 @@ export interface UpdateInvoiceIntakeAiResultVariables {
   classificationConfidence: number;
   classificationStatus: string;
   aiNotes: string;
+  processingStatus?: string | null;
+  accountingStatus?: string | null;
+  decisionExceptions?: string | null;
+  decisionChecks?: string | null;
 }
 ```
 ### Return Type
@@ -2992,31 +3013,35 @@ export default function UpdateInvoiceIntakeAiResultComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useUpdateInvoiceIntakeAiResult` Mutation requires an argument of type `UpdateInvoiceIntakeAiResultVariables`:
   const updateInvoiceIntakeAiResultVars: UpdateInvoiceIntakeAiResultVariables = {
-    receiptId: ...,
-    status: ...,
-    aiModel: ...,
-    aiConfidence: ...,
-    extractedVendor: ...,
+    receiptId: ..., 
+    status: ..., 
+    aiModel: ..., 
+    aiConfidence: ..., 
+    extractedVendor: ..., 
     extractedInvoiceNumber: ..., // optional
     extractedInvoiceDate: ..., // optional
-    extractedSubtotalCents: ...,
-    extractedTpsCents: ...,
-    extractedTvqCents: ...,
-    extractedTotalCents: ...,
-    extractedCurrency: ...,
+    extractedSubtotalCents: ..., 
+    extractedTpsCents: ..., 
+    extractedTvqCents: ..., 
+    extractedTotalCents: ..., 
+    extractedCurrency: ..., 
     extractedSku: ..., // optional
     extractedCategory: ..., // optional
     extractedProjectId: ..., // optional
     classificationAccountCode: ..., // optional
     classificationCategory: ..., // optional
-    classificationSource: ...,
-    classificationConfidence: ...,
-    classificationStatus: ...,
-    aiNotes: ...,
+    classificationSource: ..., 
+    classificationConfidence: ..., 
+    classificationStatus: ..., 
+    aiNotes: ..., 
+    processingStatus: ..., // optional
+    accountingStatus: ..., // optional
+    decisionExceptions: ..., // optional
+    decisionChecks: ..., // optional
   };
   mutation.mutate(updateInvoiceIntakeAiResultVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ receiptId: ..., status: ..., aiModel: ..., aiConfidence: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., });
+  mutation.mutate({ receiptId: ..., status: ..., aiModel: ..., aiConfidence: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., processingStatus: ..., accountingStatus: ..., decisionExceptions: ..., decisionChecks: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -3058,6 +3083,9 @@ The `MarkInvoiceIntakeAiError` Mutation requires an argument of type `MarkInvoic
 export interface MarkInvoiceIntakeAiErrorVariables {
   receiptId: string;
   error: string;
+  accountingStatus?: string | null;
+  decisionExceptions?: string | null;
+  decisionChecks?: string | null;
 }
 ```
 ### Return Type
@@ -3107,12 +3135,15 @@ export default function MarkInvoiceIntakeAiErrorComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useMarkInvoiceIntakeAiError` Mutation requires an argument of type `MarkInvoiceIntakeAiErrorVariables`:
   const markInvoiceIntakeAiErrorVars: MarkInvoiceIntakeAiErrorVariables = {
-    receiptId: ...,
-    error: ...,
+    receiptId: ..., 
+    error: ..., 
+    accountingStatus: ..., // optional
+    decisionExceptions: ..., // optional
+    decisionChecks: ..., // optional
   };
   mutation.mutate(markInvoiceIntakeAiErrorVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ receiptId: ..., error: ..., });
+  mutation.mutate({ receiptId: ..., error: ..., accountingStatus: ..., decisionExceptions: ..., decisionChecks: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -3171,6 +3202,8 @@ export interface UpdateInvoiceIntakeReviewVariables {
   classificationConfidence: number;
   classificationStatus: string;
   aiNotes: string;
+  decisionExceptions?: string | null;
+  decisionChecks?: string | null;
 }
 ```
 ### Return Type
@@ -3220,29 +3253,31 @@ export default function UpdateInvoiceIntakeReviewComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useUpdateInvoiceIntakeReview` Mutation requires an argument of type `UpdateInvoiceIntakeReviewVariables`:
   const updateInvoiceIntakeReviewVars: UpdateInvoiceIntakeReviewVariables = {
-    receiptId: ...,
-    status: ...,
-    extractedVendor: ...,
+    receiptId: ..., 
+    status: ..., 
+    extractedVendor: ..., 
     extractedInvoiceNumber: ..., // optional
     extractedInvoiceDate: ..., // optional
-    extractedSubtotalCents: ...,
-    extractedTpsCents: ...,
-    extractedTvqCents: ...,
-    extractedTotalCents: ...,
-    extractedCurrency: ...,
+    extractedSubtotalCents: ..., 
+    extractedTpsCents: ..., 
+    extractedTvqCents: ..., 
+    extractedTotalCents: ..., 
+    extractedCurrency: ..., 
     extractedSku: ..., // optional
     extractedCategory: ..., // optional
     extractedProjectId: ..., // optional
     classificationAccountCode: ..., // optional
     classificationCategory: ..., // optional
-    classificationSource: ...,
-    classificationConfidence: ...,
-    classificationStatus: ...,
-    aiNotes: ...,
+    classificationSource: ..., 
+    classificationConfidence: ..., 
+    classificationStatus: ..., 
+    aiNotes: ..., 
+    decisionExceptions: ..., // optional
+    decisionChecks: ..., // optional
   };
   mutation.mutate(updateInvoiceIntakeReviewVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ receiptId: ..., status: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., });
+  mutation.mutate({ receiptId: ..., status: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., decisionExceptions: ..., decisionChecks: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -3352,25 +3387,25 @@ export default function CommitInvoiceIntakeComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useCommitInvoiceIntake` Mutation requires an argument of type `CommitInvoiceIntakeVariables`:
   const commitInvoiceIntakeVars: CommitInvoiceIntakeVariables = {
-    receiptId: ...,
-    transactionId: ...,
-    invoiceId: ...,
-    vendor: ...,
+    receiptId: ..., 
+    transactionId: ..., 
+    invoiceId: ..., 
+    vendor: ..., 
     invoiceNumber: ..., // optional
-    invoiceDate: ...,
-    subtotalCents: ...,
-    tpsCents: ...,
-    tvqCents: ...,
-    totalCents: ...,
-    currency: ...,
+    invoiceDate: ..., 
+    subtotalCents: ..., 
+    tpsCents: ..., 
+    tvqCents: ..., 
+    totalCents: ..., 
+    currency: ..., 
     sku: ..., // optional
-    category: ...,
-    accountCode: ...,
-    cardId: ...,
-    statementPeriodId: ...,
-    projectId: ...,
-    storageFolder: ...,
-    classificationNote: ...,
+    category: ..., 
+    accountCode: ..., 
+    cardId: ..., 
+    statementPeriodId: ..., 
+    projectId: ..., 
+    storageFolder: ..., 
+    classificationNote: ..., 
   };
   mutation.mutate(commitInvoiceIntakeVars);
   // Variables can be defined inline as well.
@@ -3485,24 +3520,24 @@ export default function CommitInvoiceIntakeWithoutProjectComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useCommitInvoiceIntakeWithoutProject` Mutation requires an argument of type `CommitInvoiceIntakeWithoutProjectVariables`:
   const commitInvoiceIntakeWithoutProjectVars: CommitInvoiceIntakeWithoutProjectVariables = {
-    receiptId: ...,
-    transactionId: ...,
-    invoiceId: ...,
-    vendor: ...,
+    receiptId: ..., 
+    transactionId: ..., 
+    invoiceId: ..., 
+    vendor: ..., 
     invoiceNumber: ..., // optional
-    invoiceDate: ...,
-    subtotalCents: ...,
-    tpsCents: ...,
-    tvqCents: ...,
-    totalCents: ...,
-    currency: ...,
+    invoiceDate: ..., 
+    subtotalCents: ..., 
+    tpsCents: ..., 
+    tvqCents: ..., 
+    totalCents: ..., 
+    currency: ..., 
     sku: ..., // optional
-    category: ...,
-    accountCode: ...,
-    cardId: ...,
-    statementPeriodId: ...,
-    storageFolder: ...,
-    classificationNote: ...,
+    category: ..., 
+    accountCode: ..., 
+    cardId: ..., 
+    statementPeriodId: ..., 
+    storageFolder: ..., 
+    classificationNote: ..., 
   };
   mutation.mutate(commitInvoiceIntakeWithoutProjectVars);
   // Variables can be defined inline as well.
@@ -3513,6 +3548,140 @@ export default function CommitInvoiceIntakeWithoutProjectComponent() {
     onSuccess: () => { console.log('Mutation succeeded!'); }
   };
   mutation.mutate(commitInvoiceIntakeWithoutProjectVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.expenseTransaction_upsert);
+    console.log(mutation.data.invoice_upsert);
+    console.log(mutation.data.invoiceIntake_update);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## AutoCommitInvoiceIntake
+You can execute the `AutoCommitInvoiceIntake` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useAutoCommitInvoiceIntake(options?: useDataConnectMutationOptions<AutoCommitInvoiceIntakeData, FirebaseError, AutoCommitInvoiceIntakeVariables>): UseDataConnectMutationResult<AutoCommitInvoiceIntakeData, AutoCommitInvoiceIntakeVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useAutoCommitInvoiceIntake(dc: DataConnect, options?: useDataConnectMutationOptions<AutoCommitInvoiceIntakeData, FirebaseError, AutoCommitInvoiceIntakeVariables>): UseDataConnectMutationResult<AutoCommitInvoiceIntakeData, AutoCommitInvoiceIntakeVariables>;
+```
+
+### Variables
+The `AutoCommitInvoiceIntake` Mutation requires an argument of type `AutoCommitInvoiceIntakeVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface AutoCommitInvoiceIntakeVariables {
+  receiptId: string;
+  transactionId: string;
+  invoiceId: string;
+  vendor: string;
+  invoiceNumber?: string | null;
+  invoiceDate: DateString;
+  subtotalCents: Int64String;
+  tpsCents: Int64String;
+  tvqCents: Int64String;
+  totalCents: Int64String;
+  currency: string;
+  sku?: string | null;
+  category: string;
+  accountCode: string;
+  cardId: string;
+  statementPeriodId: string;
+  projectId: string;
+  storageFolder: string;
+  classificationNote: string;
+}
+```
+### Return Type
+Recall that calling the `AutoCommitInvoiceIntake` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AutoCommitInvoiceIntake` Mutation is of type `AutoCommitInvoiceIntakeData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface AutoCommitInvoiceIntakeData {
+  expenseTransaction_upsert: ExpenseTransaction_Key;
+  invoice_upsert: Invoice_Key;
+  invoiceIntake_update?: InvoiceIntake_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `AutoCommitInvoiceIntake`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, AutoCommitInvoiceIntakeVariables } from '@factures-thibeault/data-connect-generated';
+import { useAutoCommitInvoiceIntake } from '@factures-thibeault/data-connect-generated/react'
+
+export default function AutoCommitInvoiceIntakeComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useAutoCommitInvoiceIntake();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useAutoCommitInvoiceIntake(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAutoCommitInvoiceIntake(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAutoCommitInvoiceIntake(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useAutoCommitInvoiceIntake` Mutation requires an argument of type `AutoCommitInvoiceIntakeVariables`:
+  const autoCommitInvoiceIntakeVars: AutoCommitInvoiceIntakeVariables = {
+    receiptId: ..., 
+    transactionId: ..., 
+    invoiceId: ..., 
+    vendor: ..., 
+    invoiceNumber: ..., // optional
+    invoiceDate: ..., 
+    subtotalCents: ..., 
+    tpsCents: ..., 
+    tvqCents: ..., 
+    totalCents: ..., 
+    currency: ..., 
+    sku: ..., // optional
+    category: ..., 
+    accountCode: ..., 
+    cardId: ..., 
+    statementPeriodId: ..., 
+    projectId: ..., 
+    storageFolder: ..., 
+    classificationNote: ..., 
+  };
+  mutation.mutate(autoCommitInvoiceIntakeVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriodId: ..., projectId: ..., storageFolder: ..., classificationNote: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(autoCommitInvoiceIntakeVars, options);
 
   // Then, you can render your component dynamically based on the status of the Mutation.
   if (mutation.isPending) {
