@@ -77,6 +77,175 @@ exports.adminSeedInvoicePhoto = function adminSeedInvoicePhoto(dcOrVars, vars) {
 }
 ;
 
+const adminDeleteInvoicePhotoRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminDeleteInvoicePhoto', inputVars);
+}
+adminDeleteInvoicePhotoRef.operationName = 'AdminDeleteInvoicePhoto';
+exports.adminDeleteInvoicePhotoRef = adminDeleteInvoicePhotoRef;
+
+exports.adminDeleteInvoicePhoto = function adminDeleteInvoicePhoto(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminDeleteInvoicePhotoRef(dcInstance, inputVars));
+}
+;
+
+const adminDeleteInvoiceRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminDeleteInvoice', inputVars);
+}
+adminDeleteInvoiceRef.operationName = 'AdminDeleteInvoice';
+exports.adminDeleteInvoiceRef = adminDeleteInvoiceRef;
+
+exports.adminDeleteInvoice = function adminDeleteInvoice(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminDeleteInvoiceRef(dcInstance, inputVars));
+}
+;
+
+const adminDeleteExpenseTransactionRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminDeleteExpenseTransaction', inputVars);
+}
+adminDeleteExpenseTransactionRef.operationName = 'AdminDeleteExpenseTransaction';
+exports.adminDeleteExpenseTransactionRef = adminDeleteExpenseTransactionRef;
+
+exports.adminDeleteExpenseTransaction = function adminDeleteExpenseTransaction(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminDeleteExpenseTransactionRef(dcInstance, inputVars));
+}
+;
+
+const adminDeleteInvoiceIntakeRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminDeleteInvoiceIntake', inputVars);
+}
+adminDeleteInvoiceIntakeRef.operationName = 'AdminDeleteInvoiceIntake';
+exports.adminDeleteInvoiceIntakeRef = adminDeleteInvoiceIntakeRef;
+
+exports.adminDeleteInvoiceIntake = function adminDeleteInvoiceIntake(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminDeleteInvoiceIntakeRef(dcInstance, inputVars));
+}
+;
+
+const adminDeleteCreditCardRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminDeleteCreditCard', inputVars);
+}
+adminDeleteCreditCardRef.operationName = 'AdminDeleteCreditCard';
+exports.adminDeleteCreditCardRef = adminDeleteCreditCardRef;
+
+exports.adminDeleteCreditCard = function adminDeleteCreditCard(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminDeleteCreditCardRef(dcInstance, inputVars));
+}
+;
+
+const adminDeleteSkuReferenceRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminDeleteSkuReference', inputVars);
+}
+adminDeleteSkuReferenceRef.operationName = 'AdminDeleteSkuReference';
+exports.adminDeleteSkuReferenceRef = adminDeleteSkuReferenceRef;
+
+exports.adminDeleteSkuReference = function adminDeleteSkuReference(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminDeleteSkuReferenceRef(dcInstance, inputVars));
+}
+;
+
+const adminDeleteProjectRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminDeleteProject', inputVars);
+}
+adminDeleteProjectRef.operationName = 'AdminDeleteProject';
+exports.adminDeleteProjectRef = adminDeleteProjectRef;
+
+exports.adminDeleteProject = function adminDeleteProject(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminDeleteProjectRef(dcInstance, inputVars));
+}
+;
+
+const adminDeleteExpenseAccountRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminDeleteExpenseAccount', inputVars);
+}
+adminDeleteExpenseAccountRef.operationName = 'AdminDeleteExpenseAccount';
+exports.adminDeleteExpenseAccountRef = adminDeleteExpenseAccountRef;
+
+exports.adminDeleteExpenseAccount = function adminDeleteExpenseAccount(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminDeleteExpenseAccountRef(dcInstance, inputVars));
+}
+;
+
+const adminDeleteTaxAccountRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminDeleteTaxAccount', inputVars);
+}
+adminDeleteTaxAccountRef.operationName = 'AdminDeleteTaxAccount';
+exports.adminDeleteTaxAccountRef = adminDeleteTaxAccountRef;
+
+exports.adminDeleteTaxAccount = function adminDeleteTaxAccount(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminDeleteTaxAccountRef(dcInstance, inputVars));
+}
+;
+
+const adminDeleteCardStatementPeriodRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminDeleteCardStatementPeriod', inputVars);
+}
+adminDeleteCardStatementPeriodRef.operationName = 'AdminDeleteCardStatementPeriod';
+exports.adminDeleteCardStatementPeriodRef = adminDeleteCardStatementPeriodRef;
+
+exports.adminDeleteCardStatementPeriod = function adminDeleteCardStatementPeriod(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminDeleteCardStatementPeriodRef(dcInstance, inputVars));
+}
+;
+
+const adminDeleteUserProfileRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminDeleteUserProfile', inputVars);
+}
+adminDeleteUserProfileRef.operationName = 'AdminDeleteUserProfile';
+exports.adminDeleteUserProfileRef = adminDeleteUserProfileRef;
+
+exports.adminDeleteUserProfile = function adminDeleteUserProfile(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminDeleteUserProfileRef(dcInstance, inputVars));
+}
+;
+
+const adminListInvoicesRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'AdminListInvoices');
+}
+adminListInvoicesRef.operationName = 'AdminListInvoices';
+exports.adminListInvoicesRef = adminListInvoicesRef;
+
+exports.adminListInvoices = function adminListInvoices(dcOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(adminListInvoicesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
 const upsertUserProfileRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();

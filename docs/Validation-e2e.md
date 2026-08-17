@@ -1,55 +1,35 @@
-# Validation de bout en bout — Factures Thibeault
+# Validation E2E Facture Thibeault
 
-## Parcours staging
+Le parcours est exécuté dans deux modes seulement : LOCAL avec les émulateurs et PRODUCTION avec des données `DEMO-*`. Une validation production doit afficher `TARGET PROJECT: facture-thibeault`, `ENVIRONMENT: PRODUCTION` et `DATA MODE: DEMO VALIDATION ONLY` avant toute écriture.
 
-Exécuter avec les quatre comptes `*.demo@example.test` seulement.
+## Préparation
 
-1. Se connecter avec ADMIN.
-2. Créer un nouveau compte WORKER de test et lui attribuer le rôle.
-3. Associer une carte fictive au travailleur.
-4. Se déconnecter puis se connecter avec WORKER.
-5. Ouvrir `/capture`.
-6. Déposer une image de facture fictive sans donnée personnelle.
-7. Confirmer l'upload dans Storage staging.
-8. Confirmer la création de l'intake SQL Connect.
-9. Confirmer l'extraction Gemini : fournisseur, date, montants, taxes, carte,
-   articles et catégorie proposée.
-10. Vérifier qu'une confiance faible produit `TO_VERIFY`.
-11. Se connecter avec KIM.
-12. Corriger manuellement la facture.
-13. Valider la facture et créer l'écriture comptable.
-14. Vérifier les rapports par personne, période et compte.
-15. Importer une transaction de carte fictive et effectuer le rapprochement.
-16. Vérifier l'audit, les statuts et l'absence de données production.
+1. Vérifier `.env.local` (`APP_ENV=production`, `NEXT_PUBLIC_APP_ENV=production`, `INVOICE_AI_MODE=live`, aucun hôte d’émulateur).
+2. Générer et relire `npm run firebase:plan:production`; ne pas appliquer la migration pendant cette validation.
+3. Exécuter le seed DEMO uniquement après décision explicite et avec `CONFIRM_DEMO_PRODUCTION=facture-thibeault`.
 
-## Matrice d'autorisation attendue
+## Parcours réel
 
-| Action | WORKER | KIM | ADMIN | SUPER_ADMIN |
-|---|---:|---:|---:|---:|
-| Déposer une facture | oui | oui | oui | oui |
-| Lire les images de facture | non | oui | oui | oui |
-| Lire les vues comptables globales | non | oui | oui | oui |
-| Corriger/valider | non | oui | oui | oui |
-| Gérer cartes | non | oui | oui | oui |
-| Créer/désactiver utilisateurs | non | non | oui | oui |
-| Diagnostic | non | non | oui | oui |
-| Écrire directement un résultat IA | non | non | non | non |
+Avec les trois rôles `WORKER`, `KIM` et `ADMIN` :
 
-La dernière ligne est volontaire : la persistance IA appartient uniquement à
-la route serveur Firebase Admin.
+1. ADMIN se connecte, crée un WORKER et lui associe une carte.
+2. WORKER se connecte, ouvre `/capture`, dépose une image fictive et vérifie l’upload Storage.
+3. Le serveur crée l’intake, appelle Gemini live une seule fois ou sur quelques factures, puis persiste fournisseur, date, totaux, taxes, articles et carte.
+4. KIM corrige une facture `À VÉRIFIER`, la valide et déclenche l’enregistrement comptable.
+5. Vérifier rapports, filtres personne/période/compte et rapprochement avec une transaction DEMO.
 
-## Preuves à conserver
+## Permissions à prouver
 
-- captures de l'interface pour chaque rôle;
-- journaux de requêtes API sans secret ni image réelle;
-- résultat `npm run test:emulator`;
-- diff SQL staging revu;
-- captures des règles Auth/Storage/App Check staging;
-- rapports affichant uniquement des identifiants `DEMO-*`;
-- preuve que les variables Vercel Preview ciblent le projet staging.
+- WORKER ne lit pas l’administration, les factures arbitraires ou un résultat IA écrit directement.
+- KIM lit les factures nécessaires, corrige et valide les données autorisées.
+- ADMIN gère les utilisateurs et les référentiels.
+- Un appel anonyme est refusé; chaque route serveur vérifie le token, le rôle et le propriétaire requis.
+- Preview Vercel ne possède aucun credential d’écriture production.
 
-## Critères d'arrêt
+## Nettoyage
 
-Arrêter immédiatement si un identifiant de projet, bucket, service account ou
-URL correspond à `facture-thibeault` pendant un seed, un reset ou un test
-destructif. Ne pas contourner un refus avec une commande Firebase directe.
+Après conservation des preuves, exécuter seulement `npm run cleanup:demo:production` avec `CONFIRM_DEMO_CLEANUP=facture-thibeault` et `CONFIRM_DEMO_CLEANUP_EXECUTE=DELETE_DEMO_ONLY`. Ne jamais utiliser de reset générique.
+
+## Preuves
+
+Conserver le Project ID, les rôles, chemins Storage, IDs `DEMO-*`, réponse Gemini, résultats des règles et journaux des commandes. Ne pas inclure de secret dans Git, les captures ou les rapports.

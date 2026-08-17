@@ -6,7 +6,6 @@ export const initialPeople = [
   ["DEMO-USER-WORKER", "Alice Démo", "Travailleuse démo", "ACTIVE"],
   ["DEMO-USER-KIM", "Benoît Démo", "Comptabilité démo", "ACTIVE"],
   ["DEMO-USER-ADMIN", "Chloé Démo", "Administration démo", "ACTIVE"],
-  ["DEMO-USER-SUPER", "David Démo", "Diagnostic démo", "ACTIVE"],
 ] as const;
 
 export const initialCards = [
@@ -15,9 +14,9 @@ export const initialCards = [
 ] as const;
 
 export const initialExpenseAccounts = [
-  ["90001", "Matériaux Démo"],
-  ["90002", "Carburant Démo"],
-  ["90003", "Équipement Démo"],
+  ["DEMO-90001", "Matériaux Démo"],
+  ["DEMO-90002", "Carburant Démo"],
+  ["DEMO-90003", "Équipement Démo"],
 ] as const;
 
 export const initialTaxAccounts = [

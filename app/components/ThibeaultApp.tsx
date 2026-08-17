@@ -114,9 +114,9 @@ type InvoiceIntake = {
 };
 
 const accountCategories: AccountCategory[] = [
-  { code: "90001", label: "Matériaux Démo" },
-  { code: "90002", label: "Carburant Démo" },
-  { code: "90003", label: "Équipement Démo" },
+  { code: "DEMO-90001", label: "Matériaux Démo" },
+  { code: "DEMO-90002", label: "Carburant Démo" },
+  { code: "DEMO-90003", label: "Équipement Démo" },
 ];
 
 const creditCards: CreditCard[] = [
@@ -128,7 +128,6 @@ const demoUserProfiles: UserProfile[] = [
   { id: "DEMO-USER-WORKER", firebaseUid: "demo-worker", displayName: "Alice Démo", email: "worker.demo@example.test", jobTitle: "Travailleuse démo", role: "WORKER", status: "ACTIVE" },
   { id: "DEMO-USER-KIM", firebaseUid: "demo-kim", displayName: "Benoît Démo", email: "kim.demo@example.test", jobTitle: "Comptabilité démo", role: "KIM", status: "ACTIVE" },
   { id: "DEMO-USER-ADMIN", firebaseUid: "demo-admin", displayName: "Chloé Démo", email: "admin.demo@example.test", jobTitle: "Administration démo", role: "ADMIN", status: "ACTIVE" },
-  { id: "DEMO-USER-SUPER", firebaseUid: "demo-super-admin", displayName: "David Démo", email: "super-admin.demo@example.test", jobTitle: "Diagnostic démo", role: "SUPER_ADMIN", status: "ACTIVE" },
 ];
 
 const cardPeriods: CardPeriod[] = [
@@ -137,7 +136,7 @@ const cardPeriods: CardPeriod[] = [
 ];
 
 const skuReferences: SkuReference[] = [
-  { merchant: "Quincaillerie Démo", sku: "DEMO-SKU-001", label: "Bloc de démonstration", category: "Matériaux Démo", accountCode: "90001", status: "Validé" },
+  { merchant: "Quincaillerie Démo", sku: "DEMO-SKU-001", label: "Bloc de démonstration", category: "Matériaux Démo", accountCode: "DEMO-90001", status: "Validé" },
 ];
 
 const projectReferences = ["DEMO-PROJET-001 · Chantier Démo A", "DEMO-PROJET-002 · Chantier Démo B", "DEMO-ADMIN · Administration Démo"];
@@ -274,8 +273,8 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
   const isPreviewMode = process.env.NEXT_PUBLIC_FIREBASE_PREVIEW_MODE === "true";
   const isProductionDataSource = accountingReadSource === "firebase-sql-connect" && !isPreviewMode;
   const accountRole = firebaseConfigured && !isPreviewMode ? identity.role : initialRole;
-  const canUseAccounting = accountRole === "KIM" || accountRole === "ADMIN" || accountRole === "SUPER_ADMIN";
-  const canUseDiagnostics = accountRole === "ADMIN" || accountRole === "SUPER_ADMIN";
+  const canUseAccounting = accountRole === "KIM" || accountRole === "ADMIN";
+  const canUseDiagnostics = accountRole === "ADMIN";
   const [appData, setAppData] = useState<AppData>(demoAppData);
   const [dataSourceState, setDataSourceState] = useState<"demo" | "loading" | "ready" | "error">(isProductionDataSource ? "loading" : "demo");
   const [loadAttempt, setLoadAttempt] = useState(0);
@@ -480,10 +479,10 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
         <nav className="main-nav" aria-label="Navigation principale">
           {navItems.filter((item) => item.id !== "debug" || canUseDiagnostics).map((item) => <button key={item.id} className={`nav-item ${view === item.id ? "active" : ""}`} onClick={() => goTo(item.id)}><span className="nav-icon">{item.icon}</span><span>{item.label}</span>{item.id === "review" && <span className="nav-count">3</span>}{item.id === "intakes" && appData.intakes.length > 0 && <span className="nav-count">{appData.intakes.length}</span>}</button>)}
         </nav>
-        <div className="sidebar-bottom"><div className="archive-mini"><span className="archive-icon">◷</span><div><strong>Archivage recommandé</strong><span>842 photos admissibles</span></div><span className="arrow">→</span></div>{canUseAccounting && <button className="worker-mode-button" onClick={() => goTo("capture")}><span>⌾</span> Ouvrir le mode dépôt</button>}<div className="user-footer"><span className="avatar avatar-gold">{accountRole === "ADMIN" || accountRole === "SUPER_ADMIN" ? "A" : "K"}</span><div><strong>{accountRole === "ADMIN" || accountRole === "SUPER_ADMIN" ? "Administration" : "Kim"}</strong><span>{accountRole === "KIM" ? "Contrôle comptable" : "Administrateur"}</span></div><button className="icon-button" aria-label="Options du compte">•••</button></div></div>
+        <div className="sidebar-bottom"><div className="archive-mini"><span className="archive-icon">◷</span><div><strong>Archivage recommandé</strong><span>842 photos admissibles</span></div><span className="arrow">→</span></div>{canUseAccounting && <button className="worker-mode-button" onClick={() => goTo("capture")}><span>⌾</span> Ouvrir le mode dépôt</button>}<div className="user-footer"><span className="avatar avatar-gold">{accountRole === "ADMIN" ? "A" : "K"}</span><div><strong>{accountRole === "ADMIN" ? "Administration" : "Kim"}</strong><span>{accountRole === "KIM" ? "Contrôle comptable" : "Administrateur"}</span></div><button className="icon-button" aria-label="Options du compte">•••</button></div></div>
       </aside>
       <section className="content-area">
-        <header className="topbar"><div className="breadcrumbs"><span>Maçonnerie Thibeault</span><span>/</span><strong>{navItems.find((item) => item.id === view)?.label ?? "Tableau de bord"}</strong></div><div className="topbar-actions"><span className="demo-note">{dataSourceLabel}</span><button className="icon-button" aria-label="Notifications">♧<span className="notification-dot" /></button><button className="avatar avatar-gold small" onClick={() => goTo("capture")} aria-label="Ouvrir le mode dépôt">{accountRole === "ADMIN" || accountRole === "SUPER_ADMIN" ? "A" : "K"}</button></div></header>
+        <header className="topbar"><div className="breadcrumbs"><span>Maçonnerie Thibeault</span><span>/</span><strong>{navItems.find((item) => item.id === view)?.label ?? "Tableau de bord"}</strong></div><div className="topbar-actions"><span className="demo-note">{dataSourceLabel}</span><button className="icon-button" aria-label="Notifications">♧<span className="notification-dot" /></button><button className="avatar avatar-gold small" onClick={() => goTo("capture")} aria-label="Ouvrir le mode dépôt">{accountRole === "ADMIN" ? "A" : "K"}</button></div></header>
         <div className="page-content">
           {view === "dashboard" && <Dashboard onNavigate={goTo} onOpenTransaction={(id) => { setSelectedId(id); setView("transaction"); }} period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
           {view === "transactions" && <TransactionsPage items={filteredTransactions} query={query} setQuery={setQuery} statusFilter={statusFilter} setStatusFilter={setStatusFilter} onOpen={(id) => { setSelectedId(id); setView("transaction" as View); }} />}
@@ -530,7 +529,7 @@ function DebugPage({ dataSourceState, onRetry, role }: { dataSourceState: "demo"
     <section className="debug-grid">
       <div className="panel debug-card"><p className="eyebrow">Identité</p><h2>{identity.user?.email ?? "Session non disponible"}</h2><dl><div><dt>Rôle</dt><dd>{role}</dd></div><div><dt>UID</dt><dd>{maskedUid}</dd></div><div><dt>Courriel vérifié</dt><dd>{identity.user?.emailVerified ? "Oui" : "Non"}</dd></div></dl></div>
       <div className="panel debug-card"><p className="eyebrow">Services</p><h2>État des connexions</h2><dl><div><dt>SQL Connect</dt><dd><span className={`debug-status ${dataSourceState}`}>{status}</span></dd></div><div><dt>Connecteur</dt><dd>{sqlConnectConfigured ? "accounting" : "Non configuré"}</dd></div><div><dt>Storage</dt><dd>{firebaseConfigured ? "Firebase configuré" : "Non configuré"}</dd></div><div><dt>App Check</dt><dd>{appCheckConfigured ? "Activé côté application" : "À configurer"}</dd></div></dl></div>
-      <div className="panel debug-card debug-card-wide"><p className="eyebrow">Lecture de sécurité</p><h2>Comportement attendu</h2><ul className="debug-checklist"><li><span>✓</span>Les rôles KIM et ADMIN peuvent lire SQL Connect.</li><li><span>✓</span>Les comptes WORKER peuvent uniquement déposer des photos.</li><li><span>✓</span>Les données de démonstration ne remplacent jamais les données de production.</li><li><span>✓</span>Cette section est visible uniquement par ADMIN et SUPER_ADMIN.</li></ul></div>
+      <div className="panel debug-card debug-card-wide"><p className="eyebrow">Lecture de sécurité</p><h2>Comportement attendu</h2><ul className="debug-checklist"><li><span>✓</span>Les rôles KIM et ADMIN peuvent lire SQL Connect.</li><li><span>✓</span>Les comptes WORKER peuvent uniquement déposer des photos.</li><li><span>✓</span>Les données de démonstration ne remplacent jamais les données de production.</li><li><span>✓</span>Cette section est visible uniquement par ADMIN.</li></ul></div>
     </section>
   </>;
 }
@@ -1077,8 +1076,9 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
   const [busyKey, setBusyKey] = useState("");
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
-  const canCreateUsers = role === "ADMIN" || role === "SUPER_ADMIN";
-  const persistenceReady = sqlConnectConfigured && accountingReadSource === "firebase-sql-connect";
+  const canCreateUsers = role === "ADMIN";
+  const isPreviewMode = process.env.NEXT_PUBLIC_FIREBASE_PREVIEW_MODE === "true";
+  const persistenceReady = !isPreviewMode && sqlConnectConfigured && accountingReadSource === "firebase-sql-connect";
 
   const showError = (reason: unknown) => setError(reason instanceof Error ? reason.message : "La modification n'a pas pu être enregistrée.");
   const getAdminToken = async () => {

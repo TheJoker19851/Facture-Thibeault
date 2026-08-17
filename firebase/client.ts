@@ -24,9 +24,10 @@ const config = {
 };
 
 export const firebaseEnvironmentValidation = validateFirebaseEnvironment({
-  appEnvironment: process.env.NEXT_PUBLIC_APP_ENV,
+  publicAppEnvironment: process.env.NEXT_PUBLIC_APP_ENV,
   projectId: config.projectId,
   useEmulators: process.env.NEXT_PUBLIC_FIREBASE_USE_EMULATORS,
+  previewMode: process.env.NEXT_PUBLIC_FIREBASE_PREVIEW_MODE,
 });
 export const firebaseEnvironment = firebaseEnvironmentValidation.environment;
 export const firebaseConfigurationError = firebaseEnvironmentValidation.ok
@@ -35,9 +36,11 @@ export const firebaseConfigurationError = firebaseEnvironmentValidation.ok
 export const firebaseUsesEmulators =
   firebaseEnvironment === "local" &&
   process.env.NEXT_PUBLIC_FIREBASE_USE_EMULATORS === "true";
+export const firebasePreviewMode = process.env.NEXT_PUBLIC_FIREBASE_PREVIEW_MODE === "true";
 
 export const firebaseConfig = config;
 export const firebaseConfigured = Boolean(
+  !firebasePreviewMode &&
   firebaseEnvironmentValidation.ok &&
   config.apiKey &&
     config.authDomain &&

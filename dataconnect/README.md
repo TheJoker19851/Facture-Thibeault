@@ -19,7 +19,7 @@ The first version of the application schema now lives in
 - invoices, private invoice photos, corrections, and audit events;
 - merchant/SKU references for Canadian Tire and other SKU-only suppliers.
 
-The connector exposes accounting reads to `KIM`, `ADMIN` and `SUPER_ADMIN`.
+The connector exposes accounting reads to `KIM` and `ADMIN`.
 `WORKER` accounts cannot read global accounting data; they may create and list
 only their own intake records. AI result mutations and seed mutations are
 `NO_ACCESS`: trusted server code authenticates the caller, checks ownership and
@@ -28,8 +28,9 @@ uses Firebase Admin. Storage rules independently restrict invoice evidence.
 Next integration steps:
 
 1. Run `npm run test:emulator` and review every role assertion.
-2. Create the dedicated staging project documented in
-   `docs/Firebase-connection.md` (the project does not currently exist).
-3. Run `npm run firebase:plan:staging` and review the SQL diff.
-4. Deploy staging only through `npm run firebase:deploy:staging` with its exact
-   confirmation value. Production requires two separate confirmations.
+2. Keep LOCAL on the Firebase Emulator and validate production only with
+   explicitly marked `DEMO-*` data.
+3. Run `npm run firebase:plan:production` and review the SQL diff before any
+   production schema deployment.
+4. Production deployment requires two separate confirmations and is never
+   performed by the local test suite.

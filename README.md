@@ -30,9 +30,10 @@ workspace, while assigned workers can only submit invoice photos.
 - `dataconnect/dataconnect.yaml` records the supplied SQL Connect/PostgreSQL
   service, database, instance and Montréal region
 - `scripts/fixtures/demo-data.mjs` contains fictitious, idempotent demo data
-  shared by the local and staging seed commands
+  shared by the local and DEMO production validation commands
 - `scripts/seed-demo.mjs` seeds Auth and Data Connect through Firebase Admin;
-  it rejects production unconditionally
+  it rejects generic production targets; only the dedicated DEMO production
+  command can use the exact production project
 - `firebase/data-connect.ts` prepares the public client connector metadata
 - `firebase.json` and `storage.rules` keep the Firebase boundary closed by
   default and prepare the Montréal region
@@ -43,7 +44,7 @@ workspace, while assigned workers can only submit invoice photos.
   deployment is protected by Firebase Authentication and uses no custom domain
 - `docs/EFVP-Quebec.md` records the Québec privacy and data-transfer checklist
 - `app/components/FirebaseShell.tsx` gates the production application behind
-  Firebase Authentication and a `WORKER`, `KIM`, `ADMIN` or `SUPER_ADMIN`
+  Firebase Authentication and a `WORKER`, `KIM` or `ADMIN`
   custom claim; the demo mode is only available when production variables are
   absent
 - `db/` and `drizzle/` are legacy starter scaffolding and are not the official
@@ -112,17 +113,18 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 ## Useful Commands
 
 - `npm run dev:emulator`: start isolated emulators, seed demo data and run the app
-- `npm run dev:staging`: run against `.env.staging.local` after validation
 - `npm run env:check`: validate `.env.local` without printing secrets
-- `npm run env:check:staging`: validate `.env.staging.local`
 - `npm run seed:local`: reset/load the fictitious local demo fixture
-- `npm run seed:staging`: load the staging fixture after the exact confirmation
+- `npm run seed:demo:production`: load only the explicitly confirmed `DEMO-*`
+  production fixture
+- `npm run cleanup:demo:production`: remove only verified DEMO resources after
+  two explicit confirmations
 - `npm run test:emulator`: verify Auth, Storage and Data Connect permissions
 - `npm run build`: verify the vinext build output
 - `npm test`: build the application and verify the rendered PWA shell
 - `pnpm exec tsc --noEmit`: run the TypeScript check
-- `npm run firebase:plan:staging`: compile and inspect the staging SQL diff
-- `npm run firebase:deploy:staging`: deploy only with the documented guard
+- `npm run firebase:plan:production`: compile and inspect the production SQL diff
+- `npm run firebase:deploy:production`: deploy only with the documented guard
 - See `docs/Firebase-connection.md` for environment separation, connector
   generation, Vercel scopes and deployment gates
 - See `docs/Validation-e2e.md` for the complete role/permission validation plan

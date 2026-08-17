@@ -10,7 +10,7 @@ mutation UpsertUserProfile(
   $jobTitle: String
   $role: String!
   $status: String!
-) @auth(expr: "auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+) @auth(expr: "auth.token.role == 'ADMIN'") {
   userProfile_upsert(data: {
     id: $id
     firebaseUid: $firebaseUid
@@ -30,7 +30,7 @@ mutation UpsertCreditCard(
   $status: String!
   $activeFrom: Date
   $inactiveFrom: Date
-) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   creditCard_upsert(data: {
     id: $id
     lastFour: $lastFour
@@ -42,7 +42,7 @@ mutation UpsertCreditCard(
   })
 }
 
-mutation CreateInvoiceIntake($receiptId: String!, $storageFolder: String!, $photoCount: Int!) @auth(expr: "auth.token.role == 'WORKER' || auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+mutation CreateInvoiceIntake($receiptId: String!, $storageFolder: String!, $photoCount: Int!) @auth(expr: "auth.token.role == 'WORKER' || auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   invoiceIntake_upsert(data: {
     receiptId: $receiptId
     uploaderUid_expr: "auth.uid"
@@ -141,7 +141,7 @@ mutation UpdateInvoiceIntakeReview(
   $classificationConfidence: Float!
   $classificationStatus: String!
   $aiNotes: String!
-) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   invoiceIntake_update(
     key: { receiptId: $receiptId }
     data: {
@@ -191,7 +191,7 @@ mutation CommitInvoiceIntake(
   $projectId: String!
   $storageFolder: String!
   $classificationNote: String!
-) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   expenseTransaction_upsert(data: {
     id: $transactionId
     transactionDate: $invoiceDate
@@ -259,7 +259,7 @@ mutation CommitInvoiceIntakeWithoutProject(
   $statementPeriodId: String!
   $storageFolder: String!
   $classificationNote: String!
-) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   expenseTransaction_upsert(data: {
     id: $transactionId
     transactionDate: $invoiceDate

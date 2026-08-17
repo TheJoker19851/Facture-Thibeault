@@ -1,7 +1,6 @@
 {
   "projects": {
     "local": "demo-facture-thibeault",
-    "staging": "replace-with-facture-thibeault-staging-project-id",
     "production": "facture-thibeault"
   }
 }

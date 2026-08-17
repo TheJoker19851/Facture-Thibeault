@@ -4,7 +4,6 @@ export const demoUsers = [
   { id: "DEMO-USER-WORKER", email: "worker.demo@example.test", displayName: "Alice Démo", jobTitle: "Travailleuse démo", role: "WORKER" },
   { id: "DEMO-USER-KIM", email: "kim.demo@example.test", displayName: "Benoît Démo", jobTitle: "Comptabilité démo", role: "KIM" },
   { id: "DEMO-USER-ADMIN", email: "admin.demo@example.test", displayName: "Chloé Démo", jobTitle: "Administration démo", role: "ADMIN" },
-  { id: "DEMO-USER-SUPER", email: "super-admin.demo@example.test", displayName: "David Démo", jobTitle: "Diagnostic démo", role: "SUPER_ADMIN" },
 ];
 
 export const demoProjects = [
@@ -14,9 +13,9 @@ export const demoProjects = [
 ];
 
 export const demoExpenseAccounts = [
-  { code: "90001", label: "Matériaux Démo", status: "ACTIVE" },
-  { code: "90002", label: "Carburant Démo", status: "ACTIVE" },
-  { code: "90003", label: "Équipement Démo", status: "ACTIVE" },
+  { code: "DEMO-90001", label: "Matériaux Démo", status: "ACTIVE" },
+  { code: "DEMO-90002", label: "Carburant Démo", status: "ACTIVE" },
+  { code: "DEMO-90003", label: "Équipement Démo", status: "ACTIVE" },
 ];
 
 export const demoTaxAccounts = [
@@ -35,18 +34,18 @@ export function businessFixture(firebaseUids) {
     { id: "DEMO-CARD-002", lastFour: "9002", holder: { id: "DEMO-USER-KIM" }, cardFunction: "Carte démo comptabilité", status: "ACTIVE", activeFrom: "2026-01-01" },
   ];
   const skuReferences = [
-    { merchant: "Quincaillerie Démo", sku: "DEMO-SKU-001", productLabel: "Bloc de démonstration", categoryLabel: "Matériaux Démo", expenseAccount: { code: "90001" }, verificationStatus: "VALIDATED" },
-    { merchant: "Équipement Démo", sku: "DEMO-SKU-002", productLabel: "Outil de démonstration", categoryLabel: "Équipement Démo", expenseAccount: { code: "90003" }, verificationStatus: "TO_CONFIRM" },
+    { merchant: "Quincaillerie Démo", sku: "DEMO-SKU-001", productLabel: "Bloc de démonstration", categoryLabel: "Matériaux Démo", expenseAccount: { code: "DEMO-90001" }, verificationStatus: "VALIDATED" },
+    { merchant: "Équipement Démo", sku: "DEMO-SKU-002", productLabel: "Outil de démonstration", categoryLabel: "Équipement Démo", expenseAccount: { code: "DEMO-90003" }, verificationStatus: "TO_CONFIRM" },
   ];
   const transactions = [
     {
-      id: "DEMO-TX-001", transactionDate: "2026-08-10", vendor: "Quincaillerie Démo", card: { id: "DEMO-CARD-001" }, statementPeriod: { id: "DEMO-2026-08" }, project: { id: "DEMO-PROJET-001" }, expenseAccount: { code: "90001" }, categoryLabel: "Matériaux Démo", sku: "DEMO-SKU-001", amountBeforeTaxCents: "10000", tpsCents: "500", tvqCents: "998", totalCents: "11498", currency: "CAD", status: "TO_VERIFY", reconciliationStatus: "UNMATCHED", classificationSource: "DEMO_SEED", classificationConfidence: 0.82, classificationNote: "Donnée fictive à valider.", invoiceNumber: "DEMO-FACT-001", issue: "Montant fictif à confirmer.",
+      id: "DEMO-TX-001", transactionDate: "2026-08-10", vendor: "Quincaillerie Démo", card: { id: "DEMO-CARD-001" }, statementPeriod: { id: "DEMO-2026-08" }, project: { id: "DEMO-PROJET-001" }, expenseAccount: { code: "DEMO-90001" }, categoryLabel: "Matériaux Démo", sku: "DEMO-SKU-001", amountBeforeTaxCents: "10000", tpsCents: "500", tvqCents: "998", totalCents: "11498", currency: "CAD", status: "TO_VERIFY", reconciliationStatus: "UNMATCHED", classificationSource: "DEMO_SEED", classificationConfidence: 0.82, classificationNote: "Donnée fictive à valider.", invoiceNumber: "DEMO-FACT-001", issue: "Montant fictif à confirmer.",
     },
     {
-      id: "DEMO-TX-002", transactionDate: "2026-08-11", vendor: "Station Démo", card: { id: "DEMO-CARD-001" }, statementPeriod: { id: "DEMO-2026-08" }, project: { id: "DEMO-PROJET-002" }, expenseAccount: { code: "90002" }, categoryLabel: "Carburant Démo", amountBeforeTaxCents: "8000", tpsCents: "400", tvqCents: "798", totalCents: "9198", currency: "CAD", status: "VALIDATED", reconciliationStatus: "MATCHED", classificationSource: "DEMO_SEED", classificationConfidence: 1, classificationNote: "Transaction fictive validée.", invoiceNumber: "DEMO-FACT-002",
+      id: "DEMO-TX-002", transactionDate: "2026-08-11", vendor: "Station Démo", card: { id: "DEMO-CARD-001" }, statementPeriod: { id: "DEMO-2026-08" }, project: { id: "DEMO-PROJET-002" }, expenseAccount: { code: "DEMO-90002" }, categoryLabel: "Carburant Démo", amountBeforeTaxCents: "8000", tpsCents: "400", tvqCents: "798", totalCents: "9198", currency: "CAD", status: "VALIDATED", reconciliationStatus: "MATCHED", classificationSource: "DEMO_SEED", classificationConfidence: 1, classificationNote: "Transaction fictive validée.", invoiceNumber: "DEMO-FACT-002",
     },
     {
-      id: "DEMO-TX-003", transactionDate: "2026-08-12", vendor: "Équipement Démo", card: { id: "DEMO-CARD-002" }, statementPeriod: { id: "DEMO-2026-08" }, project: { id: "DEMO-ADMIN" }, expenseAccount: { code: "90003" }, categoryLabel: "Équipement Démo", sku: "DEMO-SKU-002", amountBeforeTaxCents: "20000", tpsCents: "1000", tvqCents: "1995", totalCents: "22995", currency: "CAD", status: "TO_VALIDATE", reconciliationStatus: "UNMATCHED", classificationSource: "DEMO_SEED", classificationConfidence: 0.7, classificationNote: "Référence fictive à confirmer.", invoiceNumber: "DEMO-FACT-003",
+      id: "DEMO-TX-003", transactionDate: "2026-08-12", vendor: "Équipement Démo", card: { id: "DEMO-CARD-002" }, statementPeriod: { id: "DEMO-2026-08" }, project: { id: "DEMO-ADMIN" }, expenseAccount: { code: "DEMO-90003" }, categoryLabel: "Équipement Démo", sku: "DEMO-SKU-002", amountBeforeTaxCents: "20000", tpsCents: "1000", tvqCents: "1995", totalCents: "22995", currency: "CAD", status: "TO_VALIDATE", reconciliationStatus: "UNMATCHED", classificationSource: "DEMO_SEED", classificationConfidence: 0.7, classificationNote: "Référence fictive à confirmer.", invoiceNumber: "DEMO-FACT-003",
     },
   ];
   const invoices = [
@@ -58,7 +57,7 @@ export function businessFixture(firebaseUids) {
     { id: "DEMO-PHOTO-002", invoice: { id: "DEMO-INV-002" }, storagePath: "receipts/demo/DEMO-INV-002/original-01.png", contentType: "image/png", sequence: 1 },
   ];
   const invoiceIntakes = [
-    { receiptId: "DEMO-INTAKE-001", uploaderUid: firebaseUids.WORKER, storageFolder: "receipts/demo/DEMO-INTAKE-001", photoCount: 1, status: "AI_REVIEW", aiModel: "demo-mock", aiConfidence: 0.75, extractedVendor: "Équipement Démo", extractedInvoiceNumber: "DEMO-FACT-003", extractedInvoiceDate: "2026-08-12", extractedSubtotalCents: "20000", extractedTpsCents: "1000", extractedTvqCents: "1995", extractedTotalCents: "22995", extractedCurrency: "CAD", extractedSku: "DEMO-SKU-002", extractedCategory: "Équipement Démo", extractedProjectId: "DEMO-ADMIN", classificationAccountCode: "90003", classificationCategory: "Équipement Démo", classificationSource: "DEMO_SEED", classificationConfidence: 0.7, classificationStatus: "TO_VERIFY", aiNotes: "Donnée entièrement fictive." },
+    { receiptId: "DEMO-INTAKE-001", uploaderUid: firebaseUids.WORKER, storageFolder: "receipts/demo/DEMO-INTAKE-001", photoCount: 1, status: "AI_REVIEW", aiModel: "demo-mock", aiConfidence: 0.75, extractedVendor: "Équipement Démo", extractedInvoiceNumber: "DEMO-FACT-003", extractedInvoiceDate: "2026-08-12", extractedSubtotalCents: "20000", extractedTpsCents: "1000", extractedTvqCents: "1995", extractedTotalCents: "22995", extractedCurrency: "CAD", extractedSku: "DEMO-SKU-002", extractedCategory: "Équipement Démo", extractedProjectId: "DEMO-ADMIN", classificationAccountCode: "DEMO-90003", classificationCategory: "Équipement Démo", classificationSource: "DEMO_SEED", classificationConfidence: 0.7, classificationStatus: "TO_VERIFY", aiNotes: "Donnée entièrement fictive." },
   ];
 
   return { cards, skuReferences, transactions, invoices, invoicePhotos, invoiceIntakes };

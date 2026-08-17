@@ -53,6 +53,7 @@ export async function uploadInvoicePhotos(
         receiptId,
         ownerUid: user.uid,
         sequence: String(photo.sequence),
+        ...(receiptId.startsWith("DEMO-") ? { demo: "true" } : {}),
       },
     });
     paths.push(path);

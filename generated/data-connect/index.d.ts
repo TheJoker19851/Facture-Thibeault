@@ -10,6 +10,104 @@ export type DateString = string;
 
 
 
+export interface AdminDeleteCardStatementPeriodData {
+  cardStatementPeriod_delete?: CardStatementPeriod_Key | null;
+}
+
+export interface AdminDeleteCardStatementPeriodVariables {
+  id: string;
+}
+
+export interface AdminDeleteCreditCardData {
+  creditCard_delete?: CreditCard_Key | null;
+}
+
+export interface AdminDeleteCreditCardVariables {
+  id: string;
+}
+
+export interface AdminDeleteExpenseAccountData {
+  expenseAccount_delete?: ExpenseAccount_Key | null;
+}
+
+export interface AdminDeleteExpenseAccountVariables {
+  code: string;
+}
+
+export interface AdminDeleteExpenseTransactionData {
+  expenseTransaction_delete?: ExpenseTransaction_Key | null;
+}
+
+export interface AdminDeleteExpenseTransactionVariables {
+  id: string;
+}
+
+export interface AdminDeleteInvoiceData {
+  invoice_delete?: Invoice_Key | null;
+}
+
+export interface AdminDeleteInvoiceIntakeData {
+  invoiceIntake_delete?: InvoiceIntake_Key | null;
+}
+
+export interface AdminDeleteInvoiceIntakeVariables {
+  receiptId: string;
+}
+
+export interface AdminDeleteInvoicePhotoData {
+  invoicePhoto_delete?: InvoicePhoto_Key | null;
+}
+
+export interface AdminDeleteInvoicePhotoVariables {
+  id: string;
+}
+
+export interface AdminDeleteInvoiceVariables {
+  id: string;
+}
+
+export interface AdminDeleteProjectData {
+  project_delete?: Project_Key | null;
+}
+
+export interface AdminDeleteProjectVariables {
+  id: string;
+}
+
+export interface AdminDeleteSkuReferenceData {
+  skuReference_delete?: SkuReference_Key | null;
+}
+
+export interface AdminDeleteSkuReferenceVariables {
+  merchant: string;
+  sku: string;
+}
+
+export interface AdminDeleteTaxAccountData {
+  taxAccount_delete?: TaxAccount_Key | null;
+}
+
+export interface AdminDeleteTaxAccountVariables {
+  code: string;
+}
+
+export interface AdminDeleteUserProfileData {
+  userProfile_delete?: UserProfile_Key | null;
+}
+
+export interface AdminDeleteUserProfileVariables {
+  id: string;
+}
+
+export interface AdminListInvoicesData {
+  invoices: ({
+    id: string;
+    invoiceNumber?: string | null;
+    reviewStatus: string;
+    storageFolder?: string | null;
+  } & Invoice_Key)[];
+}
+
 export interface AdminSeedCreditCardData {
   creditCard_upsert: CreditCard_Key;
 }
@@ -550,6 +648,150 @@ export const adminSeedInvoicePhotoRef: AdminSeedInvoicePhotoRef;
 
 export function adminSeedInvoicePhoto(vars: AdminSeedInvoicePhotoVariables): MutationPromise<AdminSeedInvoicePhotoData, AdminSeedInvoicePhotoVariables>;
 export function adminSeedInvoicePhoto(dc: DataConnect, vars: AdminSeedInvoicePhotoVariables): MutationPromise<AdminSeedInvoicePhotoData, AdminSeedInvoicePhotoVariables>;
+
+interface AdminDeleteInvoicePhotoRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminDeleteInvoicePhotoVariables): MutationRef<AdminDeleteInvoicePhotoData, AdminDeleteInvoicePhotoVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AdminDeleteInvoicePhotoVariables): MutationRef<AdminDeleteInvoicePhotoData, AdminDeleteInvoicePhotoVariables>;
+  operationName: string;
+}
+export const adminDeleteInvoicePhotoRef: AdminDeleteInvoicePhotoRef;
+
+export function adminDeleteInvoicePhoto(vars: AdminDeleteInvoicePhotoVariables): MutationPromise<AdminDeleteInvoicePhotoData, AdminDeleteInvoicePhotoVariables>;
+export function adminDeleteInvoicePhoto(dc: DataConnect, vars: AdminDeleteInvoicePhotoVariables): MutationPromise<AdminDeleteInvoicePhotoData, AdminDeleteInvoicePhotoVariables>;
+
+interface AdminDeleteInvoiceRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminDeleteInvoiceVariables): MutationRef<AdminDeleteInvoiceData, AdminDeleteInvoiceVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AdminDeleteInvoiceVariables): MutationRef<AdminDeleteInvoiceData, AdminDeleteInvoiceVariables>;
+  operationName: string;
+}
+export const adminDeleteInvoiceRef: AdminDeleteInvoiceRef;
+
+export function adminDeleteInvoice(vars: AdminDeleteInvoiceVariables): MutationPromise<AdminDeleteInvoiceData, AdminDeleteInvoiceVariables>;
+export function adminDeleteInvoice(dc: DataConnect, vars: AdminDeleteInvoiceVariables): MutationPromise<AdminDeleteInvoiceData, AdminDeleteInvoiceVariables>;
+
+interface AdminDeleteExpenseTransactionRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminDeleteExpenseTransactionVariables): MutationRef<AdminDeleteExpenseTransactionData, AdminDeleteExpenseTransactionVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AdminDeleteExpenseTransactionVariables): MutationRef<AdminDeleteExpenseTransactionData, AdminDeleteExpenseTransactionVariables>;
+  operationName: string;
+}
+export const adminDeleteExpenseTransactionRef: AdminDeleteExpenseTransactionRef;
+
+export function adminDeleteExpenseTransaction(vars: AdminDeleteExpenseTransactionVariables): MutationPromise<AdminDeleteExpenseTransactionData, AdminDeleteExpenseTransactionVariables>;
+export function adminDeleteExpenseTransaction(dc: DataConnect, vars: AdminDeleteExpenseTransactionVariables): MutationPromise<AdminDeleteExpenseTransactionData, AdminDeleteExpenseTransactionVariables>;
+
+interface AdminDeleteInvoiceIntakeRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminDeleteInvoiceIntakeVariables): MutationRef<AdminDeleteInvoiceIntakeData, AdminDeleteInvoiceIntakeVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AdminDeleteInvoiceIntakeVariables): MutationRef<AdminDeleteInvoiceIntakeData, AdminDeleteInvoiceIntakeVariables>;
+  operationName: string;
+}
+export const adminDeleteInvoiceIntakeRef: AdminDeleteInvoiceIntakeRef;
+
+export function adminDeleteInvoiceIntake(vars: AdminDeleteInvoiceIntakeVariables): MutationPromise<AdminDeleteInvoiceIntakeData, AdminDeleteInvoiceIntakeVariables>;
+export function adminDeleteInvoiceIntake(dc: DataConnect, vars: AdminDeleteInvoiceIntakeVariables): MutationPromise<AdminDeleteInvoiceIntakeData, AdminDeleteInvoiceIntakeVariables>;
+
+interface AdminDeleteCreditCardRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminDeleteCreditCardVariables): MutationRef<AdminDeleteCreditCardData, AdminDeleteCreditCardVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AdminDeleteCreditCardVariables): MutationRef<AdminDeleteCreditCardData, AdminDeleteCreditCardVariables>;
+  operationName: string;
+}
+export const adminDeleteCreditCardRef: AdminDeleteCreditCardRef;
+
+export function adminDeleteCreditCard(vars: AdminDeleteCreditCardVariables): MutationPromise<AdminDeleteCreditCardData, AdminDeleteCreditCardVariables>;
+export function adminDeleteCreditCard(dc: DataConnect, vars: AdminDeleteCreditCardVariables): MutationPromise<AdminDeleteCreditCardData, AdminDeleteCreditCardVariables>;
+
+interface AdminDeleteSkuReferenceRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminDeleteSkuReferenceVariables): MutationRef<AdminDeleteSkuReferenceData, AdminDeleteSkuReferenceVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AdminDeleteSkuReferenceVariables): MutationRef<AdminDeleteSkuReferenceData, AdminDeleteSkuReferenceVariables>;
+  operationName: string;
+}
+export const adminDeleteSkuReferenceRef: AdminDeleteSkuReferenceRef;
+
+export function adminDeleteSkuReference(vars: AdminDeleteSkuReferenceVariables): MutationPromise<AdminDeleteSkuReferenceData, AdminDeleteSkuReferenceVariables>;
+export function adminDeleteSkuReference(dc: DataConnect, vars: AdminDeleteSkuReferenceVariables): MutationPromise<AdminDeleteSkuReferenceData, AdminDeleteSkuReferenceVariables>;
+
+interface AdminDeleteProjectRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminDeleteProjectVariables): MutationRef<AdminDeleteProjectData, AdminDeleteProjectVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AdminDeleteProjectVariables): MutationRef<AdminDeleteProjectData, AdminDeleteProjectVariables>;
+  operationName: string;
+}
+export const adminDeleteProjectRef: AdminDeleteProjectRef;
+
+export function adminDeleteProject(vars: AdminDeleteProjectVariables): MutationPromise<AdminDeleteProjectData, AdminDeleteProjectVariables>;
+export function adminDeleteProject(dc: DataConnect, vars: AdminDeleteProjectVariables): MutationPromise<AdminDeleteProjectData, AdminDeleteProjectVariables>;
+
+interface AdminDeleteExpenseAccountRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminDeleteExpenseAccountVariables): MutationRef<AdminDeleteExpenseAccountData, AdminDeleteExpenseAccountVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AdminDeleteExpenseAccountVariables): MutationRef<AdminDeleteExpenseAccountData, AdminDeleteExpenseAccountVariables>;
+  operationName: string;
+}
+export const adminDeleteExpenseAccountRef: AdminDeleteExpenseAccountRef;
+
+export function adminDeleteExpenseAccount(vars: AdminDeleteExpenseAccountVariables): MutationPromise<AdminDeleteExpenseAccountData, AdminDeleteExpenseAccountVariables>;
+export function adminDeleteExpenseAccount(dc: DataConnect, vars: AdminDeleteExpenseAccountVariables): MutationPromise<AdminDeleteExpenseAccountData, AdminDeleteExpenseAccountVariables>;
+
+interface AdminDeleteTaxAccountRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminDeleteTaxAccountVariables): MutationRef<AdminDeleteTaxAccountData, AdminDeleteTaxAccountVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AdminDeleteTaxAccountVariables): MutationRef<AdminDeleteTaxAccountData, AdminDeleteTaxAccountVariables>;
+  operationName: string;
+}
+export const adminDeleteTaxAccountRef: AdminDeleteTaxAccountRef;
+
+export function adminDeleteTaxAccount(vars: AdminDeleteTaxAccountVariables): MutationPromise<AdminDeleteTaxAccountData, AdminDeleteTaxAccountVariables>;
+export function adminDeleteTaxAccount(dc: DataConnect, vars: AdminDeleteTaxAccountVariables): MutationPromise<AdminDeleteTaxAccountData, AdminDeleteTaxAccountVariables>;
+
+interface AdminDeleteCardStatementPeriodRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminDeleteCardStatementPeriodVariables): MutationRef<AdminDeleteCardStatementPeriodData, AdminDeleteCardStatementPeriodVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AdminDeleteCardStatementPeriodVariables): MutationRef<AdminDeleteCardStatementPeriodData, AdminDeleteCardStatementPeriodVariables>;
+  operationName: string;
+}
+export const adminDeleteCardStatementPeriodRef: AdminDeleteCardStatementPeriodRef;
+
+export function adminDeleteCardStatementPeriod(vars: AdminDeleteCardStatementPeriodVariables): MutationPromise<AdminDeleteCardStatementPeriodData, AdminDeleteCardStatementPeriodVariables>;
+export function adminDeleteCardStatementPeriod(dc: DataConnect, vars: AdminDeleteCardStatementPeriodVariables): MutationPromise<AdminDeleteCardStatementPeriodData, AdminDeleteCardStatementPeriodVariables>;
+
+interface AdminDeleteUserProfileRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminDeleteUserProfileVariables): MutationRef<AdminDeleteUserProfileData, AdminDeleteUserProfileVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AdminDeleteUserProfileVariables): MutationRef<AdminDeleteUserProfileData, AdminDeleteUserProfileVariables>;
+  operationName: string;
+}
+export const adminDeleteUserProfileRef: AdminDeleteUserProfileRef;
+
+export function adminDeleteUserProfile(vars: AdminDeleteUserProfileVariables): MutationPromise<AdminDeleteUserProfileData, AdminDeleteUserProfileVariables>;
+export function adminDeleteUserProfile(dc: DataConnect, vars: AdminDeleteUserProfileVariables): MutationPromise<AdminDeleteUserProfileData, AdminDeleteUserProfileVariables>;
+
+interface AdminListInvoicesRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<AdminListInvoicesData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<AdminListInvoicesData, undefined>;
+  operationName: string;
+}
+export const adminListInvoicesRef: AdminListInvoicesRef;
+
+export function adminListInvoices(options?: ExecuteQueryOptions): QueryPromise<AdminListInvoicesData, undefined>;
+export function adminListInvoices(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<AdminListInvoicesData, undefined>;
 
 interface UpsertUserProfileRef {
   /* Allow users to create refs without passing in DataConnect */

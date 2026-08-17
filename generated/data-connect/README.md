@@ -10,6 +10,7 @@ This README will guide you through the process of using the generated JavaScript
 - [**Accessing the connector**](#accessing-the-connector)
   - [*Connecting to the local Emulator*](#connecting-to-the-local-emulator)
 - [**Queries**](#queries)
+  - [*AdminListInvoices*](#adminlistinvoices)
   - [*ListUserProfiles*](#listuserprofiles)
   - [*ListCreditCards*](#listcreditcards)
   - [*ListCardStatementPeriods*](#listcardstatementperiods)
@@ -25,6 +26,17 @@ This README will guide you through the process of using the generated JavaScript
   - [*AdminSeedExpenseTransaction*](#adminseedexpensetransaction)
   - [*AdminSeedInvoice*](#adminseedinvoice)
   - [*AdminSeedInvoicePhoto*](#adminseedinvoicephoto)
+  - [*AdminDeleteInvoicePhoto*](#admindeleteinvoicephoto)
+  - [*AdminDeleteInvoice*](#admindeleteinvoice)
+  - [*AdminDeleteExpenseTransaction*](#admindeleteexpensetransaction)
+  - [*AdminDeleteInvoiceIntake*](#admindeleteinvoiceintake)
+  - [*AdminDeleteCreditCard*](#admindeletecreditcard)
+  - [*AdminDeleteSkuReference*](#admindeleteskureference)
+  - [*AdminDeleteProject*](#admindeleteproject)
+  - [*AdminDeleteExpenseAccount*](#admindeleteexpenseaccount)
+  - [*AdminDeleteTaxAccount*](#admindeletetaxaccount)
+  - [*AdminDeleteCardStatementPeriod*](#admindeletecardstatementperiod)
+  - [*AdminDeleteUserProfile*](#admindeleteuserprofile)
   - [*UpsertUserProfile*](#upsertuserprofile)
   - [*UpsertCreditCard*](#upsertcreditcard)
   - [*CreateInvoiceIntake*](#createinvoiceintake)
@@ -78,6 +90,102 @@ The following is true for both the action shortcut function and the `QueryRef` f
 - Both functions can be called with or without passing in a `DataConnect` instance as an argument. If no `DataConnect` argument is passed in, then the generated SDK will call `getDataConnect(connectorConfig)` behind the scenes for you.
 
 Below are examples of how to use the `accounting` connector's generated functions to execute each query. You can also follow the examples from the [Data Connect documentation](https://firebase.google.com/docs/data-connect/web-sdk#using-queries).
+
+## AdminListInvoices
+You can execute the `AdminListInvoices` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+adminListInvoices(options?: ExecuteQueryOptions): QueryPromise<AdminListInvoicesData, undefined>;
+
+interface AdminListInvoicesRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<AdminListInvoicesData, undefined>;
+}
+export const adminListInvoicesRef: AdminListInvoicesRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+adminListInvoices(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<AdminListInvoicesData, undefined>;
+
+interface AdminListInvoicesRef {
+  ...
+  (dc: DataConnect): QueryRef<AdminListInvoicesData, undefined>;
+}
+export const adminListInvoicesRef: AdminListInvoicesRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminListInvoicesRef:
+```typescript
+const name = adminListInvoicesRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `AdminListInvoices` query has no variables.
+### Return Type
+Recall that executing the `AdminListInvoices` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `AdminListInvoicesData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface AdminListInvoicesData {
+  invoices: ({
+    id: string;
+    invoiceNumber?: string | null;
+    reviewStatus: string;
+    storageFolder?: string | null;
+  } & Invoice_Key)[];
+}
+```
+### Using `AdminListInvoices`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, adminListInvoices } from '@factures-thibeault/data-connect-generated';
+
+
+// Call the `adminListInvoices()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await adminListInvoices();
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await adminListInvoices(dataConnect);
+
+console.log(data.invoices);
+
+// Or, you can use the `Promise` API.
+adminListInvoices().then((response) => {
+  const data = response.data;
+  console.log(data.invoices);
+});
+```
+
+### Using `AdminListInvoices`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, adminListInvoicesRef } from '@factures-thibeault/data-connect-generated';
+
+
+// Call the `adminListInvoicesRef()` function to get a reference to the query.
+const ref = adminListInvoicesRef();
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = adminListInvoicesRef(dataConnect);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.invoices);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.invoices);
+});
+```
 
 ## ListUserProfiles
 You can execute the `ListUserProfiles` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
@@ -1728,6 +1836,1208 @@ console.log(data.invoicePhoto_upsert);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.invoicePhoto_upsert);
+});
+```
+
+## AdminDeleteInvoicePhoto
+You can execute the `AdminDeleteInvoicePhoto` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+adminDeleteInvoicePhoto(vars: AdminDeleteInvoicePhotoVariables): MutationPromise<AdminDeleteInvoicePhotoData, AdminDeleteInvoicePhotoVariables>;
+
+interface AdminDeleteInvoicePhotoRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminDeleteInvoicePhotoVariables): MutationRef<AdminDeleteInvoicePhotoData, AdminDeleteInvoicePhotoVariables>;
+}
+export const adminDeleteInvoicePhotoRef: AdminDeleteInvoicePhotoRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+adminDeleteInvoicePhoto(dc: DataConnect, vars: AdminDeleteInvoicePhotoVariables): MutationPromise<AdminDeleteInvoicePhotoData, AdminDeleteInvoicePhotoVariables>;
+
+interface AdminDeleteInvoicePhotoRef {
+  ...
+  (dc: DataConnect, vars: AdminDeleteInvoicePhotoVariables): MutationRef<AdminDeleteInvoicePhotoData, AdminDeleteInvoicePhotoVariables>;
+}
+export const adminDeleteInvoicePhotoRef: AdminDeleteInvoicePhotoRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminDeleteInvoicePhotoRef:
+```typescript
+const name = adminDeleteInvoicePhotoRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `AdminDeleteInvoicePhoto` mutation requires an argument of type `AdminDeleteInvoicePhotoVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface AdminDeleteInvoicePhotoVariables {
+  id: string;
+}
+```
+### Return Type
+Recall that executing the `AdminDeleteInvoicePhoto` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `AdminDeleteInvoicePhotoData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface AdminDeleteInvoicePhotoData {
+  invoicePhoto_delete?: InvoicePhoto_Key | null;
+}
+```
+### Using `AdminDeleteInvoicePhoto`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, adminDeleteInvoicePhoto, AdminDeleteInvoicePhotoVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminDeleteInvoicePhoto` mutation requires an argument of type `AdminDeleteInvoicePhotoVariables`:
+const adminDeleteInvoicePhotoVars: AdminDeleteInvoicePhotoVariables = {
+  id: ...,
+};
+
+// Call the `adminDeleteInvoicePhoto()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await adminDeleteInvoicePhoto(adminDeleteInvoicePhotoVars);
+// Variables can be defined inline as well.
+const { data } = await adminDeleteInvoicePhoto({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await adminDeleteInvoicePhoto(dataConnect, adminDeleteInvoicePhotoVars);
+
+console.log(data.invoicePhoto_delete);
+
+// Or, you can use the `Promise` API.
+adminDeleteInvoicePhoto(adminDeleteInvoicePhotoVars).then((response) => {
+  const data = response.data;
+  console.log(data.invoicePhoto_delete);
+});
+```
+
+### Using `AdminDeleteInvoicePhoto`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, adminDeleteInvoicePhotoRef, AdminDeleteInvoicePhotoVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminDeleteInvoicePhoto` mutation requires an argument of type `AdminDeleteInvoicePhotoVariables`:
+const adminDeleteInvoicePhotoVars: AdminDeleteInvoicePhotoVariables = {
+  id: ...,
+};
+
+// Call the `adminDeleteInvoicePhotoRef()` function to get a reference to the mutation.
+const ref = adminDeleteInvoicePhotoRef(adminDeleteInvoicePhotoVars);
+// Variables can be defined inline as well.
+const ref = adminDeleteInvoicePhotoRef({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = adminDeleteInvoicePhotoRef(dataConnect, adminDeleteInvoicePhotoVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.invoicePhoto_delete);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.invoicePhoto_delete);
+});
+```
+
+## AdminDeleteInvoice
+You can execute the `AdminDeleteInvoice` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+adminDeleteInvoice(vars: AdminDeleteInvoiceVariables): MutationPromise<AdminDeleteInvoiceData, AdminDeleteInvoiceVariables>;
+
+interface AdminDeleteInvoiceRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminDeleteInvoiceVariables): MutationRef<AdminDeleteInvoiceData, AdminDeleteInvoiceVariables>;
+}
+export const adminDeleteInvoiceRef: AdminDeleteInvoiceRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+adminDeleteInvoice(dc: DataConnect, vars: AdminDeleteInvoiceVariables): MutationPromise<AdminDeleteInvoiceData, AdminDeleteInvoiceVariables>;
+
+interface AdminDeleteInvoiceRef {
+  ...
+  (dc: DataConnect, vars: AdminDeleteInvoiceVariables): MutationRef<AdminDeleteInvoiceData, AdminDeleteInvoiceVariables>;
+}
+export const adminDeleteInvoiceRef: AdminDeleteInvoiceRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminDeleteInvoiceRef:
+```typescript
+const name = adminDeleteInvoiceRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `AdminDeleteInvoice` mutation requires an argument of type `AdminDeleteInvoiceVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface AdminDeleteInvoiceVariables {
+  id: string;
+}
+```
+### Return Type
+Recall that executing the `AdminDeleteInvoice` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `AdminDeleteInvoiceData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface AdminDeleteInvoiceData {
+  invoice_delete?: Invoice_Key | null;
+}
+```
+### Using `AdminDeleteInvoice`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, adminDeleteInvoice, AdminDeleteInvoiceVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminDeleteInvoice` mutation requires an argument of type `AdminDeleteInvoiceVariables`:
+const adminDeleteInvoiceVars: AdminDeleteInvoiceVariables = {
+  id: ...,
+};
+
+// Call the `adminDeleteInvoice()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await adminDeleteInvoice(adminDeleteInvoiceVars);
+// Variables can be defined inline as well.
+const { data } = await adminDeleteInvoice({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await adminDeleteInvoice(dataConnect, adminDeleteInvoiceVars);
+
+console.log(data.invoice_delete);
+
+// Or, you can use the `Promise` API.
+adminDeleteInvoice(adminDeleteInvoiceVars).then((response) => {
+  const data = response.data;
+  console.log(data.invoice_delete);
+});
+```
+
+### Using `AdminDeleteInvoice`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, adminDeleteInvoiceRef, AdminDeleteInvoiceVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminDeleteInvoice` mutation requires an argument of type `AdminDeleteInvoiceVariables`:
+const adminDeleteInvoiceVars: AdminDeleteInvoiceVariables = {
+  id: ...,
+};
+
+// Call the `adminDeleteInvoiceRef()` function to get a reference to the mutation.
+const ref = adminDeleteInvoiceRef(adminDeleteInvoiceVars);
+// Variables can be defined inline as well.
+const ref = adminDeleteInvoiceRef({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = adminDeleteInvoiceRef(dataConnect, adminDeleteInvoiceVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.invoice_delete);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.invoice_delete);
+});
+```
+
+## AdminDeleteExpenseTransaction
+You can execute the `AdminDeleteExpenseTransaction` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+adminDeleteExpenseTransaction(vars: AdminDeleteExpenseTransactionVariables): MutationPromise<AdminDeleteExpenseTransactionData, AdminDeleteExpenseTransactionVariables>;
+
+interface AdminDeleteExpenseTransactionRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminDeleteExpenseTransactionVariables): MutationRef<AdminDeleteExpenseTransactionData, AdminDeleteExpenseTransactionVariables>;
+}
+export const adminDeleteExpenseTransactionRef: AdminDeleteExpenseTransactionRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+adminDeleteExpenseTransaction(dc: DataConnect, vars: AdminDeleteExpenseTransactionVariables): MutationPromise<AdminDeleteExpenseTransactionData, AdminDeleteExpenseTransactionVariables>;
+
+interface AdminDeleteExpenseTransactionRef {
+  ...
+  (dc: DataConnect, vars: AdminDeleteExpenseTransactionVariables): MutationRef<AdminDeleteExpenseTransactionData, AdminDeleteExpenseTransactionVariables>;
+}
+export const adminDeleteExpenseTransactionRef: AdminDeleteExpenseTransactionRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminDeleteExpenseTransactionRef:
+```typescript
+const name = adminDeleteExpenseTransactionRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `AdminDeleteExpenseTransaction` mutation requires an argument of type `AdminDeleteExpenseTransactionVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface AdminDeleteExpenseTransactionVariables {
+  id: string;
+}
+```
+### Return Type
+Recall that executing the `AdminDeleteExpenseTransaction` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `AdminDeleteExpenseTransactionData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface AdminDeleteExpenseTransactionData {
+  expenseTransaction_delete?: ExpenseTransaction_Key | null;
+}
+```
+### Using `AdminDeleteExpenseTransaction`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, adminDeleteExpenseTransaction, AdminDeleteExpenseTransactionVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminDeleteExpenseTransaction` mutation requires an argument of type `AdminDeleteExpenseTransactionVariables`:
+const adminDeleteExpenseTransactionVars: AdminDeleteExpenseTransactionVariables = {
+  id: ...,
+};
+
+// Call the `adminDeleteExpenseTransaction()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await adminDeleteExpenseTransaction(adminDeleteExpenseTransactionVars);
+// Variables can be defined inline as well.
+const { data } = await adminDeleteExpenseTransaction({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await adminDeleteExpenseTransaction(dataConnect, adminDeleteExpenseTransactionVars);
+
+console.log(data.expenseTransaction_delete);
+
+// Or, you can use the `Promise` API.
+adminDeleteExpenseTransaction(adminDeleteExpenseTransactionVars).then((response) => {
+  const data = response.data;
+  console.log(data.expenseTransaction_delete);
+});
+```
+
+### Using `AdminDeleteExpenseTransaction`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, adminDeleteExpenseTransactionRef, AdminDeleteExpenseTransactionVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminDeleteExpenseTransaction` mutation requires an argument of type `AdminDeleteExpenseTransactionVariables`:
+const adminDeleteExpenseTransactionVars: AdminDeleteExpenseTransactionVariables = {
+  id: ...,
+};
+
+// Call the `adminDeleteExpenseTransactionRef()` function to get a reference to the mutation.
+const ref = adminDeleteExpenseTransactionRef(adminDeleteExpenseTransactionVars);
+// Variables can be defined inline as well.
+const ref = adminDeleteExpenseTransactionRef({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = adminDeleteExpenseTransactionRef(dataConnect, adminDeleteExpenseTransactionVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.expenseTransaction_delete);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.expenseTransaction_delete);
+});
+```
+
+## AdminDeleteInvoiceIntake
+You can execute the `AdminDeleteInvoiceIntake` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+adminDeleteInvoiceIntake(vars: AdminDeleteInvoiceIntakeVariables): MutationPromise<AdminDeleteInvoiceIntakeData, AdminDeleteInvoiceIntakeVariables>;
+
+interface AdminDeleteInvoiceIntakeRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminDeleteInvoiceIntakeVariables): MutationRef<AdminDeleteInvoiceIntakeData, AdminDeleteInvoiceIntakeVariables>;
+}
+export const adminDeleteInvoiceIntakeRef: AdminDeleteInvoiceIntakeRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+adminDeleteInvoiceIntake(dc: DataConnect, vars: AdminDeleteInvoiceIntakeVariables): MutationPromise<AdminDeleteInvoiceIntakeData, AdminDeleteInvoiceIntakeVariables>;
+
+interface AdminDeleteInvoiceIntakeRef {
+  ...
+  (dc: DataConnect, vars: AdminDeleteInvoiceIntakeVariables): MutationRef<AdminDeleteInvoiceIntakeData, AdminDeleteInvoiceIntakeVariables>;
+}
+export const adminDeleteInvoiceIntakeRef: AdminDeleteInvoiceIntakeRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminDeleteInvoiceIntakeRef:
+```typescript
+const name = adminDeleteInvoiceIntakeRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `AdminDeleteInvoiceIntake` mutation requires an argument of type `AdminDeleteInvoiceIntakeVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface AdminDeleteInvoiceIntakeVariables {
+  receiptId: string;
+}
+```
+### Return Type
+Recall that executing the `AdminDeleteInvoiceIntake` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `AdminDeleteInvoiceIntakeData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface AdminDeleteInvoiceIntakeData {
+  invoiceIntake_delete?: InvoiceIntake_Key | null;
+}
+```
+### Using `AdminDeleteInvoiceIntake`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, adminDeleteInvoiceIntake, AdminDeleteInvoiceIntakeVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminDeleteInvoiceIntake` mutation requires an argument of type `AdminDeleteInvoiceIntakeVariables`:
+const adminDeleteInvoiceIntakeVars: AdminDeleteInvoiceIntakeVariables = {
+  receiptId: ...,
+};
+
+// Call the `adminDeleteInvoiceIntake()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await adminDeleteInvoiceIntake(adminDeleteInvoiceIntakeVars);
+// Variables can be defined inline as well.
+const { data } = await adminDeleteInvoiceIntake({ receiptId: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await adminDeleteInvoiceIntake(dataConnect, adminDeleteInvoiceIntakeVars);
+
+console.log(data.invoiceIntake_delete);
+
+// Or, you can use the `Promise` API.
+adminDeleteInvoiceIntake(adminDeleteInvoiceIntakeVars).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_delete);
+});
+```
+
+### Using `AdminDeleteInvoiceIntake`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, adminDeleteInvoiceIntakeRef, AdminDeleteInvoiceIntakeVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminDeleteInvoiceIntake` mutation requires an argument of type `AdminDeleteInvoiceIntakeVariables`:
+const adminDeleteInvoiceIntakeVars: AdminDeleteInvoiceIntakeVariables = {
+  receiptId: ...,
+};
+
+// Call the `adminDeleteInvoiceIntakeRef()` function to get a reference to the mutation.
+const ref = adminDeleteInvoiceIntakeRef(adminDeleteInvoiceIntakeVars);
+// Variables can be defined inline as well.
+const ref = adminDeleteInvoiceIntakeRef({ receiptId: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = adminDeleteInvoiceIntakeRef(dataConnect, adminDeleteInvoiceIntakeVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.invoiceIntake_delete);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_delete);
+});
+```
+
+## AdminDeleteCreditCard
+You can execute the `AdminDeleteCreditCard` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+adminDeleteCreditCard(vars: AdminDeleteCreditCardVariables): MutationPromise<AdminDeleteCreditCardData, AdminDeleteCreditCardVariables>;
+
+interface AdminDeleteCreditCardRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminDeleteCreditCardVariables): MutationRef<AdminDeleteCreditCardData, AdminDeleteCreditCardVariables>;
+}
+export const adminDeleteCreditCardRef: AdminDeleteCreditCardRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+adminDeleteCreditCard(dc: DataConnect, vars: AdminDeleteCreditCardVariables): MutationPromise<AdminDeleteCreditCardData, AdminDeleteCreditCardVariables>;
+
+interface AdminDeleteCreditCardRef {
+  ...
+  (dc: DataConnect, vars: AdminDeleteCreditCardVariables): MutationRef<AdminDeleteCreditCardData, AdminDeleteCreditCardVariables>;
+}
+export const adminDeleteCreditCardRef: AdminDeleteCreditCardRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminDeleteCreditCardRef:
+```typescript
+const name = adminDeleteCreditCardRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `AdminDeleteCreditCard` mutation requires an argument of type `AdminDeleteCreditCardVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface AdminDeleteCreditCardVariables {
+  id: string;
+}
+```
+### Return Type
+Recall that executing the `AdminDeleteCreditCard` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `AdminDeleteCreditCardData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface AdminDeleteCreditCardData {
+  creditCard_delete?: CreditCard_Key | null;
+}
+```
+### Using `AdminDeleteCreditCard`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, adminDeleteCreditCard, AdminDeleteCreditCardVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminDeleteCreditCard` mutation requires an argument of type `AdminDeleteCreditCardVariables`:
+const adminDeleteCreditCardVars: AdminDeleteCreditCardVariables = {
+  id: ...,
+};
+
+// Call the `adminDeleteCreditCard()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await adminDeleteCreditCard(adminDeleteCreditCardVars);
+// Variables can be defined inline as well.
+const { data } = await adminDeleteCreditCard({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await adminDeleteCreditCard(dataConnect, adminDeleteCreditCardVars);
+
+console.log(data.creditCard_delete);
+
+// Or, you can use the `Promise` API.
+adminDeleteCreditCard(adminDeleteCreditCardVars).then((response) => {
+  const data = response.data;
+  console.log(data.creditCard_delete);
+});
+```
+
+### Using `AdminDeleteCreditCard`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, adminDeleteCreditCardRef, AdminDeleteCreditCardVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminDeleteCreditCard` mutation requires an argument of type `AdminDeleteCreditCardVariables`:
+const adminDeleteCreditCardVars: AdminDeleteCreditCardVariables = {
+  id: ...,
+};
+
+// Call the `adminDeleteCreditCardRef()` function to get a reference to the mutation.
+const ref = adminDeleteCreditCardRef(adminDeleteCreditCardVars);
+// Variables can be defined inline as well.
+const ref = adminDeleteCreditCardRef({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = adminDeleteCreditCardRef(dataConnect, adminDeleteCreditCardVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.creditCard_delete);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.creditCard_delete);
+});
+```
+
+## AdminDeleteSkuReference
+You can execute the `AdminDeleteSkuReference` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+adminDeleteSkuReference(vars: AdminDeleteSkuReferenceVariables): MutationPromise<AdminDeleteSkuReferenceData, AdminDeleteSkuReferenceVariables>;
+
+interface AdminDeleteSkuReferenceRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminDeleteSkuReferenceVariables): MutationRef<AdminDeleteSkuReferenceData, AdminDeleteSkuReferenceVariables>;
+}
+export const adminDeleteSkuReferenceRef: AdminDeleteSkuReferenceRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+adminDeleteSkuReference(dc: DataConnect, vars: AdminDeleteSkuReferenceVariables): MutationPromise<AdminDeleteSkuReferenceData, AdminDeleteSkuReferenceVariables>;
+
+interface AdminDeleteSkuReferenceRef {
+  ...
+  (dc: DataConnect, vars: AdminDeleteSkuReferenceVariables): MutationRef<AdminDeleteSkuReferenceData, AdminDeleteSkuReferenceVariables>;
+}
+export const adminDeleteSkuReferenceRef: AdminDeleteSkuReferenceRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminDeleteSkuReferenceRef:
+```typescript
+const name = adminDeleteSkuReferenceRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `AdminDeleteSkuReference` mutation requires an argument of type `AdminDeleteSkuReferenceVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface AdminDeleteSkuReferenceVariables {
+  merchant: string;
+  sku: string;
+}
+```
+### Return Type
+Recall that executing the `AdminDeleteSkuReference` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `AdminDeleteSkuReferenceData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface AdminDeleteSkuReferenceData {
+  skuReference_delete?: SkuReference_Key | null;
+}
+```
+### Using `AdminDeleteSkuReference`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, adminDeleteSkuReference, AdminDeleteSkuReferenceVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminDeleteSkuReference` mutation requires an argument of type `AdminDeleteSkuReferenceVariables`:
+const adminDeleteSkuReferenceVars: AdminDeleteSkuReferenceVariables = {
+  merchant: ...,
+  sku: ...,
+};
+
+// Call the `adminDeleteSkuReference()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await adminDeleteSkuReference(adminDeleteSkuReferenceVars);
+// Variables can be defined inline as well.
+const { data } = await adminDeleteSkuReference({ merchant: ..., sku: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await adminDeleteSkuReference(dataConnect, adminDeleteSkuReferenceVars);
+
+console.log(data.skuReference_delete);
+
+// Or, you can use the `Promise` API.
+adminDeleteSkuReference(adminDeleteSkuReferenceVars).then((response) => {
+  const data = response.data;
+  console.log(data.skuReference_delete);
+});
+```
+
+### Using `AdminDeleteSkuReference`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, adminDeleteSkuReferenceRef, AdminDeleteSkuReferenceVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminDeleteSkuReference` mutation requires an argument of type `AdminDeleteSkuReferenceVariables`:
+const adminDeleteSkuReferenceVars: AdminDeleteSkuReferenceVariables = {
+  merchant: ...,
+  sku: ...,
+};
+
+// Call the `adminDeleteSkuReferenceRef()` function to get a reference to the mutation.
+const ref = adminDeleteSkuReferenceRef(adminDeleteSkuReferenceVars);
+// Variables can be defined inline as well.
+const ref = adminDeleteSkuReferenceRef({ merchant: ..., sku: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = adminDeleteSkuReferenceRef(dataConnect, adminDeleteSkuReferenceVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.skuReference_delete);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.skuReference_delete);
+});
+```
+
+## AdminDeleteProject
+You can execute the `AdminDeleteProject` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+adminDeleteProject(vars: AdminDeleteProjectVariables): MutationPromise<AdminDeleteProjectData, AdminDeleteProjectVariables>;
+
+interface AdminDeleteProjectRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminDeleteProjectVariables): MutationRef<AdminDeleteProjectData, AdminDeleteProjectVariables>;
+}
+export const adminDeleteProjectRef: AdminDeleteProjectRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+adminDeleteProject(dc: DataConnect, vars: AdminDeleteProjectVariables): MutationPromise<AdminDeleteProjectData, AdminDeleteProjectVariables>;
+
+interface AdminDeleteProjectRef {
+  ...
+  (dc: DataConnect, vars: AdminDeleteProjectVariables): MutationRef<AdminDeleteProjectData, AdminDeleteProjectVariables>;
+}
+export const adminDeleteProjectRef: AdminDeleteProjectRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminDeleteProjectRef:
+```typescript
+const name = adminDeleteProjectRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `AdminDeleteProject` mutation requires an argument of type `AdminDeleteProjectVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface AdminDeleteProjectVariables {
+  id: string;
+}
+```
+### Return Type
+Recall that executing the `AdminDeleteProject` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `AdminDeleteProjectData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface AdminDeleteProjectData {
+  project_delete?: Project_Key | null;
+}
+```
+### Using `AdminDeleteProject`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, adminDeleteProject, AdminDeleteProjectVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminDeleteProject` mutation requires an argument of type `AdminDeleteProjectVariables`:
+const adminDeleteProjectVars: AdminDeleteProjectVariables = {
+  id: ...,
+};
+
+// Call the `adminDeleteProject()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await adminDeleteProject(adminDeleteProjectVars);
+// Variables can be defined inline as well.
+const { data } = await adminDeleteProject({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await adminDeleteProject(dataConnect, adminDeleteProjectVars);
+
+console.log(data.project_delete);
+
+// Or, you can use the `Promise` API.
+adminDeleteProject(adminDeleteProjectVars).then((response) => {
+  const data = response.data;
+  console.log(data.project_delete);
+});
+```
+
+### Using `AdminDeleteProject`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, adminDeleteProjectRef, AdminDeleteProjectVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminDeleteProject` mutation requires an argument of type `AdminDeleteProjectVariables`:
+const adminDeleteProjectVars: AdminDeleteProjectVariables = {
+  id: ...,
+};
+
+// Call the `adminDeleteProjectRef()` function to get a reference to the mutation.
+const ref = adminDeleteProjectRef(adminDeleteProjectVars);
+// Variables can be defined inline as well.
+const ref = adminDeleteProjectRef({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = adminDeleteProjectRef(dataConnect, adminDeleteProjectVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.project_delete);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.project_delete);
+});
+```
+
+## AdminDeleteExpenseAccount
+You can execute the `AdminDeleteExpenseAccount` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+adminDeleteExpenseAccount(vars: AdminDeleteExpenseAccountVariables): MutationPromise<AdminDeleteExpenseAccountData, AdminDeleteExpenseAccountVariables>;
+
+interface AdminDeleteExpenseAccountRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminDeleteExpenseAccountVariables): MutationRef<AdminDeleteExpenseAccountData, AdminDeleteExpenseAccountVariables>;
+}
+export const adminDeleteExpenseAccountRef: AdminDeleteExpenseAccountRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+adminDeleteExpenseAccount(dc: DataConnect, vars: AdminDeleteExpenseAccountVariables): MutationPromise<AdminDeleteExpenseAccountData, AdminDeleteExpenseAccountVariables>;
+
+interface AdminDeleteExpenseAccountRef {
+  ...
+  (dc: DataConnect, vars: AdminDeleteExpenseAccountVariables): MutationRef<AdminDeleteExpenseAccountData, AdminDeleteExpenseAccountVariables>;
+}
+export const adminDeleteExpenseAccountRef: AdminDeleteExpenseAccountRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminDeleteExpenseAccountRef:
+```typescript
+const name = adminDeleteExpenseAccountRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `AdminDeleteExpenseAccount` mutation requires an argument of type `AdminDeleteExpenseAccountVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface AdminDeleteExpenseAccountVariables {
+  code: string;
+}
+```
+### Return Type
+Recall that executing the `AdminDeleteExpenseAccount` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `AdminDeleteExpenseAccountData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface AdminDeleteExpenseAccountData {
+  expenseAccount_delete?: ExpenseAccount_Key | null;
+}
+```
+### Using `AdminDeleteExpenseAccount`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, adminDeleteExpenseAccount, AdminDeleteExpenseAccountVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminDeleteExpenseAccount` mutation requires an argument of type `AdminDeleteExpenseAccountVariables`:
+const adminDeleteExpenseAccountVars: AdminDeleteExpenseAccountVariables = {
+  code: ...,
+};
+
+// Call the `adminDeleteExpenseAccount()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await adminDeleteExpenseAccount(adminDeleteExpenseAccountVars);
+// Variables can be defined inline as well.
+const { data } = await adminDeleteExpenseAccount({ code: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await adminDeleteExpenseAccount(dataConnect, adminDeleteExpenseAccountVars);
+
+console.log(data.expenseAccount_delete);
+
+// Or, you can use the `Promise` API.
+adminDeleteExpenseAccount(adminDeleteExpenseAccountVars).then((response) => {
+  const data = response.data;
+  console.log(data.expenseAccount_delete);
+});
+```
+
+### Using `AdminDeleteExpenseAccount`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, adminDeleteExpenseAccountRef, AdminDeleteExpenseAccountVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminDeleteExpenseAccount` mutation requires an argument of type `AdminDeleteExpenseAccountVariables`:
+const adminDeleteExpenseAccountVars: AdminDeleteExpenseAccountVariables = {
+  code: ...,
+};
+
+// Call the `adminDeleteExpenseAccountRef()` function to get a reference to the mutation.
+const ref = adminDeleteExpenseAccountRef(adminDeleteExpenseAccountVars);
+// Variables can be defined inline as well.
+const ref = adminDeleteExpenseAccountRef({ code: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = adminDeleteExpenseAccountRef(dataConnect, adminDeleteExpenseAccountVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.expenseAccount_delete);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.expenseAccount_delete);
+});
+```
+
+## AdminDeleteTaxAccount
+You can execute the `AdminDeleteTaxAccount` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+adminDeleteTaxAccount(vars: AdminDeleteTaxAccountVariables): MutationPromise<AdminDeleteTaxAccountData, AdminDeleteTaxAccountVariables>;
+
+interface AdminDeleteTaxAccountRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminDeleteTaxAccountVariables): MutationRef<AdminDeleteTaxAccountData, AdminDeleteTaxAccountVariables>;
+}
+export const adminDeleteTaxAccountRef: AdminDeleteTaxAccountRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+adminDeleteTaxAccount(dc: DataConnect, vars: AdminDeleteTaxAccountVariables): MutationPromise<AdminDeleteTaxAccountData, AdminDeleteTaxAccountVariables>;
+
+interface AdminDeleteTaxAccountRef {
+  ...
+  (dc: DataConnect, vars: AdminDeleteTaxAccountVariables): MutationRef<AdminDeleteTaxAccountData, AdminDeleteTaxAccountVariables>;
+}
+export const adminDeleteTaxAccountRef: AdminDeleteTaxAccountRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminDeleteTaxAccountRef:
+```typescript
+const name = adminDeleteTaxAccountRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `AdminDeleteTaxAccount` mutation requires an argument of type `AdminDeleteTaxAccountVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface AdminDeleteTaxAccountVariables {
+  code: string;
+}
+```
+### Return Type
+Recall that executing the `AdminDeleteTaxAccount` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `AdminDeleteTaxAccountData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface AdminDeleteTaxAccountData {
+  taxAccount_delete?: TaxAccount_Key | null;
+}
+```
+### Using `AdminDeleteTaxAccount`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, adminDeleteTaxAccount, AdminDeleteTaxAccountVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminDeleteTaxAccount` mutation requires an argument of type `AdminDeleteTaxAccountVariables`:
+const adminDeleteTaxAccountVars: AdminDeleteTaxAccountVariables = {
+  code: ...,
+};
+
+// Call the `adminDeleteTaxAccount()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await adminDeleteTaxAccount(adminDeleteTaxAccountVars);
+// Variables can be defined inline as well.
+const { data } = await adminDeleteTaxAccount({ code: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await adminDeleteTaxAccount(dataConnect, adminDeleteTaxAccountVars);
+
+console.log(data.taxAccount_delete);
+
+// Or, you can use the `Promise` API.
+adminDeleteTaxAccount(adminDeleteTaxAccountVars).then((response) => {
+  const data = response.data;
+  console.log(data.taxAccount_delete);
+});
+```
+
+### Using `AdminDeleteTaxAccount`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, adminDeleteTaxAccountRef, AdminDeleteTaxAccountVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminDeleteTaxAccount` mutation requires an argument of type `AdminDeleteTaxAccountVariables`:
+const adminDeleteTaxAccountVars: AdminDeleteTaxAccountVariables = {
+  code: ...,
+};
+
+// Call the `adminDeleteTaxAccountRef()` function to get a reference to the mutation.
+const ref = adminDeleteTaxAccountRef(adminDeleteTaxAccountVars);
+// Variables can be defined inline as well.
+const ref = adminDeleteTaxAccountRef({ code: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = adminDeleteTaxAccountRef(dataConnect, adminDeleteTaxAccountVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.taxAccount_delete);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.taxAccount_delete);
+});
+```
+
+## AdminDeleteCardStatementPeriod
+You can execute the `AdminDeleteCardStatementPeriod` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+adminDeleteCardStatementPeriod(vars: AdminDeleteCardStatementPeriodVariables): MutationPromise<AdminDeleteCardStatementPeriodData, AdminDeleteCardStatementPeriodVariables>;
+
+interface AdminDeleteCardStatementPeriodRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminDeleteCardStatementPeriodVariables): MutationRef<AdminDeleteCardStatementPeriodData, AdminDeleteCardStatementPeriodVariables>;
+}
+export const adminDeleteCardStatementPeriodRef: AdminDeleteCardStatementPeriodRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+adminDeleteCardStatementPeriod(dc: DataConnect, vars: AdminDeleteCardStatementPeriodVariables): MutationPromise<AdminDeleteCardStatementPeriodData, AdminDeleteCardStatementPeriodVariables>;
+
+interface AdminDeleteCardStatementPeriodRef {
+  ...
+  (dc: DataConnect, vars: AdminDeleteCardStatementPeriodVariables): MutationRef<AdminDeleteCardStatementPeriodData, AdminDeleteCardStatementPeriodVariables>;
+}
+export const adminDeleteCardStatementPeriodRef: AdminDeleteCardStatementPeriodRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminDeleteCardStatementPeriodRef:
+```typescript
+const name = adminDeleteCardStatementPeriodRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `AdminDeleteCardStatementPeriod` mutation requires an argument of type `AdminDeleteCardStatementPeriodVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface AdminDeleteCardStatementPeriodVariables {
+  id: string;
+}
+```
+### Return Type
+Recall that executing the `AdminDeleteCardStatementPeriod` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `AdminDeleteCardStatementPeriodData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface AdminDeleteCardStatementPeriodData {
+  cardStatementPeriod_delete?: CardStatementPeriod_Key | null;
+}
+```
+### Using `AdminDeleteCardStatementPeriod`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, adminDeleteCardStatementPeriod, AdminDeleteCardStatementPeriodVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminDeleteCardStatementPeriod` mutation requires an argument of type `AdminDeleteCardStatementPeriodVariables`:
+const adminDeleteCardStatementPeriodVars: AdminDeleteCardStatementPeriodVariables = {
+  id: ...,
+};
+
+// Call the `adminDeleteCardStatementPeriod()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await adminDeleteCardStatementPeriod(adminDeleteCardStatementPeriodVars);
+// Variables can be defined inline as well.
+const { data } = await adminDeleteCardStatementPeriod({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await adminDeleteCardStatementPeriod(dataConnect, adminDeleteCardStatementPeriodVars);
+
+console.log(data.cardStatementPeriod_delete);
+
+// Or, you can use the `Promise` API.
+adminDeleteCardStatementPeriod(adminDeleteCardStatementPeriodVars).then((response) => {
+  const data = response.data;
+  console.log(data.cardStatementPeriod_delete);
+});
+```
+
+### Using `AdminDeleteCardStatementPeriod`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, adminDeleteCardStatementPeriodRef, AdminDeleteCardStatementPeriodVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminDeleteCardStatementPeriod` mutation requires an argument of type `AdminDeleteCardStatementPeriodVariables`:
+const adminDeleteCardStatementPeriodVars: AdminDeleteCardStatementPeriodVariables = {
+  id: ...,
+};
+
+// Call the `adminDeleteCardStatementPeriodRef()` function to get a reference to the mutation.
+const ref = adminDeleteCardStatementPeriodRef(adminDeleteCardStatementPeriodVars);
+// Variables can be defined inline as well.
+const ref = adminDeleteCardStatementPeriodRef({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = adminDeleteCardStatementPeriodRef(dataConnect, adminDeleteCardStatementPeriodVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.cardStatementPeriod_delete);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.cardStatementPeriod_delete);
+});
+```
+
+## AdminDeleteUserProfile
+You can execute the `AdminDeleteUserProfile` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+adminDeleteUserProfile(vars: AdminDeleteUserProfileVariables): MutationPromise<AdminDeleteUserProfileData, AdminDeleteUserProfileVariables>;
+
+interface AdminDeleteUserProfileRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminDeleteUserProfileVariables): MutationRef<AdminDeleteUserProfileData, AdminDeleteUserProfileVariables>;
+}
+export const adminDeleteUserProfileRef: AdminDeleteUserProfileRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+adminDeleteUserProfile(dc: DataConnect, vars: AdminDeleteUserProfileVariables): MutationPromise<AdminDeleteUserProfileData, AdminDeleteUserProfileVariables>;
+
+interface AdminDeleteUserProfileRef {
+  ...
+  (dc: DataConnect, vars: AdminDeleteUserProfileVariables): MutationRef<AdminDeleteUserProfileData, AdminDeleteUserProfileVariables>;
+}
+export const adminDeleteUserProfileRef: AdminDeleteUserProfileRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminDeleteUserProfileRef:
+```typescript
+const name = adminDeleteUserProfileRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `AdminDeleteUserProfile` mutation requires an argument of type `AdminDeleteUserProfileVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface AdminDeleteUserProfileVariables {
+  id: string;
+}
+```
+### Return Type
+Recall that executing the `AdminDeleteUserProfile` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `AdminDeleteUserProfileData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface AdminDeleteUserProfileData {
+  userProfile_delete?: UserProfile_Key | null;
+}
+```
+### Using `AdminDeleteUserProfile`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, adminDeleteUserProfile, AdminDeleteUserProfileVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminDeleteUserProfile` mutation requires an argument of type `AdminDeleteUserProfileVariables`:
+const adminDeleteUserProfileVars: AdminDeleteUserProfileVariables = {
+  id: ...,
+};
+
+// Call the `adminDeleteUserProfile()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await adminDeleteUserProfile(adminDeleteUserProfileVars);
+// Variables can be defined inline as well.
+const { data } = await adminDeleteUserProfile({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await adminDeleteUserProfile(dataConnect, adminDeleteUserProfileVars);
+
+console.log(data.userProfile_delete);
+
+// Or, you can use the `Promise` API.
+adminDeleteUserProfile(adminDeleteUserProfileVars).then((response) => {
+  const data = response.data;
+  console.log(data.userProfile_delete);
+});
+```
+
+### Using `AdminDeleteUserProfile`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, adminDeleteUserProfileRef, AdminDeleteUserProfileVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminDeleteUserProfile` mutation requires an argument of type `AdminDeleteUserProfileVariables`:
+const adminDeleteUserProfileVars: AdminDeleteUserProfileVariables = {
+  id: ...,
+};
+
+// Call the `adminDeleteUserProfileRef()` function to get a reference to the mutation.
+const ref = adminDeleteUserProfileRef(adminDeleteUserProfileVars);
+// Variables can be defined inline as well.
+const ref = adminDeleteUserProfileRef({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = adminDeleteUserProfileRef(dataConnect, adminDeleteUserProfileVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.userProfile_delete);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.userProfile_delete);
 });
 ```
 

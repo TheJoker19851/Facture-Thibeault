@@ -2,7 +2,7 @@
 # Only Kim and administrator accounts can read the global accounting view.
 # WORKER accounts are limited to invoice-photo uploads through Storage.
 
-query ListUserProfiles @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+query ListUserProfiles @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   userProfiles(limit: 100) {
     id
     firebaseUid
@@ -14,7 +14,7 @@ query ListUserProfiles @auth(expr: "auth.token.role == 'KIM' || auth.token.role 
   }
 }
 
-query ListCreditCards @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+query ListCreditCards @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   creditCards {
     id
     lastFour
@@ -31,7 +31,7 @@ query ListCreditCards @auth(expr: "auth.token.role == 'KIM' || auth.token.role =
   }
 }
 
-query ListCardStatementPeriods @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+query ListCardStatementPeriods @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   cardStatementPeriods {
     id
     label
@@ -42,7 +42,7 @@ query ListCardStatementPeriods @auth(expr: "auth.token.role == 'KIM' || auth.tok
   }
 }
 
-query ListExpenseAccounts @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+query ListExpenseAccounts @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   expenseAccounts {
     code
     label
@@ -50,7 +50,7 @@ query ListExpenseAccounts @auth(expr: "auth.token.role == 'KIM' || auth.token.ro
   }
 }
 
-query ListProjects @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+query ListProjects @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   projects {
     id
     name
@@ -58,7 +58,7 @@ query ListProjects @auth(expr: "auth.token.role == 'KIM' || auth.token.role == '
   }
 }
 
-query ListSkuReferences @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+query ListSkuReferences @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   skuReferences {
     merchant
     sku
@@ -74,7 +74,7 @@ query ListSkuReferences @auth(expr: "auth.token.role == 'KIM' || auth.token.role
   }
 }
 
-query ListExpenseTransactions @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+query ListExpenseTransactions @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   expenseTransactions(limit: 250) {
     id
     transactionDate
@@ -118,7 +118,7 @@ query ListExpenseTransactions @auth(expr: "auth.token.role == 'KIM' || auth.toke
   }
 }
 
-query ListInvoicesToReview @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+query ListInvoicesToReview @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   invoices(where: {reviewStatus: {eq: "TO_VERIFY"}}) {
     id
     vendor
@@ -144,7 +144,7 @@ query ListInvoicesToReview @auth(expr: "auth.token.role == 'KIM' || auth.token.r
   }
 }
 
-query ListInvoiceIntakes @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+query ListInvoiceIntakes @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   invoiceIntakes(limit: 250) {
     receiptId
     uploaderUid

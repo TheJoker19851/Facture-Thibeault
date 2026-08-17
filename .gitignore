@@ -35,7 +35,6 @@ pglite-debug.log
 .env*
 !.env.example
 !.env.emulator.example
-!.env.staging.example
 !.env.production.example
 
 # vercel

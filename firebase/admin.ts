@@ -9,12 +9,15 @@ let adminDataConnect: DataConnect | null = null;
 
 function serverEnvironmentValidation() {
   return validateFirebaseEnvironment({
-    appEnvironment: process.env.APP_ENV ?? process.env.NEXT_PUBLIC_APP_ENV,
+    appEnvironment: process.env.APP_ENV,
+    publicAppEnvironment: process.env.NEXT_PUBLIC_APP_ENV,
     projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
     adminProjectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
     useEmulators: process.env.NEXT_PUBLIC_FIREBASE_USE_EMULATORS,
     authEmulatorHost: process.env.FIREBASE_AUTH_EMULATOR_HOST,
     dataConnectEmulatorHost: process.env.DATA_CONNECT_EMULATOR_HOST,
+    storageEmulatorHost: process.env.FIREBASE_STORAGE_EMULATOR_HOST,
+    previewMode: process.env.NEXT_PUBLIC_FIREBASE_PREVIEW_MODE,
   });
 }
 

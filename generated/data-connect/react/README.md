@@ -17,6 +17,7 @@ You can also follow the instructions from the [Data Connect documentation](https
 - [**Accessing the connector**](#accessing-the-connector)
   - [*Connecting to the local Emulator*](#connecting-to-the-local-emulator)
 - [**Queries**](#queries)
+  - [*AdminListInvoices*](#adminlistinvoices)
   - [*ListUserProfiles*](#listuserprofiles)
   - [*ListCreditCards*](#listcreditcards)
   - [*ListCardStatementPeriods*](#listcardstatementperiods)
@@ -32,6 +33,17 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*AdminSeedExpenseTransaction*](#adminseedexpensetransaction)
   - [*AdminSeedInvoice*](#adminseedinvoice)
   - [*AdminSeedInvoicePhoto*](#adminseedinvoicephoto)
+  - [*AdminDeleteInvoicePhoto*](#admindeleteinvoicephoto)
+  - [*AdminDeleteInvoice*](#admindeleteinvoice)
+  - [*AdminDeleteExpenseTransaction*](#admindeleteexpensetransaction)
+  - [*AdminDeleteInvoiceIntake*](#admindeleteinvoiceintake)
+  - [*AdminDeleteCreditCard*](#admindeletecreditcard)
+  - [*AdminDeleteSkuReference*](#admindeleteskureference)
+  - [*AdminDeleteProject*](#admindeleteproject)
+  - [*AdminDeleteExpenseAccount*](#admindeleteexpenseaccount)
+  - [*AdminDeleteTaxAccount*](#admindeletetaxaccount)
+  - [*AdminDeleteCardStatementPeriod*](#admindeletecardstatementperiod)
+  - [*AdminDeleteUserProfile*](#admindeleteuserprofile)
   - [*UpsertUserProfile*](#upsertuserprofile)
   - [*UpsertCreditCard*](#upsertcreditcard)
   - [*CreateInvoiceIntake*](#createinvoiceintake)
@@ -130,6 +142,80 @@ Here's a general overview of how to use the generated Query hooks in your code:
   - ***Special case:***  If the Query has all optional variables and you would like to provide an `options` argument to the Query hook function without providing any variables, you must pass `undefined` where you would normally pass the Query's variables, and then may provide the `options` argument.
 
 Below are examples of how to use the `accounting` connector's generated Query hook functions to execute each Query. You can also follow the examples from the [Data Connect documentation](https://firebase.google.com/docs/data-connect/web-sdk#operations-react-angular).
+
+## AdminListInvoices
+You can execute the `AdminListInvoices` Query using the following Query hook function, which is defined in [data-connect/react/index.d.ts](./index.d.ts):
+
+```javascript
+useAdminListInvoices(dc: DataConnect, options?: useDataConnectQueryOptions<AdminListInvoicesData>): UseDataConnectQueryResult<AdminListInvoicesData, undefined>;
+```
+You can also pass in a `DataConnect` instance to the Query hook function.
+```javascript
+useAdminListInvoices(options?: useDataConnectQueryOptions<AdminListInvoicesData>): UseDataConnectQueryResult<AdminListInvoicesData, undefined>;
+```
+
+### Variables
+The `AdminListInvoices` Query has no variables.
+### Return Type
+Recall that calling the `AdminListInvoices` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+
+To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
+
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `AdminListInvoices` Query is of type `AdminListInvoicesData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface AdminListInvoicesData {
+  invoices: ({
+    id: string;
+    invoiceNumber?: string | null;
+    reviewStatus: string;
+    storageFolder?: string | null;
+  } & Invoice_Key)[];
+}
+```
+
+To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
+
+### Using `AdminListInvoices`'s Query hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig } from '@factures-thibeault/data-connect-generated';
+import { useAdminListInvoices } from '@factures-thibeault/data-connect-generated/react'
+
+export default function AdminListInvoicesComponent() {
+  // You don't have to do anything to "execute" the Query.
+  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useAdminListInvoices();
+
+  // You can also pass in a `DataConnect` instance to the Query hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const query = useAdminListInvoices(dataConnect);
+
+  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
+  const options = { staleTime: 5 * 1000 };
+  const query = useAdminListInvoices(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = { staleTime: 5 * 1000 };
+  const query = useAdminListInvoices(dataConnect, options);
+
+  // Then, you can render your component dynamically based on the status of the Query.
+  if (query.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (query.isError) {
+    return <div>Error: {query.error.message}</div>;
+  }
+
+  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
+  if (query.isSuccess) {
+    console.log(query.data.invoices);
+  }
+  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
 
 ## ListUserProfiles
 You can execute the `ListUserProfiles` Query using the following Query hook function, which is defined in [data-connect/react/index.d.ts](./index.d.ts):
@@ -1470,6 +1556,1042 @@ export default function AdminSeedInvoicePhotoComponent() {
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
     console.log(mutation.data.invoicePhoto_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## AdminDeleteInvoicePhoto
+You can execute the `AdminDeleteInvoicePhoto` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useAdminDeleteInvoicePhoto(options?: useDataConnectMutationOptions<AdminDeleteInvoicePhotoData, FirebaseError, AdminDeleteInvoicePhotoVariables>): UseDataConnectMutationResult<AdminDeleteInvoicePhotoData, AdminDeleteInvoicePhotoVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useAdminDeleteInvoicePhoto(dc: DataConnect, options?: useDataConnectMutationOptions<AdminDeleteInvoicePhotoData, FirebaseError, AdminDeleteInvoicePhotoVariables>): UseDataConnectMutationResult<AdminDeleteInvoicePhotoData, AdminDeleteInvoicePhotoVariables>;
+```
+
+### Variables
+The `AdminDeleteInvoicePhoto` Mutation requires an argument of type `AdminDeleteInvoicePhotoVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface AdminDeleteInvoicePhotoVariables {
+  id: string;
+}
+```
+### Return Type
+Recall that calling the `AdminDeleteInvoicePhoto` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminDeleteInvoicePhoto` Mutation is of type `AdminDeleteInvoicePhotoData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface AdminDeleteInvoicePhotoData {
+  invoicePhoto_delete?: InvoicePhoto_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `AdminDeleteInvoicePhoto`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, AdminDeleteInvoicePhotoVariables } from '@factures-thibeault/data-connect-generated';
+import { useAdminDeleteInvoicePhoto } from '@factures-thibeault/data-connect-generated/react'
+
+export default function AdminDeleteInvoicePhotoComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useAdminDeleteInvoicePhoto();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useAdminDeleteInvoicePhoto(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminDeleteInvoicePhoto(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminDeleteInvoicePhoto(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useAdminDeleteInvoicePhoto` Mutation requires an argument of type `AdminDeleteInvoicePhotoVariables`:
+  const adminDeleteInvoicePhotoVars: AdminDeleteInvoicePhotoVariables = {
+    id: ...,
+  };
+  mutation.mutate(adminDeleteInvoicePhotoVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(adminDeleteInvoicePhotoVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.invoicePhoto_delete);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## AdminDeleteInvoice
+You can execute the `AdminDeleteInvoice` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useAdminDeleteInvoice(options?: useDataConnectMutationOptions<AdminDeleteInvoiceData, FirebaseError, AdminDeleteInvoiceVariables>): UseDataConnectMutationResult<AdminDeleteInvoiceData, AdminDeleteInvoiceVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useAdminDeleteInvoice(dc: DataConnect, options?: useDataConnectMutationOptions<AdminDeleteInvoiceData, FirebaseError, AdminDeleteInvoiceVariables>): UseDataConnectMutationResult<AdminDeleteInvoiceData, AdminDeleteInvoiceVariables>;
+```
+
+### Variables
+The `AdminDeleteInvoice` Mutation requires an argument of type `AdminDeleteInvoiceVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface AdminDeleteInvoiceVariables {
+  id: string;
+}
+```
+### Return Type
+Recall that calling the `AdminDeleteInvoice` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminDeleteInvoice` Mutation is of type `AdminDeleteInvoiceData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface AdminDeleteInvoiceData {
+  invoice_delete?: Invoice_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `AdminDeleteInvoice`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, AdminDeleteInvoiceVariables } from '@factures-thibeault/data-connect-generated';
+import { useAdminDeleteInvoice } from '@factures-thibeault/data-connect-generated/react'
+
+export default function AdminDeleteInvoiceComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useAdminDeleteInvoice();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useAdminDeleteInvoice(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminDeleteInvoice(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminDeleteInvoice(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useAdminDeleteInvoice` Mutation requires an argument of type `AdminDeleteInvoiceVariables`:
+  const adminDeleteInvoiceVars: AdminDeleteInvoiceVariables = {
+    id: ...,
+  };
+  mutation.mutate(adminDeleteInvoiceVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(adminDeleteInvoiceVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.invoice_delete);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## AdminDeleteExpenseTransaction
+You can execute the `AdminDeleteExpenseTransaction` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useAdminDeleteExpenseTransaction(options?: useDataConnectMutationOptions<AdminDeleteExpenseTransactionData, FirebaseError, AdminDeleteExpenseTransactionVariables>): UseDataConnectMutationResult<AdminDeleteExpenseTransactionData, AdminDeleteExpenseTransactionVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useAdminDeleteExpenseTransaction(dc: DataConnect, options?: useDataConnectMutationOptions<AdminDeleteExpenseTransactionData, FirebaseError, AdminDeleteExpenseTransactionVariables>): UseDataConnectMutationResult<AdminDeleteExpenseTransactionData, AdminDeleteExpenseTransactionVariables>;
+```
+
+### Variables
+The `AdminDeleteExpenseTransaction` Mutation requires an argument of type `AdminDeleteExpenseTransactionVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface AdminDeleteExpenseTransactionVariables {
+  id: string;
+}
+```
+### Return Type
+Recall that calling the `AdminDeleteExpenseTransaction` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminDeleteExpenseTransaction` Mutation is of type `AdminDeleteExpenseTransactionData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface AdminDeleteExpenseTransactionData {
+  expenseTransaction_delete?: ExpenseTransaction_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `AdminDeleteExpenseTransaction`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, AdminDeleteExpenseTransactionVariables } from '@factures-thibeault/data-connect-generated';
+import { useAdminDeleteExpenseTransaction } from '@factures-thibeault/data-connect-generated/react'
+
+export default function AdminDeleteExpenseTransactionComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useAdminDeleteExpenseTransaction();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useAdminDeleteExpenseTransaction(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminDeleteExpenseTransaction(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminDeleteExpenseTransaction(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useAdminDeleteExpenseTransaction` Mutation requires an argument of type `AdminDeleteExpenseTransactionVariables`:
+  const adminDeleteExpenseTransactionVars: AdminDeleteExpenseTransactionVariables = {
+    id: ...,
+  };
+  mutation.mutate(adminDeleteExpenseTransactionVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(adminDeleteExpenseTransactionVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.expenseTransaction_delete);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## AdminDeleteInvoiceIntake
+You can execute the `AdminDeleteInvoiceIntake` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useAdminDeleteInvoiceIntake(options?: useDataConnectMutationOptions<AdminDeleteInvoiceIntakeData, FirebaseError, AdminDeleteInvoiceIntakeVariables>): UseDataConnectMutationResult<AdminDeleteInvoiceIntakeData, AdminDeleteInvoiceIntakeVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useAdminDeleteInvoiceIntake(dc: DataConnect, options?: useDataConnectMutationOptions<AdminDeleteInvoiceIntakeData, FirebaseError, AdminDeleteInvoiceIntakeVariables>): UseDataConnectMutationResult<AdminDeleteInvoiceIntakeData, AdminDeleteInvoiceIntakeVariables>;
+```
+
+### Variables
+The `AdminDeleteInvoiceIntake` Mutation requires an argument of type `AdminDeleteInvoiceIntakeVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface AdminDeleteInvoiceIntakeVariables {
+  receiptId: string;
+}
+```
+### Return Type
+Recall that calling the `AdminDeleteInvoiceIntake` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminDeleteInvoiceIntake` Mutation is of type `AdminDeleteInvoiceIntakeData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface AdminDeleteInvoiceIntakeData {
+  invoiceIntake_delete?: InvoiceIntake_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `AdminDeleteInvoiceIntake`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, AdminDeleteInvoiceIntakeVariables } from '@factures-thibeault/data-connect-generated';
+import { useAdminDeleteInvoiceIntake } from '@factures-thibeault/data-connect-generated/react'
+
+export default function AdminDeleteInvoiceIntakeComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useAdminDeleteInvoiceIntake();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useAdminDeleteInvoiceIntake(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminDeleteInvoiceIntake(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminDeleteInvoiceIntake(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useAdminDeleteInvoiceIntake` Mutation requires an argument of type `AdminDeleteInvoiceIntakeVariables`:
+  const adminDeleteInvoiceIntakeVars: AdminDeleteInvoiceIntakeVariables = {
+    receiptId: ...,
+  };
+  mutation.mutate(adminDeleteInvoiceIntakeVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ receiptId: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(adminDeleteInvoiceIntakeVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.invoiceIntake_delete);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## AdminDeleteCreditCard
+You can execute the `AdminDeleteCreditCard` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useAdminDeleteCreditCard(options?: useDataConnectMutationOptions<AdminDeleteCreditCardData, FirebaseError, AdminDeleteCreditCardVariables>): UseDataConnectMutationResult<AdminDeleteCreditCardData, AdminDeleteCreditCardVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useAdminDeleteCreditCard(dc: DataConnect, options?: useDataConnectMutationOptions<AdminDeleteCreditCardData, FirebaseError, AdminDeleteCreditCardVariables>): UseDataConnectMutationResult<AdminDeleteCreditCardData, AdminDeleteCreditCardVariables>;
+```
+
+### Variables
+The `AdminDeleteCreditCard` Mutation requires an argument of type `AdminDeleteCreditCardVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface AdminDeleteCreditCardVariables {
+  id: string;
+}
+```
+### Return Type
+Recall that calling the `AdminDeleteCreditCard` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminDeleteCreditCard` Mutation is of type `AdminDeleteCreditCardData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface AdminDeleteCreditCardData {
+  creditCard_delete?: CreditCard_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `AdminDeleteCreditCard`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, AdminDeleteCreditCardVariables } from '@factures-thibeault/data-connect-generated';
+import { useAdminDeleteCreditCard } from '@factures-thibeault/data-connect-generated/react'
+
+export default function AdminDeleteCreditCardComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useAdminDeleteCreditCard();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useAdminDeleteCreditCard(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminDeleteCreditCard(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminDeleteCreditCard(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useAdminDeleteCreditCard` Mutation requires an argument of type `AdminDeleteCreditCardVariables`:
+  const adminDeleteCreditCardVars: AdminDeleteCreditCardVariables = {
+    id: ...,
+  };
+  mutation.mutate(adminDeleteCreditCardVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(adminDeleteCreditCardVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.creditCard_delete);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## AdminDeleteSkuReference
+You can execute the `AdminDeleteSkuReference` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useAdminDeleteSkuReference(options?: useDataConnectMutationOptions<AdminDeleteSkuReferenceData, FirebaseError, AdminDeleteSkuReferenceVariables>): UseDataConnectMutationResult<AdminDeleteSkuReferenceData, AdminDeleteSkuReferenceVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useAdminDeleteSkuReference(dc: DataConnect, options?: useDataConnectMutationOptions<AdminDeleteSkuReferenceData, FirebaseError, AdminDeleteSkuReferenceVariables>): UseDataConnectMutationResult<AdminDeleteSkuReferenceData, AdminDeleteSkuReferenceVariables>;
+```
+
+### Variables
+The `AdminDeleteSkuReference` Mutation requires an argument of type `AdminDeleteSkuReferenceVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface AdminDeleteSkuReferenceVariables {
+  merchant: string;
+  sku: string;
+}
+```
+### Return Type
+Recall that calling the `AdminDeleteSkuReference` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminDeleteSkuReference` Mutation is of type `AdminDeleteSkuReferenceData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface AdminDeleteSkuReferenceData {
+  skuReference_delete?: SkuReference_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `AdminDeleteSkuReference`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, AdminDeleteSkuReferenceVariables } from '@factures-thibeault/data-connect-generated';
+import { useAdminDeleteSkuReference } from '@factures-thibeault/data-connect-generated/react'
+
+export default function AdminDeleteSkuReferenceComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useAdminDeleteSkuReference();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useAdminDeleteSkuReference(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminDeleteSkuReference(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminDeleteSkuReference(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useAdminDeleteSkuReference` Mutation requires an argument of type `AdminDeleteSkuReferenceVariables`:
+  const adminDeleteSkuReferenceVars: AdminDeleteSkuReferenceVariables = {
+    merchant: ...,
+    sku: ...,
+  };
+  mutation.mutate(adminDeleteSkuReferenceVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ merchant: ..., sku: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(adminDeleteSkuReferenceVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.skuReference_delete);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## AdminDeleteProject
+You can execute the `AdminDeleteProject` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useAdminDeleteProject(options?: useDataConnectMutationOptions<AdminDeleteProjectData, FirebaseError, AdminDeleteProjectVariables>): UseDataConnectMutationResult<AdminDeleteProjectData, AdminDeleteProjectVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useAdminDeleteProject(dc: DataConnect, options?: useDataConnectMutationOptions<AdminDeleteProjectData, FirebaseError, AdminDeleteProjectVariables>): UseDataConnectMutationResult<AdminDeleteProjectData, AdminDeleteProjectVariables>;
+```
+
+### Variables
+The `AdminDeleteProject` Mutation requires an argument of type `AdminDeleteProjectVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface AdminDeleteProjectVariables {
+  id: string;
+}
+```
+### Return Type
+Recall that calling the `AdminDeleteProject` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminDeleteProject` Mutation is of type `AdminDeleteProjectData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface AdminDeleteProjectData {
+  project_delete?: Project_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `AdminDeleteProject`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, AdminDeleteProjectVariables } from '@factures-thibeault/data-connect-generated';
+import { useAdminDeleteProject } from '@factures-thibeault/data-connect-generated/react'
+
+export default function AdminDeleteProjectComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useAdminDeleteProject();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useAdminDeleteProject(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminDeleteProject(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminDeleteProject(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useAdminDeleteProject` Mutation requires an argument of type `AdminDeleteProjectVariables`:
+  const adminDeleteProjectVars: AdminDeleteProjectVariables = {
+    id: ...,
+  };
+  mutation.mutate(adminDeleteProjectVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(adminDeleteProjectVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.project_delete);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## AdminDeleteExpenseAccount
+You can execute the `AdminDeleteExpenseAccount` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useAdminDeleteExpenseAccount(options?: useDataConnectMutationOptions<AdminDeleteExpenseAccountData, FirebaseError, AdminDeleteExpenseAccountVariables>): UseDataConnectMutationResult<AdminDeleteExpenseAccountData, AdminDeleteExpenseAccountVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useAdminDeleteExpenseAccount(dc: DataConnect, options?: useDataConnectMutationOptions<AdminDeleteExpenseAccountData, FirebaseError, AdminDeleteExpenseAccountVariables>): UseDataConnectMutationResult<AdminDeleteExpenseAccountData, AdminDeleteExpenseAccountVariables>;
+```
+
+### Variables
+The `AdminDeleteExpenseAccount` Mutation requires an argument of type `AdminDeleteExpenseAccountVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface AdminDeleteExpenseAccountVariables {
+  code: string;
+}
+```
+### Return Type
+Recall that calling the `AdminDeleteExpenseAccount` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminDeleteExpenseAccount` Mutation is of type `AdminDeleteExpenseAccountData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface AdminDeleteExpenseAccountData {
+  expenseAccount_delete?: ExpenseAccount_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `AdminDeleteExpenseAccount`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, AdminDeleteExpenseAccountVariables } from '@factures-thibeault/data-connect-generated';
+import { useAdminDeleteExpenseAccount } from '@factures-thibeault/data-connect-generated/react'
+
+export default function AdminDeleteExpenseAccountComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useAdminDeleteExpenseAccount();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useAdminDeleteExpenseAccount(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminDeleteExpenseAccount(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminDeleteExpenseAccount(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useAdminDeleteExpenseAccount` Mutation requires an argument of type `AdminDeleteExpenseAccountVariables`:
+  const adminDeleteExpenseAccountVars: AdminDeleteExpenseAccountVariables = {
+    code: ...,
+  };
+  mutation.mutate(adminDeleteExpenseAccountVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ code: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(adminDeleteExpenseAccountVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.expenseAccount_delete);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## AdminDeleteTaxAccount
+You can execute the `AdminDeleteTaxAccount` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useAdminDeleteTaxAccount(options?: useDataConnectMutationOptions<AdminDeleteTaxAccountData, FirebaseError, AdminDeleteTaxAccountVariables>): UseDataConnectMutationResult<AdminDeleteTaxAccountData, AdminDeleteTaxAccountVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useAdminDeleteTaxAccount(dc: DataConnect, options?: useDataConnectMutationOptions<AdminDeleteTaxAccountData, FirebaseError, AdminDeleteTaxAccountVariables>): UseDataConnectMutationResult<AdminDeleteTaxAccountData, AdminDeleteTaxAccountVariables>;
+```
+
+### Variables
+The `AdminDeleteTaxAccount` Mutation requires an argument of type `AdminDeleteTaxAccountVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface AdminDeleteTaxAccountVariables {
+  code: string;
+}
+```
+### Return Type
+Recall that calling the `AdminDeleteTaxAccount` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminDeleteTaxAccount` Mutation is of type `AdminDeleteTaxAccountData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface AdminDeleteTaxAccountData {
+  taxAccount_delete?: TaxAccount_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `AdminDeleteTaxAccount`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, AdminDeleteTaxAccountVariables } from '@factures-thibeault/data-connect-generated';
+import { useAdminDeleteTaxAccount } from '@factures-thibeault/data-connect-generated/react'
+
+export default function AdminDeleteTaxAccountComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useAdminDeleteTaxAccount();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useAdminDeleteTaxAccount(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminDeleteTaxAccount(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminDeleteTaxAccount(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useAdminDeleteTaxAccount` Mutation requires an argument of type `AdminDeleteTaxAccountVariables`:
+  const adminDeleteTaxAccountVars: AdminDeleteTaxAccountVariables = {
+    code: ...,
+  };
+  mutation.mutate(adminDeleteTaxAccountVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ code: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(adminDeleteTaxAccountVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.taxAccount_delete);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## AdminDeleteCardStatementPeriod
+You can execute the `AdminDeleteCardStatementPeriod` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useAdminDeleteCardStatementPeriod(options?: useDataConnectMutationOptions<AdminDeleteCardStatementPeriodData, FirebaseError, AdminDeleteCardStatementPeriodVariables>): UseDataConnectMutationResult<AdminDeleteCardStatementPeriodData, AdminDeleteCardStatementPeriodVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useAdminDeleteCardStatementPeriod(dc: DataConnect, options?: useDataConnectMutationOptions<AdminDeleteCardStatementPeriodData, FirebaseError, AdminDeleteCardStatementPeriodVariables>): UseDataConnectMutationResult<AdminDeleteCardStatementPeriodData, AdminDeleteCardStatementPeriodVariables>;
+```
+
+### Variables
+The `AdminDeleteCardStatementPeriod` Mutation requires an argument of type `AdminDeleteCardStatementPeriodVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface AdminDeleteCardStatementPeriodVariables {
+  id: string;
+}
+```
+### Return Type
+Recall that calling the `AdminDeleteCardStatementPeriod` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminDeleteCardStatementPeriod` Mutation is of type `AdminDeleteCardStatementPeriodData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface AdminDeleteCardStatementPeriodData {
+  cardStatementPeriod_delete?: CardStatementPeriod_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `AdminDeleteCardStatementPeriod`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, AdminDeleteCardStatementPeriodVariables } from '@factures-thibeault/data-connect-generated';
+import { useAdminDeleteCardStatementPeriod } from '@factures-thibeault/data-connect-generated/react'
+
+export default function AdminDeleteCardStatementPeriodComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useAdminDeleteCardStatementPeriod();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useAdminDeleteCardStatementPeriod(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminDeleteCardStatementPeriod(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminDeleteCardStatementPeriod(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useAdminDeleteCardStatementPeriod` Mutation requires an argument of type `AdminDeleteCardStatementPeriodVariables`:
+  const adminDeleteCardStatementPeriodVars: AdminDeleteCardStatementPeriodVariables = {
+    id: ...,
+  };
+  mutation.mutate(adminDeleteCardStatementPeriodVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(adminDeleteCardStatementPeriodVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.cardStatementPeriod_delete);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## AdminDeleteUserProfile
+You can execute the `AdminDeleteUserProfile` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useAdminDeleteUserProfile(options?: useDataConnectMutationOptions<AdminDeleteUserProfileData, FirebaseError, AdminDeleteUserProfileVariables>): UseDataConnectMutationResult<AdminDeleteUserProfileData, AdminDeleteUserProfileVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useAdminDeleteUserProfile(dc: DataConnect, options?: useDataConnectMutationOptions<AdminDeleteUserProfileData, FirebaseError, AdminDeleteUserProfileVariables>): UseDataConnectMutationResult<AdminDeleteUserProfileData, AdminDeleteUserProfileVariables>;
+```
+
+### Variables
+The `AdminDeleteUserProfile` Mutation requires an argument of type `AdminDeleteUserProfileVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface AdminDeleteUserProfileVariables {
+  id: string;
+}
+```
+### Return Type
+Recall that calling the `AdminDeleteUserProfile` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminDeleteUserProfile` Mutation is of type `AdminDeleteUserProfileData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface AdminDeleteUserProfileData {
+  userProfile_delete?: UserProfile_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `AdminDeleteUserProfile`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, AdminDeleteUserProfileVariables } from '@factures-thibeault/data-connect-generated';
+import { useAdminDeleteUserProfile } from '@factures-thibeault/data-connect-generated/react'
+
+export default function AdminDeleteUserProfileComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useAdminDeleteUserProfile();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useAdminDeleteUserProfile(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminDeleteUserProfile(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminDeleteUserProfile(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useAdminDeleteUserProfile` Mutation requires an argument of type `AdminDeleteUserProfileVariables`:
+  const adminDeleteUserProfileVars: AdminDeleteUserProfileVariables = {
+    id: ...,
+  };
+  mutation.mutate(adminDeleteUserProfileVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(adminDeleteUserProfileVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.userProfile_delete);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
 }

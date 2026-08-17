@@ -13,11 +13,11 @@ service firebase.storage {
     }
 
     function isPrivileged() {
-      return role() in ['KIM', 'ADMIN', 'SUPER_ADMIN'];
+      return role() in ['KIM', 'ADMIN'];
     }
 
     function canSubmitInvoice() {
-      return role() in ['WORKER', 'KIM', 'ADMIN', 'SUPER_ADMIN'];
+      return role() in ['WORKER', 'KIM', 'ADMIN'];
     }
 
     // Invoice evidence is private. Uploaders can create original images, while

@@ -131,3 +131,58 @@ mutation AdminSeedInvoicePhoto(
     sequence: $sequence
   })
 }
+
+# DEMO-only cleanup operations. This file is NO_ACCESS by design; the cleanup
+# script checks exact fixture IDs before calling any of these mutations.
+mutation AdminDeleteInvoicePhoto($id: String!) @auth(level: NO_ACCESS) {
+  invoicePhoto_delete(key: { id: $id })
+}
+
+mutation AdminDeleteInvoice($id: String!) @auth(level: NO_ACCESS) {
+  invoice_delete(key: { id: $id })
+}
+
+mutation AdminDeleteExpenseTransaction($id: String!) @auth(level: NO_ACCESS) {
+  expenseTransaction_delete(key: { id: $id })
+}
+
+mutation AdminDeleteInvoiceIntake($receiptId: String!) @auth(level: NO_ACCESS) {
+  invoiceIntake_delete(key: { receiptId: $receiptId })
+}
+
+mutation AdminDeleteCreditCard($id: String!) @auth(level: NO_ACCESS) {
+  creditCard_delete(key: { id: $id })
+}
+
+mutation AdminDeleteSkuReference($merchant: String!, $sku: String!) @auth(level: NO_ACCESS) {
+  skuReference_delete(key: { merchant: $merchant, sku: $sku })
+}
+
+mutation AdminDeleteProject($id: String!) @auth(level: NO_ACCESS) {
+  project_delete(key: { id: $id })
+}
+
+mutation AdminDeleteExpenseAccount($code: String!) @auth(level: NO_ACCESS) {
+  expenseAccount_delete(key: { code: $code })
+}
+
+mutation AdminDeleteTaxAccount($code: String!) @auth(level: NO_ACCESS) {
+  taxAccount_delete(key: { code: $code })
+}
+
+mutation AdminDeleteCardStatementPeriod($id: String!) @auth(level: NO_ACCESS) {
+  cardStatementPeriod_delete(key: { id: $id })
+}
+
+mutation AdminDeleteUserProfile($id: String!) @auth(level: NO_ACCESS) {
+  userProfile_delete(key: { id: $id })
+}
+
+query AdminListInvoices @auth(level: NO_ACCESS) {
+  invoices(limit: 1000) {
+    id
+    invoiceNumber
+    reviewStatus
+    storageFolder
+  }
+}

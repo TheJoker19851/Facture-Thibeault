@@ -1,86 +1,61 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  assertSafeSeedTarget,
-  LOCAL_FIREBASE_PROJECT_ID,
-  PRODUCTION_FIREBASE_PROJECT_ID,
-  validateFirebaseEnvironment,
+  assertSafeDemoProductionTarget, assertSafeSeedTarget, inferApplicationEnvironment,
+  LOCAL_FIREBASE_PROJECT_ID, PRODUCTION_FIREBASE_PROJECT_ID, validateFirebaseEnvironment,
 } from "../lib/environment.mjs";
-import { localEmulatorEnvironment } from "../scripts/lib/env-files.mjs";
+import { configurationFrom, localEmulatorEnvironment } from "../scripts/lib/env-files.mjs";
 
-test("accepts only the demo project for the local emulator", () => {
-  const safe = validateFirebaseEnvironment({
-    appEnvironment: "local",
-    projectId: LOCAL_FIREBASE_PROJECT_ID,
-    adminProjectId: LOCAL_FIREBASE_PROJECT_ID,
-    useEmulators: "true",
-    requireExplicit: true,
-  });
+test("accepts only the demo project for LOCAL emulators", () => {
+  const safe = validateFirebaseEnvironment({ appEnvironment: "local", publicAppEnvironment: "local", projectId: LOCAL_FIREBASE_PROJECT_ID, adminProjectId: LOCAL_FIREBASE_PROJECT_ID, useEmulators: "true", authEmulatorHost: "127.0.0.1:9099", dataConnectEmulatorHost: "127.0.0.1:9399", storageEmulatorHost: "127.0.0.1:9199", requireExplicit: true });
   assert.equal(safe.ok, true);
-
-  const unsafe = validateFirebaseEnvironment({
-    appEnvironment: "local",
-    projectId: PRODUCTION_FIREBASE_PROJECT_ID,
-    adminProjectId: PRODUCTION_FIREBASE_PROJECT_ID,
-    useEmulators: "true",
-    requireExplicit: true,
-  });
+  const unsafe = validateFirebaseEnvironment({ appEnvironment: "local", projectId: PRODUCTION_FIREBASE_PROJECT_ID, useEmulators: "true", requireExplicit: true });
   assert.equal(unsafe.ok, false);
-
-  const forcedLocal = localEmulatorEnvironment({
-    NEXT_PUBLIC_FIREBASE_PROJECT_ID: PRODUCTION_FIREBASE_PROJECT_ID,
-    FIREBASE_ADMIN_PROJECT_ID: PRODUCTION_FIREBASE_PROJECT_ID,
-    NEXT_PUBLIC_FIREBASE_USE_EMULATORS: "false",
-  });
+  const forcedLocal = localEmulatorEnvironment({ NEXT_PUBLIC_FIREBASE_PROJECT_ID: PRODUCTION_FIREBASE_PROJECT_ID, FIREBASE_ADMIN_PROJECT_ID: PRODUCTION_FIREBASE_PROJECT_ID, NEXT_PUBLIC_FIREBASE_USE_EMULATORS: "false" });
   assert.equal(forcedLocal.NEXT_PUBLIC_FIREBASE_PROJECT_ID, LOCAL_FIREBASE_PROJECT_ID);
-  assert.equal(forcedLocal.FIREBASE_ADMIN_PROJECT_ID, LOCAL_FIREBASE_PROJECT_ID);
-  assert.equal(forcedLocal.NEXT_PUBLIC_FIREBASE_USE_EMULATORS, "true");
 });
 
-test("refuses every production seed, even with a confirmation string", () => {
-  assert.throws(() => assertSafeSeedTarget({
-    target: "production",
-    projectId: PRODUCTION_FIREBASE_PROJECT_ID,
-    useEmulators: "false",
-    confirmation: "anything",
-  }), /aucun seed ou reset/i);
+test("generic seed is LOCAL-only", () => {
+  assert.doesNotThrow(() => assertSafeSeedTarget({ target: "local", projectId: LOCAL_FIREBASE_PROJECT_ID, useEmulators: "true" }));
+  assert.throws(() => assertSafeSeedTarget({ target: "production", projectId: PRODUCTION_FIREBASE_PROJECT_ID, useEmulators: "false" }), /interdite|inconnue/i);
+  assert.throws(() => assertSafeSeedTarget({ target: "unknown", projectId: "unexpected-project", useEmulators: "false" }), /interdite|inconnue/i);
 });
 
-test("requires a distinct staging project and an exact seed confirmation", () => {
-  assert.throws(() => assertSafeSeedTarget({
-    target: "staging",
-    projectId: PRODUCTION_FIREBASE_PROJECT_ID,
-    useEmulators: "false",
-    confirmation: "SEED_FACTURE_THIBEAULT_STAGING_DEMO_ONLY",
-  }), /production/i);
-  assert.throws(() => assertSafeSeedTarget({
-    target: "staging",
-    projectId: LOCAL_FIREBASE_PROJECT_ID,
-    useEmulators: "false",
-    confirmation: "SEED_FACTURE_THIBEAULT_STAGING_DEMO_ONLY",
-  }), /demo-/i);
-  assert.throws(() => assertSafeSeedTarget({
-    target: "staging",
-    projectId: "facture-thibeault-staging",
-    useEmulators: "false",
-    confirmation: "",
-  }), /CONFIRM_STAGING_SEED/);
-  assert.doesNotThrow(() => assertSafeSeedTarget({
-    target: "staging",
-    projectId: "facture-thibeault-staging",
-    useEmulators: "false",
-    confirmation: "SEED_FACTURE_THIBEAULT_STAGING_DEMO_ONLY",
-  }));
+test("production refuses emulators, hosts and Preview mode", () => {
+  const unsafeFlag = validateFirebaseEnvironment({ appEnvironment: "production", publicAppEnvironment: "production", projectId: PRODUCTION_FIREBASE_PROJECT_ID, adminProjectId: PRODUCTION_FIREBASE_PROJECT_ID, useEmulators: "true", requireExplicit: true });
+  assert.equal(unsafeFlag.ok, false);
+  const unsafeHost = validateFirebaseEnvironment({ appEnvironment: "production", publicAppEnvironment: "production", projectId: PRODUCTION_FIREBASE_PROJECT_ID, adminProjectId: PRODUCTION_FIREBASE_PROJECT_ID, useEmulators: "false", authEmulatorHost: "127.0.0.1:9099", requireExplicit: true });
+  assert.equal(unsafeHost.ok, false);
+  const unsafePreview = validateFirebaseEnvironment({ appEnvironment: "production", publicAppEnvironment: "production", projectId: PRODUCTION_FIREBASE_PROJECT_ID, adminProjectId: PRODUCTION_FIREBASE_PROJECT_ID, useEmulators: "false", previewMode: "true", requireExplicit: true });
+  assert.equal(unsafePreview.ok, false);
 });
 
-test("production refuses emulator variables", () => {
-  const unsafe = validateFirebaseEnvironment({
-    appEnvironment: "production",
-    projectId: PRODUCTION_FIREBASE_PROJECT_ID,
-    adminProjectId: PRODUCTION_FIREBASE_PROJECT_ID,
-    useEmulators: "true",
-    requireExplicit: true,
-  });
-  assert.equal(unsafe.ok, false);
-  assert.match(unsafe.issues.join(" "), /production.*émulateurs/i);
+test("server and browser environments must match and unknown projects are rejected", () => {
+  const mismatch = validateFirebaseEnvironment({ appEnvironment: "local", publicAppEnvironment: "production", projectId: PRODUCTION_FIREBASE_PROJECT_ID, useEmulators: "false", requireExplicit: true });
+  assert.equal(mismatch.ok, false);
+  assert.equal(inferApplicationEnvironment({ projectId: "unexpected-project", useEmulators: "false" }), null);
+});
+
+test("dedicated DEMO production guard requires exact project and confirmation", () => {
+  const args = { projectId: PRODUCTION_FIREBASE_PROJECT_ID, adminProjectId: PRODUCTION_FIREBASE_PROJECT_ID, appEnvironment: "production", publicAppEnvironment: "production", useEmulators: "false", confirmation: PRODUCTION_FIREBASE_PROJECT_ID };
+  assert.doesNotThrow(() => assertSafeDemoProductionTarget(args));
+  assert.throws(() => assertSafeDemoProductionTarget({ ...args, projectId: "other-project" }), /refusée|exige/i);
+  assert.throws(() => assertSafeDemoProductionTarget({ ...args, confirmation: "wrong" }), /confirmation/i);
+  assert.throws(() => assertSafeDemoProductionTarget({ ...args, adminProjectId: undefined }), /Admin exact/i);
+});
+
+test("production configuration requires live credentials", () => {
+  const complete = {
+    APP_ENV: "production", NEXT_PUBLIC_APP_ENV: "production", NEXT_PUBLIC_FIREBASE_API_KEY: "demo-api-key",
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "facture-thibeault.firebaseapp.com", NEXT_PUBLIC_FIREBASE_PROJECT_ID: "facture-thibeault",
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: "facture-thibeault.firebasestorage.app", NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "000000000001",
+    NEXT_PUBLIC_FIREBASE_APP_ID: "1:000000000001:web:demo", NEXT_PUBLIC_FIREBASE_USE_EMULATORS: "false",
+    NEXT_PUBLIC_SQL_CONNECT_SERVICE_ID: "facture-thibeault-service", NEXT_PUBLIC_SQL_CONNECT_LOCATION: "northamerica-northeast1", NEXT_PUBLIC_SQL_CONNECT_CONNECTOR_ID: "accounting",
+    FIREBASE_ADMIN_PROJECT_ID: "facture-thibeault", FIREBASE_ADMIN_CLIENT_EMAIL: "runtime@facture-thibeault.iam.gserviceaccount.com", FIREBASE_ADMIN_PRIVATE_KEY: "DEMO-PRIVATE-KEY-NOT-A-SECRET",
+    GOOGLE_GENERATIVE_AI_API_KEY: "demo-gemini-key-not-a-secret", GEMINI_MODEL: "gemini-2.5-flash", INVOICE_AI_MODE: "live",
+  };
+  assert.equal(configurationFrom(complete, { requireExplicit: true }).ok, true);
+  const incomplete = configurationFrom({ ...complete, GOOGLE_GENERATIVE_AI_API_KEY: "" }, { requireExplicit: true });
+  assert.equal(incomplete.ok, false);
+  assert.match(incomplete.issues.join(" "), /GOOGLE_GENERATIVE_AI_API_KEY/);
 });

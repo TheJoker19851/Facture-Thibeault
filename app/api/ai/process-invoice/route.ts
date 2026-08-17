@@ -11,7 +11,7 @@ export const maxDuration = 120;
 const MAX_PHOTOS = 5;
 const MAX_PHOTO_BYTES = 12 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 40 * 1024 * 1024;
-const ALLOWED_ROLES = new Set(["WORKER", "KIM", "ADMIN", "SUPER_ADMIN"]);
+const ALLOWED_ROLES = new Set(["WORKER", "KIM", "ADMIN"]);
 const ALLOWED_MEDIA_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 const invoiceExtractionSchema = z.object({
@@ -32,7 +32,7 @@ const invoiceExtractionSchema = z.object({
 
 type AuthenticatedIdentity = {
   uid: string;
-  role: "WORKER" | "KIM" | "ADMIN" | "SUPER_ADMIN";
+  role: "WORKER" | "KIM" | "ADMIN";
 };
 
 type IntakeData = {
@@ -78,7 +78,7 @@ async function authenticate(request: Request): Promise<AuthenticatedIdentity | n
   }
 }
 
-const instructions = `You are the staging/production invoice intake agent for Maçonnerie Thibeault.
+const instructions = `You are the production invoice intake agent for Maçonnerie Thibeault.
 Read all supplied photos as pages of one invoice. Extract only information visible in the document.
 Never invent a value: use null for a missing invoice number, date, SKU, project or category.
 Return monetary values as integer Canadian cents. Use ISO date YYYY-MM-DD when the date is readable.

@@ -14,7 +14,7 @@ import { firebaseAuth, firebaseConfigured } from "../../firebase/client";
 
 export { firebaseConfigured };
 
-export type AppRole = "WORKER" | "KIM" | "ADMIN" | "SUPER_ADMIN";
+export type AppRole = "WORKER" | "KIM" | "ADMIN";
 
 export type FirebaseIdentity = {
   user: User | null;
@@ -78,7 +78,7 @@ export function FirebaseShell({ children }: { children: ReactNode }) {
 }
 
 function readRoleClaim(value: unknown): AppRole | null {
-  return value === "WORKER" || value === "KIM" || value === "ADMIN" || value === "SUPER_ADMIN"
+  return value === "WORKER" || value === "KIM" || value === "ADMIN"
     ? value
     : null;
 }

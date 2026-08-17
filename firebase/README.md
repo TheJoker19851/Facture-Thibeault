@@ -18,8 +18,7 @@ runtime source of truth and is never deployed automatically.
 
 ## Émulateur local
 
-Le seed reproductible crée quatre comptes fictifs (`WORKER`, `KIM`, `ADMIN` et
-`SUPER_ADMIN`) ainsi que leurs cartes, projets, fournisseurs et factures de
+Le seed reproductible crée trois comptes fictifs (`WORKER`, `KIM` et `ADMIN`) ainsi que leurs cartes, projets, fournisseurs et factures de
 démonstration. Il passe par Firebase Admin et par des opérations Data Connect
 `NO_ACCESS`, donc aucune opération de seed n'est exposée au client.
 
@@ -28,7 +27,6 @@ npm run seed:local
 npm run test:emulator
 ```
 
-`npm run seed:staging` exige l'identifiant exact du projet staging et
-`CONFIRM_STAGING_SEED=SEED_FACTURE_THIBEAULT_STAGING`. Le code rejette toujours
-le projet de production `facture-thibeault`, même si une variable de
-confirmation est fournie.
+`npm run seed:demo:production` exige le projet exact `facture-thibeault` et
+`CONFIRM_DEMO_PRODUCTION=facture-thibeault`; il ne crée que des données
+`DEMO-*`. Le seed générique local rejette toujours la production.

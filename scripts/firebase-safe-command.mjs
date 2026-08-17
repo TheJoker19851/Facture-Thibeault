@@ -5,48 +5,37 @@ import { readEnvFile } from "./lib/env-files.mjs";
 
 const target = process.argv[2];
 const action = process.argv[3];
-if (!['staging', 'production'].includes(target) || !['plan', 'deploy'].includes(action)) {
-  throw new Error("Usage : node scripts/firebase-safe-command.mjs <staging|production> <plan|deploy>.");
-}
-
-const envFile = target === "staging" ? ".env.staging.local" : ".env.local";
-const { values } = await readEnvFile(envFile);
+if (target !== "production" || !["plan", "deploy"].includes(action)) throw new Error("Usage : node scripts/firebase-safe-command.mjs production <plan|deploy>.");
+const { values } = await readEnvFile(".env.local");
 const projectId = values.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-if (!/^[a-z][a-z0-9-]{5,29}$/.test(projectId ?? "")) throw new Error("Identifiant de projet Firebase invalide.");
-
+if (projectId !== PRODUCTION_FIREBASE_PROJECT_ID) throw new Error(`Projet inattendu : la commande exige ${PRODUCTION_FIREBASE_PROJECT_ID}.`);
+if (values.FIREBASE_ADMIN_PROJECT_ID !== PRODUCTION_FIREBASE_PROJECT_ID) throw new Error(`Projet Admin inattendu : la commande exige ${PRODUCTION_FIREBASE_PROJECT_ID}.`);
 const validation = validateFirebaseEnvironment({
-  appEnvironment: target,
-  projectId,
-  adminProjectId: values.FIREBASE_ADMIN_PROJECT_ID,
+  appEnvironment: values.APP_ENV, publicAppEnvironment: values.NEXT_PUBLIC_APP_ENV,
+  projectId, adminProjectId: values.FIREBASE_ADMIN_PROJECT_ID,
   useEmulators: values.NEXT_PUBLIC_FIREBASE_USE_EMULATORS,
-  requireExplicit: true,
+  authEmulatorHost: values.FIREBASE_AUTH_EMULATOR_HOST,
+  dataConnectEmulatorHost: values.DATA_CONNECT_EMULATOR_HOST,
+  storageEmulatorHost: values.FIREBASE_STORAGE_EMULATOR_HOST,
+  previewMode: values.NEXT_PUBLIC_FIREBASE_PREVIEW_MODE, requireExplicit: true,
 });
 if (!validation.ok) throw new Error(validation.issues.join(" "));
-
-if (target === "staging" && action === "deploy" && values.CONFIRM_STAGING_DEPLOY !== "DEPLOY_FACTURE_THIBEAULT_STAGING") {
-  throw new Error("CONFIRM_STAGING_DEPLOY doit valoir DEPLOY_FACTURE_THIBEAULT_STAGING.");
-}
-if (target === "production" && action === "deploy") {
-  if (projectId !== PRODUCTION_FIREBASE_PROJECT_ID) throw new Error("Projet de production inattendu.");
-  if (values.CONFIRM_PRODUCTION_DEPLOY !== "DEPLOY_FACTURE_THIBEAULT_PRODUCTION" ||
-      values.CONFIRM_PRODUCTION_SCHEMA_MIGRATION !== "REVIEWED_PRODUCTION_SQL_DIFF") {
-    throw new Error("Le déploiement production exige les deux confirmations explicites documentées.");
-  }
+if (action === "deploy" && (values.CONFIRM_PRODUCTION_DEPLOY !== "DEPLOY_FACTURE_THIBEAULT_PRODUCTION" || values.CONFIRM_PRODUCTION_SCHEMA_MIGRATION !== "REVIEWED_PRODUCTION_SQL_DIFF")) {
+  throw new Error("Le déploiement production exige les deux confirmations explicites documentées.");
 }
 
+console.log("TARGET PROJECT: facture-thibeault");
+console.log("ENVIRONMENT: PRODUCTION");
+console.log(`DATA MODE: ${action === "plan" ? "SCHEMA PLAN ONLY" : "SCHEMA DEPLOY ONLY"}`);
 const firebaseCli = resolve("node_modules/firebase-tools/lib/bin/firebase.js");
 async function run(args) {
-  await new Promise((resolve, reject) => {
+  await new Promise((resolvePromise, reject) => {
     const child = spawn(process.execPath, [firebaseCli, ...args], { stdio: "inherit", shell: false });
     child.on("error", reject);
-    child.on("exit", (code) => code === 0 ? resolve() : reject(new Error(`firebase ${args.join(" ")} a échoué (${code}).`)));
+    child.on("exit", (code) => code === 0 ? resolvePromise() : reject(new Error(`firebase ${args.join(" ")} a échoué (${code}).`)));
   });
 }
-
 await run(["dataconnect:compile", "--project", projectId]);
 await run(["dataconnect:sql:diff", "--project", projectId]);
-if (action === "plan") {
-  console.log(`Plan ${target} terminé en lecture seule pour ${projectId}.`);
-} else {
-  await run(["deploy", "--project", projectId, "--only", "storage,dataconnect"]);
-}
+if (action === "deploy") await run(["deploy", "--project", projectId, "--only", "storage,dataconnect"]);
+else console.log("Plan production terminé en lecture seule; aucune migration appliquée.");

@@ -22,8 +22,7 @@ contraire.
 - SQL Connect Web : cache côté client désactivé par défaut pour les données
   sensibles; toute politique hors ligne doit être validée séparément.
 - Security Rules et directives SQL Connect `@auth` : refus par défaut; accès
-  conditionné par Firebase Authentication et les futurs rôles `WORKER`, `KIM`,
-  `ADMIN`, `SUPER_ADMIN`.
+  conditionné par Firebase Authentication et les rôles `WORKER`, `KIM`, `ADMIN`.
 - App Check : à activer après enregistrement de l’application et validation
   des flux locaux et de production.
 

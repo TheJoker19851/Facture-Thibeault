@@ -22,7 +22,7 @@ async function isAuthorizedAdmin(request: Request) {
 
   try {
     const decoded = await (await getFirebaseAdminAuth()).verifyIdToken(token);
-    return decoded.role === "ADMIN" || decoded.role === "SUPER_ADMIN";
+    return decoded.role === "ADMIN";
   } catch {
     return false;
   }
