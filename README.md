@@ -12,9 +12,14 @@ SQL Connect/PostgreSQL and private Storage.
 
 ```bash
 npm install
-npm run dev
+npm run dev:emulator
+npm run test:emulator
 npm run build
 ```
+
+`dev:emulator` force l'identifiant isolé `demo-facture-thibeault`, démarre
+Auth, Storage et Data Connect, charge des données fictives puis lance l'app.
+Il n'utilise jamais les identifiants présents dans `.env.local`.
 
 Production access is role-based: Kim and administrators can use the accounting
 workspace, while assigned workers can only submit invoice photos.
@@ -24,10 +29,10 @@ workspace, while assigned workers can only submit invoice photos.
 - edit site code under `app/`
 - `dataconnect/dataconnect.yaml` records the supplied SQL Connect/PostgreSQL
   service, database, instance and Montréal region
-- `firebase/seed-data.ts` contains controlled reference-data input from the
-  legacy demo data and Kim's official accounting-table image; it is not seeded
-- `firebase/seed-emulator.sql` contains the local-only SQL fixture used by the
-  Firebase Data Connect emulator; it never targets production
+- `scripts/fixtures/demo-data.mjs` contains fictitious, idempotent demo data
+  shared by the local and staging seed commands
+- `scripts/seed-demo.mjs` seeds Auth and Data Connect through Firebase Admin;
+  it rejects production unconditionally
 - `firebase/data-connect.ts` prepares the public client connector metadata
 - `firebase.json` and `storage.rules` keep the Firebase boundary closed by
   default and prepare the Montréal region
@@ -106,19 +111,21 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 
 ## Useful Commands
 
-- `npm run dev`: start local development
+- `npm run dev:emulator`: start isolated emulators, seed demo data and run the app
+- `npm run dev:staging`: run against `.env.staging.local` after validation
+- `npm run env:check`: validate `.env.local` without printing secrets
+- `npm run env:check:staging`: validate `.env.staging.local`
+- `npm run seed:local`: reset/load the fictitious local demo fixture
+- `npm run seed:staging`: load the staging fixture after the exact confirmation
+- `npm run test:emulator`: verify Auth, Storage and Data Connect permissions
 - `npm run build`: verify the vinext build output
 - `npm test`: build the application and verify the rendered PWA shell
-- `pnpm exec tsc --noEmit`: run the TypeScript check (the legacy Cloudflare
-  starter files still require their optional worker type package)
-- `npx firebase-tools emulators:start --only auth,storage,dataconnect`: run
-  the local Firebase Auth, Storage and SQL Connect emulators
-- When Java 8 is first on `PATH`, set `JAVA_HOME` to a Java 11+ JDK and put its
-  `bin` directory first on `PATH` before starting Firebase CLI
-- With the emulators running, load the local fixture into the PostgreSQL
-  emulator with `psql -h 127.0.0.1 -p 5433 -U postgres -d facture-thibeault-database -f firebase/seed-emulator.sql`
+- `pnpm exec tsc --noEmit`: run the TypeScript check
+- `npm run firebase:plan:staging`: compile and inspect the staging SQL diff
+- `npm run firebase:deploy:staging`: deploy only with the documented guard
 - See `docs/Firebase-connection.md` for environment separation, connector
-  generation and deployment gates
+  generation, Vercel scopes and deployment gates
+- See `docs/Validation-e2e.md` for the complete role/permission validation plan
 
 ## Learn More
 

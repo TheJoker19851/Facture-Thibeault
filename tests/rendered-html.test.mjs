@@ -3,7 +3,7 @@ import { readFile, readdir } from "node:fs/promises";
 import test from "node:test";
 
 async function render(pathname = "/") {
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
+  const workerUrl = new URL("../.vercel/output/functions/__server.func/index.mjs", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
 
@@ -12,13 +12,7 @@ async function render(pathname = "/") {
       headers: { accept: "text/html" },
     }),
     {
-      ASSETS: {
-        fetch: async () => new Response("Not found", { status: 404 }),
-      },
-    },
-    {
       waitUntil() {},
-      passThroughOnException() {},
     },
   );
 }
@@ -33,7 +27,7 @@ test("server-renders the Thibeault administration shell", async () => {
 
   if (/Vérification des permissions/.test(html)) {
     assert.match(html, /Le rôle Firebase du compte est vérifié/);
-    assert.doesNotMatch(html, /Keven Tremblay|Données de démonstration/);
+    assert.doesNotMatch(html, /Alice Démo|Données de démonstration/);
     assert.match(html, /manifest\.webmanifest/);
     return;
   }
@@ -52,7 +46,7 @@ test("server-renders the Thibeault administration shell", async () => {
   assert.match(html, /2 · Transactions par personne/);
   assert.match(html, /3 · Factures à corriger/);
   assert.match(html, /4 · Tableau comptable/);
-  assert.match(html, /Keven Tremblay/);
+  assert.match(html, /Alice Démo/);
   assert.match(html, /Période des cartes/);
   assert.match(html, /manifest\.webmanifest/);
   assert.doesNotMatch(html, /Your site is taking shape|react-loading-skeleton|codex-preview/);
@@ -87,4 +81,23 @@ test("does not retain the starter preview skeleton", async () => {
   assert.deepEqual(previewFiles, []);
   const packageJson = await readFile(new URL("../package.json", import.meta.url), "utf8");
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
+});
+
+test("rejects unauthenticated direct access to privileged API routes", async () => {
+  const workerUrl = new URL("../.vercel/output/functions/__server.func/index.mjs", import.meta.url);
+  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}-api`);
+  const { default: worker } = await import(workerUrl.href);
+  const context = { waitUntil() {} };
+
+  const adminResponse = await worker.fetch(new Request("http://localhost/api/admin/users", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: "{}",
+  }), context);
+  assert.equal(adminResponse.status, 403);
+
+  const aiResponse = await worker.fetch(new Request("http://localhost/api/ai/process-invoice", {
+    method: "POST",
+  }), context);
+  assert.equal(aiResponse.status, 401);
 });

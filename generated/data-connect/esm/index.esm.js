@@ -1,10 +1,69 @@
-import { queryRef, executeQuery, mutationRef, executeMutation, validateArgs } from 'firebase/data-connect';
+import { queryRef, executeQuery, validateArgsWithOptions, mutationRef, executeMutation, validateArgs } from 'firebase/data-connect';
 
 export const connectorConfig = {
   connector: 'accounting',
   service: 'facture-thibeault-service',
   location: 'northamerica-northeast1'
 };
+export const adminSeedCreditCardRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminSeedCreditCard', inputVars);
+}
+adminSeedCreditCardRef.operationName = 'AdminSeedCreditCard';
+
+export function adminSeedCreditCard(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminSeedCreditCardRef(dcInstance, inputVars));
+}
+
+export const adminSeedSkuReferenceRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminSeedSkuReference', inputVars);
+}
+adminSeedSkuReferenceRef.operationName = 'AdminSeedSkuReference';
+
+export function adminSeedSkuReference(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminSeedSkuReferenceRef(dcInstance, inputVars));
+}
+
+export const adminSeedExpenseTransactionRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminSeedExpenseTransaction', inputVars);
+}
+adminSeedExpenseTransactionRef.operationName = 'AdminSeedExpenseTransaction';
+
+export function adminSeedExpenseTransaction(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminSeedExpenseTransactionRef(dcInstance, inputVars));
+}
+
+export const adminSeedInvoiceRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminSeedInvoice', inputVars);
+}
+adminSeedInvoiceRef.operationName = 'AdminSeedInvoice';
+
+export function adminSeedInvoice(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminSeedInvoiceRef(dcInstance, inputVars));
+}
+
+export const adminSeedInvoicePhotoRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminSeedInvoicePhoto', inputVars);
+}
+adminSeedInvoicePhotoRef.operationName = 'AdminSeedInvoicePhoto';
+
+export function adminSeedInvoicePhoto(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminSeedInvoicePhotoRef(dcInstance, inputVars));
+}
 
 export const upsertUserProfileRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
@@ -14,7 +73,8 @@ export const upsertUserProfileRef = (dcOrVars, vars) => {
 upsertUserProfileRef.operationName = 'UpsertUserProfile';
 
 export function upsertUserProfile(dcOrVars, vars) {
-  return executeMutation(upsertUserProfileRef(dcOrVars, vars));
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertUserProfileRef(dcInstance, inputVars));
 }
 
 export const upsertCreditCardRef = (dcOrVars, vars) => {
@@ -25,7 +85,8 @@ export const upsertCreditCardRef = (dcOrVars, vars) => {
 upsertCreditCardRef.operationName = 'UpsertCreditCard';
 
 export function upsertCreditCard(dcOrVars, vars) {
-  return executeMutation(upsertCreditCardRef(dcOrVars, vars));
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertCreditCardRef(dcInstance, inputVars));
 }
 
 export const createInvoiceIntakeRef = (dcOrVars, vars) => {
@@ -36,7 +97,8 @@ export const createInvoiceIntakeRef = (dcOrVars, vars) => {
 createInvoiceIntakeRef.operationName = 'CreateInvoiceIntake';
 
 export function createInvoiceIntake(dcOrVars, vars) {
-  return executeMutation(createInvoiceIntakeRef(dcOrVars, vars));
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(createInvoiceIntakeRef(dcInstance, inputVars));
 }
 
 export const updateInvoiceIntakeAiResultRef = (dcOrVars, vars) => {
@@ -47,7 +109,8 @@ export const updateInvoiceIntakeAiResultRef = (dcOrVars, vars) => {
 updateInvoiceIntakeAiResultRef.operationName = 'UpdateInvoiceIntakeAiResult';
 
 export function updateInvoiceIntakeAiResult(dcOrVars, vars) {
-  return executeMutation(updateInvoiceIntakeAiResultRef(dcOrVars, vars));
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(updateInvoiceIntakeAiResultRef(dcInstance, inputVars));
 }
 
 export const markInvoiceIntakeAiErrorRef = (dcOrVars, vars) => {
@@ -58,7 +121,8 @@ export const markInvoiceIntakeAiErrorRef = (dcOrVars, vars) => {
 markInvoiceIntakeAiErrorRef.operationName = 'MarkInvoiceIntakeAiError';
 
 export function markInvoiceIntakeAiError(dcOrVars, vars) {
-  return executeMutation(markInvoiceIntakeAiErrorRef(dcOrVars, vars));
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(markInvoiceIntakeAiErrorRef(dcInstance, inputVars));
 }
 
 export const updateInvoiceIntakeReviewRef = (dcOrVars, vars) => {
@@ -69,7 +133,8 @@ export const updateInvoiceIntakeReviewRef = (dcOrVars, vars) => {
 updateInvoiceIntakeReviewRef.operationName = 'UpdateInvoiceIntakeReview';
 
 export function updateInvoiceIntakeReview(dcOrVars, vars) {
-  return executeMutation(updateInvoiceIntakeReviewRef(dcOrVars, vars));
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(updateInvoiceIntakeReviewRef(dcInstance, inputVars));
 }
 
 export const commitInvoiceIntakeRef = (dcOrVars, vars) => {
@@ -80,7 +145,8 @@ export const commitInvoiceIntakeRef = (dcOrVars, vars) => {
 commitInvoiceIntakeRef.operationName = 'CommitInvoiceIntake';
 
 export function commitInvoiceIntake(dcOrVars, vars) {
-  return executeMutation(commitInvoiceIntakeRef(dcOrVars, vars));
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(commitInvoiceIntakeRef(dcInstance, inputVars));
 }
 
 export const commitInvoiceIntakeWithoutProjectRef = (dcOrVars, vars) => {
@@ -91,7 +157,8 @@ export const commitInvoiceIntakeWithoutProjectRef = (dcOrVars, vars) => {
 commitInvoiceIntakeWithoutProjectRef.operationName = 'CommitInvoiceIntakeWithoutProject';
 
 export function commitInvoiceIntakeWithoutProject(dcOrVars, vars) {
-  return executeMutation(commitInvoiceIntakeWithoutProjectRef(dcOrVars, vars));
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(commitInvoiceIntakeWithoutProjectRef(dcInstance, inputVars));
 }
 
 export const listUserProfilesRef = (dc) => {
@@ -101,8 +168,10 @@ export const listUserProfilesRef = (dc) => {
 }
 listUserProfilesRef.operationName = 'ListUserProfiles';
 
-export function listUserProfiles(dc) {
-  return executeQuery(listUserProfilesRef(dc));
+export function listUserProfiles(dcOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(listUserProfilesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 
 export const listCreditCardsRef = (dc) => {
@@ -112,8 +181,10 @@ export const listCreditCardsRef = (dc) => {
 }
 listCreditCardsRef.operationName = 'ListCreditCards';
 
-export function listCreditCards(dc) {
-  return executeQuery(listCreditCardsRef(dc));
+export function listCreditCards(dcOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(listCreditCardsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 
 export const listCardStatementPeriodsRef = (dc) => {
@@ -123,8 +194,10 @@ export const listCardStatementPeriodsRef = (dc) => {
 }
 listCardStatementPeriodsRef.operationName = 'ListCardStatementPeriods';
 
-export function listCardStatementPeriods(dc) {
-  return executeQuery(listCardStatementPeriodsRef(dc));
+export function listCardStatementPeriods(dcOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(listCardStatementPeriodsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 
 export const listExpenseAccountsRef = (dc) => {
@@ -134,8 +207,10 @@ export const listExpenseAccountsRef = (dc) => {
 }
 listExpenseAccountsRef.operationName = 'ListExpenseAccounts';
 
-export function listExpenseAccounts(dc) {
-  return executeQuery(listExpenseAccountsRef(dc));
+export function listExpenseAccounts(dcOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(listExpenseAccountsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 
 export const listProjectsRef = (dc) => {
@@ -145,8 +220,10 @@ export const listProjectsRef = (dc) => {
 }
 listProjectsRef.operationName = 'ListProjects';
 
-export function listProjects(dc) {
-  return executeQuery(listProjectsRef(dc));
+export function listProjects(dcOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(listProjectsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 
 export const listSkuReferencesRef = (dc) => {
@@ -156,8 +233,10 @@ export const listSkuReferencesRef = (dc) => {
 }
 listSkuReferencesRef.operationName = 'ListSkuReferences';
 
-export function listSkuReferences(dc) {
-  return executeQuery(listSkuReferencesRef(dc));
+export function listSkuReferences(dcOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(listSkuReferencesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 
 export const listExpenseTransactionsRef = (dc) => {
@@ -167,8 +246,10 @@ export const listExpenseTransactionsRef = (dc) => {
 }
 listExpenseTransactionsRef.operationName = 'ListExpenseTransactions';
 
-export function listExpenseTransactions(dc) {
-  return executeQuery(listExpenseTransactionsRef(dc));
+export function listExpenseTransactions(dcOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(listExpenseTransactionsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 
 export const listInvoicesToReviewRef = (dc) => {
@@ -178,8 +259,10 @@ export const listInvoicesToReviewRef = (dc) => {
 }
 listInvoicesToReviewRef.operationName = 'ListInvoicesToReview';
 
-export function listInvoicesToReview(dc) {
-  return executeQuery(listInvoicesToReviewRef(dc));
+export function listInvoicesToReview(dcOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(listInvoicesToReviewRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 
 export const listInvoiceIntakesRef = (dc) => {
@@ -189,7 +272,9 @@ export const listInvoiceIntakesRef = (dc) => {
 }
 listInvoiceIntakesRef.operationName = 'ListInvoiceIntakes';
 
-export function listInvoiceIntakes(dc) {
-  return executeQuery(listInvoiceIntakesRef(dc));
+export function listInvoiceIntakes(dcOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(listInvoiceIntakesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 

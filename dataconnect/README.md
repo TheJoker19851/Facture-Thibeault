@@ -19,19 +19,17 @@ The first version of the application schema now lives in
 - invoices, private invoice photos, corrections, and audit events;
 - merchant/SKU references for Canadian Tire and other SKU-only suppliers.
 
-The connector currently exposes read-only operations protected by Firebase Auth
-custom claims (`KIM`, `ADMIN` and `SUPER_ADMIN`). `WORKER` accounts are not
-allowed to read these global accounting operations; they only submit invoice
-photos through Storage. Client-side correction mutations will not be opened
-until the role model, audit trail, and Kim/admin permissions are reviewed. The
-local preview continues to use its demonstration data until the generated SDK
-is installed and the Firebase environment is explicitly enabled.
+The connector exposes accounting reads to `KIM`, `ADMIN` and `SUPER_ADMIN`.
+`WORKER` accounts cannot read global accounting data; they may create and list
+only their own intake records. AI result mutations and seed mutations are
+`NO_ACCESS`: trusted server code authenticates the caller, checks ownership and
+uses Firebase Admin. Storage rules independently restrict invoice evidence.
 
 Next integration steps:
 
-1. Generate the typed web SDK with `firebase dataconnect:sdk:generate`.
-2. Run the SQL Connect emulator locally and validate the generated operations.
-3. Add a small repository adapter so the dashboard can read cards, periods, and
-   transactions from SQL Connect while retaining a safe demo fallback.
-4. Review the SQL diff and authorization rules, then deploy only after approval
-   with `firebase deploy --only dataconnect`.
+1. Run `npm run test:emulator` and review every role assertion.
+2. Create the dedicated staging project documented in
+   `docs/Firebase-connection.md` (the project does not currently exist).
+3. Run `npm run firebase:plan:staging` and review the SQL diff.
+4. Deploy staging only through `npm run firebase:deploy:staging` with its exact
+   confirmation value. Production requires two separate confirmations.

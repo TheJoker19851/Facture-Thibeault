@@ -53,9 +53,9 @@ mutation CreateInvoiceIntake($receiptId: String!, $storageFolder: String!, $phot
   })
 }
 
-# The uploader can save the validated AI suggestion against its own opaque
-# receipt ID. It remains a review suggestion: no accounting entry is approved
-# by this mutation.
+# Server-only AI persistence. The Admin SDK verifies the Firebase token,
+# confirms ownership of the intake and performs deterministic classification
+# before executing this operation. Browser clients cannot call it directly.
 mutation UpdateInvoiceIntakeAiResult(
   $receiptId: String!
   $status: String!
@@ -78,7 +78,7 @@ mutation UpdateInvoiceIntakeAiResult(
   $classificationConfidence: Float!
   $classificationStatus: String!
   $aiNotes: String!
-) @auth(expr: "auth.token.role == 'WORKER' || auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+) @auth(level: NO_ACCESS) {
   invoiceIntake_update(
     key: { receiptId: $receiptId }
     data: {
@@ -107,7 +107,7 @@ mutation UpdateInvoiceIntakeAiResult(
   )
 }
 
-mutation MarkInvoiceIntakeAiError($receiptId: String!, $error: String!) @auth(expr: "auth.token.role == 'WORKER' || auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+mutation MarkInvoiceIntakeAiError($receiptId: String!, $error: String!) @auth(level: NO_ACCESS) {
   invoiceIntake_update(
     key: { receiptId: $receiptId }
     data: {

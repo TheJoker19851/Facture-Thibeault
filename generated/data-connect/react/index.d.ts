@@ -1,9 +1,24 @@
-import { UpsertUserProfileData, UpsertUserProfileVariables, UpsertCreditCardData, UpsertCreditCardVariables, CreateInvoiceIntakeData, CreateInvoiceIntakeVariables, UpdateInvoiceIntakeAiResultData, UpdateInvoiceIntakeAiResultVariables, MarkInvoiceIntakeAiErrorData, MarkInvoiceIntakeAiErrorVariables, UpdateInvoiceIntakeReviewData, UpdateInvoiceIntakeReviewVariables, CommitInvoiceIntakeData, CommitInvoiceIntakeVariables, CommitInvoiceIntakeWithoutProjectData, CommitInvoiceIntakeWithoutProjectVariables, ListUserProfilesData, ListCreditCardsData, ListCardStatementPeriodsData, ListExpenseAccountsData, ListProjectsData, ListSkuReferencesData, ListExpenseTransactionsData, ListInvoicesToReviewData, ListInvoiceIntakesData } from '../';
+import { AdminSeedCreditCardData, AdminSeedCreditCardVariables, AdminSeedSkuReferenceData, AdminSeedSkuReferenceVariables, AdminSeedExpenseTransactionData, AdminSeedExpenseTransactionVariables, AdminSeedInvoiceData, AdminSeedInvoiceVariables, AdminSeedInvoicePhotoData, AdminSeedInvoicePhotoVariables, UpsertUserProfileData, UpsertUserProfileVariables, UpsertCreditCardData, UpsertCreditCardVariables, CreateInvoiceIntakeData, CreateInvoiceIntakeVariables, UpdateInvoiceIntakeAiResultData, UpdateInvoiceIntakeAiResultVariables, MarkInvoiceIntakeAiErrorData, MarkInvoiceIntakeAiErrorVariables, UpdateInvoiceIntakeReviewData, UpdateInvoiceIntakeReviewVariables, CommitInvoiceIntakeData, CommitInvoiceIntakeVariables, CommitInvoiceIntakeWithoutProjectData, CommitInvoiceIntakeWithoutProjectVariables, ListUserProfilesData, ListCreditCardsData, ListCardStatementPeriodsData, ListExpenseAccountsData, ListProjectsData, ListSkuReferencesData, ListExpenseTransactionsData, ListInvoicesToReviewData, ListInvoiceIntakesData } from '../';
 import { UseDataConnectQueryResult, useDataConnectQueryOptions, UseDataConnectMutationResult, useDataConnectMutationOptions} from '@tanstack-query-firebase/react/data-connect';
 import { UseQueryResult, UseMutationResult} from '@tanstack/react-query';
 import { DataConnect } from 'firebase/data-connect';
 import { FirebaseError } from 'firebase/app';
 
+
+export function useAdminSeedCreditCard(options?: useDataConnectMutationOptions<AdminSeedCreditCardData, FirebaseError, AdminSeedCreditCardVariables>): UseDataConnectMutationResult<AdminSeedCreditCardData, AdminSeedCreditCardVariables>;
+export function useAdminSeedCreditCard(dc: DataConnect, options?: useDataConnectMutationOptions<AdminSeedCreditCardData, FirebaseError, AdminSeedCreditCardVariables>): UseDataConnectMutationResult<AdminSeedCreditCardData, AdminSeedCreditCardVariables>;
+
+export function useAdminSeedSkuReference(options?: useDataConnectMutationOptions<AdminSeedSkuReferenceData, FirebaseError, AdminSeedSkuReferenceVariables>): UseDataConnectMutationResult<AdminSeedSkuReferenceData, AdminSeedSkuReferenceVariables>;
+export function useAdminSeedSkuReference(dc: DataConnect, options?: useDataConnectMutationOptions<AdminSeedSkuReferenceData, FirebaseError, AdminSeedSkuReferenceVariables>): UseDataConnectMutationResult<AdminSeedSkuReferenceData, AdminSeedSkuReferenceVariables>;
+
+export function useAdminSeedExpenseTransaction(options?: useDataConnectMutationOptions<AdminSeedExpenseTransactionData, FirebaseError, AdminSeedExpenseTransactionVariables>): UseDataConnectMutationResult<AdminSeedExpenseTransactionData, AdminSeedExpenseTransactionVariables>;
+export function useAdminSeedExpenseTransaction(dc: DataConnect, options?: useDataConnectMutationOptions<AdminSeedExpenseTransactionData, FirebaseError, AdminSeedExpenseTransactionVariables>): UseDataConnectMutationResult<AdminSeedExpenseTransactionData, AdminSeedExpenseTransactionVariables>;
+
+export function useAdminSeedInvoice(options?: useDataConnectMutationOptions<AdminSeedInvoiceData, FirebaseError, AdminSeedInvoiceVariables>): UseDataConnectMutationResult<AdminSeedInvoiceData, AdminSeedInvoiceVariables>;
+export function useAdminSeedInvoice(dc: DataConnect, options?: useDataConnectMutationOptions<AdminSeedInvoiceData, FirebaseError, AdminSeedInvoiceVariables>): UseDataConnectMutationResult<AdminSeedInvoiceData, AdminSeedInvoiceVariables>;
+
+export function useAdminSeedInvoicePhoto(options?: useDataConnectMutationOptions<AdminSeedInvoicePhotoData, FirebaseError, AdminSeedInvoicePhotoVariables>): UseDataConnectMutationResult<AdminSeedInvoicePhotoData, AdminSeedInvoicePhotoVariables>;
+export function useAdminSeedInvoicePhoto(dc: DataConnect, options?: useDataConnectMutationOptions<AdminSeedInvoicePhotoData, FirebaseError, AdminSeedInvoicePhotoVariables>): UseDataConnectMutationResult<AdminSeedInvoicePhotoData, AdminSeedInvoicePhotoVariables>;
 
 export function useUpsertUserProfile(options?: useDataConnectMutationOptions<UpsertUserProfileData, FirebaseError, UpsertUserProfileVariables>): UseDataConnectMutationResult<UpsertUserProfileData, UpsertUserProfileVariables>;
 export function useUpsertUserProfile(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertUserProfileData, FirebaseError, UpsertUserProfileVariables>): UseDataConnectMutationResult<UpsertUserProfileData, UpsertUserProfileVariables>;

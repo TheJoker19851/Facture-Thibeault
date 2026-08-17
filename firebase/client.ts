@@ -8,6 +8,7 @@ import {
 } from "firebase/app-check";
 import { connectAuthEmulator, getAuth, type Auth } from "firebase/auth";
 import { connectStorageEmulator, getStorage, type FirebaseStorage } from "firebase/storage";
+import { validateFirebaseEnvironment } from "../lib/environment.mjs";
 
 export const FIREBASE_REGION = "northamerica-northeast1";
 export const FIREBASE_REGION_LABEL = "Montréal, Canada";
@@ -22,8 +23,22 @@ const config = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID ?? undefined,
 };
 
+export const firebaseEnvironmentValidation = validateFirebaseEnvironment({
+  appEnvironment: process.env.NEXT_PUBLIC_APP_ENV,
+  projectId: config.projectId,
+  useEmulators: process.env.NEXT_PUBLIC_FIREBASE_USE_EMULATORS,
+});
+export const firebaseEnvironment = firebaseEnvironmentValidation.environment;
+export const firebaseConfigurationError = firebaseEnvironmentValidation.ok
+  ? null
+  : firebaseEnvironmentValidation.issues.join(" ");
+export const firebaseUsesEmulators =
+  firebaseEnvironment === "local" &&
+  process.env.NEXT_PUBLIC_FIREBASE_USE_EMULATORS === "true";
+
 export const firebaseConfig = config;
 export const firebaseConfigured = Boolean(
+  firebaseEnvironmentValidation.ok &&
   config.apiKey &&
     config.authDomain &&
     config.projectId &&
@@ -63,7 +78,7 @@ export const firebaseStorage: FirebaseStorage | null = firebaseApp
  * local browser session from accidentally writing to a shared Firebase
  * project. The emulator connection calls are safe to repeat during HMR.
  */
-if (process.env.NEXT_PUBLIC_FIREBASE_USE_EMULATORS === "true") {
+if (firebaseUsesEmulators) {
   if (firebaseAuth) {
     try {
       connectAuthEmulator(firebaseAuth, "http://127.0.0.1:9099", {

@@ -27,6 +27,11 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*ListInvoicesToReview*](#listinvoicestoreview)
   - [*ListInvoiceIntakes*](#listinvoiceintakes)
 - [**Mutations**](#mutations)
+  - [*AdminSeedCreditCard*](#adminseedcreditcard)
+  - [*AdminSeedSkuReference*](#adminseedskureference)
+  - [*AdminSeedExpenseTransaction*](#adminseedexpensetransaction)
+  - [*AdminSeedInvoice*](#adminseedinvoice)
+  - [*AdminSeedInvoicePhoto*](#adminseedinvoicephoto)
   - [*UpsertUserProfile*](#upsertuserprofile)
   - [*UpsertCreditCard*](#upsertcreditcard)
   - [*CreateInvoiceIntake*](#createinvoiceintake)
@@ -233,10 +238,10 @@ export interface ListCreditCardsData {
       role: string;
       status: string;
     } & UserProfile_Key;
-      cardFunction?: string | null;
-      activeFrom?: DateString | null;
-      inactiveFrom?: DateString | null;
-      status: string;
+    cardFunction?: string | null;
+    activeFrom?: DateString | null;
+    inactiveFrom?: DateString | null;
+    status: string;
   } & CreditCard_Key)[];
 }
 ```
@@ -537,9 +542,9 @@ export interface ListSkuReferencesData {
       code: string;
       label: string;
     } & ExpenseAccount_Key;
-      sourceUrl?: string | null;
-      verificationStatus: string;
-      verifiedAt?: TimestampString | null;
+    sourceUrl?: string | null;
+    verificationStatus: string;
+    verifiedAt?: TimestampString | null;
   } & SkuReference_Key)[];
 }
 ```
@@ -621,34 +626,34 @@ export interface ListExpenseTransactionsData {
         displayName: string;
       } & UserProfile_Key;
     } & CreditCard_Key;
-      statementPeriod: {
-        id: string;
-        label: string;
-        startDate: DateString;
-        endDate: DateString;
-      } & CardStatementPeriod_Key;
-        project?: {
-          id: string;
-          name: string;
-        } & Project_Key;
-          expenseAccount?: {
-            code: string;
-            label: string;
-          } & ExpenseAccount_Key;
-            categoryLabel?: string | null;
-            sku?: string | null;
-            amountBeforeTaxCents: Int64String;
-            tpsCents: Int64String;
-            tvqCents: Int64String;
-            totalCents: Int64String;
-            currency: string;
-            status: string;
-            reconciliationStatus: string;
-            classificationSource?: string | null;
-            classificationConfidence?: number | null;
-            classificationNote?: string | null;
-            invoiceNumber?: string | null;
-            issue?: string | null;
+    statementPeriod: {
+      id: string;
+      label: string;
+      startDate: DateString;
+      endDate: DateString;
+    } & CardStatementPeriod_Key;
+    project?: {
+      id: string;
+      name: string;
+    } & Project_Key;
+    expenseAccount?: {
+      code: string;
+      label: string;
+    } & ExpenseAccount_Key;
+    categoryLabel?: string | null;
+    sku?: string | null;
+    amountBeforeTaxCents: Int64String;
+    tpsCents: Int64String;
+    tvqCents: Int64String;
+    totalCents: Int64String;
+    currency: string;
+    status: string;
+    reconciliationStatus: string;
+    classificationSource?: string | null;
+    classificationConfidence?: number | null;
+    classificationNote?: string | null;
+    invoiceNumber?: string | null;
+    issue?: string | null;
   } & ExpenseTransaction_Key)[];
 }
 ```
@@ -734,12 +739,12 @@ export interface ListInvoicesToReviewData {
       vendor: string;
       issue?: string | null;
     } & ExpenseTransaction_Key;
-      invoicePhotos_on_invoice: ({
-        id: string;
-        storagePath: string;
-        contentType: string;
-        sequence: number;
-      } & InvoicePhoto_Key)[];
+    invoicePhotos_on_invoice: ({
+      id: string;
+      storagePath: string;
+      contentType: string;
+      sequence: number;
+    } & InvoicePhoto_Key)[];
   } & Invoice_Key)[];
 }
 ```
@@ -910,6 +915,566 @@ Here's a general overview of how to use the generated Mutation hooks in your cod
 
 Below are examples of how to use the `accounting` connector's generated Mutation hook functions to execute each Mutation. You can also follow the examples from the [Data Connect documentation](https://firebase.google.com/docs/data-connect/web-sdk#operations-react-angular).
 
+## AdminSeedCreditCard
+You can execute the `AdminSeedCreditCard` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useAdminSeedCreditCard(options?: useDataConnectMutationOptions<AdminSeedCreditCardData, FirebaseError, AdminSeedCreditCardVariables>): UseDataConnectMutationResult<AdminSeedCreditCardData, AdminSeedCreditCardVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useAdminSeedCreditCard(dc: DataConnect, options?: useDataConnectMutationOptions<AdminSeedCreditCardData, FirebaseError, AdminSeedCreditCardVariables>): UseDataConnectMutationResult<AdminSeedCreditCardData, AdminSeedCreditCardVariables>;
+```
+
+### Variables
+The `AdminSeedCreditCard` Mutation requires an argument of type `AdminSeedCreditCardVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface AdminSeedCreditCardVariables {
+  id: string;
+  lastFour: string;
+  holderId: string;
+  cardFunction?: string | null;
+  status: string;
+  activeFrom?: DateString | null;
+}
+```
+### Return Type
+Recall that calling the `AdminSeedCreditCard` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminSeedCreditCard` Mutation is of type `AdminSeedCreditCardData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface AdminSeedCreditCardData {
+  creditCard_upsert: CreditCard_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `AdminSeedCreditCard`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, AdminSeedCreditCardVariables } from '@factures-thibeault/data-connect-generated';
+import { useAdminSeedCreditCard } from '@factures-thibeault/data-connect-generated/react'
+
+export default function AdminSeedCreditCardComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useAdminSeedCreditCard();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useAdminSeedCreditCard(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminSeedCreditCard(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminSeedCreditCard(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useAdminSeedCreditCard` Mutation requires an argument of type `AdminSeedCreditCardVariables`:
+  const adminSeedCreditCardVars: AdminSeedCreditCardVariables = {
+    id: ...,
+    lastFour: ...,
+    holderId: ...,
+    cardFunction: ..., // optional
+    status: ...,
+    activeFrom: ..., // optional
+  };
+  mutation.mutate(adminSeedCreditCardVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., lastFour: ..., holderId: ..., cardFunction: ..., status: ..., activeFrom: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(adminSeedCreditCardVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.creditCard_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## AdminSeedSkuReference
+You can execute the `AdminSeedSkuReference` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useAdminSeedSkuReference(options?: useDataConnectMutationOptions<AdminSeedSkuReferenceData, FirebaseError, AdminSeedSkuReferenceVariables>): UseDataConnectMutationResult<AdminSeedSkuReferenceData, AdminSeedSkuReferenceVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useAdminSeedSkuReference(dc: DataConnect, options?: useDataConnectMutationOptions<AdminSeedSkuReferenceData, FirebaseError, AdminSeedSkuReferenceVariables>): UseDataConnectMutationResult<AdminSeedSkuReferenceData, AdminSeedSkuReferenceVariables>;
+```
+
+### Variables
+The `AdminSeedSkuReference` Mutation requires an argument of type `AdminSeedSkuReferenceVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface AdminSeedSkuReferenceVariables {
+  merchant: string;
+  sku: string;
+  productLabel?: string | null;
+  categoryLabel?: string | null;
+  accountCode: string;
+  verificationStatus: string;
+}
+```
+### Return Type
+Recall that calling the `AdminSeedSkuReference` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminSeedSkuReference` Mutation is of type `AdminSeedSkuReferenceData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface AdminSeedSkuReferenceData {
+  skuReference_upsert: SkuReference_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `AdminSeedSkuReference`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, AdminSeedSkuReferenceVariables } from '@factures-thibeault/data-connect-generated';
+import { useAdminSeedSkuReference } from '@factures-thibeault/data-connect-generated/react'
+
+export default function AdminSeedSkuReferenceComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useAdminSeedSkuReference();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useAdminSeedSkuReference(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminSeedSkuReference(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminSeedSkuReference(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useAdminSeedSkuReference` Mutation requires an argument of type `AdminSeedSkuReferenceVariables`:
+  const adminSeedSkuReferenceVars: AdminSeedSkuReferenceVariables = {
+    merchant: ...,
+    sku: ...,
+    productLabel: ..., // optional
+    categoryLabel: ..., // optional
+    accountCode: ...,
+    verificationStatus: ...,
+  };
+  mutation.mutate(adminSeedSkuReferenceVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ merchant: ..., sku: ..., productLabel: ..., categoryLabel: ..., accountCode: ..., verificationStatus: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(adminSeedSkuReferenceVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.skuReference_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## AdminSeedExpenseTransaction
+You can execute the `AdminSeedExpenseTransaction` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useAdminSeedExpenseTransaction(options?: useDataConnectMutationOptions<AdminSeedExpenseTransactionData, FirebaseError, AdminSeedExpenseTransactionVariables>): UseDataConnectMutationResult<AdminSeedExpenseTransactionData, AdminSeedExpenseTransactionVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useAdminSeedExpenseTransaction(dc: DataConnect, options?: useDataConnectMutationOptions<AdminSeedExpenseTransactionData, FirebaseError, AdminSeedExpenseTransactionVariables>): UseDataConnectMutationResult<AdminSeedExpenseTransactionData, AdminSeedExpenseTransactionVariables>;
+```
+
+### Variables
+The `AdminSeedExpenseTransaction` Mutation requires an argument of type `AdminSeedExpenseTransactionVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface AdminSeedExpenseTransactionVariables {
+  id: string;
+  transactionDate: DateString;
+  vendor: string;
+  cardId: string;
+  statementPeriodId: string;
+  projectId: string;
+  accountCode: string;
+  categoryLabel?: string | null;
+  sku?: string | null;
+  amountBeforeTaxCents: Int64String;
+  tpsCents: Int64String;
+  tvqCents: Int64String;
+  totalCents: Int64String;
+  currency: string;
+  status: string;
+  reconciliationStatus: string;
+  classificationSource?: string | null;
+  classificationConfidence?: number | null;
+  classificationNote?: string | null;
+  invoiceNumber?: string | null;
+  issue?: string | null;
+}
+```
+### Return Type
+Recall that calling the `AdminSeedExpenseTransaction` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminSeedExpenseTransaction` Mutation is of type `AdminSeedExpenseTransactionData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface AdminSeedExpenseTransactionData {
+  expenseTransaction_upsert: ExpenseTransaction_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `AdminSeedExpenseTransaction`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, AdminSeedExpenseTransactionVariables } from '@factures-thibeault/data-connect-generated';
+import { useAdminSeedExpenseTransaction } from '@factures-thibeault/data-connect-generated/react'
+
+export default function AdminSeedExpenseTransactionComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useAdminSeedExpenseTransaction();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useAdminSeedExpenseTransaction(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminSeedExpenseTransaction(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminSeedExpenseTransaction(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useAdminSeedExpenseTransaction` Mutation requires an argument of type `AdminSeedExpenseTransactionVariables`:
+  const adminSeedExpenseTransactionVars: AdminSeedExpenseTransactionVariables = {
+    id: ...,
+    transactionDate: ...,
+    vendor: ...,
+    cardId: ...,
+    statementPeriodId: ...,
+    projectId: ...,
+    accountCode: ...,
+    categoryLabel: ..., // optional
+    sku: ..., // optional
+    amountBeforeTaxCents: ...,
+    tpsCents: ...,
+    tvqCents: ...,
+    totalCents: ...,
+    currency: ...,
+    status: ...,
+    reconciliationStatus: ...,
+    classificationSource: ..., // optional
+    classificationConfidence: ..., // optional
+    classificationNote: ..., // optional
+    invoiceNumber: ..., // optional
+    issue: ..., // optional
+  };
+  mutation.mutate(adminSeedExpenseTransactionVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., transactionDate: ..., vendor: ..., cardId: ..., statementPeriodId: ..., projectId: ..., accountCode: ..., categoryLabel: ..., sku: ..., amountBeforeTaxCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., status: ..., reconciliationStatus: ..., classificationSource: ..., classificationConfidence: ..., classificationNote: ..., invoiceNumber: ..., issue: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(adminSeedExpenseTransactionVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.expenseTransaction_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## AdminSeedInvoice
+You can execute the `AdminSeedInvoice` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useAdminSeedInvoice(options?: useDataConnectMutationOptions<AdminSeedInvoiceData, FirebaseError, AdminSeedInvoiceVariables>): UseDataConnectMutationResult<AdminSeedInvoiceData, AdminSeedInvoiceVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useAdminSeedInvoice(dc: DataConnect, options?: useDataConnectMutationOptions<AdminSeedInvoiceData, FirebaseError, AdminSeedInvoiceVariables>): UseDataConnectMutationResult<AdminSeedInvoiceData, AdminSeedInvoiceVariables>;
+```
+
+### Variables
+The `AdminSeedInvoice` Mutation requires an argument of type `AdminSeedInvoiceVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface AdminSeedInvoiceVariables {
+  id: string;
+  transactionId: string;
+  vendor: string;
+  invoiceNumber?: string | null;
+  invoiceDate?: DateString | null;
+  subtotalCents?: Int64String | null;
+  tpsCents?: Int64String | null;
+  tvqCents?: Int64String | null;
+  totalCents?: Int64String | null;
+  reviewStatus: string;
+  storageFolder?: string | null;
+  createdById: string;
+}
+```
+### Return Type
+Recall that calling the `AdminSeedInvoice` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminSeedInvoice` Mutation is of type `AdminSeedInvoiceData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface AdminSeedInvoiceData {
+  invoice_upsert: Invoice_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `AdminSeedInvoice`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, AdminSeedInvoiceVariables } from '@factures-thibeault/data-connect-generated';
+import { useAdminSeedInvoice } from '@factures-thibeault/data-connect-generated/react'
+
+export default function AdminSeedInvoiceComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useAdminSeedInvoice();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useAdminSeedInvoice(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminSeedInvoice(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminSeedInvoice(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useAdminSeedInvoice` Mutation requires an argument of type `AdminSeedInvoiceVariables`:
+  const adminSeedInvoiceVars: AdminSeedInvoiceVariables = {
+    id: ...,
+    transactionId: ...,
+    vendor: ...,
+    invoiceNumber: ..., // optional
+    invoiceDate: ..., // optional
+    subtotalCents: ..., // optional
+    tpsCents: ..., // optional
+    tvqCents: ..., // optional
+    totalCents: ..., // optional
+    reviewStatus: ...,
+    storageFolder: ..., // optional
+    createdById: ...,
+  };
+  mutation.mutate(adminSeedInvoiceVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., transactionId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., reviewStatus: ..., storageFolder: ..., createdById: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(adminSeedInvoiceVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.invoice_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## AdminSeedInvoicePhoto
+You can execute the `AdminSeedInvoicePhoto` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useAdminSeedInvoicePhoto(options?: useDataConnectMutationOptions<AdminSeedInvoicePhotoData, FirebaseError, AdminSeedInvoicePhotoVariables>): UseDataConnectMutationResult<AdminSeedInvoicePhotoData, AdminSeedInvoicePhotoVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useAdminSeedInvoicePhoto(dc: DataConnect, options?: useDataConnectMutationOptions<AdminSeedInvoicePhotoData, FirebaseError, AdminSeedInvoicePhotoVariables>): UseDataConnectMutationResult<AdminSeedInvoicePhotoData, AdminSeedInvoicePhotoVariables>;
+```
+
+### Variables
+The `AdminSeedInvoicePhoto` Mutation requires an argument of type `AdminSeedInvoicePhotoVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface AdminSeedInvoicePhotoVariables {
+  id: string;
+  invoiceId: string;
+  storagePath: string;
+  contentType: string;
+  sequence: number;
+}
+```
+### Return Type
+Recall that calling the `AdminSeedInvoicePhoto` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminSeedInvoicePhoto` Mutation is of type `AdminSeedInvoicePhotoData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface AdminSeedInvoicePhotoData {
+  invoicePhoto_upsert: InvoicePhoto_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `AdminSeedInvoicePhoto`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, AdminSeedInvoicePhotoVariables } from '@factures-thibeault/data-connect-generated';
+import { useAdminSeedInvoicePhoto } from '@factures-thibeault/data-connect-generated/react'
+
+export default function AdminSeedInvoicePhotoComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useAdminSeedInvoicePhoto();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useAdminSeedInvoicePhoto(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminSeedInvoicePhoto(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminSeedInvoicePhoto(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useAdminSeedInvoicePhoto` Mutation requires an argument of type `AdminSeedInvoicePhotoVariables`:
+  const adminSeedInvoicePhotoVars: AdminSeedInvoicePhotoVariables = {
+    id: ...,
+    invoiceId: ...,
+    storagePath: ...,
+    contentType: ...,
+    sequence: ...,
+  };
+  mutation.mutate(adminSeedInvoicePhotoVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., invoiceId: ..., storagePath: ..., contentType: ..., sequence: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(adminSeedInvoicePhotoVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.invoicePhoto_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
 ## UpsertUserProfile
 You can execute the `UpsertUserProfile` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
 ```javascript
@@ -981,13 +1546,13 @@ export default function UpsertUserProfileComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useUpsertUserProfile` Mutation requires an argument of type `UpsertUserProfileVariables`:
   const upsertUserProfileVars: UpsertUserProfileVariables = {
-    id: ..., 
-    firebaseUid: ..., 
-    displayName: ..., 
+    id: ...,
+    firebaseUid: ...,
+    displayName: ...,
     email: ..., // optional
     jobTitle: ..., // optional
-    role: ..., 
-    status: ..., 
+    role: ...,
+    status: ...,
   };
   mutation.mutate(upsertUserProfileVars);
   // Variables can be defined inline as well.
@@ -1087,11 +1652,11 @@ export default function UpsertCreditCardComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useUpsertCreditCard` Mutation requires an argument of type `UpsertCreditCardVariables`:
   const upsertCreditCardVars: UpsertCreditCardVariables = {
-    id: ..., 
-    lastFour: ..., 
-    holderId: ..., 
+    id: ...,
+    lastFour: ...,
+    holderId: ...,
     cardFunction: ..., // optional
-    status: ..., 
+    status: ...,
     activeFrom: ..., // optional
     inactiveFrom: ..., // optional
   };
@@ -1189,9 +1754,9 @@ export default function CreateInvoiceIntakeComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useCreateInvoiceIntake` Mutation requires an argument of type `CreateInvoiceIntakeVariables`:
   const createInvoiceIntakeVars: CreateInvoiceIntakeVariables = {
-    receiptId: ..., 
-    storageFolder: ..., 
-    photoCount: ..., 
+    receiptId: ...,
+    storageFolder: ...,
+    photoCount: ...,
   };
   mutation.mutate(createInvoiceIntakeVars);
   // Variables can be defined inline as well.
@@ -1305,27 +1870,27 @@ export default function UpdateInvoiceIntakeAiResultComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useUpdateInvoiceIntakeAiResult` Mutation requires an argument of type `UpdateInvoiceIntakeAiResultVariables`:
   const updateInvoiceIntakeAiResultVars: UpdateInvoiceIntakeAiResultVariables = {
-    receiptId: ..., 
-    status: ..., 
-    aiModel: ..., 
-    aiConfidence: ..., 
-    extractedVendor: ..., 
+    receiptId: ...,
+    status: ...,
+    aiModel: ...,
+    aiConfidence: ...,
+    extractedVendor: ...,
     extractedInvoiceNumber: ..., // optional
     extractedInvoiceDate: ..., // optional
-    extractedSubtotalCents: ..., 
-    extractedTpsCents: ..., 
-    extractedTvqCents: ..., 
-    extractedTotalCents: ..., 
-    extractedCurrency: ..., 
+    extractedSubtotalCents: ...,
+    extractedTpsCents: ...,
+    extractedTvqCents: ...,
+    extractedTotalCents: ...,
+    extractedCurrency: ...,
     extractedSku: ..., // optional
     extractedCategory: ..., // optional
     extractedProjectId: ..., // optional
     classificationAccountCode: ..., // optional
     classificationCategory: ..., // optional
-    classificationSource: ..., 
-    classificationConfidence: ..., 
-    classificationStatus: ..., 
-    aiNotes: ..., 
+    classificationSource: ...,
+    classificationConfidence: ...,
+    classificationStatus: ...,
+    aiNotes: ...,
   };
   mutation.mutate(updateInvoiceIntakeAiResultVars);
   // Variables can be defined inline as well.
@@ -1420,8 +1985,8 @@ export default function MarkInvoiceIntakeAiErrorComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useMarkInvoiceIntakeAiError` Mutation requires an argument of type `MarkInvoiceIntakeAiErrorVariables`:
   const markInvoiceIntakeAiErrorVars: MarkInvoiceIntakeAiErrorVariables = {
-    receiptId: ..., 
-    error: ..., 
+    receiptId: ...,
+    error: ...,
   };
   mutation.mutate(markInvoiceIntakeAiErrorVars);
   // Variables can be defined inline as well.
@@ -1533,25 +2098,25 @@ export default function UpdateInvoiceIntakeReviewComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useUpdateInvoiceIntakeReview` Mutation requires an argument of type `UpdateInvoiceIntakeReviewVariables`:
   const updateInvoiceIntakeReviewVars: UpdateInvoiceIntakeReviewVariables = {
-    receiptId: ..., 
-    status: ..., 
-    extractedVendor: ..., 
+    receiptId: ...,
+    status: ...,
+    extractedVendor: ...,
     extractedInvoiceNumber: ..., // optional
     extractedInvoiceDate: ..., // optional
-    extractedSubtotalCents: ..., 
-    extractedTpsCents: ..., 
-    extractedTvqCents: ..., 
-    extractedTotalCents: ..., 
-    extractedCurrency: ..., 
+    extractedSubtotalCents: ...,
+    extractedTpsCents: ...,
+    extractedTvqCents: ...,
+    extractedTotalCents: ...,
+    extractedCurrency: ...,
     extractedSku: ..., // optional
     extractedCategory: ..., // optional
     extractedProjectId: ..., // optional
     classificationAccountCode: ..., // optional
     classificationCategory: ..., // optional
-    classificationSource: ..., 
-    classificationConfidence: ..., 
-    classificationStatus: ..., 
-    aiNotes: ..., 
+    classificationSource: ...,
+    classificationConfidence: ...,
+    classificationStatus: ...,
+    aiNotes: ...,
   };
   mutation.mutate(updateInvoiceIntakeReviewVars);
   // Variables can be defined inline as well.
@@ -1665,25 +2230,25 @@ export default function CommitInvoiceIntakeComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useCommitInvoiceIntake` Mutation requires an argument of type `CommitInvoiceIntakeVariables`:
   const commitInvoiceIntakeVars: CommitInvoiceIntakeVariables = {
-    receiptId: ..., 
-    transactionId: ..., 
-    invoiceId: ..., 
-    vendor: ..., 
+    receiptId: ...,
+    transactionId: ...,
+    invoiceId: ...,
+    vendor: ...,
     invoiceNumber: ..., // optional
-    invoiceDate: ..., 
-    subtotalCents: ..., 
-    tpsCents: ..., 
-    tvqCents: ..., 
-    totalCents: ..., 
-    currency: ..., 
+    invoiceDate: ...,
+    subtotalCents: ...,
+    tpsCents: ...,
+    tvqCents: ...,
+    totalCents: ...,
+    currency: ...,
     sku: ..., // optional
-    category: ..., 
-    accountCode: ..., 
-    cardId: ..., 
-    statementPeriodId: ..., 
-    projectId: ..., 
-    storageFolder: ..., 
-    classificationNote: ..., 
+    category: ...,
+    accountCode: ...,
+    cardId: ...,
+    statementPeriodId: ...,
+    projectId: ...,
+    storageFolder: ...,
+    classificationNote: ...,
   };
   mutation.mutate(commitInvoiceIntakeVars);
   // Variables can be defined inline as well.
@@ -1798,24 +2363,24 @@ export default function CommitInvoiceIntakeWithoutProjectComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useCommitInvoiceIntakeWithoutProject` Mutation requires an argument of type `CommitInvoiceIntakeWithoutProjectVariables`:
   const commitInvoiceIntakeWithoutProjectVars: CommitInvoiceIntakeWithoutProjectVariables = {
-    receiptId: ..., 
-    transactionId: ..., 
-    invoiceId: ..., 
-    vendor: ..., 
+    receiptId: ...,
+    transactionId: ...,
+    invoiceId: ...,
+    vendor: ...,
     invoiceNumber: ..., // optional
-    invoiceDate: ..., 
-    subtotalCents: ..., 
-    tpsCents: ..., 
-    tvqCents: ..., 
-    totalCents: ..., 
-    currency: ..., 
+    invoiceDate: ...,
+    subtotalCents: ...,
+    tpsCents: ...,
+    tvqCents: ...,
+    totalCents: ...,
+    currency: ...,
     sku: ..., // optional
-    category: ..., 
-    accountCode: ..., 
-    cardId: ..., 
-    statementPeriodId: ..., 
-    storageFolder: ..., 
-    classificationNote: ..., 
+    category: ...,
+    accountCode: ...,
+    cardId: ...,
+    statementPeriodId: ...,
+    storageFolder: ...,
+    classificationNote: ...,
   };
   mutation.mutate(commitInvoiceIntakeWithoutProjectVars);
   // Variables can be defined inline as well.

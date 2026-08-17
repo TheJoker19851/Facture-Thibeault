@@ -29,11 +29,11 @@ async function isAuthorizedAdmin(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!firebaseAdminConfigured()) {
-    return Response.json({ error: "Firebase Admin doit être configuré côté serveur avant de créer un compte." }, { status: 503 });
-  }
   if (!(await isAuthorizedAdmin(request))) {
     return Response.json({ error: "Accès administrateur requis." }, { status: 403 });
+  }
+  if (!firebaseAdminConfigured()) {
+    return Response.json({ error: "Firebase Admin doit être configuré côté serveur avant de créer un compte." }, { status: 503 });
   }
 
   let input: z.infer<typeof createUserSchema>;
@@ -72,11 +72,11 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  if (!firebaseAdminConfigured()) {
-    return Response.json({ error: "Firebase Admin doit être configuré côté serveur avant de modifier un compte." }, { status: 503 });
-  }
   if (!(await isAuthorizedAdmin(request))) {
     return Response.json({ error: "Accès administrateur requis." }, { status: 403 });
+  }
+  if (!firebaseAdminConfigured()) {
+    return Response.json({ error: "Firebase Admin doit être configuré côté serveur avant de modifier un compte." }, { status: 503 });
   }
 
   let input: z.infer<typeof updateUserSchema>;

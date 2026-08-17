@@ -4,11 +4,7 @@ import { ChangeEvent, createContext, FormEvent, useContext, useEffect, useMemo, 
 import { accountingReadSource, commitInvoiceIntake, createFirebaseUser, loadAccountingSnapshot, mapAccountingSnapshot, saveCreditCard, saveInvoiceIntakeReview, saveUserProfile } from "../../firebase/accounting";
 import { appCheckConfigured, firebaseConfigured } from "../../firebase/client";
 import { sqlConnectConfigured } from "../../firebase/data-connect";
-import {
-  markInvoiceIntakeAiError,
-  persistInvoiceAiResult,
-  processInvoicePhotosWithGemini,
-} from "../../firebase/ai";
+import { processInvoicePhotosWithGemini } from "../../firebase/ai";
 import { uploadInvoicePhotos } from "../../firebase/uploads";
 import { classifyInvoice } from "../../lib/invoice-processing.mjs";
 import { useFirebaseIdentity, type AppRole } from "./FirebaseShell";
@@ -118,68 +114,33 @@ type InvoiceIntake = {
 };
 
 const accountCategories: AccountCategory[] = [
-  { code: "33544", label: "Essence" },
-  { code: "33556", label: "Entretien roulant" },
-  { code: "33557", label: "Réparation équipement" },
-  { code: "43400", label: "CCQ" },
-  { code: "33500", label: "Matériaux divers" },
-  { code: "42112", label: "Frais bureau" },
-  { code: "33552", label: "Frais de soumission" },
-  { code: "42104", label: "Pénalité/amende" },
-  { code: "33537", label: "Chauffage des travaux" },
-  { code: "33539", label: "Rebus" },
-  { code: "33526", label: "Divers" },
-  { code: "34019", label: "Équipement de sécurité" },
-  { code: "42102", label: "Taxes licence permis" },
-  { code: "34016", label: "Voyage et pension" },
-  { code: "11155", label: "Avance à l'administrateur" },
-  { code: "45670", label: "Promotion" },
-  { code: "33558", label: "Immatriculation" },
-  { code: "33536", label: "Location équipement" },
-  { code: "33555", label: "Entretien camion lourd" },
-  { code: "33554", label: "Location camion" },
-  { code: "34014", label: "Formation" },
-  { code: "33540", label: "Transport matériel" },
-  { code: "33518", label: "Maçonnerie" },
-  { code: "15250", label: "Mise de fonds achat tracteur" },
-  { code: "11160", label: "Dépôt garantie" },
+  { code: "90001", label: "Matériaux Démo" },
+  { code: "90002", label: "Carburant Démo" },
+  { code: "90003", label: "Équipement Démo" },
 ];
 
 const creditCards: CreditCard[] = [
-  { id: "CARD-01", lastFour: "2481", holder: "Keven Tremblay", function: "Propriétaire", startDate: "2026-01-01", status: "Actif" },
-  { id: "CARD-02", lastFour: "2286", holder: "Patrice Savard", function: "Contremaître", startDate: "2026-01-01", status: "Actif" },
-  { id: "CARD-03", lastFour: "7184", holder: "Stéphane Deschêsne", function: "Contremaître", startDate: "2026-01-01", status: "Actif" },
-  { id: "CARD-05", lastFour: "0383", holder: "Olivier Simard", function: "Contremaître", startDate: "2026-01-01", status: "Actif" },
-  { id: "CARD-06", lastFour: "9294", holder: "Martial Tremblay", function: "Contremaître", startDate: "2026-01-01", status: "Actif" },
-  { id: "CARD-07", lastFour: "9295", holder: "Keven Lavoie", function: "Contremaître", startDate: "2026-01-01", status: "Actif" },
-  { id: "CARD-08", lastFour: "9309", holder: "Simon Murray", function: "Contremaître", startDate: "2026-01-01", status: "Actif" },
-  { id: "CARD-09", lastFour: "2250", holder: "Michel Fortier", function: "Contremaître", startDate: "2026-01-01", status: "Actif" },
-  { id: "CARD-10", lastFour: "9291", holder: "Michel Simard", function: "Contremaître", startDate: "2026-01-01", status: "Actif" },
-  { id: "CARD-11", lastFour: "9298", holder: "Dave Émond", function: "Contremaître", startDate: "2026-01-01", status: "Actif" },
-  { id: "CARD-04", lastFour: "2141", holder: "Réal Savard", function: "Contremaître", startDate: "2026-01-01", status: "Inactif" },
+  { id: "DEMO-CARD-001", holderId: "DEMO-USER-WORKER", lastFour: "9001", holder: "Alice Démo", function: "Travailleuse démo", startDate: "2026-01-01", status: "Actif" },
+  { id: "DEMO-CARD-002", holderId: "DEMO-USER-KIM", lastFour: "9002", holder: "Benoît Démo", function: "Comptabilité démo", startDate: "2026-01-01", status: "Actif" },
 ];
 
-const demoUserProfiles: UserProfile[] = creditCards.map((card) => ({
-  id: `PERSON-${card.id}`,
-  firebaseUid: `demo-${card.id.toLowerCase()}`,
-  displayName: card.holder,
-  email: `${card.holder.toLowerCase().replaceAll(" ", ".")}@example.test`,
-  jobTitle: card.function,
-  role: "WORKER",
-  status: card.status === "Actif" ? "ACTIVE" : "INACTIVE",
-}));
+const demoUserProfiles: UserProfile[] = [
+  { id: "DEMO-USER-WORKER", firebaseUid: "demo-worker", displayName: "Alice Démo", email: "worker.demo@example.test", jobTitle: "Travailleuse démo", role: "WORKER", status: "ACTIVE" },
+  { id: "DEMO-USER-KIM", firebaseUid: "demo-kim", displayName: "Benoît Démo", email: "kim.demo@example.test", jobTitle: "Comptabilité démo", role: "KIM", status: "ACTIVE" },
+  { id: "DEMO-USER-ADMIN", firebaseUid: "demo-admin", displayName: "Chloé Démo", email: "admin.demo@example.test", jobTitle: "Administration démo", role: "ADMIN", status: "ACTIVE" },
+  { id: "DEMO-USER-SUPER", firebaseUid: "demo-super-admin", displayName: "David Démo", email: "super-admin.demo@example.test", jobTitle: "Diagnostic démo", role: "SUPER_ADMIN", status: "ACTIVE" },
+];
 
 const cardPeriods: CardPeriod[] = [
-  { id: "2026-06", label: "10 juin → 09 juillet 2026", start: "2026-06-10", end: "2026-07-09", statementLabel: "Relevé Mastercard · juin" },
-  { id: "2026-07", label: "10 juillet → 09 août 2026", start: "2026-07-10", end: "2026-08-09", statementLabel: "Relevé Mastercard · juillet" },
-  { id: "2026-05", label: "10 mai → 09 juin 2026", start: "2026-05-10", end: "2026-06-09", statementLabel: "Relevé Mastercard · mai" },
+  { id: "DEMO-2026-08", label: "Période Démo · août 2026", start: "2026-08-01", end: "2026-08-31", statementLabel: "Relevé Démo · août" },
+  { id: "DEMO-2026-07", label: "Période Démo · juillet 2026", start: "2026-07-01", end: "2026-07-31", statementLabel: "Relevé Démo · juillet" },
 ];
 
 const skuReferences: SkuReference[] = [
-  { merchant: "Canadian Tire", sku: "07654856", label: "Article à confirmer", category: "Divers", accountCode: "33526", status: "À confirmer" },
+  { merchant: "Quincaillerie Démo", sku: "DEMO-SKU-001", label: "Bloc de démonstration", category: "Matériaux Démo", accountCode: "90001", status: "Validé" },
 ];
 
-const projectReferences = ["21 · Façade", "125 · Résidentiel", "133 · Chantier Nord", "135 · Chantier Est", "138 · Atelier", "ADMIN"];
+const projectReferences = ["DEMO-PROJET-001 · Chantier Démo A", "DEMO-PROJET-002 · Chantier Démo B", "DEMO-ADMIN · Administration Démo"];
 
 type AppData = {
   users: UserProfile[];
@@ -208,94 +169,60 @@ function classifyTransaction(transaction: Pick<Transaction, "category" | "sku"> 
 
 const transactions: Transaction[] = [
   {
-    id: "TX-2026-0048",
-    date: "2026-08-12",
-    vendor: "CANAC",
-    submittedBy: "Keven Tremblay",
-    person: "Keven Tremblay",
-    card: "2481",
-    project: "125 · Résidentiel",
-    category: "Matériaux divers",
-    total: 184.37,
+    id: "DEMO-TX-001",
+    date: "2026-08-10",
+    vendor: "Quincaillerie Démo",
+    submittedBy: "Alice Démo",
+    person: "Alice Démo",
+    card: "9001",
+    project: "DEMO-PROJET-001 · Chantier Démo A",
+    category: "Matériaux Démo",
+    total: 114.98,
     status: "À vérifier",
     reconciliation: "Non rapprochée",
-    issue: "Sous-total incomplet : une ligne de 64,37 $ est absente des photos reçues.",
-    correction: "Ajouter la page manquante ou corriger les lignes avant de valider la facture.",
-    imageCount: 3,
-    invoiceNumber: "CAN-84219",
-    note: "Facture multipage détectée. Vérifier les lignes manquantes avant validation.",
+    issue: "Montant fictif à confirmer.",
+    correction: "Valider les données de démonstration.",
+    imageCount: 1,
+    invoiceNumber: "DEMO-FACT-001",
+    note: "Facture entièrement fictive.",
+    sku: "DEMO-SKU-001",
     correctionField: "subtotal",
   },
   {
-    id: "TX-2026-0047",
+    id: "DEMO-TX-002",
     date: "2026-08-11",
-    vendor: "Canadian Tire",
-    submittedBy: "Patrice Savard",
-    person: "Patrice Savard",
-    card: "2286",
-    project: "ADMIN",
-    category: "Divers",
-    total: 62.14,
-    status: "À valider",
-    reconciliation: "Rapprochée",
-    issue: "Compte comptable à confirmer : le SKU 07654856 n'est pas encore validé.",
-    correction: "Choisir le compte 33526 — Divers, ou confirmer une autre catégorie.",
-    imageCount: 1,
-    invoiceNumber: "CT-119402",
-    note: "SKU reconnu dans la base locale; contrôle de catégorie en attente.",
-    sku: "07654856",
-    correctionField: "account",
-  },
-  {
-    id: "TX-2026-0046",
-    date: "2026-08-10",
-    vendor: "Esso",
-    submittedBy: "Stéphane Deschêsne",
-    person: "Stéphane Deschêsne",
-    card: "7184",
-    project: "133 · Chantier Nord",
-    category: "Essence",
-    total: 91.52,
+    vendor: "Station Démo",
+    submittedBy: "Alice Démo",
+    person: "Alice Démo",
+    card: "9001",
+    project: "DEMO-PROJET-002 · Chantier Démo B",
+    category: "Carburant Démo",
+    total: 91.98,
     status: "Validée",
     reconciliation: "Rapprochée",
     imageCount: 1,
-    invoiceNumber: "ESS-66481",
-    note: "Contrôles complets; preuve conservée.",
+    invoiceNumber: "DEMO-FACT-002",
+    note: "Transaction fictive validée.",
   },
   {
-    id: "TX-2026-0045",
-    date: "2026-08-09",
-    vendor: "Location Équipement Plus",
-    submittedBy: "Olivier Simard",
-    person: "Olivier Simard",
-    card: "0383",
-    project: "138 · Atelier",
-    category: "Location équipement",
-    total: 438.0,
+    id: "DEMO-TX-003",
+    date: "2026-08-12",
+    vendor: "Équipement Démo",
+    submittedBy: "Benoît Démo",
+    person: "Benoît Démo",
+    card: "9002",
+    project: "DEMO-ADMIN · Administration Démo",
+    category: "Équipement Démo",
+    total: 229.95,
     status: "À valider",
     reconciliation: "Non rapprochée",
-    issue: "Bon de livraison non joint à la facture.",
-    correction: "Ajouter la page du bon de livraison ou confirmer la date et le chantier.",
-    imageCount: 2,
-    invoiceNumber: "LEP-2026-081",
-    note: "Deux pages regroupées automatiquement; validation administrative requise.",
-    correctionField: "attachment",
-  },
-  {
-    id: "TX-2026-0044",
-    date: "2026-08-08",
-    vendor: "Béton Montréal",
-    submittedBy: "Martial Tremblay",
-    person: "Martial Tremblay",
-    card: "9294",
-    project: "21 · Façade",
-    category: "Maçonnerie",
-    total: 721.8,
-    status: "Validée",
-    reconciliation: "Rapprochée",
+    issue: "Référence fictive à confirmer.",
+    correction: "Confirmer la catégorie de démonstration.",
     imageCount: 1,
-    invoiceNumber: "BM-99012",
-    note: "Transaction historique validée.",
+    invoiceNumber: "DEMO-FACT-003",
+    note: "Référence entièrement fictive.",
+    sku: "DEMO-SKU-002",
+    correctionField: "account",
   },
 ];
 
@@ -457,25 +384,11 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
         setQueueState("idle");
         notify(`Facture reçue · ${receipt.receiptId.slice(0, 8)} ✓ Vous pouvez en déposer une autre.`);
         void processInvoicePhotosWithGemini(receipt.receiptId, submittedFiles)
-          .then(async (result) => {
+          .then((result) => {
             const vendor = result.extraction.vendor || "fournisseur à confirmer";
-            const classificationData = canUseAccounting && dataSourceState === "ready"
-              ? appData
-              : { skuReferences: [], accounts: [] };
-            const classification = classifyInvoice(
-              {
-                vendor: result.extraction.vendor,
-                sku: result.extraction.sku ?? undefined,
-                category: result.extraction.category ?? undefined,
-              },
-              classificationData.skuReferences,
-              classificationData.accounts,
-            );
-            await persistInvoiceAiResult(receipt.receiptId, result, classification);
             notify(`IA enregistrée · ${vendor} · facture ${receipt.receiptId.slice(0, 8)} à vérifier.`);
           })
-          .catch(async () => {
-            await markInvoiceIntakeAiError(receipt.receiptId).catch(() => undefined);
+          .catch(() => {
             notify(`Facture ${receipt.receiptId.slice(0, 8)} reçue · analyse IA à vérifier dans l'administration.`);
           });
       } catch (error) {
@@ -1050,7 +963,7 @@ function PhotoPreview({ url, alt }: { url: string; alt: string }) {
 
 function ReconciliationPage({ period, onPeriodChange }: { period: CardPeriod; onPeriodChange: (period: CardPeriod) => void }) {
   const { cards } = useAppData();
-  return <><PageHeading eyebrow="Contrôle des relevés" title="Rapprochement" description="Chaque relevé est comparé aux factures reçues pour la même période et la même carte." action={<button className="primary-button"><span>↑</span> Importer un relevé</button>} /><div className="reconciliation-toolbar"><PeriodSelector period={period} onChange={onPeriodChange} /><div className="period-card"><span className="card-icon teal">▤</span><div><span>Cartes incluses</span><strong>{cards.filter((card) => card.status === "Actif").length} cartes actives · titulaires associés</strong></div><button className="icon-button">⌄</button></div></div><div className="card-roster">{cards.filter((card) => card.status === "Actif").map((card) => <span className="card-chip" key={card.id}><b>•••• {card.lastFour}</b><span>{card.holder}</span></span>)}</div><div className="reconciliation-stats"><StatTile label="Lignes du relevé" value="24" /><StatTile label="Rapprochées" value="20" tone="success" /><StatTile label="À vérifier" value="2" tone="warning" /><StatTile label="Factures manquantes" value="2" tone="danger" /></div><section className="panel reconciliation-panel"><div className="panel-header"><div><p className="eyebrow">{period.statementLabel} · {period.label}</p><h2>Correspondances et exceptions</h2></div><button className="secondary-button">Exporter les exceptions</button></div><div className="reconciliation-explainer"><span className="summary-icon rose">!</span><div><strong>La facture manquante est expliquée ici, pas seulement signalée.</strong><span>Kim voit immédiatement la carte, le titulaire, le montant et l’action à entreprendre.</span></div></div><div className="statement-list"><StatementRow date="12 juil. 2026" vendor="Canadian Tire" amount="184,37 $" card="2481" holder="Keven Tremblay" status="FACTURE MANQUANTE" tone="danger" reason="Aucune facture reçue pour la carte 2481 dans cette période." action="Demander la facture au titulaire Keven Tremblay; vérifier aussi le dépôt mobile." /><StatementRow date="10 juil. 2026" vendor="Esso" amount="91,52 $" card="7184" holder="Stéphane Deschêsne" status="RAPPROCHÉE · TX-2026-0046" tone="success" reason="Facture trouvée et montant concordant." action="Aucune action — conserver la preuve." /><StatementRow date="08 juil. 2026" vendor="Béton Montréal" amount="721,80 $" card="9294" holder="Martial Tremblay" status="RAPPROCHÉE · TX-2026-0044" tone="success" reason="Facture trouvée; compte 33518 · Maçonnerie identifié." action="Aucune action — prêt pour la comptabilité." /><StatementRow date="07 juil. 2026" vendor="Location Équipement Plus" amount="438,00 $" card="0383" holder="Olivier Simard" status="ÉCART DE DATE" tone="warning" reason="Facture reçue, mais la date ne correspond pas à la ligne du relevé." action="Confirmer la date de facture et le bon de livraison avant rapprochement." /></div></section></>;
+  return <><PageHeading eyebrow="Contrôle des relevés" title="Rapprochement" description="Chaque relevé est comparé aux factures reçues pour la même période et la même carte." action={<button className="primary-button"><span>↑</span> Importer un relevé</button>} /><div className="reconciliation-toolbar"><PeriodSelector period={period} onChange={onPeriodChange} /><div className="period-card"><span className="card-icon teal">▤</span><div><span>Cartes incluses</span><strong>{cards.filter((card) => card.status === "Actif").length} cartes actives · titulaires associés</strong></div><button className="icon-button">⌄</button></div></div><div className="card-roster">{cards.filter((card) => card.status === "Actif").map((card) => <span className="card-chip" key={card.id}><b>•••• {card.lastFour}</b><span>{card.holder}</span></span>)}</div><div className="reconciliation-stats"><StatTile label="Lignes du relevé" value="3" /><StatTile label="Rapprochées" value="1" tone="success" /><StatTile label="À vérifier" value="1" tone="warning" /><StatTile label="Factures manquantes" value="1" tone="danger" /></div><section className="panel reconciliation-panel"><div className="panel-header"><div><p className="eyebrow">{period.statementLabel} · {period.label}</p><h2>Correspondances et exceptions · données fictives</h2></div><button className="secondary-button">Exporter les exceptions</button></div><div className="reconciliation-explainer"><span className="summary-icon rose">!</span><div><strong>Chaque ligne ci-dessous est une donnée de démonstration.</strong><span>Les cartes, titulaires, fournisseurs et montants sont fictifs.</span></div></div><div className="statement-list"><StatementRow date="12 août 2026" vendor="Quincaillerie Démo" amount="114,98 $" card="9001" holder="Alice Démo" status="FACTURE MANQUANTE" tone="danger" reason="Aucune facture démo reçue pour cette ligne fictive." action="Tester le dépôt mobile avec le compte WORKER de démonstration." /><StatementRow date="11 août 2026" vendor="Station Démo" amount="91,98 $" card="9001" holder="Alice Démo" status="RAPPROCHÉE · DEMO-TX-002" tone="success" reason="Facture fictive trouvée et montant concordant." action="Aucune action — scénario de démonstration réussi." /><StatementRow date="10 août 2026" vendor="Équipement Démo" amount="229,95 $" card="9002" holder="Benoît Démo" status="À VÉRIFIER" tone="warning" reason="Catégorie démo encore à confirmer." action="Ouvrir la facture avec KIM et confirmer le compte 90003." /></div></section></>;
 }
 
 function StatTile({ label, value, tone = "" }: { label: string; value: string; tone?: string }) { return <div className={`stat-tile ${tone}`}><span>{label}</span><strong>{value}</strong></div>; }
@@ -1343,7 +1256,7 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
       <div className="panel-header"><div><p className="eyebrow">Référentiel persistant</p><h2>{selectedSection === "users" ? "Utilisateurs et accès" : "Cartes et titulaires"}</h2></div><span className="badge badge-neutral">{persistenceReady ? "Firebase" : "Aperçu local"}</span></div>
       {selectedSection === "users" && <>
         {canCreateUsers ? <form className="directory-form" onSubmit={createUser}>
-          <div className="field-grid"><label className="field"><span>Nom complet</span><input required value={userForm.displayName} onChange={(event) => setUserForm((current) => ({ ...current, displayName: event.target.value }))} placeholder="Keven Tremblay" /></label><label className="field"><span>Courriel</span><input required type="email" value={userForm.email} onChange={(event) => setUserForm((current) => ({ ...current, email: event.target.value }))} placeholder="keven@thibeault.ca" /></label></div>
+          <div className="field-grid"><label className="field"><span>Nom complet</span><input required value={userForm.displayName} onChange={(event) => setUserForm((current) => ({ ...current, displayName: event.target.value }))} placeholder="Personne Démo" /></label><label className="field"><span>Courriel</span><input required type="email" value={userForm.email} onChange={(event) => setUserForm((current) => ({ ...current, email: event.target.value }))} placeholder="personne@example.test" /></label></div>
           <div className="field-grid"><label className="field"><span>Fonction</span><input value={userForm.jobTitle} onChange={(event) => setUserForm((current) => ({ ...current, jobTitle: event.target.value }))} placeholder="Contremaître" /></label><label className="field"><span>Rôle applicatif</span><select value={userForm.role} onChange={(event) => setUserForm((current) => ({ ...current, role: event.target.value }))}><option value="WORKER">WORKER · dépôt seulement</option><option value="KIM">KIM · contrôle comptable</option><option value="ADMIN">ADMIN · administration</option></select></label></div>
           <div className="field-grid"><label className="field"><span>Mot de passe temporaire</span><input required minLength={12} type="password" value={userForm.password} onChange={(event) => setUserForm((current) => ({ ...current, password: event.target.value }))} placeholder="12 caractères minimum" /></label><div className="directory-help">Le mot de passe est envoyé une seule fois à Firebase Admin et n&apos;est jamais enregistré dans SQL Connect.</div></div>
           <button className="primary-button" type="submit" disabled={!persistenceReady || busyKey === "create-user"}>{busyKey === "create-user" ? "Création…" : "Créer le compte et le profil"}</button>
@@ -1351,7 +1264,7 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
         <div className="directory-list">{users.map((user) => <div className="directory-row" key={user.id}><div><strong>{user.displayName}</strong><small>{user.email ?? "Courriel non renseigné"} · {user.jobTitle ?? "Fonction non renseignée"}</small></div><span className="badge badge-neutral">{user.role}</span><span className={`badge ${user.status === "ACTIVE" ? "badge-success" : "badge-danger"}`}>{user.status === "ACTIVE" ? "Actif" : "Désactivé"}</span>{canCreateUsers && <button className="secondary-button" type="button" disabled={!persistenceReady || busyKey === `user-${user.id}`} onClick={() => void toggleUser(user)}>{busyKey === `user-${user.id}` ? "…" : user.status === "ACTIVE" ? "Désactiver" : "Réactiver"}</button>}</div>)}</div>
       </>}
       {selectedSection === "cards" && <>
-        <form className="directory-form" onSubmit={addCard}><div className="field-grid"><label className="field"><span>Quatre derniers chiffres</span><input required inputMode="numeric" maxLength={4} value={cardForm.lastFour} onChange={(event) => setCardForm((current) => ({ ...current, lastFour: event.target.value.replace(/\D/g, "") }))} placeholder="2481" /></label><label className="field"><span>Titulaire</span><select required value={cardForm.holderId} onChange={(event) => setCardForm((current) => ({ ...current, holderId: event.target.value }))}><option value="">Sélectionner le profil</option>{users.filter((user) => user.status === "ACTIVE").map((user) => <option key={user.id} value={user.id}>{user.displayName} · {user.jobTitle ?? user.role}</option>)}</select></label></div><div className="field-grid"><label className="field"><span>Fonction de la carte</span><input value={cardForm.cardFunction} onChange={(event) => setCardForm((current) => ({ ...current, cardFunction: event.target.value }))} placeholder="Propriétaire ou Contremaître" /></label><div className="directory-help">Seuls les quatre derniers chiffres sont conservés. Le numéro complet de la carte ne passe jamais dans l&apos;application.</div></div><button className="primary-button" type="submit" disabled={!persistenceReady || busyKey === "add-card"}>{busyKey === "add-card" ? "Enregistrement…" : "Ajouter et associer la carte"}</button></form>
+        <form className="directory-form" onSubmit={addCard}><div className="field-grid"><label className="field"><span>Quatre derniers chiffres</span><input required inputMode="numeric" maxLength={4} value={cardForm.lastFour} onChange={(event) => setCardForm((current) => ({ ...current, lastFour: event.target.value.replace(/\D/g, "") }))} placeholder="9001" /></label><label className="field"><span>Titulaire</span><select required value={cardForm.holderId} onChange={(event) => setCardForm((current) => ({ ...current, holderId: event.target.value }))}><option value="">Sélectionner le profil</option>{users.filter((user) => user.status === "ACTIVE").map((user) => <option key={user.id} value={user.id}>{user.displayName} · {user.jobTitle ?? user.role}</option>)}</select></label></div><div className="field-grid"><label className="field"><span>Fonction de la carte</span><input value={cardForm.cardFunction} onChange={(event) => setCardForm((current) => ({ ...current, cardFunction: event.target.value }))} placeholder="Fonction démo" /></label><div className="directory-help">Seuls les quatre derniers chiffres sont conservés. Le numéro complet de la carte ne passe jamais dans l&apos;application.</div></div><button className="primary-button" type="submit" disabled={!persistenceReady || busyKey === "add-card"}>{busyKey === "add-card" ? "Enregistrement…" : "Ajouter et associer la carte"}</button></form>
         <div className="directory-list">{cards.map((card) => <div className="directory-row card-directory-row" key={card.id}><div><strong>•••• {card.lastFour}</strong><small>{card.function} · {card.status} · {card.startDate || "date inconnue"}</small></div><select value={cardHolderDrafts[card.id] ?? card.holderId ?? ""} onChange={(event) => setCardHolderDrafts((current) => ({ ...current, [card.id]: event.target.value }))} aria-label={`Titulaire de la carte ${card.lastFour}`}><option value="">Titulaire à choisir</option>{users.map((user) => <option key={user.id} value={user.id}>{user.displayName}</option>)}</select><button className="secondary-button" type="button" disabled={!persistenceReady || busyKey === `card-${card.id}`} onClick={() => void saveCardAssignment(card)}>{busyKey === `card-${card.id}` ? "…" : "Enregistrer"}</button><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `toggle-card-${card.id}`} onClick={() => void toggleCard(card)}>{card.status === "Actif" ? "Désactiver" : "Réactiver"}</button></div>)}</div>
       </>}
     </section>

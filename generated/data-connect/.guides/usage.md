@@ -12,22 +12,28 @@ For each operation, there is a wrapper hook that can be used to call the operati
 
 Here are all of the hooks that get generated:
 ```ts
-import { useListCreditCards, useListCardStatementPeriods, useListExpenseAccounts, useListProjects, useListSkuReferences, useListExpenseTransactions, useListInvoicesToReview } from '@factures-thibeault/data-connect-generated/react';
+import { useAdminSeedCreditCard, useAdminSeedSkuReference, useAdminSeedExpenseTransaction, useAdminSeedInvoice, useAdminSeedInvoicePhoto, useUpsertUserProfile, useUpsertCreditCard, useCreateInvoiceIntake, useUpdateInvoiceIntakeAiResult, useMarkInvoiceIntakeAiError } from '@factures-thibeault/data-connect-generated/react';
 // The types of these hooks are available in react/index.d.ts
 
-const { data, isPending, isSuccess, isError, error } = useListCreditCards();
+const { data, isPending, isSuccess, isError, error } = useAdminSeedCreditCard(adminSeedCreditCardVars);
 
-const { data, isPending, isSuccess, isError, error } = useListCardStatementPeriods();
+const { data, isPending, isSuccess, isError, error } = useAdminSeedSkuReference(adminSeedSkuReferenceVars);
 
-const { data, isPending, isSuccess, isError, error } = useListExpenseAccounts();
+const { data, isPending, isSuccess, isError, error } = useAdminSeedExpenseTransaction(adminSeedExpenseTransactionVars);
 
-const { data, isPending, isSuccess, isError, error } = useListProjects();
+const { data, isPending, isSuccess, isError, error } = useAdminSeedInvoice(adminSeedInvoiceVars);
 
-const { data, isPending, isSuccess, isError, error } = useListSkuReferences();
+const { data, isPending, isSuccess, isError, error } = useAdminSeedInvoicePhoto(adminSeedInvoicePhotoVars);
 
-const { data, isPending, isSuccess, isError, error } = useListExpenseTransactions();
+const { data, isPending, isSuccess, isError, error } = useUpsertUserProfile(upsertUserProfileVars);
 
-const { data, isPending, isSuccess, isError, error } = useListInvoicesToReview();
+const { data, isPending, isSuccess, isError, error } = useUpsertCreditCard(upsertCreditCardVars);
+
+const { data, isPending, isSuccess, isError, error } = useCreateInvoiceIntake(createInvoiceIntakeVars);
+
+const { data, isPending, isSuccess, isError, error } = useUpdateInvoiceIntakeAiResult(updateInvoiceIntakeAiResultVars);
+
+const { data, isPending, isSuccess, isError, error } = useMarkInvoiceIntakeAiError(markInvoiceIntakeAiErrorVars);
 
 ```
 
@@ -66,29 +72,38 @@ If a user is not using a supported framework, they can use the generated SDK dir
 Here's an example of how to use it with the first 5 operations:
 
 ```js
-import { listCreditCards, listCardStatementPeriods, listExpenseAccounts, listProjects, listSkuReferences, listExpenseTransactions, listInvoicesToReview } from '@factures-thibeault/data-connect-generated';
+import { adminSeedCreditCard, adminSeedSkuReference, adminSeedExpenseTransaction, adminSeedInvoice, adminSeedInvoicePhoto, upsertUserProfile, upsertCreditCard, createInvoiceIntake, updateInvoiceIntakeAiResult, markInvoiceIntakeAiError } from '@factures-thibeault/data-connect-generated';
 
 
-// Operation ListCreditCards: 
-const { data } = await ListCreditCards(dataConnect);
+// Operation AdminSeedCreditCard:  For variables, look at type AdminSeedCreditCardVars in ../index.d.ts
+const { data } = await AdminSeedCreditCard(dataConnect, adminSeedCreditCardVars);
 
-// Operation ListCardStatementPeriods: 
-const { data } = await ListCardStatementPeriods(dataConnect);
+// Operation AdminSeedSkuReference:  For variables, look at type AdminSeedSkuReferenceVars in ../index.d.ts
+const { data } = await AdminSeedSkuReference(dataConnect, adminSeedSkuReferenceVars);
 
-// Operation ListExpenseAccounts: 
-const { data } = await ListExpenseAccounts(dataConnect);
+// Operation AdminSeedExpenseTransaction:  For variables, look at type AdminSeedExpenseTransactionVars in ../index.d.ts
+const { data } = await AdminSeedExpenseTransaction(dataConnect, adminSeedExpenseTransactionVars);
 
-// Operation ListProjects: 
-const { data } = await ListProjects(dataConnect);
+// Operation AdminSeedInvoice:  For variables, look at type AdminSeedInvoiceVars in ../index.d.ts
+const { data } = await AdminSeedInvoice(dataConnect, adminSeedInvoiceVars);
 
-// Operation ListSkuReferences: 
-const { data } = await ListSkuReferences(dataConnect);
+// Operation AdminSeedInvoicePhoto:  For variables, look at type AdminSeedInvoicePhotoVars in ../index.d.ts
+const { data } = await AdminSeedInvoicePhoto(dataConnect, adminSeedInvoicePhotoVars);
 
-// Operation ListExpenseTransactions: 
-const { data } = await ListExpenseTransactions(dataConnect);
+// Operation UpsertUserProfile:  For variables, look at type UpsertUserProfileVars in ../index.d.ts
+const { data } = await UpsertUserProfile(dataConnect, upsertUserProfileVars);
 
-// Operation ListInvoicesToReview: 
-const { data } = await ListInvoicesToReview(dataConnect);
+// Operation UpsertCreditCard:  For variables, look at type UpsertCreditCardVars in ../index.d.ts
+const { data } = await UpsertCreditCard(dataConnect, upsertCreditCardVars);
+
+// Operation CreateInvoiceIntake:  For variables, look at type CreateInvoiceIntakeVars in ../index.d.ts
+const { data } = await CreateInvoiceIntake(dataConnect, createInvoiceIntakeVars);
+
+// Operation UpdateInvoiceIntakeAiResult:  For variables, look at type UpdateInvoiceIntakeAiResultVars in ../index.d.ts
+const { data } = await UpdateInvoiceIntakeAiResult(dataConnect, updateInvoiceIntakeAiResultVars);
+
+// Operation MarkInvoiceIntakeAiError:  For variables, look at type MarkInvoiceIntakeAiErrorVars in ../index.d.ts
+const { data } = await MarkInvoiceIntakeAiError(dataConnect, markInvoiceIntakeAiErrorVars);
 
 
 ```
