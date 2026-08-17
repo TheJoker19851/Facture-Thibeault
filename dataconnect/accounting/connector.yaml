@@ -1,0 +1,6 @@
+connectorId: "accounting"
+generate:
+  javascriptSdk:
+    outputDir: "../../generated/data-connect"
+    package: "@factures-thibeault/data-connect-generated"
+    react: true

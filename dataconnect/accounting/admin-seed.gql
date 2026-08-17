@@ -1,0 +1,133 @@
+# Administrative fixture operations. NO_ACCESS prevents browser/client SDKs
+# from executing them. Only a trusted Firebase Admin SDK script can bypass the
+# directive, and scripts/seed-demo.mjs additionally refuses production.
+
+mutation AdminSeedCreditCard(
+  $id: String!
+  $lastFour: String!
+  $holderId: String!
+  $cardFunction: String
+  $status: String!
+  $activeFrom: Date
+) @auth(level: NO_ACCESS) {
+  creditCard_upsert(data: {
+    id: $id
+    lastFour: $lastFour
+    holder: { id: $holderId }
+    cardFunction: $cardFunction
+    status: $status
+    activeFrom: $activeFrom
+  })
+}
+
+mutation AdminSeedSkuReference(
+  $merchant: String!
+  $sku: String!
+  $productLabel: String
+  $categoryLabel: String
+  $accountCode: String!
+  $verificationStatus: String!
+) @auth(level: NO_ACCESS) {
+  skuReference_upsert(data: {
+    merchant: $merchant
+    sku: $sku
+    productLabel: $productLabel
+    categoryLabel: $categoryLabel
+    expenseAccount: { code: $accountCode }
+    verificationStatus: $verificationStatus
+  })
+}
+
+mutation AdminSeedExpenseTransaction(
+  $id: String!
+  $transactionDate: Date!
+  $vendor: String!
+  $cardId: String!
+  $statementPeriodId: String!
+  $projectId: String!
+  $accountCode: String!
+  $categoryLabel: String
+  $sku: String
+  $amountBeforeTaxCents: Int64!
+  $tpsCents: Int64!
+  $tvqCents: Int64!
+  $totalCents: Int64!
+  $currency: String!
+  $status: String!
+  $reconciliationStatus: String!
+  $classificationSource: String
+  $classificationConfidence: Float
+  $classificationNote: String
+  $invoiceNumber: String
+  $issue: String
+) @auth(level: NO_ACCESS) {
+  expenseTransaction_upsert(data: {
+    id: $id
+    transactionDate: $transactionDate
+    vendor: $vendor
+    card: { id: $cardId }
+    statementPeriod: { id: $statementPeriodId }
+    project: { id: $projectId }
+    expenseAccount: { code: $accountCode }
+    categoryLabel: $categoryLabel
+    sku: $sku
+    amountBeforeTaxCents: $amountBeforeTaxCents
+    tpsCents: $tpsCents
+    tvqCents: $tvqCents
+    totalCents: $totalCents
+    currency: $currency
+    status: $status
+    reconciliationStatus: $reconciliationStatus
+    classificationSource: $classificationSource
+    classificationConfidence: $classificationConfidence
+    classificationNote: $classificationNote
+    invoiceNumber: $invoiceNumber
+    issue: $issue
+  })
+}
+
+mutation AdminSeedInvoice(
+  $id: String!
+  $transactionId: String!
+  $vendor: String!
+  $invoiceNumber: String
+  $invoiceDate: Date
+  $subtotalCents: Int64
+  $tpsCents: Int64
+  $tvqCents: Int64
+  $totalCents: Int64
+  $reviewStatus: String!
+  $storageFolder: String
+  $createdById: String!
+) @auth(level: NO_ACCESS) {
+  invoice_upsert(data: {
+    id: $id
+    transaction: { id: $transactionId }
+    vendor: $vendor
+    invoiceNumber: $invoiceNumber
+    invoiceDate: $invoiceDate
+    subtotalCents: $subtotalCents
+    tpsCents: $tpsCents
+    tvqCents: $tvqCents
+    totalCents: $totalCents
+    reviewStatus: $reviewStatus
+    storageFolder: $storageFolder
+    createdBy: { id: $createdById }
+  })
+}
+
+mutation AdminSeedInvoicePhoto(
+  $id: String!
+  $invoiceId: String!
+  $storagePath: String!
+  $contentType: String!
+  $sequence: Int!
+) @auth(level: NO_ACCESS) {
+  invoicePhoto_upsert(data: {
+    id: $id
+    invoice: { id: $invoiceId }
+    storagePath: $storagePath
+    contentType: $contentType
+    sequence: $sequence
+  })
+}

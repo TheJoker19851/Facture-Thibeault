@@ -1,0 +1,185 @@
+# Factures Thibeault - first relational model
+#
+# Monetary values are stored as CAD cents (Int64), never as floating point
+# dollars. This keeps the accounting totals exact when data reaches SQL
+# Connect and the reporting layer.
+
+type UserProfile @table(name: "user_profiles", key: "id") {
+  id: String!
+  firebaseUid: String! @unique
+  displayName: String!
+  email: String
+  jobTitle: String
+  role: String! @default(value: "WORKER")
+  status: String! @default(value: "ACTIVE")
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type Project @table(name: "projects", key: "id") {
+  id: String!
+  name: String!
+  status: String! @default(value: "ACTIVE")
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type ExpenseAccount @table(name: "expense_accounts", key: "code") {
+  code: String!
+  label: String!
+  status: String! @default(value: "ACTIVE")
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type TaxAccount @table(name: "tax_accounts", key: "code") {
+  code: String!
+  label: String!
+  status: String! @default(value: "ACTIVE")
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type CreditCard @table(name: "credit_cards", key: "id") {
+  id: String!
+  lastFour: String!
+  holder: UserProfile!
+  cardFunction: String
+  status: String! @default(value: "ACTIVE")
+  activeFrom: Date
+  inactiveFrom: Date
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type CardStatementPeriod @table(name: "card_statement_periods", key: "id") {
+  id: String!
+  label: String!
+  startDate: Date!
+  endDate: Date!
+  statementLabel: String
+  status: String! @default(value: "OPEN")
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type SkuReference @table(name: "sku_references", key: ["merchant", "sku"]) {
+  merchant: String!
+  sku: String!
+  productLabel: String
+  categoryLabel: String
+  expenseAccount: ExpenseAccount
+  sourceUrl: String
+  verificationStatus: String! @default(value: "TO_CONFIRM")
+  verifiedAt: Timestamp
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type ExpenseTransaction @table(name: "expense_transactions", key: "id") {
+  id: String!
+  transactionDate: Date!
+  vendor: String!
+  card: CreditCard!
+  statementPeriod: CardStatementPeriod!
+  project: Project
+  expenseAccount: ExpenseAccount
+  categoryLabel: String
+  sku: String
+  amountBeforeTaxCents: Int64!
+  tpsCents: Int64! @default(value: 0)
+  tvqCents: Int64! @default(value: 0)
+  totalCents: Int64!
+  currency: String! @default(value: "CAD")
+  status: String! @default(value: "TO_VERIFY")
+  reconciliationStatus: String! @default(value: "UNMATCHED")
+  classificationSource: String
+  classificationConfidence: Float
+  classificationNote: String
+  invoiceNumber: String
+  issue: String
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type Invoice @table(name: "invoices", key: "id") {
+  id: String!
+  transaction: ExpenseTransaction! @unique
+  vendor: String!
+  invoiceNumber: String
+  invoiceDate: Date
+  subtotalCents: Int64
+  tpsCents: Int64
+  tvqCents: Int64
+  totalCents: Int64
+  reviewStatus: String! @default(value: "TO_VERIFY")
+  storageFolder: String
+  createdBy: UserProfile
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type InvoicePhoto @table(name: "invoice_photos", key: "id") {
+  id: String!
+  invoice: Invoice!
+  storagePath: String!
+  contentType: String!
+  sequence: Int!
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# Intake record written immediately after a mobile upload. It is deliberately
+# separate from Invoice because OCR has not yet established the vendor, date,
+# amounts or card/statement match. The receiptId is also the idempotency key:
+# retrying the client acknowledgement cannot create a second intake row.
+type InvoiceIntake @table(name: "invoice_intakes", key: "receiptId") {
+  receiptId: String!
+  uploaderUid: String!
+  storageFolder: String!
+  photoCount: Int!
+  status: String! @default(value: "RECEIVED")
+  lastError: String
+  aiModel: String
+  aiConfidence: Float
+  extractedVendor: String
+  extractedInvoiceNumber: String
+  extractedInvoiceDate: Date
+  extractedSubtotalCents: Int64
+  extractedTpsCents: Int64
+  extractedTvqCents: Int64
+  extractedTotalCents: Int64
+  extractedCurrency: String
+  extractedSku: String
+  extractedCategory: String
+  extractedProjectId: String
+  classificationAccountCode: String
+  classificationCategory: String
+  classificationSource: String
+  classificationConfidence: Float
+  classificationStatus: String
+  aiNotes: String
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type TransactionCorrection @table(name: "transaction_corrections", key: "id") {
+  id: String!
+  invoice: Invoice
+  transaction: ExpenseTransaction!
+  fieldName: String!
+  previousValue: String
+  correctedValue: String!
+  correctedBy: UserProfile!
+  note: String
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type AuditEvent @table(name: "audit_events", key: "id") {
+  id: String!
+  actor: UserProfile
+  action: String!
+  entityType: String!
+  entityId: String!
+  details: String
+  createdAt: Timestamp! @default(expr: "request.time")
+}

@@ -12,5 +12,23 @@ This is a technical residency choice, not a complete legal-compliance
 determination. Before real personal information is imported, complete the
 Québec EFVP and supplier/data-transfer review in `docs/EFVP-Quebec.md`.
 
-`seed-data.ts` is only a controlled reference-data input from the prototype. It
-is not a runtime source of truth and is not deployed.
+`seed-data.ts` is a deprecated, fictitious UI compatibility fixture. The
+authoritative demo fixture is `scripts/fixtures/demo-data.mjs`; it is not a
+runtime source of truth and is never deployed automatically.
+
+## Émulateur local
+
+Le seed reproductible crée quatre comptes fictifs (`WORKER`, `KIM`, `ADMIN` et
+`SUPER_ADMIN`) ainsi que leurs cartes, projets, fournisseurs et factures de
+démonstration. Il passe par Firebase Admin et par des opérations Data Connect
+`NO_ACCESS`, donc aucune opération de seed n'est exposée au client.
+
+```bash
+npm run seed:local
+npm run test:emulator
+```
+
+`npm run seed:staging` exige l'identifiant exact du projet staging et
+`CONFIRM_STAGING_SEED=SEED_FACTURE_THIBEAULT_STAGING`. Le code rejette toujours
+le projet de production `facture-thibeault`, même si une variable de
+confirmation est fournie.

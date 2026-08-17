@@ -1,0 +1,72 @@
+import { AdminSeedCreditCardData, AdminSeedCreditCardVariables, AdminSeedSkuReferenceData, AdminSeedSkuReferenceVariables, AdminSeedExpenseTransactionData, AdminSeedExpenseTransactionVariables, AdminSeedInvoiceData, AdminSeedInvoiceVariables, AdminSeedInvoicePhotoData, AdminSeedInvoicePhotoVariables, UpsertUserProfileData, UpsertUserProfileVariables, UpsertCreditCardData, UpsertCreditCardVariables, CreateInvoiceIntakeData, CreateInvoiceIntakeVariables, UpdateInvoiceIntakeAiResultData, UpdateInvoiceIntakeAiResultVariables, MarkInvoiceIntakeAiErrorData, MarkInvoiceIntakeAiErrorVariables, UpdateInvoiceIntakeReviewData, UpdateInvoiceIntakeReviewVariables, CommitInvoiceIntakeData, CommitInvoiceIntakeVariables, CommitInvoiceIntakeWithoutProjectData, CommitInvoiceIntakeWithoutProjectVariables, ListUserProfilesData, ListCreditCardsData, ListCardStatementPeriodsData, ListExpenseAccountsData, ListProjectsData, ListSkuReferencesData, ListExpenseTransactionsData, ListInvoicesToReviewData, ListInvoiceIntakesData } from '../';
+import { UseDataConnectQueryResult, useDataConnectQueryOptions, UseDataConnectMutationResult, useDataConnectMutationOptions} from '@tanstack-query-firebase/react/data-connect';
+import { UseQueryResult, UseMutationResult} from '@tanstack/react-query';
+import { DataConnect } from 'firebase/data-connect';
+import { FirebaseError } from 'firebase/app';
+
+
+export function useAdminSeedCreditCard(options?: useDataConnectMutationOptions<AdminSeedCreditCardData, FirebaseError, AdminSeedCreditCardVariables>): UseDataConnectMutationResult<AdminSeedCreditCardData, AdminSeedCreditCardVariables>;
+export function useAdminSeedCreditCard(dc: DataConnect, options?: useDataConnectMutationOptions<AdminSeedCreditCardData, FirebaseError, AdminSeedCreditCardVariables>): UseDataConnectMutationResult<AdminSeedCreditCardData, AdminSeedCreditCardVariables>;
+
+export function useAdminSeedSkuReference(options?: useDataConnectMutationOptions<AdminSeedSkuReferenceData, FirebaseError, AdminSeedSkuReferenceVariables>): UseDataConnectMutationResult<AdminSeedSkuReferenceData, AdminSeedSkuReferenceVariables>;
+export function useAdminSeedSkuReference(dc: DataConnect, options?: useDataConnectMutationOptions<AdminSeedSkuReferenceData, FirebaseError, AdminSeedSkuReferenceVariables>): UseDataConnectMutationResult<AdminSeedSkuReferenceData, AdminSeedSkuReferenceVariables>;
+
+export function useAdminSeedExpenseTransaction(options?: useDataConnectMutationOptions<AdminSeedExpenseTransactionData, FirebaseError, AdminSeedExpenseTransactionVariables>): UseDataConnectMutationResult<AdminSeedExpenseTransactionData, AdminSeedExpenseTransactionVariables>;
+export function useAdminSeedExpenseTransaction(dc: DataConnect, options?: useDataConnectMutationOptions<AdminSeedExpenseTransactionData, FirebaseError, AdminSeedExpenseTransactionVariables>): UseDataConnectMutationResult<AdminSeedExpenseTransactionData, AdminSeedExpenseTransactionVariables>;
+
+export function useAdminSeedInvoice(options?: useDataConnectMutationOptions<AdminSeedInvoiceData, FirebaseError, AdminSeedInvoiceVariables>): UseDataConnectMutationResult<AdminSeedInvoiceData, AdminSeedInvoiceVariables>;
+export function useAdminSeedInvoice(dc: DataConnect, options?: useDataConnectMutationOptions<AdminSeedInvoiceData, FirebaseError, AdminSeedInvoiceVariables>): UseDataConnectMutationResult<AdminSeedInvoiceData, AdminSeedInvoiceVariables>;
+
+export function useAdminSeedInvoicePhoto(options?: useDataConnectMutationOptions<AdminSeedInvoicePhotoData, FirebaseError, AdminSeedInvoicePhotoVariables>): UseDataConnectMutationResult<AdminSeedInvoicePhotoData, AdminSeedInvoicePhotoVariables>;
+export function useAdminSeedInvoicePhoto(dc: DataConnect, options?: useDataConnectMutationOptions<AdminSeedInvoicePhotoData, FirebaseError, AdminSeedInvoicePhotoVariables>): UseDataConnectMutationResult<AdminSeedInvoicePhotoData, AdminSeedInvoicePhotoVariables>;
+
+export function useUpsertUserProfile(options?: useDataConnectMutationOptions<UpsertUserProfileData, FirebaseError, UpsertUserProfileVariables>): UseDataConnectMutationResult<UpsertUserProfileData, UpsertUserProfileVariables>;
+export function useUpsertUserProfile(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertUserProfileData, FirebaseError, UpsertUserProfileVariables>): UseDataConnectMutationResult<UpsertUserProfileData, UpsertUserProfileVariables>;
+
+export function useUpsertCreditCard(options?: useDataConnectMutationOptions<UpsertCreditCardData, FirebaseError, UpsertCreditCardVariables>): UseDataConnectMutationResult<UpsertCreditCardData, UpsertCreditCardVariables>;
+export function useUpsertCreditCard(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertCreditCardData, FirebaseError, UpsertCreditCardVariables>): UseDataConnectMutationResult<UpsertCreditCardData, UpsertCreditCardVariables>;
+
+export function useCreateInvoiceIntake(options?: useDataConnectMutationOptions<CreateInvoiceIntakeData, FirebaseError, CreateInvoiceIntakeVariables>): UseDataConnectMutationResult<CreateInvoiceIntakeData, CreateInvoiceIntakeVariables>;
+export function useCreateInvoiceIntake(dc: DataConnect, options?: useDataConnectMutationOptions<CreateInvoiceIntakeData, FirebaseError, CreateInvoiceIntakeVariables>): UseDataConnectMutationResult<CreateInvoiceIntakeData, CreateInvoiceIntakeVariables>;
+
+export function useUpdateInvoiceIntakeAiResult(options?: useDataConnectMutationOptions<UpdateInvoiceIntakeAiResultData, FirebaseError, UpdateInvoiceIntakeAiResultVariables>): UseDataConnectMutationResult<UpdateInvoiceIntakeAiResultData, UpdateInvoiceIntakeAiResultVariables>;
+export function useUpdateInvoiceIntakeAiResult(dc: DataConnect, options?: useDataConnectMutationOptions<UpdateInvoiceIntakeAiResultData, FirebaseError, UpdateInvoiceIntakeAiResultVariables>): UseDataConnectMutationResult<UpdateInvoiceIntakeAiResultData, UpdateInvoiceIntakeAiResultVariables>;
+
+export function useMarkInvoiceIntakeAiError(options?: useDataConnectMutationOptions<MarkInvoiceIntakeAiErrorData, FirebaseError, MarkInvoiceIntakeAiErrorVariables>): UseDataConnectMutationResult<MarkInvoiceIntakeAiErrorData, MarkInvoiceIntakeAiErrorVariables>;
+export function useMarkInvoiceIntakeAiError(dc: DataConnect, options?: useDataConnectMutationOptions<MarkInvoiceIntakeAiErrorData, FirebaseError, MarkInvoiceIntakeAiErrorVariables>): UseDataConnectMutationResult<MarkInvoiceIntakeAiErrorData, MarkInvoiceIntakeAiErrorVariables>;
+
+export function useUpdateInvoiceIntakeReview(options?: useDataConnectMutationOptions<UpdateInvoiceIntakeReviewData, FirebaseError, UpdateInvoiceIntakeReviewVariables>): UseDataConnectMutationResult<UpdateInvoiceIntakeReviewData, UpdateInvoiceIntakeReviewVariables>;
+export function useUpdateInvoiceIntakeReview(dc: DataConnect, options?: useDataConnectMutationOptions<UpdateInvoiceIntakeReviewData, FirebaseError, UpdateInvoiceIntakeReviewVariables>): UseDataConnectMutationResult<UpdateInvoiceIntakeReviewData, UpdateInvoiceIntakeReviewVariables>;
+
+export function useCommitInvoiceIntake(options?: useDataConnectMutationOptions<CommitInvoiceIntakeData, FirebaseError, CommitInvoiceIntakeVariables>): UseDataConnectMutationResult<CommitInvoiceIntakeData, CommitInvoiceIntakeVariables>;
+export function useCommitInvoiceIntake(dc: DataConnect, options?: useDataConnectMutationOptions<CommitInvoiceIntakeData, FirebaseError, CommitInvoiceIntakeVariables>): UseDataConnectMutationResult<CommitInvoiceIntakeData, CommitInvoiceIntakeVariables>;
+
+export function useCommitInvoiceIntakeWithoutProject(options?: useDataConnectMutationOptions<CommitInvoiceIntakeWithoutProjectData, FirebaseError, CommitInvoiceIntakeWithoutProjectVariables>): UseDataConnectMutationResult<CommitInvoiceIntakeWithoutProjectData, CommitInvoiceIntakeWithoutProjectVariables>;
+export function useCommitInvoiceIntakeWithoutProject(dc: DataConnect, options?: useDataConnectMutationOptions<CommitInvoiceIntakeWithoutProjectData, FirebaseError, CommitInvoiceIntakeWithoutProjectVariables>): UseDataConnectMutationResult<CommitInvoiceIntakeWithoutProjectData, CommitInvoiceIntakeWithoutProjectVariables>;
+
+export function useListUserProfiles(options?: useDataConnectQueryOptions<ListUserProfilesData>): UseDataConnectQueryResult<ListUserProfilesData, undefined>;
+export function useListUserProfiles(dc: DataConnect, options?: useDataConnectQueryOptions<ListUserProfilesData>): UseDataConnectQueryResult<ListUserProfilesData, undefined>;
+
+export function useListCreditCards(options?: useDataConnectQueryOptions<ListCreditCardsData>): UseDataConnectQueryResult<ListCreditCardsData, undefined>;
+export function useListCreditCards(dc: DataConnect, options?: useDataConnectQueryOptions<ListCreditCardsData>): UseDataConnectQueryResult<ListCreditCardsData, undefined>;
+
+export function useListCardStatementPeriods(options?: useDataConnectQueryOptions<ListCardStatementPeriodsData>): UseDataConnectQueryResult<ListCardStatementPeriodsData, undefined>;
+export function useListCardStatementPeriods(dc: DataConnect, options?: useDataConnectQueryOptions<ListCardStatementPeriodsData>): UseDataConnectQueryResult<ListCardStatementPeriodsData, undefined>;
+
+export function useListExpenseAccounts(options?: useDataConnectQueryOptions<ListExpenseAccountsData>): UseDataConnectQueryResult<ListExpenseAccountsData, undefined>;
+export function useListExpenseAccounts(dc: DataConnect, options?: useDataConnectQueryOptions<ListExpenseAccountsData>): UseDataConnectQueryResult<ListExpenseAccountsData, undefined>;
+
+export function useListProjects(options?: useDataConnectQueryOptions<ListProjectsData>): UseDataConnectQueryResult<ListProjectsData, undefined>;
+export function useListProjects(dc: DataConnect, options?: useDataConnectQueryOptions<ListProjectsData>): UseDataConnectQueryResult<ListProjectsData, undefined>;
+
+export function useListSkuReferences(options?: useDataConnectQueryOptions<ListSkuReferencesData>): UseDataConnectQueryResult<ListSkuReferencesData, undefined>;
+export function useListSkuReferences(dc: DataConnect, options?: useDataConnectQueryOptions<ListSkuReferencesData>): UseDataConnectQueryResult<ListSkuReferencesData, undefined>;
+
+export function useListExpenseTransactions(options?: useDataConnectQueryOptions<ListExpenseTransactionsData>): UseDataConnectQueryResult<ListExpenseTransactionsData, undefined>;
+export function useListExpenseTransactions(dc: DataConnect, options?: useDataConnectQueryOptions<ListExpenseTransactionsData>): UseDataConnectQueryResult<ListExpenseTransactionsData, undefined>;
+
+export function useListInvoicesToReview(options?: useDataConnectQueryOptions<ListInvoicesToReviewData>): UseDataConnectQueryResult<ListInvoicesToReviewData, undefined>;
+export function useListInvoicesToReview(dc: DataConnect, options?: useDataConnectQueryOptions<ListInvoicesToReviewData>): UseDataConnectQueryResult<ListInvoicesToReviewData, undefined>;
+
+export function useListInvoiceIntakes(options?: useDataConnectQueryOptions<ListInvoiceIntakesData>): UseDataConnectQueryResult<ListInvoiceIntakesData, undefined>;
+export function useListInvoiceIntakes(dc: DataConnect, options?: useDataConnectQueryOptions<ListInvoiceIntakesData>): UseDataConnectQueryResult<ListInvoiceIntakesData, undefined>;

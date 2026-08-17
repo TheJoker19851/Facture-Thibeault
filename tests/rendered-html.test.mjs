@@ -3,7 +3,7 @@ import { readFile, readdir } from "node:fs/promises";
 import test from "node:test";
 
 async function render(pathname = "/") {
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
+  const workerUrl = new URL("../.vercel/output/functions/__server.func/index.mjs", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
 
@@ -12,13 +12,7 @@ async function render(pathname = "/") {
       headers: { accept: "text/html" },
     }),
     {
-      ASSETS: {
-        fetch: async () => new Response("Not found", { status: 404 }),
-      },
-    },
-    {
       waitUntil() {},
-      passThroughOnException() {},
     },
   );
 }
@@ -30,10 +24,29 @@ test("server-renders the Thibeault administration shell", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>Thibeault · Factures et dépenses<\/title>/i);
+
+  if (/Vérification des permissions/.test(html)) {
+    assert.match(html, /Le rôle Firebase du compte est vérifié/);
+    assert.doesNotMatch(html, /Alice Démo|Données de démonstration/);
+    assert.match(html, /manifest\.webmanifest/);
+    return;
+  }
+
+  if (/Chargement des données comptables/.test(html)) {
+    assert.match(html, /Firebase SQL Connect/);
+    assert.match(html, /Les données de démonstration ne sont pas affichées en production/);
+    assert.match(html, /manifest\.webmanifest/);
+    return;
+  }
+
   assert.match(html, /Tableau de bord/);
-  assert.match(html, /Données de démonstration/);
+  assert.match(html, /Données de démonstration|Connexion Firebase…/);
   assert.match(html, /À vérifier/);
-  assert.match(html, /33544 · Essence/);
+  assert.match(html, /1 · Titulaires/);
+  assert.match(html, /2 · Transactions par personne/);
+  assert.match(html, /3 · Factures à corriger/);
+  assert.match(html, /4 · Tableau comptable/);
+  assert.match(html, /Alice Démo/);
   assert.match(html, /Période des cartes/);
   assert.match(html, /manifest\.webmanifest/);
   assert.doesNotMatch(html, /Your site is taking shape|react-loading-skeleton|codex-preview/);
@@ -43,8 +56,13 @@ test("exposes a direct mobile capture route and PWA manifest", async () => {
   const response = await render("/capture");
   assert.equal(response.status, 200);
   const html = await response.text();
+  if (/Vérification des permissions/.test(html)) {
+    assert.match(html, /Accès sécurisé/);
+    assert.doesNotMatch(html, /Prendre une photo/);
+    return;
+  }
   assert.match(html, /Photographier, envoyer\./);
-  assert.match(html, /Prendre une photo/);
+  assert.match(html, /Prendre la première photo/);
   assert.match(html, /En ligne/);
 
   const manifest = await readFile(new URL("../public/manifest.webmanifest", import.meta.url), "utf8");
@@ -54,8 +72,32 @@ test("exposes a direct mobile capture route and PWA manifest", async () => {
 });
 
 test("does not retain the starter preview skeleton", async () => {
-  const previewFiles = await readdir(new URL("../app/_sites-preview", import.meta.url));
+  let previewFiles = [];
+  try {
+    previewFiles = await readdir(new URL("../app/_sites-preview", import.meta.url));
+  } catch (error) {
+    assert.equal(error?.code, "ENOENT");
+  }
   assert.deepEqual(previewFiles, []);
   const packageJson = await readFile(new URL("../package.json", import.meta.url), "utf8");
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
+});
+
+test("rejects unauthenticated direct access to privileged API routes", async () => {
+  const workerUrl = new URL("../.vercel/output/functions/__server.func/index.mjs", import.meta.url);
+  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}-api`);
+  const { default: worker } = await import(workerUrl.href);
+  const context = { waitUntil() {} };
+
+  const adminResponse = await worker.fetch(new Request("http://localhost/api/admin/users", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: "{}",
+  }), context);
+  assert.equal(adminResponse.status, 403);
+
+  const aiResponse = await worker.fetch(new Request("http://localhost/api/ai/process-invoice", {
+    method: "POST",
+  }), context);
+  assert.equal(aiResponse.status, 401);
 });

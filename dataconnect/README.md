@@ -8,20 +8,28 @@ Thibeault:
 - PostgreSQL database: `facture-thibeault-database`
 - Cloud SQL instance: `facture-thibeault-instance`
 
-No application tables, schema, operations, connector, or seed data are deployed
-yet. `connectorDirs: []` is deliberate until the business schema and the
-connector ID are approved. Do not run `firebase deploy --only dataconnect` until
-those files exist and the SQL diff has been reviewed.
+The first version of the application schema now lives in
+`schema/accounting.gql`, and the read-only `accounting` connector is declared in
+`accounting/`. It covers the current product boundary:
 
-The future model will likely cover users, cards, projects, accounts,
-categories, receipts, receipt images/items, card statements/transactions,
-matches, periods, manual corrections, audit logs, and Canadian Tire SKUs. This
-is a proposal list only, not a database migration.
+- users, cards, and configurable statement periods;
+- projects, expense accounts, tax amounts, and CAD-cent accounting values;
+- transactions with card holder, project, account classification, SKU, and
+  reconciliation state;
+- invoices, private invoice photos, corrections, and audit events;
+- merchant/SKU references for Canadian Tire and other SKU-only suppliers.
 
-Once the schema and operations are approved:
+The connector exposes accounting reads to `KIM`, `ADMIN` and `SUPER_ADMIN`.
+`WORKER` accounts cannot read global accounting data; they may create and list
+only their own intake records. AI result mutations and seed mutations are
+`NO_ACCESS`: trusted server code authenticates the caller, checks ownership and
+uses Firebase Admin. Storage rules independently restrict invoice evidence.
 
-1. Add `dataconnect/<connector>/connector.yaml` and the GraphQL schema and
-   operations.
-2. Generate the typed web SDK with `firebase dataconnect:sdk:generate`.
-3. Run the SQL Connect emulator locally and validate the generated operations.
-4. Review the SQL diff, then deploy with `firebase deploy --only dataconnect`.
+Next integration steps:
+
+1. Run `npm run test:emulator` and review every role assertion.
+2. Create the dedicated staging project documented in
+   `docs/Firebase-connection.md` (the project does not currently exist).
+3. Run `npm run firebase:plan:staging` and review the SQL diff.
+4. Deploy staging only through `npm run firebase:deploy:staging` with its exact
+   confirmation value. Production requires two separate confirmations.

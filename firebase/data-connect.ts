@@ -6,7 +6,7 @@ import {
   type ConnectorConfig,
   type DataConnect,
 } from "firebase/data-connect";
-import { firebaseApp } from "./client";
+import { firebaseApp, firebaseUsesEmulators } from "./client";
 
 export const SQL_CONNECT_LOCATION =
   process.env.NEXT_PUBLIC_SQL_CONNECT_LOCATION ?? "northamerica-northeast1";
@@ -40,7 +40,7 @@ export const firebaseDataConnect: DataConnect | null =
 
 if (
   firebaseDataConnect &&
-  process.env.NEXT_PUBLIC_FIREBASE_USE_EMULATORS === "true"
+  firebaseUsesEmulators
 ) {
   try {
     connectDataConnectEmulator(firebaseDataConnect, "127.0.0.1", 9399);

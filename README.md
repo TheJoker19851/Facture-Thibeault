@@ -12,26 +12,40 @@ SQL Connect/PostgreSQL and private Storage.
 
 ```bash
 npm install
-npm run dev
+npm run dev:emulator
+npm run test:emulator
 npm run build
 ```
 
-Production deployment is intentionally out of scope for the current
-development tranche.
+`dev:emulator` force l'identifiant isolé `demo-facture-thibeault`, démarre
+Auth, Storage et Data Connect, charge des données fictives puis lance l'app.
+Il n'utilise jamais les identifiants présents dans `.env.local`.
+
+Production access is role-based: Kim and administrators can use the accounting
+workspace, while assigned workers can only submit invoice photos.
 
 ## Included Shape
 
 - edit site code under `app/`
 - `dataconnect/dataconnect.yaml` records the supplied SQL Connect/PostgreSQL
   service, database, instance and Montréal region
-- `firebase/seed-data.ts` contains controlled reference-data input from the
-  legacy demo data and Kim's official accounting-table image; it is not seeded
+- `scripts/fixtures/demo-data.mjs` contains fictitious, idempotent demo data
+  shared by the local and staging seed commands
+- `scripts/seed-demo.mjs` seeds Auth and Data Connect through Firebase Admin;
+  it rejects production unconditionally
 - `firebase/data-connect.ts` prepares the public client connector metadata
 - `firebase.json` and `storage.rules` keep the Firebase boundary closed by
   default and prepare the Montréal region
+- `/capture` is the mobile deposit flow and the PWA `start_url`: the first
+  button opens the rear camera, additional pages can be added in order, and a
+  successful send clears the invoice tray for the next receipt
+- `vercel.json` builds vinext through Nitro's Vercel preset; the production
+  deployment is protected by Firebase Authentication and uses no custom domain
 - `docs/EFVP-Quebec.md` records the Québec privacy and data-transfer checklist
-- `app/components/FirebaseShell.tsx` keeps the app in local demo mode until
-  the Firebase web-app variables are configured
+- `app/components/FirebaseShell.tsx` gates the production application behind
+  Firebase Authentication and a `WORKER`, `KIM`, `ADMIN` or `SUPER_ADMIN`
+  custom claim; the demo mode is only available when production variables are
+  absent
 - `db/` and `drizzle/` are legacy starter scaffolding and are not the official
   application data model
 
@@ -97,15 +111,21 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 
 ## Useful Commands
 
-- `npm run dev`: start local development
+- `npm run dev:emulator`: start isolated emulators, seed demo data and run the app
+- `npm run dev:staging`: run against `.env.staging.local` after validation
+- `npm run env:check`: validate `.env.local` without printing secrets
+- `npm run env:check:staging`: validate `.env.staging.local`
+- `npm run seed:local`: reset/load the fictitious local demo fixture
+- `npm run seed:staging`: load the staging fixture after the exact confirmation
+- `npm run test:emulator`: verify Auth, Storage and Data Connect permissions
 - `npm run build`: verify the vinext build output
 - `npm test`: build the application and verify the rendered PWA shell
-- `pnpm exec tsc --noEmit`: run the TypeScript check (the legacy Cloudflare
-  starter files still require their optional worker type package)
-- `npx firebase-tools emulators:start --only auth,storage,dataconnect`: run
-  the local Firebase Auth, Storage and SQL Connect emulators
+- `pnpm exec tsc --noEmit`: run the TypeScript check
+- `npm run firebase:plan:staging`: compile and inspect the staging SQL diff
+- `npm run firebase:deploy:staging`: deploy only with the documented guard
 - See `docs/Firebase-connection.md` for environment separation, connector
-  generation and deployment gates
+  generation, Vercel scopes and deployment gates
+- See `docs/Validation-e2e.md` for the complete role/permission validation plan
 
 ## Learn More
 

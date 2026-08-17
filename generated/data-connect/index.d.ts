@@ -1,0 +1,757 @@
+import { ConnectorConfig, DataConnect, QueryRef, QueryPromise, ExecuteQueryOptions, MutationRef, MutationPromise } from 'firebase/data-connect';
+
+export const connectorConfig: ConnectorConfig;
+
+export type TimestampString = string;
+export type UUIDString = string;
+export type Int64String = string;
+export type DateString = string;
+
+
+
+
+export interface AdminSeedCreditCardData {
+  creditCard_upsert: CreditCard_Key;
+}
+
+export interface AdminSeedCreditCardVariables {
+  id: string;
+  lastFour: string;
+  holderId: string;
+  cardFunction?: string | null;
+  status: string;
+  activeFrom?: DateString | null;
+}
+
+export interface AdminSeedExpenseTransactionData {
+  expenseTransaction_upsert: ExpenseTransaction_Key;
+}
+
+export interface AdminSeedExpenseTransactionVariables {
+  id: string;
+  transactionDate: DateString;
+  vendor: string;
+  cardId: string;
+  statementPeriodId: string;
+  projectId: string;
+  accountCode: string;
+  categoryLabel?: string | null;
+  sku?: string | null;
+  amountBeforeTaxCents: Int64String;
+  tpsCents: Int64String;
+  tvqCents: Int64String;
+  totalCents: Int64String;
+  currency: string;
+  status: string;
+  reconciliationStatus: string;
+  classificationSource?: string | null;
+  classificationConfidence?: number | null;
+  classificationNote?: string | null;
+  invoiceNumber?: string | null;
+  issue?: string | null;
+}
+
+export interface AdminSeedInvoiceData {
+  invoice_upsert: Invoice_Key;
+}
+
+export interface AdminSeedInvoicePhotoData {
+  invoicePhoto_upsert: InvoicePhoto_Key;
+}
+
+export interface AdminSeedInvoicePhotoVariables {
+  id: string;
+  invoiceId: string;
+  storagePath: string;
+  contentType: string;
+  sequence: number;
+}
+
+export interface AdminSeedInvoiceVariables {
+  id: string;
+  transactionId: string;
+  vendor: string;
+  invoiceNumber?: string | null;
+  invoiceDate?: DateString | null;
+  subtotalCents?: Int64String | null;
+  tpsCents?: Int64String | null;
+  tvqCents?: Int64String | null;
+  totalCents?: Int64String | null;
+  reviewStatus: string;
+  storageFolder?: string | null;
+  createdById: string;
+}
+
+export interface AdminSeedSkuReferenceData {
+  skuReference_upsert: SkuReference_Key;
+}
+
+export interface AdminSeedSkuReferenceVariables {
+  merchant: string;
+  sku: string;
+  productLabel?: string | null;
+  categoryLabel?: string | null;
+  accountCode: string;
+  verificationStatus: string;
+}
+
+export interface AuditEvent_Key {
+  id: string;
+  __typename?: 'AuditEvent_Key';
+}
+
+export interface CardStatementPeriod_Key {
+  id: string;
+  __typename?: 'CardStatementPeriod_Key';
+}
+
+export interface CommitInvoiceIntakeData {
+  expenseTransaction_upsert: ExpenseTransaction_Key;
+  invoice_upsert: Invoice_Key;
+  invoiceIntake_update?: InvoiceIntake_Key | null;
+}
+
+export interface CommitInvoiceIntakeVariables {
+  receiptId: string;
+  transactionId: string;
+  invoiceId: string;
+  vendor: string;
+  invoiceNumber?: string | null;
+  invoiceDate: DateString;
+  subtotalCents: Int64String;
+  tpsCents: Int64String;
+  tvqCents: Int64String;
+  totalCents: Int64String;
+  currency: string;
+  sku?: string | null;
+  category: string;
+  accountCode: string;
+  cardId: string;
+  statementPeriodId: string;
+  projectId: string;
+  storageFolder: string;
+  classificationNote: string;
+}
+
+export interface CommitInvoiceIntakeWithoutProjectData {
+  expenseTransaction_upsert: ExpenseTransaction_Key;
+  invoice_upsert: Invoice_Key;
+  invoiceIntake_update?: InvoiceIntake_Key | null;
+}
+
+export interface CommitInvoiceIntakeWithoutProjectVariables {
+  receiptId: string;
+  transactionId: string;
+  invoiceId: string;
+  vendor: string;
+  invoiceNumber?: string | null;
+  invoiceDate: DateString;
+  subtotalCents: Int64String;
+  tpsCents: Int64String;
+  tvqCents: Int64String;
+  totalCents: Int64String;
+  currency: string;
+  sku?: string | null;
+  category: string;
+  accountCode: string;
+  cardId: string;
+  statementPeriodId: string;
+  storageFolder: string;
+  classificationNote: string;
+}
+
+export interface CreateInvoiceIntakeData {
+  invoiceIntake_upsert: InvoiceIntake_Key;
+}
+
+export interface CreateInvoiceIntakeVariables {
+  receiptId: string;
+  storageFolder: string;
+  photoCount: number;
+}
+
+export interface CreditCard_Key {
+  id: string;
+  __typename?: 'CreditCard_Key';
+}
+
+export interface ExpenseAccount_Key {
+  code: string;
+  __typename?: 'ExpenseAccount_Key';
+}
+
+export interface ExpenseTransaction_Key {
+  id: string;
+  __typename?: 'ExpenseTransaction_Key';
+}
+
+export interface InvoiceIntake_Key {
+  receiptId: string;
+  __typename?: 'InvoiceIntake_Key';
+}
+
+export interface InvoicePhoto_Key {
+  id: string;
+  __typename?: 'InvoicePhoto_Key';
+}
+
+export interface Invoice_Key {
+  id: string;
+  __typename?: 'Invoice_Key';
+}
+
+export interface ListCardStatementPeriodsData {
+  cardStatementPeriods: ({
+    id: string;
+    label: string;
+    startDate: DateString;
+    endDate: DateString;
+    statementLabel?: string | null;
+    status: string;
+  } & CardStatementPeriod_Key)[];
+}
+
+export interface ListCreditCardsData {
+  creditCards: ({
+    id: string;
+    lastFour: string;
+    holder: {
+      id: string;
+      displayName: string;
+      role: string;
+      status: string;
+    } & UserProfile_Key;
+    cardFunction?: string | null;
+    activeFrom?: DateString | null;
+    inactiveFrom?: DateString | null;
+    status: string;
+  } & CreditCard_Key)[];
+}
+
+export interface ListExpenseAccountsData {
+  expenseAccounts: ({
+    code: string;
+    label: string;
+    status: string;
+  } & ExpenseAccount_Key)[];
+}
+
+export interface ListExpenseTransactionsData {
+  expenseTransactions: ({
+    id: string;
+    transactionDate: DateString;
+    vendor: string;
+    card: {
+      id: string;
+      lastFour: string;
+      holder: {
+        id: string;
+        displayName: string;
+      } & UserProfile_Key;
+    } & CreditCard_Key;
+    statementPeriod: {
+      id: string;
+      label: string;
+      startDate: DateString;
+      endDate: DateString;
+    } & CardStatementPeriod_Key;
+    project?: {
+      id: string;
+      name: string;
+    } & Project_Key;
+    expenseAccount?: {
+      code: string;
+      label: string;
+    } & ExpenseAccount_Key;
+    categoryLabel?: string | null;
+    sku?: string | null;
+    amountBeforeTaxCents: Int64String;
+    tpsCents: Int64String;
+    tvqCents: Int64String;
+    totalCents: Int64String;
+    currency: string;
+    status: string;
+    reconciliationStatus: string;
+    classificationSource?: string | null;
+    classificationConfidence?: number | null;
+    classificationNote?: string | null;
+    invoiceNumber?: string | null;
+    issue?: string | null;
+  } & ExpenseTransaction_Key)[];
+}
+
+export interface ListInvoiceIntakesData {
+  invoiceIntakes: ({
+    receiptId: string;
+    uploaderUid: string;
+    storageFolder: string;
+    photoCount: number;
+    status: string;
+    lastError?: string | null;
+    aiModel?: string | null;
+    aiConfidence?: number | null;
+    extractedVendor?: string | null;
+    extractedInvoiceNumber?: string | null;
+    extractedInvoiceDate?: DateString | null;
+    extractedSubtotalCents?: Int64String | null;
+    extractedTpsCents?: Int64String | null;
+    extractedTvqCents?: Int64String | null;
+    extractedTotalCents?: Int64String | null;
+    extractedCurrency?: string | null;
+    extractedSku?: string | null;
+    extractedCategory?: string | null;
+    extractedProjectId?: string | null;
+    classificationAccountCode?: string | null;
+    classificationCategory?: string | null;
+    classificationSource?: string | null;
+    classificationConfidence?: number | null;
+    classificationStatus?: string | null;
+    aiNotes?: string | null;
+    createdAt: TimestampString;
+    updatedAt: TimestampString;
+  } & InvoiceIntake_Key)[];
+}
+
+export interface ListInvoicesToReviewData {
+  invoices: ({
+    id: string;
+    vendor: string;
+    invoiceNumber?: string | null;
+    invoiceDate?: DateString | null;
+    subtotalCents?: Int64String | null;
+    tpsCents?: Int64String | null;
+    tvqCents?: Int64String | null;
+    totalCents?: Int64String | null;
+    reviewStatus: string;
+    storageFolder?: string | null;
+    transaction: {
+      id: string;
+      vendor: string;
+      issue?: string | null;
+    } & ExpenseTransaction_Key;
+    invoicePhotos_on_invoice: ({
+      id: string;
+      storagePath: string;
+      contentType: string;
+      sequence: number;
+    } & InvoicePhoto_Key)[];
+  } & Invoice_Key)[];
+}
+
+export interface ListProjectsData {
+  projects: ({
+    id: string;
+    name: string;
+    status: string;
+  } & Project_Key)[];
+}
+
+export interface ListSkuReferencesData {
+  skuReferences: ({
+    merchant: string;
+    sku: string;
+    productLabel?: string | null;
+    categoryLabel?: string | null;
+    expenseAccount?: {
+      code: string;
+      label: string;
+    } & ExpenseAccount_Key;
+    sourceUrl?: string | null;
+    verificationStatus: string;
+    verifiedAt?: TimestampString | null;
+  } & SkuReference_Key)[];
+}
+
+export interface ListUserProfilesData {
+  userProfiles: ({
+    id: string;
+    firebaseUid: string;
+    displayName: string;
+    email?: string | null;
+    jobTitle?: string | null;
+    role: string;
+    status: string;
+  } & UserProfile_Key)[];
+}
+
+export interface MarkInvoiceIntakeAiErrorData {
+  invoiceIntake_update?: InvoiceIntake_Key | null;
+}
+
+export interface MarkInvoiceIntakeAiErrorVariables {
+  receiptId: string;
+  error: string;
+}
+
+export interface Project_Key {
+  id: string;
+  __typename?: 'Project_Key';
+}
+
+export interface SkuReference_Key {
+  merchant: string;
+  sku: string;
+  __typename?: 'SkuReference_Key';
+}
+
+export interface TaxAccount_Key {
+  code: string;
+  __typename?: 'TaxAccount_Key';
+}
+
+export interface TransactionCorrection_Key {
+  id: string;
+  __typename?: 'TransactionCorrection_Key';
+}
+
+export interface UpdateInvoiceIntakeAiResultData {
+  invoiceIntake_update?: InvoiceIntake_Key | null;
+}
+
+export interface UpdateInvoiceIntakeAiResultVariables {
+  receiptId: string;
+  status: string;
+  aiModel: string;
+  aiConfidence: number;
+  extractedVendor: string;
+  extractedInvoiceNumber?: string | null;
+  extractedInvoiceDate?: DateString | null;
+  extractedSubtotalCents: Int64String;
+  extractedTpsCents: Int64String;
+  extractedTvqCents: Int64String;
+  extractedTotalCents: Int64String;
+  extractedCurrency: string;
+  extractedSku?: string | null;
+  extractedCategory?: string | null;
+  extractedProjectId?: string | null;
+  classificationAccountCode?: string | null;
+  classificationCategory?: string | null;
+  classificationSource: string;
+  classificationConfidence: number;
+  classificationStatus: string;
+  aiNotes: string;
+}
+
+export interface UpdateInvoiceIntakeReviewData {
+  invoiceIntake_update?: InvoiceIntake_Key | null;
+}
+
+export interface UpdateInvoiceIntakeReviewVariables {
+  receiptId: string;
+  status: string;
+  extractedVendor: string;
+  extractedInvoiceNumber?: string | null;
+  extractedInvoiceDate?: DateString | null;
+  extractedSubtotalCents: Int64String;
+  extractedTpsCents: Int64String;
+  extractedTvqCents: Int64String;
+  extractedTotalCents: Int64String;
+  extractedCurrency: string;
+  extractedSku?: string | null;
+  extractedCategory?: string | null;
+  extractedProjectId?: string | null;
+  classificationAccountCode?: string | null;
+  classificationCategory?: string | null;
+  classificationSource: string;
+  classificationConfidence: number;
+  classificationStatus: string;
+  aiNotes: string;
+}
+
+export interface UpsertCreditCardData {
+  creditCard_upsert: CreditCard_Key;
+}
+
+export interface UpsertCreditCardVariables {
+  id: string;
+  lastFour: string;
+  holderId: string;
+  cardFunction?: string | null;
+  status: string;
+  activeFrom?: DateString | null;
+  inactiveFrom?: DateString | null;
+}
+
+export interface UpsertUserProfileData {
+  userProfile_upsert: UserProfile_Key;
+}
+
+export interface UpsertUserProfileVariables {
+  id: string;
+  firebaseUid: string;
+  displayName: string;
+  email?: string | null;
+  jobTitle?: string | null;
+  role: string;
+  status: string;
+}
+
+export interface UserProfile_Key {
+  id: string;
+  __typename?: 'UserProfile_Key';
+}
+
+interface AdminSeedCreditCardRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminSeedCreditCardVariables): MutationRef<AdminSeedCreditCardData, AdminSeedCreditCardVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AdminSeedCreditCardVariables): MutationRef<AdminSeedCreditCardData, AdminSeedCreditCardVariables>;
+  operationName: string;
+}
+export const adminSeedCreditCardRef: AdminSeedCreditCardRef;
+
+export function adminSeedCreditCard(vars: AdminSeedCreditCardVariables): MutationPromise<AdminSeedCreditCardData, AdminSeedCreditCardVariables>;
+export function adminSeedCreditCard(dc: DataConnect, vars: AdminSeedCreditCardVariables): MutationPromise<AdminSeedCreditCardData, AdminSeedCreditCardVariables>;
+
+interface AdminSeedSkuReferenceRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminSeedSkuReferenceVariables): MutationRef<AdminSeedSkuReferenceData, AdminSeedSkuReferenceVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AdminSeedSkuReferenceVariables): MutationRef<AdminSeedSkuReferenceData, AdminSeedSkuReferenceVariables>;
+  operationName: string;
+}
+export const adminSeedSkuReferenceRef: AdminSeedSkuReferenceRef;
+
+export function adminSeedSkuReference(vars: AdminSeedSkuReferenceVariables): MutationPromise<AdminSeedSkuReferenceData, AdminSeedSkuReferenceVariables>;
+export function adminSeedSkuReference(dc: DataConnect, vars: AdminSeedSkuReferenceVariables): MutationPromise<AdminSeedSkuReferenceData, AdminSeedSkuReferenceVariables>;
+
+interface AdminSeedExpenseTransactionRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminSeedExpenseTransactionVariables): MutationRef<AdminSeedExpenseTransactionData, AdminSeedExpenseTransactionVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AdminSeedExpenseTransactionVariables): MutationRef<AdminSeedExpenseTransactionData, AdminSeedExpenseTransactionVariables>;
+  operationName: string;
+}
+export const adminSeedExpenseTransactionRef: AdminSeedExpenseTransactionRef;
+
+export function adminSeedExpenseTransaction(vars: AdminSeedExpenseTransactionVariables): MutationPromise<AdminSeedExpenseTransactionData, AdminSeedExpenseTransactionVariables>;
+export function adminSeedExpenseTransaction(dc: DataConnect, vars: AdminSeedExpenseTransactionVariables): MutationPromise<AdminSeedExpenseTransactionData, AdminSeedExpenseTransactionVariables>;
+
+interface AdminSeedInvoiceRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminSeedInvoiceVariables): MutationRef<AdminSeedInvoiceData, AdminSeedInvoiceVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AdminSeedInvoiceVariables): MutationRef<AdminSeedInvoiceData, AdminSeedInvoiceVariables>;
+  operationName: string;
+}
+export const adminSeedInvoiceRef: AdminSeedInvoiceRef;
+
+export function adminSeedInvoice(vars: AdminSeedInvoiceVariables): MutationPromise<AdminSeedInvoiceData, AdminSeedInvoiceVariables>;
+export function adminSeedInvoice(dc: DataConnect, vars: AdminSeedInvoiceVariables): MutationPromise<AdminSeedInvoiceData, AdminSeedInvoiceVariables>;
+
+interface AdminSeedInvoicePhotoRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminSeedInvoicePhotoVariables): MutationRef<AdminSeedInvoicePhotoData, AdminSeedInvoicePhotoVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AdminSeedInvoicePhotoVariables): MutationRef<AdminSeedInvoicePhotoData, AdminSeedInvoicePhotoVariables>;
+  operationName: string;
+}
+export const adminSeedInvoicePhotoRef: AdminSeedInvoicePhotoRef;
+
+export function adminSeedInvoicePhoto(vars: AdminSeedInvoicePhotoVariables): MutationPromise<AdminSeedInvoicePhotoData, AdminSeedInvoicePhotoVariables>;
+export function adminSeedInvoicePhoto(dc: DataConnect, vars: AdminSeedInvoicePhotoVariables): MutationPromise<AdminSeedInvoicePhotoData, AdminSeedInvoicePhotoVariables>;
+
+interface UpsertUserProfileRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertUserProfileVariables): MutationRef<UpsertUserProfileData, UpsertUserProfileVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpsertUserProfileVariables): MutationRef<UpsertUserProfileData, UpsertUserProfileVariables>;
+  operationName: string;
+}
+export const upsertUserProfileRef: UpsertUserProfileRef;
+
+export function upsertUserProfile(vars: UpsertUserProfileVariables): MutationPromise<UpsertUserProfileData, UpsertUserProfileVariables>;
+export function upsertUserProfile(dc: DataConnect, vars: UpsertUserProfileVariables): MutationPromise<UpsertUserProfileData, UpsertUserProfileVariables>;
+
+interface UpsertCreditCardRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertCreditCardVariables): MutationRef<UpsertCreditCardData, UpsertCreditCardVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpsertCreditCardVariables): MutationRef<UpsertCreditCardData, UpsertCreditCardVariables>;
+  operationName: string;
+}
+export const upsertCreditCardRef: UpsertCreditCardRef;
+
+export function upsertCreditCard(vars: UpsertCreditCardVariables): MutationPromise<UpsertCreditCardData, UpsertCreditCardVariables>;
+export function upsertCreditCard(dc: DataConnect, vars: UpsertCreditCardVariables): MutationPromise<UpsertCreditCardData, UpsertCreditCardVariables>;
+
+interface CreateInvoiceIntakeRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: CreateInvoiceIntakeVariables): MutationRef<CreateInvoiceIntakeData, CreateInvoiceIntakeVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: CreateInvoiceIntakeVariables): MutationRef<CreateInvoiceIntakeData, CreateInvoiceIntakeVariables>;
+  operationName: string;
+}
+export const createInvoiceIntakeRef: CreateInvoiceIntakeRef;
+
+export function createInvoiceIntake(vars: CreateInvoiceIntakeVariables): MutationPromise<CreateInvoiceIntakeData, CreateInvoiceIntakeVariables>;
+export function createInvoiceIntake(dc: DataConnect, vars: CreateInvoiceIntakeVariables): MutationPromise<CreateInvoiceIntakeData, CreateInvoiceIntakeVariables>;
+
+interface UpdateInvoiceIntakeAiResultRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpdateInvoiceIntakeAiResultVariables): MutationRef<UpdateInvoiceIntakeAiResultData, UpdateInvoiceIntakeAiResultVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpdateInvoiceIntakeAiResultVariables): MutationRef<UpdateInvoiceIntakeAiResultData, UpdateInvoiceIntakeAiResultVariables>;
+  operationName: string;
+}
+export const updateInvoiceIntakeAiResultRef: UpdateInvoiceIntakeAiResultRef;
+
+export function updateInvoiceIntakeAiResult(vars: UpdateInvoiceIntakeAiResultVariables): MutationPromise<UpdateInvoiceIntakeAiResultData, UpdateInvoiceIntakeAiResultVariables>;
+export function updateInvoiceIntakeAiResult(dc: DataConnect, vars: UpdateInvoiceIntakeAiResultVariables): MutationPromise<UpdateInvoiceIntakeAiResultData, UpdateInvoiceIntakeAiResultVariables>;
+
+interface MarkInvoiceIntakeAiErrorRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: MarkInvoiceIntakeAiErrorVariables): MutationRef<MarkInvoiceIntakeAiErrorData, MarkInvoiceIntakeAiErrorVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: MarkInvoiceIntakeAiErrorVariables): MutationRef<MarkInvoiceIntakeAiErrorData, MarkInvoiceIntakeAiErrorVariables>;
+  operationName: string;
+}
+export const markInvoiceIntakeAiErrorRef: MarkInvoiceIntakeAiErrorRef;
+
+export function markInvoiceIntakeAiError(vars: MarkInvoiceIntakeAiErrorVariables): MutationPromise<MarkInvoiceIntakeAiErrorData, MarkInvoiceIntakeAiErrorVariables>;
+export function markInvoiceIntakeAiError(dc: DataConnect, vars: MarkInvoiceIntakeAiErrorVariables): MutationPromise<MarkInvoiceIntakeAiErrorData, MarkInvoiceIntakeAiErrorVariables>;
+
+interface UpdateInvoiceIntakeReviewRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpdateInvoiceIntakeReviewVariables): MutationRef<UpdateInvoiceIntakeReviewData, UpdateInvoiceIntakeReviewVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpdateInvoiceIntakeReviewVariables): MutationRef<UpdateInvoiceIntakeReviewData, UpdateInvoiceIntakeReviewVariables>;
+  operationName: string;
+}
+export const updateInvoiceIntakeReviewRef: UpdateInvoiceIntakeReviewRef;
+
+export function updateInvoiceIntakeReview(vars: UpdateInvoiceIntakeReviewVariables): MutationPromise<UpdateInvoiceIntakeReviewData, UpdateInvoiceIntakeReviewVariables>;
+export function updateInvoiceIntakeReview(dc: DataConnect, vars: UpdateInvoiceIntakeReviewVariables): MutationPromise<UpdateInvoiceIntakeReviewData, UpdateInvoiceIntakeReviewVariables>;
+
+interface CommitInvoiceIntakeRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: CommitInvoiceIntakeVariables): MutationRef<CommitInvoiceIntakeData, CommitInvoiceIntakeVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: CommitInvoiceIntakeVariables): MutationRef<CommitInvoiceIntakeData, CommitInvoiceIntakeVariables>;
+  operationName: string;
+}
+export const commitInvoiceIntakeRef: CommitInvoiceIntakeRef;
+
+export function commitInvoiceIntake(vars: CommitInvoiceIntakeVariables): MutationPromise<CommitInvoiceIntakeData, CommitInvoiceIntakeVariables>;
+export function commitInvoiceIntake(dc: DataConnect, vars: CommitInvoiceIntakeVariables): MutationPromise<CommitInvoiceIntakeData, CommitInvoiceIntakeVariables>;
+
+interface CommitInvoiceIntakeWithoutProjectRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: CommitInvoiceIntakeWithoutProjectVariables): MutationRef<CommitInvoiceIntakeWithoutProjectData, CommitInvoiceIntakeWithoutProjectVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: CommitInvoiceIntakeWithoutProjectVariables): MutationRef<CommitInvoiceIntakeWithoutProjectData, CommitInvoiceIntakeWithoutProjectVariables>;
+  operationName: string;
+}
+export const commitInvoiceIntakeWithoutProjectRef: CommitInvoiceIntakeWithoutProjectRef;
+
+export function commitInvoiceIntakeWithoutProject(vars: CommitInvoiceIntakeWithoutProjectVariables): MutationPromise<CommitInvoiceIntakeWithoutProjectData, CommitInvoiceIntakeWithoutProjectVariables>;
+export function commitInvoiceIntakeWithoutProject(dc: DataConnect, vars: CommitInvoiceIntakeWithoutProjectVariables): MutationPromise<CommitInvoiceIntakeWithoutProjectData, CommitInvoiceIntakeWithoutProjectVariables>;
+
+interface ListUserProfilesRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListUserProfilesData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<ListUserProfilesData, undefined>;
+  operationName: string;
+}
+export const listUserProfilesRef: ListUserProfilesRef;
+
+export function listUserProfiles(options?: ExecuteQueryOptions): QueryPromise<ListUserProfilesData, undefined>;
+export function listUserProfiles(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListUserProfilesData, undefined>;
+
+interface ListCreditCardsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListCreditCardsData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<ListCreditCardsData, undefined>;
+  operationName: string;
+}
+export const listCreditCardsRef: ListCreditCardsRef;
+
+export function listCreditCards(options?: ExecuteQueryOptions): QueryPromise<ListCreditCardsData, undefined>;
+export function listCreditCards(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListCreditCardsData, undefined>;
+
+interface ListCardStatementPeriodsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListCardStatementPeriodsData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<ListCardStatementPeriodsData, undefined>;
+  operationName: string;
+}
+export const listCardStatementPeriodsRef: ListCardStatementPeriodsRef;
+
+export function listCardStatementPeriods(options?: ExecuteQueryOptions): QueryPromise<ListCardStatementPeriodsData, undefined>;
+export function listCardStatementPeriods(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListCardStatementPeriodsData, undefined>;
+
+interface ListExpenseAccountsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListExpenseAccountsData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<ListExpenseAccountsData, undefined>;
+  operationName: string;
+}
+export const listExpenseAccountsRef: ListExpenseAccountsRef;
+
+export function listExpenseAccounts(options?: ExecuteQueryOptions): QueryPromise<ListExpenseAccountsData, undefined>;
+export function listExpenseAccounts(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListExpenseAccountsData, undefined>;
+
+interface ListProjectsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListProjectsData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<ListProjectsData, undefined>;
+  operationName: string;
+}
+export const listProjectsRef: ListProjectsRef;
+
+export function listProjects(options?: ExecuteQueryOptions): QueryPromise<ListProjectsData, undefined>;
+export function listProjects(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListProjectsData, undefined>;
+
+interface ListSkuReferencesRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListSkuReferencesData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<ListSkuReferencesData, undefined>;
+  operationName: string;
+}
+export const listSkuReferencesRef: ListSkuReferencesRef;
+
+export function listSkuReferences(options?: ExecuteQueryOptions): QueryPromise<ListSkuReferencesData, undefined>;
+export function listSkuReferences(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListSkuReferencesData, undefined>;
+
+interface ListExpenseTransactionsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListExpenseTransactionsData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<ListExpenseTransactionsData, undefined>;
+  operationName: string;
+}
+export const listExpenseTransactionsRef: ListExpenseTransactionsRef;
+
+export function listExpenseTransactions(options?: ExecuteQueryOptions): QueryPromise<ListExpenseTransactionsData, undefined>;
+export function listExpenseTransactions(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListExpenseTransactionsData, undefined>;
+
+interface ListInvoicesToReviewRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListInvoicesToReviewData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<ListInvoicesToReviewData, undefined>;
+  operationName: string;
+}
+export const listInvoicesToReviewRef: ListInvoicesToReviewRef;
+
+export function listInvoicesToReview(options?: ExecuteQueryOptions): QueryPromise<ListInvoicesToReviewData, undefined>;
+export function listInvoicesToReview(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListInvoicesToReviewData, undefined>;
+
+interface ListInvoiceIntakesRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListInvoiceIntakesData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<ListInvoiceIntakesData, undefined>;
+  operationName: string;
+}
+export const listInvoiceIntakesRef: ListInvoiceIntakesRef;
+
+export function listInvoiceIntakes(options?: ExecuteQueryOptions): QueryPromise<ListInvoiceIntakesData, undefined>;
+export function listInvoiceIntakes(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListInvoiceIntakesData, undefined>;
+
