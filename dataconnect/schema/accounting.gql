@@ -128,6 +128,40 @@ type InvoicePhoto @table(name: "invoice_photos", key: "id") {
   createdAt: Timestamp! @default(expr: "request.time")
 }
 
+# Intake record written immediately after a mobile upload. It is deliberately
+# separate from Invoice because OCR has not yet established the vendor, date,
+# amounts or card/statement match. The receiptId is also the idempotency key:
+# retrying the client acknowledgement cannot create a second intake row.
+type InvoiceIntake @table(name: "invoice_intakes", key: "receiptId") {
+  receiptId: String!
+  uploaderUid: String!
+  storageFolder: String!
+  photoCount: Int!
+  status: String! @default(value: "RECEIVED")
+  lastError: String
+  aiModel: String
+  aiConfidence: Float
+  extractedVendor: String
+  extractedInvoiceNumber: String
+  extractedInvoiceDate: Date
+  extractedSubtotalCents: Int64
+  extractedTpsCents: Int64
+  extractedTvqCents: Int64
+  extractedTotalCents: Int64
+  extractedCurrency: String
+  extractedSku: String
+  extractedCategory: String
+  extractedProjectId: String
+  classificationAccountCode: String
+  classificationCategory: String
+  classificationSource: String
+  classificationConfidence: Float
+  classificationStatus: String
+  aiNotes: String
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
 type TransactionCorrection @table(name: "transaction_corrections", key: "id") {
   id: String!
   invoice: Invoice

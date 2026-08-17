@@ -1,30 +1,49 @@
 "use client";
 
 import {
+  commitInvoiceIntake as commitInvoiceIntakeMutation,
+  commitInvoiceIntakeWithoutProject as commitInvoiceIntakeWithoutProjectMutation,
   listCardStatementPeriods,
   listCreditCards,
   listExpenseAccounts,
   listExpenseTransactions,
+  listInvoiceIntakes,
   listInvoicesToReview,
   listProjects,
   listSkuReferences,
+  listUserProfiles,
+  upsertCreditCard,
+  upsertUserProfile,
+  updateInvoiceIntakeReview,
 } from "../generated/data-connect/esm/index.esm.js";
 import type {
   ListCardStatementPeriodsData,
   ListCreditCardsData,
   ListExpenseAccountsData,
   ListExpenseTransactionsData,
+  ListInvoiceIntakesData,
   ListInvoicesToReviewData,
   ListProjectsData,
   ListSkuReferencesData,
+  ListUserProfilesData,
 } from "../generated/data-connect";
 import { firebaseDataConnect, sqlConnectConfigured } from "./data-connect";
 
 export type AppAccountingData = {
+  users: Array<{
+    id: string;
+    firebaseUid: string;
+    displayName: string;
+    email?: string;
+    jobTitle?: string;
+    role: string;
+    status: string;
+  }>;
   accounts: Array<{ code: string; label: string }>;
   cards: Array<{
     id: string;
     lastFour: string;
+    holderId?: string;
     holder: string;
     function: string;
     startDate: string;
@@ -67,9 +86,39 @@ export type AppAccountingData = {
     sku?: string;
     correctionField?: "subtotal" | "account" | "attachment";
   }>;
+  intakes: Array<{
+    receiptId: string;
+    uploaderUid: string;
+    storageFolder: string;
+    photoCount: number;
+    status: string;
+    lastError?: string;
+    aiModel?: string;
+    aiConfidence?: number;
+    extractedVendor?: string;
+    extractedInvoiceNumber?: string;
+    extractedInvoiceDate?: string;
+    extractedSubtotalCents?: string;
+    extractedTpsCents?: string;
+    extractedTvqCents?: string;
+    extractedTotalCents?: string;
+    extractedCurrency?: string;
+    extractedSku?: string;
+    extractedCategory?: string;
+    extractedProjectId?: string;
+    classificationAccountCode?: string;
+    classificationCategory?: string;
+    classificationSource?: string;
+    classificationConfidence?: number;
+    classificationStatus?: string;
+    aiNotes?: string;
+    createdAt: string;
+    updatedAt: string;
+  }>;
 };
 
 export type AccountingSnapshot = {
+  users: ListUserProfilesData["userProfiles"];
   cards: ListCreditCardsData["creditCards"];
   periods: ListCardStatementPeriodsData["cardStatementPeriods"];
   accounts: ListExpenseAccountsData["expenseAccounts"];
@@ -77,6 +126,7 @@ export type AccountingSnapshot = {
   skuReferences: ListSkuReferencesData["skuReferences"];
   transactions: ListExpenseTransactionsData["expenseTransactions"];
   invoices: ListInvoicesToReviewData["invoices"];
+  intakes: ListInvoiceIntakesData["invoiceIntakes"];
 };
 
 /**
@@ -88,6 +138,175 @@ export const accountingReadSource = sqlConnectConfigured
   ? "firebase-sql-connect"
   : "demo";
 
+export type InvoiceIntakeReviewInput = {
+  receiptId: string;
+  status: string;
+  vendor: string;
+  invoiceNumber: string | null;
+  invoiceDate: string | null;
+  subtotalCents: number;
+  tpsCents: number;
+  tvqCents: number;
+  totalCents: number;
+  currency: string;
+  sku: string | null;
+  category: string | null;
+  projectId: string | null;
+  accountCode: string | null;
+  classificationCategory: string | null;
+  classificationSource: string;
+  classificationConfidence: number;
+  classificationStatus: string;
+  aiNotes: string;
+};
+
+export type InvoiceIntakeCommitInput = {
+  receiptId: string;
+  vendor: string;
+  invoiceNumber: string | null;
+  invoiceDate: string;
+  subtotalCents: number;
+  tpsCents: number;
+  tvqCents: number;
+  totalCents: number;
+  currency: string;
+  sku: string | null;
+  category: string;
+  accountCode: string;
+  cardId: string;
+  statementPeriodId: string;
+  projectId: string | null;
+  storageFolder: string;
+  classificationNote: string;
+};
+
+export type UserProfileInput = {
+  id: string;
+  firebaseUid: string;
+  displayName: string;
+  email: string | null;
+  jobTitle: string | null;
+  role: string;
+  status: string;
+};
+
+export type CreditCardInput = {
+  id: string;
+  lastFour: string;
+  holderId: string;
+  cardFunction: string | null;
+  status: string;
+  activeFrom: string | null;
+  inactiveFrom: string | null;
+};
+
+export async function saveUserProfile(input: UserProfileInput) {
+  if (!firebaseDataConnect || !sqlConnectConfigured) {
+    throw new Error("SQL Connect est requis pour enregistrer le profil.");
+  }
+  await upsertUserProfile(firebaseDataConnect, input);
+}
+
+export async function saveCreditCard(input: CreditCardInput) {
+  if (!firebaseDataConnect || !sqlConnectConfigured) {
+    throw new Error("SQL Connect est requis pour enregistrer la carte.");
+  }
+  await upsertCreditCard(firebaseDataConnect, input);
+}
+
+export async function createFirebaseUser(input: { displayName: string; email: string; password: string; jobTitle: string; role: string }, idToken: string) {
+  const response = await fetch("/api/admin/users", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify(input),
+  });
+  const body = await response.json().catch(() => ({})) as { error?: string; uid?: string; role?: string };
+  if (!response.ok || !body.uid) {
+    throw new Error(body.error ?? "Le compte Firebase n'a pas pu être créé.");
+  }
+  return { uid: body.uid, role: body.role ?? input.role };
+}
+
+export async function setFirebaseUserDisabled(uid: string, disabled: boolean, idToken: string) {
+  const response = await fetch("/api/admin/users", {
+    method: "PATCH",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify({ uid, disabled }),
+  });
+  const body = await response.json().catch(() => ({})) as { error?: string };
+  if (!response.ok) throw new Error(body.error ?? "Le statut du compte Firebase n'a pas pu être modifié.");
+}
+
+export async function saveInvoiceIntakeReview(input: InvoiceIntakeReviewInput) {
+  if (!firebaseDataConnect || !sqlConnectConfigured) {
+    throw new Error("SQL Connect est requis pour enregistrer la revue.");
+  }
+
+  await updateInvoiceIntakeReview(firebaseDataConnect, {
+    receiptId: input.receiptId,
+    status: input.status,
+    extractedVendor: input.vendor,
+    extractedInvoiceNumber: input.invoiceNumber,
+    extractedInvoiceDate: input.invoiceDate,
+    extractedSubtotalCents: String(input.subtotalCents),
+    extractedTpsCents: String(input.tpsCents),
+    extractedTvqCents: String(input.tvqCents),
+    extractedTotalCents: String(input.totalCents),
+    extractedCurrency: input.currency,
+    extractedSku: input.sku,
+    extractedCategory: input.category,
+    extractedProjectId: input.projectId,
+    classificationAccountCode: input.accountCode,
+    classificationCategory: input.classificationCategory,
+    classificationSource: input.classificationSource,
+    classificationConfidence: input.classificationConfidence,
+    classificationStatus: input.classificationStatus,
+    aiNotes: input.aiNotes,
+  });
+}
+
+export async function commitInvoiceIntake(input: InvoiceIntakeCommitInput) {
+  if (!firebaseDataConnect || !sqlConnectConfigured) {
+    throw new Error("SQL Connect est requis pour créer l'écriture comptable.");
+  }
+
+  const common = {
+    receiptId: input.receiptId,
+    transactionId: `TX-${input.receiptId}`,
+    invoiceId: `INV-${input.receiptId}`,
+    vendor: input.vendor,
+    invoiceNumber: input.invoiceNumber,
+    invoiceDate: input.invoiceDate,
+    subtotalCents: String(input.subtotalCents),
+    tpsCents: String(input.tpsCents),
+    tvqCents: String(input.tvqCents),
+    totalCents: String(input.totalCents),
+    currency: input.currency,
+    sku: input.sku,
+    category: input.category,
+    accountCode: input.accountCode,
+    cardId: input.cardId,
+    statementPeriodId: input.statementPeriodId,
+    storageFolder: input.storageFolder,
+    classificationNote: input.classificationNote,
+  };
+
+  if (input.projectId) {
+    await commitInvoiceIntakeMutation(firebaseDataConnect, {
+      ...common,
+      projectId: input.projectId,
+    });
+  } else {
+    await commitInvoiceIntakeWithoutProjectMutation(firebaseDataConnect, common);
+  }
+}
+
 export async function loadAccountingSnapshot(): Promise<AccountingSnapshot> {
   if (!firebaseDataConnect || !sqlConnectConfigured) {
     throw new Error(
@@ -95,8 +314,9 @@ export async function loadAccountingSnapshot(): Promise<AccountingSnapshot> {
     );
   }
 
-  const [cards, periods, accounts, projects, skuReferences, transactions, invoices] =
+  const [users, cards, periods, accounts, projects, skuReferences, transactions, invoices, intakes] =
     await Promise.all([
+      listUserProfiles(firebaseDataConnect),
       listCreditCards(firebaseDataConnect),
       listCardStatementPeriods(firebaseDataConnect),
       listExpenseAccounts(firebaseDataConnect),
@@ -104,9 +324,11 @@ export async function loadAccountingSnapshot(): Promise<AccountingSnapshot> {
       listSkuReferences(firebaseDataConnect),
       listExpenseTransactions(firebaseDataConnect),
       listInvoicesToReview(firebaseDataConnect),
+      listInvoiceIntakes(firebaseDataConnect),
     ]);
 
   return {
+    users: users.data.userProfiles,
     cards: cards.data.creditCards,
     periods: periods.data.cardStatementPeriods,
     accounts: accounts.data.expenseAccounts,
@@ -114,6 +336,7 @@ export async function loadAccountingSnapshot(): Promise<AccountingSnapshot> {
     skuReferences: skuReferences.data.skuReferences,
     transactions: transactions.data.expenseTransactions,
     invoices: invoices.data.invoices,
+    intakes: intakes.data.invoiceIntakes,
   };
 }
 
@@ -136,10 +359,20 @@ function reconciliationStatus(value: string): AppAccountingData["transactions"][
 /** Convert the generated SDK shape into the shape already used by the demo UI. */
 export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccountingData {
   return {
+    users: snapshot.users.map((user) => ({
+      id: user.id,
+      firebaseUid: user.firebaseUid,
+      displayName: user.displayName,
+      ...(user.email ? { email: user.email } : {}),
+      ...(user.jobTitle ? { jobTitle: user.jobTitle } : {}),
+      role: user.role,
+      status: user.status,
+    })),
     accounts: snapshot.accounts.map((account) => ({ code: account.code, label: account.label })),
     cards: snapshot.cards.map((card) => ({
       id: card.id,
       lastFour: card.lastFour,
+      holderId: card.holder.id,
       holder: card.holder.displayName,
       function: card.cardFunction ?? "—",
       startDate: card.activeFrom ?? "",
@@ -179,6 +412,35 @@ export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccounti
       invoiceNumber: transaction.invoiceNumber ?? "—",
       note: transaction.classificationNote ?? "Classification issue de SQL Connect.",
       ...(transaction.sku ? { sku: transaction.sku } : {}),
+    })),
+    intakes: snapshot.intakes.map((intake) => ({
+      receiptId: intake.receiptId,
+      uploaderUid: intake.uploaderUid,
+      storageFolder: intake.storageFolder,
+      photoCount: intake.photoCount,
+      status: intake.status,
+      ...(intake.lastError ? { lastError: intake.lastError } : {}),
+      ...(intake.aiModel ? { aiModel: intake.aiModel } : {}),
+      ...(intake.aiConfidence != null ? { aiConfidence: intake.aiConfidence } : {}),
+      ...(intake.extractedVendor ? { extractedVendor: intake.extractedVendor } : {}),
+      ...(intake.extractedInvoiceNumber ? { extractedInvoiceNumber: intake.extractedInvoiceNumber } : {}),
+      ...(intake.extractedInvoiceDate ? { extractedInvoiceDate: intake.extractedInvoiceDate } : {}),
+      ...(intake.extractedSubtotalCents != null ? { extractedSubtotalCents: intake.extractedSubtotalCents } : {}),
+      ...(intake.extractedTpsCents != null ? { extractedTpsCents: intake.extractedTpsCents } : {}),
+      ...(intake.extractedTvqCents != null ? { extractedTvqCents: intake.extractedTvqCents } : {}),
+      ...(intake.extractedTotalCents != null ? { extractedTotalCents: intake.extractedTotalCents } : {}),
+      ...(intake.extractedCurrency ? { extractedCurrency: intake.extractedCurrency } : {}),
+      ...(intake.extractedSku ? { extractedSku: intake.extractedSku } : {}),
+      ...(intake.extractedCategory ? { extractedCategory: intake.extractedCategory } : {}),
+      ...(intake.extractedProjectId ? { extractedProjectId: intake.extractedProjectId } : {}),
+      ...(intake.classificationAccountCode ? { classificationAccountCode: intake.classificationAccountCode } : {}),
+      ...(intake.classificationCategory ? { classificationCategory: intake.classificationCategory } : {}),
+      ...(intake.classificationSource ? { classificationSource: intake.classificationSource } : {}),
+      ...(intake.classificationConfidence != null ? { classificationConfidence: intake.classificationConfidence } : {}),
+      ...(intake.classificationStatus ? { classificationStatus: intake.classificationStatus } : {}),
+      ...(intake.aiNotes ? { aiNotes: intake.aiNotes } : {}),
+      createdAt: intake.createdAt,
+      updatedAt: intake.updatedAt,
     })),
   };
 }

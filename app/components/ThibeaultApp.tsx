@@ -1,12 +1,20 @@
 "use client";
 
-import { ChangeEvent, createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { accountingReadSource, loadAccountingSnapshot, mapAccountingSnapshot } from "../../firebase/accounting";
-import { firebaseConfigured } from "../../firebase/client";
+import { ChangeEvent, createContext, FormEvent, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { accountingReadSource, commitInvoiceIntake, createFirebaseUser, loadAccountingSnapshot, mapAccountingSnapshot, saveCreditCard, saveInvoiceIntakeReview, saveUserProfile } from "../../firebase/accounting";
+import { appCheckConfigured, firebaseConfigured } from "../../firebase/client";
+import { sqlConnectConfigured } from "../../firebase/data-connect";
+import {
+  markInvoiceIntakeAiError,
+  persistInvoiceAiResult,
+  processInvoicePhotosWithGemini,
+} from "../../firebase/ai";
 import { uploadInvoicePhotos } from "../../firebase/uploads";
+import { classifyInvoice } from "../../lib/invoice-processing.mjs";
+import { useFirebaseIdentity, type AppRole } from "./FirebaseShell";
 
-type Role = "WORKER" | "KIM" | "ADMIN" | "SUPER_ADMIN";
-type View = "dashboard" | "transactions" | "review" | "reconciliation" | "reports" | "archives" | "settings" | "capture" | "transaction";
+type Role = AppRole;
+type View = "dashboard" | "transactions" | "review" | "reconciliation" | "reports" | "archives" | "settings" | "intakes" | "debug" | "capture" | "transaction";
 
 type Transaction = {
   id: string;
@@ -44,11 +52,22 @@ type AccountCategory = {
 type CreditCard = {
   id: string;
   lastFour: string;
+  holderId?: string;
   holder: string;
   function: string;
   startDate: string;
   endDate?: string;
   status: "Actif" | "Inactif";
+};
+
+type UserProfile = {
+  id: string;
+  firebaseUid: string;
+  displayName: string;
+  email?: string;
+  jobTitle?: string;
+  role: string;
+  status: string;
 };
 
 type CardPeriod = {
@@ -66,6 +85,36 @@ type SkuReference = {
   category: string;
   accountCode: string;
   status: "Validé" | "À confirmer";
+};
+
+type InvoiceIntake = {
+  receiptId: string;
+  uploaderUid: string;
+  storageFolder: string;
+  photoCount: number;
+  status: string;
+  lastError?: string;
+  aiModel?: string;
+  aiConfidence?: number;
+  extractedVendor?: string;
+  extractedInvoiceNumber?: string;
+  extractedInvoiceDate?: string;
+  extractedSubtotalCents?: string;
+  extractedTpsCents?: string;
+  extractedTvqCents?: string;
+  extractedTotalCents?: string;
+  extractedCurrency?: string;
+  extractedSku?: string;
+  extractedCategory?: string;
+  extractedProjectId?: string;
+  classificationAccountCode?: string;
+  classificationCategory?: string;
+  classificationSource?: string;
+  classificationConfidence?: number;
+  classificationStatus?: string;
+  aiNotes?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 const accountCategories: AccountCategory[] = [
@@ -110,6 +159,16 @@ const creditCards: CreditCard[] = [
   { id: "CARD-04", lastFour: "2141", holder: "Réal Savard", function: "Contremaître", startDate: "2026-01-01", status: "Inactif" },
 ];
 
+const demoUserProfiles: UserProfile[] = creditCards.map((card) => ({
+  id: `PERSON-${card.id}`,
+  firebaseUid: `demo-${card.id.toLowerCase()}`,
+  displayName: card.holder,
+  email: `${card.holder.toLowerCase().replaceAll(" ", ".")}@example.test`,
+  jobTitle: card.function,
+  role: "WORKER",
+  status: card.status === "Actif" ? "ACTIVE" : "INACTIVE",
+}));
+
 const cardPeriods: CardPeriod[] = [
   { id: "2026-06", label: "10 juin → 09 juillet 2026", start: "2026-06-10", end: "2026-07-09", statementLabel: "Relevé Mastercard · juin" },
   { id: "2026-07", label: "10 juillet → 09 août 2026", start: "2026-07-10", end: "2026-08-09", statementLabel: "Relevé Mastercard · juillet" },
@@ -123,22 +182,27 @@ const skuReferences: SkuReference[] = [
 const projectReferences = ["21 · Façade", "125 · Résidentiel", "133 · Chantier Nord", "135 · Chantier Est", "138 · Atelier", "ADMIN"];
 
 type AppData = {
+  users: UserProfile[];
   accounts: AccountCategory[];
   cards: CreditCard[];
   periods: CardPeriod[];
   projects: string[];
   skuReferences: SkuReference[];
   transactions: Transaction[];
+  intakes: InvoiceIntake[];
 };
 
 const AppDataContext = createContext<AppData | null>(null);
 
-function classifyTransaction(transaction: Pick<Transaction, "category" | "sku">, data: AppData = demoAppData) {
-  const skuReference = transaction.sku ? data.skuReferences.find((reference) => reference.sku === transaction.sku) : undefined;
-  const accountCode = data.accounts.find((account) => account.label === transaction.category)?.code ?? "—";
+function classifyTransaction(transaction: Pick<Transaction, "category" | "sku"> & Partial<Pick<Transaction, "vendor">>, data: AppData = demoAppData) {
+  const classification = classifyInvoice(
+    { category: transaction.category, sku: transaction.sku, vendor: transaction.vendor ?? "" },
+    data.skuReferences,
+    data.accounts,
+  );
   return {
-    code: skuReference?.accountCode ?? accountCode,
-    category: skuReference?.category ?? transaction.category,
+    code: classification.accountCode ?? "—",
+    category: classification.category,
   };
 }
 
@@ -236,12 +300,14 @@ const transactions: Transaction[] = [
 ];
 
 const demoAppData: AppData = {
+  users: demoUserProfiles,
   accounts: accountCategories,
   cards: creditCards,
   periods: cardPeriods,
   projects: projectReferences,
   skuReferences,
   transactions,
+  intakes: [],
 };
 
 function useAppData() {
@@ -252,10 +318,12 @@ const navItems: Array<{ id: View; label: string; icon: string }> = [
   { id: "dashboard", label: "Tableau de bord", icon: "⌂" },
   { id: "transactions", label: "Transactions", icon: "▤" },
   { id: "review", label: "À vérifier", icon: "!" },
+  { id: "intakes", label: "Dépôts IA", icon: "◌" },
   { id: "reconciliation", label: "Rapprochement", icon: "⇄" },
   { id: "reports", label: "Rapports", icon: "◔" },
   { id: "archives", label: "Archives", icon: "▣" },
   { id: "settings", label: "Configuration", icon: "⚙" },
+  { id: "debug", label: "Diagnostic", icon: "⌁" },
 ];
 
 const currency = new Intl.NumberFormat("fr-CA", { style: "currency", currency: "CAD" });
@@ -275,22 +343,30 @@ function statusClass(status: Transaction["status"] | Transaction["reconciliation
 }
 
 export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) {
+  const identity = useFirebaseIdentity();
+  const isPreviewMode = process.env.NEXT_PUBLIC_FIREBASE_PREVIEW_MODE === "true";
+  const isProductionDataSource = accountingReadSource === "firebase-sql-connect" && !isPreviewMode;
+  const accountRole = firebaseConfigured && !isPreviewMode ? identity.role : initialRole;
+  const canUseAccounting = accountRole === "KIM" || accountRole === "ADMIN" || accountRole === "SUPER_ADMIN";
+  const canUseDiagnostics = accountRole === "ADMIN" || accountRole === "SUPER_ADMIN";
   const [appData, setAppData] = useState<AppData>(demoAppData);
-  const [dataSourceState, setDataSourceState] = useState<"demo" | "loading" | "ready" | "error">(accountingReadSource === "firebase-sql-connect" ? "loading" : "demo");
-  const [role, setRole] = useState<Role>(initialRole);
-  const [view, setView] = useState<View>("dashboard");
+  const [dataSourceState, setDataSourceState] = useState<"demo" | "loading" | "ready" | "error">(isProductionDataSource ? "loading" : "demo");
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [viewMode, setViewMode] = useState<"accounting" | "capture">(accountRole === "WORKER" || initialRole === "WORKER" ? "capture" : "accounting");
+  const [view, setView] = useState<View>(accountRole === "WORKER" || initialRole === "WORKER" ? "capture" : "dashboard");
   const [selectedId, setSelectedId] = useState<string>(appData.transactions[0]?.id ?? "");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Toutes");
   const [selectedPeriod, setSelectedPeriod] = useState<CardPeriod>(appData.periods[0]);
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const [draftReceiptId, setDraftReceiptId] = useState<string | null>(null);
   const [queueState, setQueueState] = useState<"idle" | "uploading" | "sent">("idle");
   const [isOnline, setIsOnline] = useState(true);
   const [toast, setToast] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (accountingReadSource !== "firebase-sql-connect") return;
+    if (!isProductionDataSource || !canUseAccounting) return;
     let active = true;
     loadAccountingSnapshot()
       .then((snapshot) => {
@@ -307,7 +383,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
     return () => {
       active = false;
     };
-  }, []);
+  }, [canUseAccounting, isProductionDataSource, loadAttempt]);
 
   useEffect(() => {
     const onOnline = () => setIsOnline(true);
@@ -321,7 +397,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
     };
   }, []);
 
-  const selected = appData.transactions.find((transaction) => transaction.id === selectedId) ?? appData.transactions[0] ?? demoAppData.transactions[0];
+  const selected = appData.transactions.find((transaction) => transaction.id === selectedId) ?? appData.transactions[0] ?? null;
   const filteredTransactions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return appData.transactions.filter((transaction) => {
@@ -336,8 +412,13 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
     : dataSourceState === "loading"
       ? "Connexion Firebase…"
       : dataSourceState === "error"
-        ? "Démo · Firebase indisponible"
+        ? "Firebase indisponible"
         : "Données de démonstration";
+
+  const retryAccounting = () => {
+    setDataSourceState("loading");
+    setLoadAttempt((attempt) => attempt + 1);
+  };
 
   const notify = (message: string) => {
     setToast(message);
@@ -345,13 +426,15 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
   };
 
   const handleFiles = async (event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? []);
-    const next = await Promise.all(files.map((file) => new Promise<PhotoItem>((resolve) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const next = await new Promise<PhotoItem>((resolve) => {
       const reader = new FileReader();
-      reader.onload = () => resolve({ id: `${file.name}-${file.lastModified}`, url: String(reader.result), name: file.name, file });
+      reader.onload = () => resolve({ id: `${file.name}-${file.lastModified}-${crypto.randomUUID()}`, url: String(reader.result), name: file.name, file });
       reader.readAsDataURL(file);
-    })));
-    setPhotos((current) => [...current, ...next]);
+    });
+    if (!photos.length) setDraftReceiptId(crypto.randomUUID());
+    setPhotos((current) => [...current, next]);
     if (inputRef.current) inputRef.current.value = "";
   };
 
@@ -361,16 +444,40 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
       notify("En attente d'envoi — les photos restent sur cet appareil.");
       return;
     }
-    if (firebaseConfigured) {
+    if (isProductionDataSource && firebaseConfigured) {
       setQueueState("uploading");
       try {
-        await uploadInvoicePhotos(photos.map((photo, index) => ({ file: photo.file, sequence: index + 1 })));
-        setQueueState("sent");
-        notify("Envoyé ✓");
-        window.setTimeout(() => {
-          setPhotos([]);
-          setQueueState("idle");
-        }, 1200);
+        const receipt = await uploadInvoicePhotos(
+          photos.map((photo, index) => ({ file: photo.file, sequence: index + 1 })),
+          draftReceiptId ?? crypto.randomUUID(),
+        );
+        const submittedFiles = photos.map((photo) => photo.file);
+        setPhotos([]);
+        setDraftReceiptId(null);
+        setQueueState("idle");
+        notify(`Facture reçue · ${receipt.receiptId.slice(0, 8)} ✓ Vous pouvez en déposer une autre.`);
+        void processInvoicePhotosWithGemini(receipt.receiptId, submittedFiles)
+          .then(async (result) => {
+            const vendor = result.extraction.vendor || "fournisseur à confirmer";
+            const classificationData = canUseAccounting && dataSourceState === "ready"
+              ? appData
+              : { skuReferences: [], accounts: [] };
+            const classification = classifyInvoice(
+              {
+                vendor: result.extraction.vendor,
+                sku: result.extraction.sku ?? undefined,
+                category: result.extraction.category ?? undefined,
+              },
+              classificationData.skuReferences,
+              classificationData.accounts,
+            );
+            await persistInvoiceAiResult(receipt.receiptId, result, classification);
+            notify(`IA enregistrée · ${vendor} · facture ${receipt.receiptId.slice(0, 8)} à vérifier.`);
+          })
+          .catch(async () => {
+            await markInvoiceIntakeAiError(receipt.receiptId).catch(() => undefined);
+            notify(`Facture ${receipt.receiptId.slice(0, 8)} reçue · analyse IA à vérifier dans l'administration.`);
+          });
       } catch (error) {
         setQueueState("idle");
         notify(error instanceof Error ? error.message : "L’envoi Firebase a échoué.");
@@ -380,26 +487,30 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
 
     setQueueState("uploading");
     window.setTimeout(() => {
-      setQueueState("sent");
-      notify("Envoyé ✓");
-      window.setTimeout(() => {
-        setPhotos([]);
-        setQueueState("idle");
-      }, 1200);
+      setPhotos([]);
+      setDraftReceiptId(null);
+      setQueueState("idle");
+      notify("Facture prête ✓ Vous pouvez en déposer une autre.");
     }, 1000);
   };
 
   const goTo = (nextView: View) => {
+    if (nextView === "debug" && !canUseDiagnostics) return;
+    if (nextView !== "capture" && !canUseAccounting) return;
     setView(nextView);
-    if (nextView === "capture") setRole("WORKER");
+    setViewMode(nextView === "capture" ? "capture" : "accounting");
   };
 
-  if (role === "WORKER") {
+  if (!accountRole && firebaseConfigured) {
+    return <RoleLoading />;
+  }
+
+  if (accountRole === "WORKER" || viewMode === "capture") {
     return (
       <main className="worker-shell">
         <div className="worker-topbar">
           <div className="brand-mark compact"><span className="brand-glyph">MT</span><span>Thibeault</span></div>
-          <button className="ghost-button worker-status" onClick={() => { setRole("ADMIN"); setView("dashboard"); }} aria-label="Changer de mode démo">Mode démo · Travailleur</button>
+          {canUseAccounting ? <button className="ghost-button worker-status" onClick={() => goTo("dashboard")} aria-label="Retourner au contrôle comptable">Retour au contrôle</button> : <span className="worker-status">Dépôt sécurisé</span>}
         </div>
         <section className="capture-stage">
           <div className="capture-intro">
@@ -413,19 +524,19 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
           <div className="camera-card">
             <div className="camera-placeholder">
               <div className="camera-reticle"><span>＋</span></div>
-              <p>{photos.length ? `${photos.length} photo${photos.length > 1 ? "s" : ""} prête${photos.length > 1 ? "s" : ""}` : "Cadrez la facture dans la zone"}</p>
-              <span className="camera-hint">Vous pourrez ajouter plusieurs pages avant l’envoi.</span>
+              <p>{photos.length ? `${photos.length} page${photos.length > 1 ? "s" : ""} prête${photos.length > 1 ? "s" : ""}` : "Prêt pour la première page"}</p>
+              <span className="camera-hint">La caméra arrière s’ouvre avec le bouton ci-dessous. Ajoutez les pages dans l’ordre avant l’envoi.</span>
             </div>
-            <input ref={inputRef} className="sr-only" type="file" accept="image/*" capture="environment" multiple onChange={handleFiles} />
-            <button className="capture-button" onClick={() => inputRef.current?.click()} aria-label="Prendre une photo"><span>⌾</span> Prendre une photo</button>
+            <input ref={inputRef} className="sr-only" type="file" accept="image/*" capture="environment" onChange={handleFiles} />
+            <button className="capture-button" onClick={() => inputRef.current?.click()} aria-label={photos.length ? "Ajouter la page suivante" : "Prendre la première photo"}><span>⌾</span> {photos.length ? "Ajouter la page suivante" : "Prendre la première photo"}</button>
           </div>
           {photos.length > 0 && (
             <div className="photo-tray">
-              <div className="tray-heading"><span>Photos prises</span><button className="text-button" onClick={() => setPhotos([])}>Tout supprimer</button></div>
+              <div className="tray-heading"><span>Pages de cette facture</span><button className="text-button" onClick={() => { setPhotos([]); setDraftReceiptId(null); }}>Recommencer</button></div>
               <div className="photo-grid">
-                {photos.map((photo, index) => <div className="photo-thumb" key={photo.id}><img src={photo.url} alt={`Page ${index + 1}`} /><span>{index + 1}</span><button onClick={() => setPhotos((current) => current.filter((item) => item.id !== photo.id))} aria-label={`Supprimer la photo ${index + 1}`}>×</button></div>)}
+                {photos.map((photo, index) => <div className="photo-thumb" key={photo.id}><PhotoPreview url={photo.url} alt={`Page ${index + 1}`} /><span>{index + 1}</span><button onClick={() => setPhotos((current) => { const next = current.filter((item) => item.id !== photo.id); if (!next.length) setDraftReceiptId(null); return next; })} aria-label={`Supprimer la photo ${index + 1}`}>×</button></div>)}
               </div>
-              <button className="send-button" onClick={sendPhotos} disabled={queueState === "uploading"}>{queueState === "uploading" ? "Envoi en cours…" : queueState === "sent" ? "Envoyé ✓" : isOnline ? "Envoyer les photos" : "Mettre en attente"}</button>
+              <button className="send-button" onClick={sendPhotos} disabled={queueState === "uploading"}>{queueState === "uploading" ? "Envoi de la facture…" : isOnline ? "Envoyer la facture" : "Mettre en attente"}</button>
             </div>
           )}
           {!isOnline && <div className="offline-notice"><span className="notice-icon">↯</span><div><strong>En attente d’envoi</strong><p>Vos photos restent sur cet appareil et seront reprises dès que le réseau revient.</p></div></div>}
@@ -435,19 +546,31 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
     );
   }
 
+  if (isProductionDataSource && dataSourceState === "loading") {
+    return <AccountingDataLoading />;
+  }
+
+  if (isProductionDataSource && dataSourceState === "error") {
+    return <AccountingDataError onRetry={retryAccounting} />;
+  }
+
+  if (isProductionDataSource && dataSourceState === "ready" && appData.cards.length === 0 && appData.transactions.length === 0) {
+    return <AccountingDataEmpty intakeCount={appData.intakes.length} onOpenSettings={() => { setView("settings"); setViewMode("accounting"); }} />;
+  }
+
   return (
     <AppDataContext.Provider value={appData}>
       <main className="app-shell">
       <aside className="sidebar">
-        <div className="brand-block"><div className="brand-mark"><span className="brand-glyph">MT</span><div><strong>Maçonnerie</strong><span>Thibeault</span></div></div><span className="prototype-pill">Prototype</span></div>
+        <div className="brand-block"><div className="brand-mark"><span className="brand-glyph">MT</span><div><strong>Maçonnerie</strong><span>Thibeault</span></div></div><span className="prototype-pill">{isProductionDataSource ? "Production" : "Prototype"}</span></div>
         <div className="workspace-switcher"><span className="avatar avatar-blue">K</span><div><strong>Kim / Administration</strong><span>Équipe dépenses</span></div><span className="chevron">⌄</span></div>
         <nav className="main-nav" aria-label="Navigation principale">
-          {navItems.map((item) => <button key={item.id} className={`nav-item ${view === item.id ? "active" : ""}`} onClick={() => goTo(item.id)}><span className="nav-icon">{item.icon}</span><span>{item.label}</span>{item.id === "review" && <span className="nav-count">3</span>}</button>)}
+          {navItems.filter((item) => item.id !== "debug" || canUseDiagnostics).map((item) => <button key={item.id} className={`nav-item ${view === item.id ? "active" : ""}`} onClick={() => goTo(item.id)}><span className="nav-icon">{item.icon}</span><span>{item.label}</span>{item.id === "review" && <span className="nav-count">3</span>}{item.id === "intakes" && appData.intakes.length > 0 && <span className="nav-count">{appData.intakes.length}</span>}</button>)}
         </nav>
-        <div className="sidebar-bottom"><div className="archive-mini"><span className="archive-icon">◷</span><div><strong>Archivage recommandé</strong><span>842 photos admissibles</span></div><span className="arrow">→</span></div><button className="worker-mode-button" onClick={() => goTo("capture")}><span>⌾</span> Ouvrir le mode travailleur</button><div className="user-footer"><span className="avatar avatar-gold">K</span><div><strong>Kim</strong><span>Administratrice</span></div><button className="icon-button" aria-label="Options du compte">•••</button></div></div>
+        <div className="sidebar-bottom"><div className="archive-mini"><span className="archive-icon">◷</span><div><strong>Archivage recommandé</strong><span>842 photos admissibles</span></div><span className="arrow">→</span></div>{canUseAccounting && <button className="worker-mode-button" onClick={() => goTo("capture")}><span>⌾</span> Ouvrir le mode dépôt</button>}<div className="user-footer"><span className="avatar avatar-gold">{accountRole === "ADMIN" || accountRole === "SUPER_ADMIN" ? "A" : "K"}</span><div><strong>{accountRole === "ADMIN" || accountRole === "SUPER_ADMIN" ? "Administration" : "Kim"}</strong><span>{accountRole === "KIM" ? "Contrôle comptable" : "Administrateur"}</span></div><button className="icon-button" aria-label="Options du compte">•••</button></div></div>
       </aside>
       <section className="content-area">
-        <header className="topbar"><div className="breadcrumbs"><span>Maçonnerie Thibeault</span><span>/</span><strong>{navItems.find((item) => item.id === view)?.label ?? "Tableau de bord"}</strong></div><div className="topbar-actions"><span className="demo-note">{dataSourceLabel}</span><button className="icon-button" aria-label="Notifications">♧<span className="notification-dot" /></button><button className="avatar avatar-gold small" onClick={() => { setRole("WORKER"); setView("capture"); }} aria-label="Ouvrir le mode travailleur">K</button></div></header>
+        <header className="topbar"><div className="breadcrumbs"><span>Maçonnerie Thibeault</span><span>/</span><strong>{navItems.find((item) => item.id === view)?.label ?? "Tableau de bord"}</strong></div><div className="topbar-actions"><span className="demo-note">{dataSourceLabel}</span><button className="icon-button" aria-label="Notifications">♧<span className="notification-dot" /></button><button className="avatar avatar-gold small" onClick={() => goTo("capture")} aria-label="Ouvrir le mode dépôt">{accountRole === "ADMIN" || accountRole === "SUPER_ADMIN" ? "A" : "K"}</button></div></header>
         <div className="page-content">
           {view === "dashboard" && <Dashboard onNavigate={goTo} onOpenTransaction={(id) => { setSelectedId(id); setView("transaction"); }} period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
           {view === "transactions" && <TransactionsPage items={filteredTransactions} query={query} setQuery={setQuery} statusFilter={statusFilter} setStatusFilter={setStatusFilter} onOpen={(id) => { setSelectedId(id); setView("transaction" as View); }} />}
@@ -455,14 +578,342 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
           {view === "reconciliation" && <ReconciliationPage period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
           {view === "reports" && <ReportsPage period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
           {view === "archives" && <ArchivesPage onNotify={notify} />}
-          {view === "settings" && <SaferSettingsPage />}
-          {(view as string) === "transaction" && <TransactionDetail transaction={selected} onBack={() => setView("transactions")} onNotify={notify} />}
+          {view === "settings" && <AdminDirectoryPage onDataChange={(patch) => setAppData((current) => ({ ...current, ...patch }))} role={accountRole ?? "ADMIN"} />}
+          {view === "intakes" && canUseAccounting && <IntakeQueuePage items={appData.intakes} onSaved={(receiptId, patch) => setAppData((current) => ({ ...current, intakes: current.intakes.map((intake) => intake.receiptId === receiptId ? { ...intake, ...patch } : intake) }))} />}
+          {view === "debug" && canUseDiagnostics && <DebugPage dataSourceState={dataSourceState} onRetry={retryAccounting} role={accountRole ?? "ADMIN"} />}
+          {(view as string) === "transaction" && selected && <TransactionDetail transaction={selected} onBack={() => setView("transactions")} onNotify={notify} />}
         </div>
       </section>
       {toast && <div className="toast">{toast}</div>}
       </main>
     </AppDataContext.Provider>
   );
+}
+
+function AccountingDataLoading() {
+  return <main className="data-source-gate"><section className="data-source-card" aria-live="polite"><span className="eyebrow">Connexion sécurisée</span><h1>Chargement des données comptables</h1><p className="muted">Connexion à Firebase SQL Connect en cours. Les données de démonstration ne sont pas affichées en production.</p><span className="data-source-spinner" aria-hidden="true" /></section></main>;
+}
+
+function AccountingDataError({ onRetry }: { onRetry: () => void }) {
+  return <main className="data-source-gate"><section className="data-source-card"><span className="eyebrow">Connexion requise</span><h1>Données comptables indisponibles</h1><p className="muted">Le connecteur de production n’a pas répondu. Vérifiez que l’utilisateur est authentifié et que le connecteur SQL Connect <strong>accounting</strong> est déployé dans Firebase.</p><div className="data-source-actions"><button className="primary-button" type="button" onClick={onRetry}>Réessayer</button><span className="data-source-help">Aucune donnée fictive n’est utilisée dans ce mode.</span></div></section></main>;
+}
+
+function AccountingDataEmpty({ intakeCount = 0, onOpenSettings }: { intakeCount?: number; onOpenSettings: () => void }) {
+  return <main className="data-source-gate"><section className="data-source-card"><span className="eyebrow">Base prête</span><h1>{intakeCount ? `${intakeCount} dépôt${intakeCount > 1 ? "s" : ""} en traitement` : "Aucune donnée comptable"}</h1><p className="muted">{intakeCount ? "Les photos reçues sont enregistrées et attendent le traitement OCR et la classification." : "Le schéma SQL Connect est déployé, mais aucune carte ou transaction n’a encore été chargée dans la base de production."}</p><div className="data-source-actions"><button className="primary-button" type="button" onClick={onOpenSettings}>Ouvrir la configuration</button><span className="data-source-help">Aucune donnée de démonstration n’est affichée dans ce mode.</span></div></section></main>;
+}
+
+function RoleLoading() {
+  return <main className="data-source-gate"><section className="data-source-card" aria-live="polite"><span className="eyebrow">Accès sécurisé</span><h1>Vérification des permissions</h1><p className="muted">Le rôle Firebase du compte est vérifié avant d’ouvrir les données de l’entreprise.</p><span className="data-source-spinner" aria-hidden="true" /></section></main>;
+}
+
+function DebugPage({ dataSourceState, onRetry, role }: { dataSourceState: "demo" | "loading" | "ready" | "error"; onRetry: () => void; role: Role }) {
+  const identity = useFirebaseIdentity();
+  const uid = identity.user?.uid ?? "Non disponible";
+  const maskedUid = uid.length > 12 ? `${uid.slice(0, 6)}…${uid.slice(-4)}` : uid;
+  const status = dataSourceState === "ready" ? "Opérationnel" : dataSourceState === "error" ? "Erreur" : dataSourceState === "loading" ? "Connexion en cours" : "Non configuré";
+
+  return <>
+    <PageHeading eyebrow="Administration" title="Diagnostic" description="Vérifiez rapidement l’identité, les permissions et les connexions avant d’ouvrir un billet de problème." action={<button className="secondary-button" onClick={onRetry}>Retester SQL Connect</button>} />
+    <section className="debug-grid">
+      <div className="panel debug-card"><p className="eyebrow">Identité</p><h2>{identity.user?.email ?? "Session non disponible"}</h2><dl><div><dt>Rôle</dt><dd>{role}</dd></div><div><dt>UID</dt><dd>{maskedUid}</dd></div><div><dt>Courriel vérifié</dt><dd>{identity.user?.emailVerified ? "Oui" : "Non"}</dd></div></dl></div>
+      <div className="panel debug-card"><p className="eyebrow">Services</p><h2>État des connexions</h2><dl><div><dt>SQL Connect</dt><dd><span className={`debug-status ${dataSourceState}`}>{status}</span></dd></div><div><dt>Connecteur</dt><dd>{sqlConnectConfigured ? "accounting" : "Non configuré"}</dd></div><div><dt>Storage</dt><dd>{firebaseConfigured ? "Firebase configuré" : "Non configuré"}</dd></div><div><dt>App Check</dt><dd>{appCheckConfigured ? "Activé côté application" : "À configurer"}</dd></div></dl></div>
+      <div className="panel debug-card debug-card-wide"><p className="eyebrow">Lecture de sécurité</p><h2>Comportement attendu</h2><ul className="debug-checklist"><li><span>✓</span>Les rôles KIM et ADMIN peuvent lire SQL Connect.</li><li><span>✓</span>Les comptes WORKER peuvent uniquement déposer des photos.</li><li><span>✓</span>Les données de démonstration ne remplacent jamais les données de production.</li><li><span>✓</span>Cette section est visible uniquement par ADMIN et SUPER_ADMIN.</li></ul></div>
+    </section>
+  </>;
+}
+
+function intakeStatusLabel(status: string) {
+  if (status === "AI_REVIEW") return "IA · À vérifier";
+  if (status === "AI_ERROR") return "Erreur IA";
+  if (status === "RECEIVED") return "Reçue · en analyse";
+  if (status === "READY_FOR_ACCOUNTING") return "Prête pour comptabilité";
+  if (status === "COMMITTED") return "Comptabilisée · à vérifier";
+  return status.replaceAll("_", " ");
+}
+
+function intakeStatusClass(status: string) {
+  if (status === "AI_ERROR") return "badge badge-danger";
+  if (status === "AI_REVIEW") return "badge badge-warning";
+  if (status === "READY_FOR_ACCOUNTING") return "badge badge-success";
+  if (status === "COMMITTED") return "badge badge-success";
+  return "badge badge-neutral";
+}
+
+type IntakeReviewDraft = {
+  vendor: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  subtotal: string;
+  tps: string;
+  tvq: string;
+  total: string;
+  currency: string;
+  sku: string;
+  category: string;
+  projectId: string;
+  accountCode: string;
+  notes: string;
+};
+
+function centsToDraftDollars(cents: string | undefined) {
+  if (cents == null) return "";
+  const value = Number(cents);
+  return Number.isFinite(value) ? (value / 100).toFixed(2) : "";
+}
+
+function intakeToReviewDraft(intake: InvoiceIntake): IntakeReviewDraft {
+  return {
+    vendor: intake.extractedVendor ?? "",
+    invoiceNumber: intake.extractedInvoiceNumber ?? "",
+    invoiceDate: intake.extractedInvoiceDate ?? "",
+    subtotal: centsToDraftDollars(intake.extractedSubtotalCents),
+    tps: centsToDraftDollars(intake.extractedTpsCents) || "0.00",
+    tvq: centsToDraftDollars(intake.extractedTvqCents) || "0.00",
+    total: centsToDraftDollars(intake.extractedTotalCents),
+    currency: intake.extractedCurrency ?? "CAD",
+    sku: intake.extractedSku ?? "",
+    category: intake.extractedCategory ?? intake.classificationCategory ?? "",
+    projectId: intake.extractedProjectId ?? "",
+    accountCode: intake.classificationAccountCode ?? "",
+    notes: intake.aiNotes ?? "",
+  };
+}
+
+function dollarsToCents(value: string) {
+  const parsed = Number(value.replace(",", "."));
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed * 100) : null;
+}
+
+function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: (receiptId: string, patch: Partial<InvoiceIntake>) => void }) {
+  const { accounts, cards, periods, projects, skuReferences, users } = useAppData();
+  const sortedItems = [...items].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+  const [selectedReceiptId, setSelectedReceiptId] = useState(items[0]?.receiptId ?? "");
+  const selectedIntake = items.find((intake) => intake.receiptId === selectedReceiptId) ?? null;
+  const [draft, setDraft] = useState<IntakeReviewDraft>(() => selectedIntake ? intakeToReviewDraft(selectedIntake) : {
+    vendor: "", invoiceNumber: "", invoiceDate: "", subtotal: "", tps: "0.00", tvq: "0.00", total: "", currency: "CAD", sku: "", category: "", projectId: "", accountCode: "", notes: "",
+  });
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [saveMessage, setSaveMessage] = useState("");
+  const [draftDirty, setDraftDirty] = useState(false);
+  const cardSuggestionFor = (intake: InvoiceIntake | null) => {
+    if (!intake) return "";
+    const uploader = users.find((user) => user.firebaseUid === intake.uploaderUid);
+    return cards.find((card) => card.status === "Actif" && card.holderId === uploader?.id)?.id ?? "";
+  };
+  const [commitCardId, setCommitCardId] = useState(() => cardSuggestionFor(selectedIntake));
+  const [commitPeriodId, setCommitPeriodId] = useState("");
+  const [commitState, setCommitState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  const selectIntake = (intake: InvoiceIntake) => {
+    setSelectedReceiptId(intake.receiptId);
+    setDraft(intakeToReviewDraft(intake));
+    setSaveState("idle");
+    setSaveMessage("");
+    setDraftDirty(false);
+    setCommitCardId(cardSuggestionFor(intake));
+    setCommitPeriodId("");
+    setCommitState("idle");
+  };
+  const updateDraft = (field: keyof IntakeReviewDraft, value: string) => {
+    setDraft((current) => ({ ...current, [field]: value }));
+    setDraftDirty(true);
+    setSaveState("idle");
+    setCommitState("idle");
+    setSaveMessage("");
+  };
+  const inferredClassification = classifyInvoice(
+    { vendor: draft.vendor, sku: draft.sku || undefined, category: draft.category || undefined },
+    skuReferences,
+    accounts,
+  );
+  const classificationCategory = draft.category || inferredClassification.category;
+  const classificationSource = draft.accountCode ? "KIM_REVIEW" : inferredClassification.source;
+  const classificationConfidence = draft.accountCode ? 1 : inferredClassification.confidence;
+  const isReadyForAccounting = Boolean(draft.vendor.trim() && draft.invoiceDate && draft.accountCode);
+  const messageState = commitState === "error" || commitState === "saved" ? commitState : saveState;
+  const suggestedCard = cards.find((card) => card.id === commitCardId);
+  const suggestedUploader = selectedIntake ? users.find((user) => user.firebaseUid === selectedIntake.uploaderUid) : undefined;
+
+  const saveReview = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selectedIntake) return;
+    const subtotalCents = dollarsToCents(draft.subtotal);
+    const tpsCents = dollarsToCents(draft.tps);
+    const tvqCents = dollarsToCents(draft.tvq);
+    const totalCents = dollarsToCents(draft.total);
+    if (!draft.vendor.trim() || !draft.invoiceDate || subtotalCents == null || tpsCents == null || tvqCents == null || totalCents == null) {
+      setSaveState("error");
+      setSaveMessage("Fournisseur, date et montants valides sont requis.");
+      return;
+    }
+    if (Math.abs(subtotalCents + tpsCents + tvqCents - totalCents) > 1) {
+      setSaveState("error");
+      setSaveMessage("Le total doit correspondre au sous-total plus les taxes.");
+      return;
+    }
+    setSaveState("saving");
+    setSaveMessage("");
+    const status = isReadyForAccounting ? "READY_FOR_ACCOUNTING" : "AI_REVIEW";
+    const classificationStatus = isReadyForAccounting ? "READY_FOR_ACCOUNTING" : "TO_VERIFY";
+    try {
+      await saveInvoiceIntakeReview({
+        receiptId: selectedIntake.receiptId,
+        status,
+        vendor: draft.vendor.trim(),
+        invoiceNumber: draft.invoiceNumber.trim() || null,
+        invoiceDate: draft.invoiceDate,
+        subtotalCents,
+        tpsCents,
+        tvqCents,
+        totalCents,
+        currency: draft.currency.trim().toUpperCase() || "CAD",
+        sku: draft.sku.trim() || null,
+        category: draft.category.trim() || null,
+        projectId: draft.projectId || null,
+        accountCode: draft.accountCode || null,
+        classificationCategory: classificationCategory || null,
+        classificationSource,
+        classificationConfidence,
+        classificationStatus,
+        aiNotes: draft.notes.trim(),
+      });
+      onSaved(selectedIntake.receiptId, {
+        status,
+        lastError: undefined,
+        extractedVendor: draft.vendor.trim(),
+        extractedInvoiceNumber: draft.invoiceNumber.trim() || undefined,
+        extractedInvoiceDate: draft.invoiceDate,
+        extractedSubtotalCents: String(subtotalCents),
+        extractedTpsCents: String(tpsCents),
+        extractedTvqCents: String(tvqCents),
+        extractedTotalCents: String(totalCents),
+        extractedCurrency: draft.currency.trim().toUpperCase() || "CAD",
+        extractedSku: draft.sku.trim() || undefined,
+        extractedCategory: draft.category.trim() || undefined,
+        extractedProjectId: draft.projectId || undefined,
+        classificationAccountCode: draft.accountCode || undefined,
+        classificationCategory: classificationCategory || undefined,
+        classificationSource,
+        classificationConfidence,
+        classificationStatus,
+        aiNotes: draft.notes.trim(),
+      });
+      setDraftDirty(false);
+      setCommitState("idle");
+      setSaveState("saved");
+      setSaveMessage(status === "READY_FOR_ACCOUNTING" ? "Revue enregistrée; prête pour la création comptable." : "Correction enregistrée; il manque encore le compte comptable.");
+    } catch (error) {
+      setSaveState("error");
+      setSaveMessage(error instanceof Error ? error.message : "La revue n'a pas pu être enregistrée.");
+    }
+  };
+
+  const commitAccounting = async () => {
+    if (!selectedIntake) return;
+    if (selectedIntake.status !== "READY_FOR_ACCOUNTING" || draftDirty) {
+      setCommitState("error");
+      setSaveMessage("Enregistrez d'abord la revue Kim avant de créer l'écriture comptable.");
+      return;
+    }
+    const subtotalCents = dollarsToCents(draft.subtotal);
+    const tpsCents = dollarsToCents(draft.tps);
+    const tvqCents = dollarsToCents(draft.tvq);
+    const totalCents = dollarsToCents(draft.total);
+    if (!draft.vendor.trim() || !draft.invoiceDate || subtotalCents == null || tpsCents == null || tvqCents == null || totalCents == null || !draft.accountCode || !commitCardId || !commitPeriodId) {
+      setCommitState("error");
+      setSaveMessage("Le fournisseur, la date, les montants, le compte, la carte et la période du relevé sont requis.");
+      return;
+    }
+    setCommitState("saving");
+    setSaveMessage("");
+    try {
+      await commitInvoiceIntake({
+        receiptId: selectedIntake.receiptId,
+        vendor: draft.vendor.trim(),
+        invoiceNumber: draft.invoiceNumber.trim() || null,
+        invoiceDate: draft.invoiceDate,
+        subtotalCents,
+        tpsCents,
+        tvqCents,
+        totalCents,
+        currency: draft.currency.trim().toUpperCase() || "CAD",
+        sku: draft.sku.trim() || null,
+        category: classificationCategory || "Divers",
+        accountCode: draft.accountCode,
+        cardId: commitCardId,
+        statementPeriodId: commitPeriodId,
+        projectId: draft.projectId || null,
+        storageFolder: selectedIntake.storageFolder,
+        classificationNote: draft.notes.trim() || "Revue Kim confirmée.",
+      });
+      onSaved(selectedIntake.receiptId, {
+        status: "COMMITTED",
+        classificationSource: "KIM_COMMIT",
+        classificationStatus: "COMMITTED",
+        classificationConfidence: 1,
+        lastError: undefined,
+      });
+      setCommitState("saved");
+      setSaveMessage("Écriture comptable et facture créées; dossier marqué comme traité.");
+    } catch (error) {
+      setCommitState("error");
+      setSaveMessage(error instanceof Error ? error.message : "L'écriture comptable n'a pas pu être créée.");
+    }
+  };
+
+  return <>
+    <PageHeading eyebrow="Traitement des factures" title="Dépôts IA" description="Les photos sont conservées dans Storage; Gemini propose les champs et Kim garde la validation finale." />
+    <section className="intake-review-layout">
+      <section className="panel intake-panel">
+        <div className="panel-header">
+          <div><p className="eyebrow">File de traitement</p><h2>{items.length ? `${items.length} dépôt${items.length > 1 ? "s" : ""}` : "Aucun dépôt"}</h2></div>
+          <span className="data-source-help">Les comptes comptables ne sont jamais approuvés automatiquement.</span>
+        </div>
+        {sortedItems.length ? <div className="intake-list">
+          {sortedItems.map((intake) => {
+            const total = intake.extractedTotalCents == null ? null : Number(intake.extractedTotalCents) / 100;
+            const category = intake.classificationCategory ?? intake.extractedCategory ?? "À classer";
+            const account = intake.classificationAccountCode ?? "À choisir";
+            return <button type="button" className={`intake-row ${selectedReceiptId === intake.receiptId ? "selected" : ""}`} key={intake.receiptId} onClick={() => selectIntake(intake)} aria-pressed={selectedReceiptId === intake.receiptId}>
+              <div className="receipt-icon" aria-hidden="true">▤</div>
+              <div className="intake-main">
+                <strong>{intake.extractedVendor ?? "Fournisseur à identifier"}</strong>
+                <span>{intake.receiptId.slice(0, 8)} · {intake.photoCount} photo{intake.photoCount > 1 ? "s" : ""} · {formatDate(intake.updatedAt.slice(0, 10))}</span>
+                {intake.lastError && <small className="intake-error">{intake.lastError}</small>}
+                {!intake.lastError && intake.aiNotes && <small>{intake.aiNotes}</small>}
+              </div>
+              <div className="intake-fields"><span>Catégorie <strong>{category}</strong></span><span>Compte <strong>{account}</strong></span></div>
+              <strong className="intake-total">{total == null || Number.isNaN(total) ? "—" : formatCurrency(total)}</strong>
+              <span className={intakeStatusClass(intake.status)}>{intakeStatusLabel(intake.status)}</span>
+            </button>;
+          })}
+        </div> : <div className="empty-state"><span>◌</span><strong>Les prochains dépôts apparaîtront ici</strong><p>Après un envoi, Gemini extrait la facture et conserve sa proposition pour validation.</p></div>}
+      </section>
+      {selectedIntake ? <form className="panel intake-review" onSubmit={saveReview}>
+        <div className="panel-header"><div><p className="eyebrow">Revue Kim</p><h2>{draft.vendor || "Facture sélectionnée"}</h2></div><span className={intakeStatusClass(isReadyForAccounting ? "READY_FOR_ACCOUNTING" : selectedIntake.status)}>{isReadyForAccounting ? "Prête" : intakeStatusLabel(selectedIntake.status)}</span></div>
+        <div className="intake-review-form">
+          <label className="field wide"><span>Fournisseur</span><input value={draft.vendor} onChange={(event) => updateDraft("vendor", event.target.value)} /></label>
+          <div className="field-grid"><label className="field"><span>No de facture</span><input value={draft.invoiceNumber} onChange={(event) => updateDraft("invoiceNumber", event.target.value)} /></label><label className="field"><span>Date</span><input type="date" value={draft.invoiceDate} onChange={(event) => updateDraft("invoiceDate", event.target.value)} /></label></div>
+          <div className="field-grid"><label className="field"><span>Sous-total · CAD</span><input inputMode="decimal" value={draft.subtotal} onChange={(event) => updateDraft("subtotal", event.target.value)} /></label><label className="field"><span>Total · CAD</span><input inputMode="decimal" value={draft.total} onChange={(event) => updateDraft("total", event.target.value)} /></label><label className="field"><span>TPS · CAD</span><input inputMode="decimal" value={draft.tps} onChange={(event) => updateDraft("tps", event.target.value)} /></label><label className="field"><span>TVQ · CAD</span><input inputMode="decimal" value={draft.tvq} onChange={(event) => updateDraft("tvq", event.target.value)} /></label></div>
+          <label className="field wide"><span>Compte comptable confirmé</span><select value={draft.accountCode} onChange={(event) => updateDraft("accountCode", event.target.value)}><option value="">Choisir le compte</option>{accounts.map((account) => <option key={account.code} value={account.code}>{account.code} · {account.label}</option>)}</select><small>{inferredClassification.accountCode ? `Suggestion automatique : ${inferredClassification.accountCode} · ${inferredClassification.category}` : "Aucune suggestion fiable; le choix de Kim est requis."}</small></label>
+          <label className="field wide"><span>Chantier / projet (facultatif pour cette revue)</span><select value={draft.projectId} onChange={(event) => updateDraft("projectId", event.target.value)}><option value="">Aucun projet sélectionné</option>{projects.map((project) => { const [projectId, ...projectName] = project.split(" · "); return <option key={projectId} value={projectId}>{projectName.join(" · ") || projectId}</option>; })}</select></label>
+          <label className="field wide"><span>Note de revue</span><textarea rows={3} value={draft.notes} onChange={(event) => updateDraft("notes", event.target.value)} /></label>
+          <section className="intake-commit-card">
+            <div><p className="eyebrow">Création comptable</p><h3>Carte et période du relevé</h3><p className="muted">Ces deux choix sont conservés sur la transaction pour permettre le rapprochement mensuel.</p></div>
+            <div className="field-grid">
+              <label className="field"><span>Carte utilisée</span><select value={commitCardId} onChange={(event) => { setCommitCardId(event.target.value); setCommitState("idle"); }}><option value="">Choisir la carte</option>{cards.filter((card) => card.status === "Actif").map((card) => <option key={card.id} value={card.id}>•••• {card.lastFour} · {card.holder}</option>)}</select>{suggestedCard && suggestedUploader && <small>Suggestion : carte de {suggestedUploader.displayName}, selon le compte qui a envoyé la facture.</small>}</label>
+              <label className="field"><span>Période du relevé</span><select value={commitPeriodId} onChange={(event) => { setCommitPeriodId(event.target.value); setCommitState("idle"); }}><option value="">Choisir la période</option>{periods.map((period) => <option key={period.id} value={period.id}>{period.label}</option>)}</select></label>
+            </div>
+            {selectedIntake.status !== "READY_FOR_ACCOUNTING" && <small>Enregistrez la revue avec un compte comptable pour activer la création.</small>}
+            {draftDirty && <small>Des changements non enregistrés désactivent la création jusqu&apos;à la prochaine sauvegarde.</small>}
+            <button className="secondary-button" type="button" onClick={commitAccounting} disabled={commitState === "saving" || selectedIntake.status !== "READY_FOR_ACCOUNTING" || draftDirty}>{commitState === "saving" ? "Création…" : "Créer l’écriture comptable"}</button>
+          </section>
+          {saveMessage && <p className={`intake-review-message ${messageState}`}>{saveMessage}</p>}
+          <div className="intake-review-actions"><button className="primary-button" type="submit" disabled={saveState === "saving"}>{saveState === "saving" ? "Enregistrement…" : isReadyForAccounting ? "Marquer prête pour comptabilité" : "Enregistrer la correction"}</button><span className="data-source-help">La création est réservée à Kim et aux administrateurs; un nouvel essai ne crée pas de doublon.</span></div>
+        </div>
+      </form> : <div className="panel empty-state"><span>◌</span><strong>Sélectionnez un dépôt</strong><p>La proposition Gemini et les corrections de Kim apparaîtront ici.</p></div>}
+    </section>
+  </>;
 }
 
 function PageHeading({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: React.ReactNode }) {
@@ -559,7 +1010,7 @@ function TransactionDetail({ transaction, onBack, onNotify }: { transaction: Tra
   const [draftCategory, setDraftCategory] = useState(transaction.category);
   const [draftSubtotal, setDraftSubtotal] = useState("160.35");
   const [attachmentAdded, setAttachmentAdded] = useState(false);
-  const classification = classifyTransaction({ category: draftCategory, sku: transaction.sku }, data);
+  const classification = classifyTransaction({ category: draftCategory, sku: transaction.sku, vendor: transaction.vendor }, data);
   return <>
     <div className="detail-toolbar">
       <button className="back-button" onClick={onBack}>← <span>Transactions</span></button>
@@ -589,6 +1040,12 @@ function TransactionDetail({ transaction, onBack, onNotify }: { transaction: Tra
 
 function Field({ label, value, hint, tone, wide = false, invalid = false }: { label: string; value: string; hint?: string; tone?: string; wide?: boolean; invalid?: boolean }) {
   return <label className={`field ${wide ? "wide" : ""} ${invalid ? "field-invalid" : ""}`}><span>{label}{invalid && <b> · correction requise</b>}</span><div className="field-value">{value}<span className="field-edit">✎</span></div>{hint && <small className={tone === "success" ? "hint-success" : ""}>{hint}</small>}</label>;
+}
+
+function PhotoPreview({ url, alt }: { url: string; alt: string }) {
+  // These are local FileReader previews, so Next image optimization is not applicable.
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url} alt={alt} />;
 }
 
 function ReconciliationPage({ period, onPeriodChange }: { period: CardPeriod; onPeriodChange: (period: CardPeriod) => void }) {
@@ -680,7 +1137,7 @@ function DemoReportsPage({ period, onPeriodChange }: { period: CardPeriod; onPer
       <label><span>État</span><select aria-label="Filtrer par état" value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)}><option value="VALIDES_ET_A_VALIDER">Validées et à valider</option><option value="VALIDEE">Validées seulement</option><option value="A_VALIDER">À valider seulement</option></select></label>
     </div>
     <div className="report-period-note"><span className="status-dot" /><strong>{period.label}</strong><span>· {selectedPerson === "TOUS" ? "tous les titulaires" : selectedPerson} · {selectedProject === "TOUS" ? "tous les chantiers" : `chantier ${selectedProject}`}</span></div>
-    <div className="report-local-note"><strong>Prévisualisation locale.</strong><span>Les filtres titulaire, chantier et état calculent maintenant les montants à partir des transactions de démonstration. La source SQL Connect remplacera ces données sans modifier le tableau.</span></div>
+    <div className="report-local-note"><strong>Lecture seule.</strong><span>Les filtres titulaire, chantier et état calculent les montants à partir des transactions chargées. Les écritures comptables restent désactivées jusqu’à validation du workflow de correction.</span></div>
     <div className="report-layout">
       <section className="panel report-total"><p className="eyebrow">Résumé de période</p><h2>{formatCurrency(visibleTotal)}</h2><p className="muted">{visibleTransactions.length} transaction{visibleTransactions.length === 1 ? "" : "s"} dans cette vue</p><div className="report-breakdown"><div><span>Avant taxes</span><strong>{formatCurrency(visibleTotal)}</strong></div><div><span>TPS</span><strong>—</strong></div><div><span>TVQ</span><strong>—</strong></div></div></section>
       <section className="panel report-table"><div className="panel-header"><div><p className="eyebrow">Résumé par titulaire et carte</p><h2>Qui dépense quoi</h2></div><button className="text-button">Détails →</button></div><div className="mini-table card-total-list">{visibleCards.map((card) => <div key={card.id}><span><b>•••• {card.lastFour}</b> {card.holder}</span><strong>{formatCurrency(visibleCardTotals.get(card.lastFour) ?? 0)}</strong></div>)}</div></section>
@@ -691,6 +1148,214 @@ function DemoReportsPage({ period, onPeriodChange }: { period: CardPeriod; onPer
 
 function ArchivesPage({ onNotify }: { onNotify: (message: string) => void }) {
   return <><PageHeading eyebrow="Conservation" title="Archives" description="Les données structurées restent accessibles; seules les photos admissibles peuvent être purgées." action={<button className="secondary-button" onClick={() => onNotify("La préparation d’archive sera disponible après la connexion Firebase.")}>Préparer un export</button>} /><div className="archive-banner"><span className="archive-icon large">◷</span><div><p className="eyebrow">Archivage recommandé</p><h2>842 photos de factures validées peuvent être archivées.</h2><p>Période: 1er juin au 31 août 2026 · aucune suppression automatique activée</p></div><button className="primary-button" onClick={() => onNotify("Rappel reporté de 30 jours.")}>Reporter</button></div><section className="archive-grid"><div className="panel archive-card"><div className="archive-card-icon">✓</div><p className="eyebrow">Photos admissibles</p><strong>842</strong><span>après contrôles d’intégrité</span><div className="progress"><span style={{ width: "72%" }} /></div><small>72% de la période est prête</small></div><div className="panel archive-card"><div className="archive-card-icon blue">▣</div><p className="eyebrow">Dernier export vérifié</p><strong>31 mai 2026</strong><span>Factures_2026-03_2026-05</span><button className="text-button">Ouvrir le manifeste →</button></div><div className="panel archive-card"><div className="archive-card-icon gold">⌁</div><p className="eyebrow">Politique</p><strong>Mode manuel</strong><span>La purge automatique est désactivée.</span><button className="text-button">Modifier dans Configuration →</button></div></section></>;
+}
+
+type DirectoryDataPatch = { users?: UserProfile[]; cards?: CreditCard[] };
+
+function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: DirectoryDataPatch) => void; role: Role }) {
+  const data = useAppData();
+  const identity = useFirebaseIdentity();
+  const [selectedSection, setSelectedSection] = useState<"users" | "cards">("users");
+  const [users, setUsers] = useState(data.users);
+  const [cards, setCards] = useState(data.cards);
+  const [cardHolderDrafts, setCardHolderDrafts] = useState<Record<string, string>>(() => Object.fromEntries(data.cards.map((card) => [card.id, card.holderId ?? ""])));
+  const [userForm, setUserForm] = useState({ displayName: "", email: "", jobTitle: "Contremaître", role: "WORKER", password: "" });
+  const [cardForm, setCardForm] = useState({ lastFour: "", holderId: "", cardFunction: "" });
+  const [busyKey, setBusyKey] = useState("");
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+  const canCreateUsers = role === "ADMIN" || role === "SUPER_ADMIN";
+  const persistenceReady = sqlConnectConfigured && accountingReadSource === "firebase-sql-connect";
+
+  const showError = (reason: unknown) => setError(reason instanceof Error ? reason.message : "La modification n'a pas pu être enregistrée.");
+  const getAdminToken = async () => {
+    if (!identity.user) throw new Error("Session administrateur absente.");
+    return identity.user.getIdToken();
+  };
+
+  const createUser = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError("");
+    setNotice("");
+    if (!canCreateUsers) {
+      setError("Seul un administrateur peut créer un compte utilisateur.");
+      return;
+    }
+    if (!persistenceReady) {
+      setError("La base de production doit être connectée avant de créer un utilisateur.");
+      return;
+    }
+    setBusyKey("create-user");
+    try {
+      const token = await getAdminToken();
+      const account = await createFirebaseUser(userForm, token);
+      const profile: UserProfile = {
+        id: account.uid,
+        firebaseUid: account.uid,
+        displayName: userForm.displayName.trim(),
+        email: userForm.email.trim().toLowerCase(),
+        jobTitle: userForm.jobTitle.trim() || undefined,
+        role: userForm.role,
+        status: "ACTIVE",
+      };
+      try {
+        await saveUserProfile({
+          id: profile.id,
+          firebaseUid: profile.firebaseUid,
+          displayName: profile.displayName,
+          email: profile.email ?? null,
+          jobTitle: profile.jobTitle ?? null,
+          role: profile.role,
+          status: profile.status,
+        });
+      } catch (profileError) {
+        throw new Error(`Compte Firebase créé, mais le profil SQL n'a pas été enregistré : ${profileError instanceof Error ? profileError.message : "erreur inconnue"}. UID : ${account.uid}`);
+      }
+      const nextUsers = [...users, profile];
+      setUsers(nextUsers);
+      onDataChange({ users: nextUsers });
+      setUserForm({ displayName: "", email: "", jobTitle: "Contremaître", role: "WORKER", password: "" });
+      setNotice(`Compte créé pour ${profile.displayName}. Il peut maintenant se connecter avec son courriel et son mot de passe temporaire.`);
+    } catch (reason) {
+      showError(reason);
+    } finally {
+      setBusyKey("");
+    }
+  };
+
+  const toggleUser = async (user: UserProfile) => {
+    if (!canCreateUsers || !persistenceReady) return;
+    const nextStatus = user.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    setBusyKey(`user-${user.id}`);
+    setError("");
+    setNotice("");
+    try {
+      const token = await getAdminToken();
+      const response = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+        body: JSON.stringify({ uid: user.firebaseUid, disabled: nextStatus === "INACTIVE" }),
+      });
+      const responseBody = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok) throw new Error(responseBody.error ?? "Le statut Firebase n'a pas pu être modifié.");
+      await saveUserProfile({ id: user.id, firebaseUid: user.firebaseUid, displayName: user.displayName, email: user.email ?? null, jobTitle: user.jobTitle ?? null, role: user.role, status: nextStatus });
+      const nextUsers = users.map((candidate) => candidate.id === user.id ? { ...candidate, status: nextStatus } : candidate);
+      setUsers(nextUsers);
+      onDataChange({ users: nextUsers });
+      setNotice(`${user.displayName} est maintenant ${nextStatus === "ACTIVE" ? "actif" : "désactivé"}.`);
+    } catch (reason) {
+      showError(reason);
+    } finally {
+      setBusyKey("");
+    }
+  };
+
+  const addCard = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError("");
+    setNotice("");
+    if (!persistenceReady) {
+      setError("La base de production doit être connectée avant d'enregistrer une carte.");
+      return;
+    }
+    if (!/^\d{4}$/.test(cardForm.lastFour) || !cardForm.holderId) {
+      setError("Les quatre derniers chiffres et le titulaire sont requis.");
+      return;
+    }
+    setBusyKey("add-card");
+    try {
+      const id = `CARD-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+      const today = new Date().toISOString().slice(0, 10);
+      await saveCreditCard({ id, lastFour: cardForm.lastFour, holderId: cardForm.holderId, cardFunction: cardForm.cardFunction.trim() || null, status: "ACTIVE", activeFrom: today, inactiveFrom: null });
+      const holder = users.find((user) => user.id === cardForm.holderId);
+      if (!holder) throw new Error("Le profil titulaire sélectionné est introuvable.");
+      const nextCard: CreditCard = { id, lastFour: cardForm.lastFour, holderId: holder.id, holder: holder.displayName, function: cardForm.cardFunction.trim() || "À définir", startDate: today, status: "Actif" };
+      const nextCards = [...cards, nextCard];
+      setCards(nextCards);
+      setCardHolderDrafts((current) => ({ ...current, [id]: holder.id }));
+      onDataChange({ cards: nextCards });
+      setCardForm({ lastFour: "", holderId: "", cardFunction: "" });
+      setNotice(`Carte •••• ${nextCard.lastFour} associée à ${holder.displayName}.`);
+    } catch (reason) {
+      showError(reason);
+    } finally {
+      setBusyKey("");
+    }
+  };
+
+  const saveCardAssignment = async (card: CreditCard) => {
+    const holderId = cardHolderDrafts[card.id] ?? card.holderId ?? "";
+    const holder = users.find((user) => user.id === holderId);
+    if (!holder) {
+      setError("Sélectionnez un titulaire valide pour cette carte.");
+      return;
+    }
+    setBusyKey(`card-${card.id}`);
+    setError("");
+    setNotice("");
+    try {
+      await saveCreditCard({ id: card.id, lastFour: card.lastFour, holderId, cardFunction: card.function || null, status: card.status === "Actif" ? "ACTIVE" : "INACTIVE", activeFrom: card.startDate || null, inactiveFrom: card.endDate || null });
+      const nextCards = cards.map((candidate) => candidate.id === card.id ? { ...candidate, holderId, holder: holder.displayName } : candidate);
+      setCards(nextCards);
+      onDataChange({ cards: nextCards });
+      setNotice(`Carte •••• ${card.lastFour} associée à ${holder.displayName}.`);
+    } catch (reason) {
+      showError(reason);
+    } finally {
+      setBusyKey("");
+    }
+  };
+
+  const toggleCard = async (card: CreditCard) => {
+    const holderId = cardHolderDrafts[card.id] ?? card.holderId ?? "";
+    const holder = users.find((user) => user.id === holderId);
+    if (!holder) {
+      setError("Sélectionnez un titulaire valide pour cette carte.");
+      return;
+    }
+    const nextStatus: CreditCard["status"] = card.status === "Actif" ? "Inactif" : "Actif";
+    setBusyKey(`toggle-card-${card.id}`);
+    setError("");
+    setNotice("");
+    try {
+      await saveCreditCard({ id: card.id, lastFour: card.lastFour, holderId, cardFunction: card.function || null, status: nextStatus === "Actif" ? "ACTIVE" : "INACTIVE", activeFrom: card.startDate || null, inactiveFrom: nextStatus === "Actif" ? null : card.endDate ?? new Date().toISOString().slice(0, 10) });
+      const nextCards = cards.map((candidate) => candidate.id === card.id ? { ...candidate, holderId, holder: holder.displayName, status: nextStatus, ...(nextStatus === "Actif" ? { endDate: undefined } : { endDate: card.endDate ?? new Date().toISOString().slice(0, 10) }) } : candidate);
+      setCards(nextCards);
+      onDataChange({ cards: nextCards });
+      setNotice(`Carte •••• ${card.lastFour} ${nextStatus === "Actif" ? "réactivée" : "désactivée"}.`);
+    } catch (reason) {
+      showError(reason);
+    } finally {
+      setBusyKey("");
+    }
+  };
+
+  return <>
+    <PageHeading eyebrow="Administration" title="Utilisateurs et cartes" description="Créez les comptes, attribuez les rôles et associez chaque carte à un profil sans saisir de nom libre dans les factures." />
+    {!persistenceReady && <div className="config-note"><span>i</span><p>Mode aperçu local : les boutons de sauvegarde sont désactivés et aucune modification ne sera envoyée à Firebase.</p></div>}
+    {error && <p className="intake-review-message error">{error}</p>}
+    {notice && <p className="intake-review-message saved">{notice}</p>}
+    <section className="settings-list compact-settings-list">
+      <button className={`settings-row ${selectedSection === "users" ? "selected" : ""}`} type="button" onClick={() => setSelectedSection("users")}><span className="settings-number n1">01</span><span className="settings-copy"><strong>Utilisateurs et accès</strong><span>Comptes, rôles et état d&apos;accès</span></span><span className="settings-meta">{users.length} profils</span><span className="row-arrow">→</span></button>
+      <button className={`settings-row ${selectedSection === "cards" ? "selected" : ""}`} type="button" onClick={() => setSelectedSection("cards")}><span className="settings-number n2">02</span><span className="settings-copy"><strong>Cartes et titulaires</strong><span>Association officielle par identifiant de profil</span></span><span className="settings-meta">{cards.filter((card) => card.status === "Actif").length} actives</span><span className="row-arrow">→</span></button>
+    </section>
+    <section className="panel settings-editor compact-settings-editor">
+      <div className="panel-header"><div><p className="eyebrow">Référentiel persistant</p><h2>{selectedSection === "users" ? "Utilisateurs et accès" : "Cartes et titulaires"}</h2></div><span className="badge badge-neutral">{persistenceReady ? "Firebase" : "Aperçu local"}</span></div>
+      {selectedSection === "users" && <>
+        {canCreateUsers ? <form className="directory-form" onSubmit={createUser}>
+          <div className="field-grid"><label className="field"><span>Nom complet</span><input required value={userForm.displayName} onChange={(event) => setUserForm((current) => ({ ...current, displayName: event.target.value }))} placeholder="Keven Tremblay" /></label><label className="field"><span>Courriel</span><input required type="email" value={userForm.email} onChange={(event) => setUserForm((current) => ({ ...current, email: event.target.value }))} placeholder="keven@thibeault.ca" /></label></div>
+          <div className="field-grid"><label className="field"><span>Fonction</span><input value={userForm.jobTitle} onChange={(event) => setUserForm((current) => ({ ...current, jobTitle: event.target.value }))} placeholder="Contremaître" /></label><label className="field"><span>Rôle applicatif</span><select value={userForm.role} onChange={(event) => setUserForm((current) => ({ ...current, role: event.target.value }))}><option value="WORKER">WORKER · dépôt seulement</option><option value="KIM">KIM · contrôle comptable</option><option value="ADMIN">ADMIN · administration</option></select></label></div>
+          <div className="field-grid"><label className="field"><span>Mot de passe temporaire</span><input required minLength={12} type="password" value={userForm.password} onChange={(event) => setUserForm((current) => ({ ...current, password: event.target.value }))} placeholder="12 caractères minimum" /></label><div className="directory-help">Le mot de passe est envoyé une seule fois à Firebase Admin et n&apos;est jamais enregistré dans SQL Connect.</div></div>
+          <button className="primary-button" type="submit" disabled={!persistenceReady || busyKey === "create-user"}>{busyKey === "create-user" ? "Création…" : "Créer le compte et le profil"}</button>
+        </form> : <div className="config-note"><span>i</span><p>Kim peut consulter les profils et gérer les cartes. La création et la désactivation des comptes sont réservées à ADMIN.</p></div>}
+        <div className="directory-list">{users.map((user) => <div className="directory-row" key={user.id}><div><strong>{user.displayName}</strong><small>{user.email ?? "Courriel non renseigné"} · {user.jobTitle ?? "Fonction non renseignée"}</small></div><span className="badge badge-neutral">{user.role}</span><span className={`badge ${user.status === "ACTIVE" ? "badge-success" : "badge-danger"}`}>{user.status === "ACTIVE" ? "Actif" : "Désactivé"}</span>{canCreateUsers && <button className="secondary-button" type="button" disabled={!persistenceReady || busyKey === `user-${user.id}`} onClick={() => void toggleUser(user)}>{busyKey === `user-${user.id}` ? "…" : user.status === "ACTIVE" ? "Désactiver" : "Réactiver"}</button>}</div>)}</div>
+      </>}
+      {selectedSection === "cards" && <>
+        <form className="directory-form" onSubmit={addCard}><div className="field-grid"><label className="field"><span>Quatre derniers chiffres</span><input required inputMode="numeric" maxLength={4} value={cardForm.lastFour} onChange={(event) => setCardForm((current) => ({ ...current, lastFour: event.target.value.replace(/\D/g, "") }))} placeholder="2481" /></label><label className="field"><span>Titulaire</span><select required value={cardForm.holderId} onChange={(event) => setCardForm((current) => ({ ...current, holderId: event.target.value }))}><option value="">Sélectionner le profil</option>{users.filter((user) => user.status === "ACTIVE").map((user) => <option key={user.id} value={user.id}>{user.displayName} · {user.jobTitle ?? user.role}</option>)}</select></label></div><div className="field-grid"><label className="field"><span>Fonction de la carte</span><input value={cardForm.cardFunction} onChange={(event) => setCardForm((current) => ({ ...current, cardFunction: event.target.value }))} placeholder="Propriétaire ou Contremaître" /></label><div className="directory-help">Seuls les quatre derniers chiffres sont conservés. Le numéro complet de la carte ne passe jamais dans l&apos;application.</div></div><button className="primary-button" type="submit" disabled={!persistenceReady || busyKey === "add-card"}>{busyKey === "add-card" ? "Enregistrement…" : "Ajouter et associer la carte"}</button></form>
+        <div className="directory-list">{cards.map((card) => <div className="directory-row card-directory-row" key={card.id}><div><strong>•••• {card.lastFour}</strong><small>{card.function} · {card.status} · {card.startDate || "date inconnue"}</small></div><select value={cardHolderDrafts[card.id] ?? card.holderId ?? ""} onChange={(event) => setCardHolderDrafts((current) => ({ ...current, [card.id]: event.target.value }))} aria-label={`Titulaire de la carte ${card.lastFour}`}><option value="">Titulaire à choisir</option>{users.map((user) => <option key={user.id} value={user.id}>{user.displayName}</option>)}</select><button className="secondary-button" type="button" disabled={!persistenceReady || busyKey === `card-${card.id}`} onClick={() => void saveCardAssignment(card)}>{busyKey === `card-${card.id}` ? "…" : "Enregistrer"}</button><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `toggle-card-${card.id}`} onClick={() => void toggleCard(card)}>{card.status === "Actif" ? "Désactiver" : "Réactiver"}</button></div>)}</div>
+      </>}
+    </section>
+  </>;
 }
 
 function SaferSettingsPage() {
@@ -743,6 +1408,7 @@ function SaferSettingsPage() {
 }
 
 function CompactSettingsPage() {
+  void SaferSettingsPage;
   void SettingsPage;
   const [selectedSection, setSelectedSection] = useState("cards");
   const [cards, setCards] = useState(creditCards);

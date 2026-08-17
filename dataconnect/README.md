@@ -20,11 +20,12 @@ The first version of the application schema now lives in
 - merchant/SKU references for Canadian Tire and other SKU-only suppliers.
 
 The connector currently exposes read-only operations protected by Firebase Auth
-(`@auth(level: USER)`). This is intentional: client-side correction mutations
-will not be opened until the role model, audit trail, and Kim/admin permissions
-are reviewed. The local preview continues to use its demonstration data until
-the generated SDK is installed and the Firebase environment is explicitly
-enabled.
+custom claims (`KIM`, `ADMIN` and `SUPER_ADMIN`). `WORKER` accounts are not
+allowed to read these global accounting operations; they only submit invoice
+photos through Storage. Client-side correction mutations will not be opened
+until the role model, audit trail, and Kim/admin permissions are reviewed. The
+local preview continues to use its demonstration data until the generated SDK
+is installed and the Firebase environment is explicitly enabled.
 
 Next integration steps:
 

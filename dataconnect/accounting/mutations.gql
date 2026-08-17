@@ -1,0 +1,308 @@
+# The mobile app can acknowledge an authenticated Storage upload. This creates
+# only a processing intake record; privileged server processing will later
+# create Invoice/InvoicePhoto/ExpenseTransaction rows after OCR and review.
+
+mutation UpsertUserProfile(
+  $id: String!
+  $firebaseUid: String!
+  $displayName: String!
+  $email: String
+  $jobTitle: String
+  $role: String!
+  $status: String!
+) @auth(expr: "auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+  userProfile_upsert(data: {
+    id: $id
+    firebaseUid: $firebaseUid
+    displayName: $displayName
+    email: $email
+    jobTitle: $jobTitle
+    role: $role
+    status: $status
+  })
+}
+
+mutation UpsertCreditCard(
+  $id: String!
+  $lastFour: String!
+  $holderId: String!
+  $cardFunction: String
+  $status: String!
+  $activeFrom: Date
+  $inactiveFrom: Date
+) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+  creditCard_upsert(data: {
+    id: $id
+    lastFour: $lastFour
+    holder: { id: $holderId }
+    cardFunction: $cardFunction
+    status: $status
+    activeFrom: $activeFrom
+    inactiveFrom: $inactiveFrom
+  })
+}
+
+mutation CreateInvoiceIntake($receiptId: String!, $storageFolder: String!, $photoCount: Int!) @auth(expr: "auth.token.role == 'WORKER' || auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+  invoiceIntake_upsert(data: {
+    receiptId: $receiptId
+    uploaderUid_expr: "auth.uid"
+    storageFolder: $storageFolder
+    photoCount: $photoCount
+    status: "RECEIVED"
+    lastError: null
+  })
+}
+
+# The uploader can save the validated AI suggestion against its own opaque
+# receipt ID. It remains a review suggestion: no accounting entry is approved
+# by this mutation.
+mutation UpdateInvoiceIntakeAiResult(
+  $receiptId: String!
+  $status: String!
+  $aiModel: String!
+  $aiConfidence: Float!
+  $extractedVendor: String!
+  $extractedInvoiceNumber: String
+  $extractedInvoiceDate: Date
+  $extractedSubtotalCents: Int64!
+  $extractedTpsCents: Int64!
+  $extractedTvqCents: Int64!
+  $extractedTotalCents: Int64!
+  $extractedCurrency: String!
+  $extractedSku: String
+  $extractedCategory: String
+  $extractedProjectId: String
+  $classificationAccountCode: String
+  $classificationCategory: String
+  $classificationSource: String!
+  $classificationConfidence: Float!
+  $classificationStatus: String!
+  $aiNotes: String!
+) @auth(expr: "auth.token.role == 'WORKER' || auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+  invoiceIntake_update(
+    key: { receiptId: $receiptId }
+    data: {
+      status: $status
+      lastError: null
+      aiModel: $aiModel
+      aiConfidence: $aiConfidence
+      extractedVendor: $extractedVendor
+      extractedInvoiceNumber: $extractedInvoiceNumber
+      extractedInvoiceDate: $extractedInvoiceDate
+      extractedSubtotalCents: $extractedSubtotalCents
+      extractedTpsCents: $extractedTpsCents
+      extractedTvqCents: $extractedTvqCents
+      extractedTotalCents: $extractedTotalCents
+      extractedCurrency: $extractedCurrency
+      extractedSku: $extractedSku
+      extractedCategory: $extractedCategory
+      extractedProjectId: $extractedProjectId
+      classificationAccountCode: $classificationAccountCode
+      classificationCategory: $classificationCategory
+      classificationSource: $classificationSource
+      classificationConfidence: $classificationConfidence
+      classificationStatus: $classificationStatus
+      aiNotes: $aiNotes
+    }
+  )
+}
+
+mutation MarkInvoiceIntakeAiError($receiptId: String!, $error: String!) @auth(expr: "auth.token.role == 'WORKER' || auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+  invoiceIntake_update(
+    key: { receiptId: $receiptId }
+    data: {
+      status: "AI_ERROR"
+      lastError: $error
+    }
+  )
+}
+
+# Kim or an administrator can correct the AI suggestion and explicitly move
+# the intake to the accounting handoff queue. This mutation still does not
+# create a transaction; the card, statement period and duplicate checks are
+# handled by the following accounting-commit step.
+mutation UpdateInvoiceIntakeReview(
+  $receiptId: String!
+  $status: String!
+  $extractedVendor: String!
+  $extractedInvoiceNumber: String
+  $extractedInvoiceDate: Date
+  $extractedSubtotalCents: Int64!
+  $extractedTpsCents: Int64!
+  $extractedTvqCents: Int64!
+  $extractedTotalCents: Int64!
+  $extractedCurrency: String!
+  $extractedSku: String
+  $extractedCategory: String
+  $extractedProjectId: String
+  $classificationAccountCode: String
+  $classificationCategory: String
+  $classificationSource: String!
+  $classificationConfidence: Float!
+  $classificationStatus: String!
+  $aiNotes: String!
+) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+  invoiceIntake_update(
+    key: { receiptId: $receiptId }
+    data: {
+      status: $status
+      lastError: null
+      extractedVendor: $extractedVendor
+      extractedInvoiceNumber: $extractedInvoiceNumber
+      extractedInvoiceDate: $extractedInvoiceDate
+      extractedSubtotalCents: $extractedSubtotalCents
+      extractedTpsCents: $extractedTpsCents
+      extractedTvqCents: $extractedTvqCents
+      extractedTotalCents: $extractedTotalCents
+      extractedCurrency: $extractedCurrency
+      extractedSku: $extractedSku
+      extractedCategory: $extractedCategory
+      extractedProjectId: $extractedProjectId
+      classificationAccountCode: $classificationAccountCode
+      classificationCategory: $classificationCategory
+      classificationSource: $classificationSource
+      classificationConfidence: $classificationConfidence
+      classificationStatus: $classificationStatus
+      aiNotes: $aiNotes
+    }
+  )
+}
+
+# Final accounting commit. The transaction and invoice IDs are derived from
+# the opaque receipt ID by the client, so retrying the button upserts the same
+# rows instead of creating duplicates. Only Kim/administrators can execute it.
+mutation CommitInvoiceIntake(
+  $receiptId: String!
+  $transactionId: String!
+  $invoiceId: String!
+  $vendor: String!
+  $invoiceNumber: String
+  $invoiceDate: Date!
+  $subtotalCents: Int64!
+  $tpsCents: Int64!
+  $tvqCents: Int64!
+  $totalCents: Int64!
+  $currency: String!
+  $sku: String
+  $category: String!
+  $accountCode: String!
+  $cardId: String!
+  $statementPeriodId: String!
+  $projectId: String!
+  $storageFolder: String!
+  $classificationNote: String!
+) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+  expenseTransaction_upsert(data: {
+    id: $transactionId
+    transactionDate: $invoiceDate
+    vendor: $vendor
+    card: { id: $cardId }
+    statementPeriod: { id: $statementPeriodId }
+    project: { id: $projectId }
+    expenseAccount: { code: $accountCode }
+    categoryLabel: $category
+    sku: $sku
+    amountBeforeTaxCents: $subtotalCents
+    tpsCents: $tpsCents
+    tvqCents: $tvqCents
+    totalCents: $totalCents
+    currency: $currency
+    status: "TO_VERIFY"
+    reconciliationStatus: "UNMATCHED"
+    classificationSource: "KIM_COMMIT"
+    classificationConfidence: 1.0
+    classificationNote: $classificationNote
+    invoiceNumber: $invoiceNumber
+    issue: null
+  })
+  invoice_upsert(data: {
+    id: $invoiceId
+    transaction: { id: $transactionId }
+    vendor: $vendor
+    invoiceNumber: $invoiceNumber
+    invoiceDate: $invoiceDate
+    subtotalCents: $subtotalCents
+    tpsCents: $tpsCents
+    tvqCents: $tvqCents
+    totalCents: $totalCents
+    reviewStatus: "TO_VERIFY"
+    storageFolder: $storageFolder
+  })
+  invoiceIntake_update(
+    key: { receiptId: $receiptId }
+    data: {
+      status: "COMMITTED"
+      lastError: null
+      classificationSource: "KIM_COMMIT"
+      classificationStatus: "COMMITTED"
+      classificationConfidence: 1.0
+    }
+  )
+}
+
+mutation CommitInvoiceIntakeWithoutProject(
+  $receiptId: String!
+  $transactionId: String!
+  $invoiceId: String!
+  $vendor: String!
+  $invoiceNumber: String
+  $invoiceDate: Date!
+  $subtotalCents: Int64!
+  $tpsCents: Int64!
+  $tvqCents: Int64!
+  $totalCents: Int64!
+  $currency: String!
+  $sku: String
+  $category: String!
+  $accountCode: String!
+  $cardId: String!
+  $statementPeriodId: String!
+  $storageFolder: String!
+  $classificationNote: String!
+) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+  expenseTransaction_upsert(data: {
+    id: $transactionId
+    transactionDate: $invoiceDate
+    vendor: $vendor
+    card: { id: $cardId }
+    statementPeriod: { id: $statementPeriodId }
+    expenseAccount: { code: $accountCode }
+    categoryLabel: $category
+    sku: $sku
+    amountBeforeTaxCents: $subtotalCents
+    tpsCents: $tpsCents
+    tvqCents: $tvqCents
+    totalCents: $totalCents
+    currency: $currency
+    status: "TO_VERIFY"
+    reconciliationStatus: "UNMATCHED"
+    classificationSource: "KIM_COMMIT"
+    classificationConfidence: 1.0
+    classificationNote: $classificationNote
+    invoiceNumber: $invoiceNumber
+    issue: null
+  })
+  invoice_upsert(data: {
+    id: $invoiceId
+    transaction: { id: $transactionId }
+    vendor: $vendor
+    invoiceNumber: $invoiceNumber
+    invoiceDate: $invoiceDate
+    subtotalCents: $subtotalCents
+    tpsCents: $tpsCents
+    tvqCents: $tvqCents
+    totalCents: $totalCents
+    reviewStatus: "TO_VERIFY"
+    storageFolder: $storageFolder
+  })
+  invoiceIntake_update(
+    key: { receiptId: $receiptId }
+    data: {
+      status: "COMMITTED"
+      lastError: null
+      classificationSource: "KIM_COMMIT"
+      classificationStatus: "COMMITTED"
+      classificationConfidence: 1.0
+    }
+  )
+}

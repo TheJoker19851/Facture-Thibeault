@@ -10,14 +10,19 @@
     "build": "vinext build",
     "start": "vinext start",
     "test": "vinext build && node --test tests/rendered-html.test.mjs",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern .vercel",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
+    "@ai-sdk/google": "^4.0.44",
+    "ai": "^7.0.66",
     "drizzle-orm": "0.45.2",
     "firebase": "^12.17.1",
+    "firebase-admin": "^14.2.0",
+    "nitro": "3.0.260610-beta",
     "react": "19.2.6",
-    "react-dom": "19.2.6"
+    "react-dom": "19.2.6",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.37.1",

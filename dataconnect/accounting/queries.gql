@@ -1,8 +1,20 @@
 # Read-only operations for the first application integration pass.
-# Client writes stay disabled until Firebase Auth roles and the correction
-# audit workflow are reviewed.
+# Only Kim and administrator accounts can read the global accounting view.
+# WORKER accounts are limited to invoice-photo uploads through Storage.
 
-query ListCreditCards @auth(level: USER) {
+query ListUserProfiles @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+  userProfiles(limit: 100) {
+    id
+    firebaseUid
+    displayName
+    email
+    jobTitle
+    role
+    status
+  }
+}
+
+query ListCreditCards @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
   creditCards {
     id
     lastFour
@@ -19,7 +31,7 @@ query ListCreditCards @auth(level: USER) {
   }
 }
 
-query ListCardStatementPeriods @auth(level: USER) {
+query ListCardStatementPeriods @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
   cardStatementPeriods {
     id
     label
@@ -30,7 +42,7 @@ query ListCardStatementPeriods @auth(level: USER) {
   }
 }
 
-query ListExpenseAccounts @auth(level: USER) {
+query ListExpenseAccounts @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
   expenseAccounts {
     code
     label
@@ -38,7 +50,7 @@ query ListExpenseAccounts @auth(level: USER) {
   }
 }
 
-query ListProjects @auth(level: USER) {
+query ListProjects @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
   projects {
     id
     name
@@ -46,7 +58,7 @@ query ListProjects @auth(level: USER) {
   }
 }
 
-query ListSkuReferences @auth(level: USER) {
+query ListSkuReferences @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
   skuReferences {
     merchant
     sku
@@ -62,7 +74,7 @@ query ListSkuReferences @auth(level: USER) {
   }
 }
 
-query ListExpenseTransactions @auth(level: USER) {
+query ListExpenseTransactions @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
   expenseTransactions(limit: 250) {
     id
     transactionDate
@@ -106,7 +118,7 @@ query ListExpenseTransactions @auth(level: USER) {
   }
 }
 
-query ListInvoicesToReview @auth(level: USER) {
+query ListInvoicesToReview @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
   invoices(where: {reviewStatus: {eq: "TO_VERIFY"}}) {
     id
     vendor
@@ -129,5 +141,37 @@ query ListInvoicesToReview @auth(level: USER) {
       contentType
       sequence
     }
+  }
+}
+
+query ListInvoiceIntakes @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN'") {
+  invoiceIntakes(limit: 250) {
+    receiptId
+    uploaderUid
+    storageFolder
+    photoCount
+    status
+    lastError
+    aiModel
+    aiConfidence
+    extractedVendor
+    extractedInvoiceNumber
+    extractedInvoiceDate
+    extractedSubtotalCents
+    extractedTpsCents
+    extractedTvqCents
+    extractedTotalCents
+    extractedCurrency
+    extractedSku
+    extractedCategory
+    extractedProjectId
+    classificationAccountCode
+    classificationCategory
+    classificationSource
+    classificationConfidence
+    classificationStatus
+    aiNotes
+    createdAt
+    updatedAt
   }
 }

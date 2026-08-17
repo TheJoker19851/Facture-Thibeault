@@ -1,4 +1,13 @@
 {
+  "auth": {
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Factures Thibeault",
+        "supportEmail": "lesperance.keven@gmail.com"
+      }
+    }
+  },
   "dataconnect": {
     "source": "dataconnect"
   },

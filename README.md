@@ -16,8 +16,8 @@ npm run dev
 npm run build
 ```
 
-Production deployment is intentionally out of scope for the current
-development tranche.
+Production access is role-based: Kim and administrators can use the accounting
+workspace, while assigned workers can only submit invoice photos.
 
 ## Included Shape
 
@@ -26,12 +26,21 @@ development tranche.
   service, database, instance and Montréal region
 - `firebase/seed-data.ts` contains controlled reference-data input from the
   legacy demo data and Kim's official accounting-table image; it is not seeded
+- `firebase/seed-emulator.sql` contains the local-only SQL fixture used by the
+  Firebase Data Connect emulator; it never targets production
 - `firebase/data-connect.ts` prepares the public client connector metadata
 - `firebase.json` and `storage.rules` keep the Firebase boundary closed by
   default and prepare the Montréal region
+- `/capture` is the mobile deposit flow and the PWA `start_url`: the first
+  button opens the rear camera, additional pages can be added in order, and a
+  successful send clears the invoice tray for the next receipt
+- `vercel.json` builds vinext through Nitro's Vercel preset; the production
+  deployment is protected by Firebase Authentication and uses no custom domain
 - `docs/EFVP-Quebec.md` records the Québec privacy and data-transfer checklist
-- `app/components/FirebaseShell.tsx` keeps the app in local demo mode until
-  the Firebase web-app variables are configured
+- `app/components/FirebaseShell.tsx` gates the production application behind
+  Firebase Authentication and a `WORKER`, `KIM`, `ADMIN` or `SUPER_ADMIN`
+  custom claim; the demo mode is only available when production variables are
+  absent
 - `db/` and `drizzle/` are legacy starter scaffolding and are not the official
   application data model
 
@@ -104,6 +113,10 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
   starter files still require their optional worker type package)
 - `npx firebase-tools emulators:start --only auth,storage,dataconnect`: run
   the local Firebase Auth, Storage and SQL Connect emulators
+- When Java 8 is first on `PATH`, set `JAVA_HOME` to a Java 11+ JDK and put its
+  `bin` directory first on `PATH` before starting Firebase CLI
+- With the emulators running, load the local fixture into the PostgreSQL
+  emulator with `psql -h 127.0.0.1 -p 5433 -U postgres -d facture-thibeault-database -f firebase/seed-emulator.sql`
 - See `docs/Firebase-connection.md` for environment separation, connector
   generation and deployment gates
 

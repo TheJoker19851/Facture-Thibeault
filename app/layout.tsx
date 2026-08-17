@@ -1,17 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { FirebaseShell } from "./components/FirebaseShell";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Thibeault · Factures et dépenses",
@@ -30,5 +19,5 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="fr"><body className={`${geistSans.variable} ${geistMono.variable}`}><FirebaseShell>{children}</FirebaseShell></body></html>;
+  return <html lang="fr"><body><FirebaseShell>{children}</FirebaseShell></body></html>;
 }

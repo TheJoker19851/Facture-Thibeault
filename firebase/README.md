@@ -14,3 +14,21 @@ Québec EFVP and supplier/data-transfer review in `docs/EFVP-Quebec.md`.
 
 `seed-data.ts` is only a controlled reference-data input from the prototype. It
 is not a runtime source of truth and is not deployed.
+
+## Émulateur local
+
+Le dépôt contient aussi `seed-emulator.sql`, une fixture locale reproductible
+pour remplir la base PostgreSQL démarrée par l'émulateur Data Connect. Elle
+contient uniquement des identifiants et données de démonstration.
+
+Après le démarrage des émulateurs, le port PostgreSQL est généralement `5433`
+si le port `5432` est déjà utilisé :
+
+```bash
+psql -h 127.0.0.1 -p 5433 -U postgres \
+  -d facture-thibeault-database -f firebase/seed-emulator.sql
+```
+
+Les utilisateurs Firebase de démonstration sont créés dans l'émulateur Auth,
+pas dans ce fichier SQL. Aucun secret ou identifiant de production ne doit être
+ajouté à cette fixture.
