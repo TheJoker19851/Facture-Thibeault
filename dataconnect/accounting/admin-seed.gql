@@ -189,6 +189,9 @@ mutation AdminDeleteUserProfile($id: String!) @auth(level: NO_ACCESS) {
 query AdminListInvoices @auth(level: NO_ACCESS) {
   invoices(limit: 1000) {
     id
+    intake {
+      receiptId
+    }
     invoiceNumber
     processingStatus
     accountingStatus

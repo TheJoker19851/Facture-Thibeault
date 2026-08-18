@@ -303,6 +303,20 @@ exports.createInvoiceIntake = function createInvoiceIntake(dcOrVars, vars) {
 }
 ;
 
+const createInvoiceIntakeV2Ref = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CreateInvoiceIntakeV2', inputVars);
+}
+createInvoiceIntakeV2Ref.operationName = 'CreateInvoiceIntakeV2';
+exports.createInvoiceIntakeV2Ref = createInvoiceIntakeV2Ref;
+
+exports.createInvoiceIntakeV2 = function createInvoiceIntakeV2(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(createInvoiceIntakeV2Ref(dcInstance, inputVars));
+}
+;
+
 const updateInvoiceIntakeAiResultRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -373,6 +387,62 @@ exports.markInvoiceIntakePostingError = function markInvoiceIntakePostingError(d
 }
 ;
 
+const retryInvoiceIntakeAiRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'RetryInvoiceIntakeAi', inputVars);
+}
+retryInvoiceIntakeAiRef.operationName = 'RetryInvoiceIntakeAi';
+exports.retryInvoiceIntakeAiRef = retryInvoiceIntakeAiRef;
+
+exports.retryInvoiceIntakeAi = function retryInvoiceIntakeAi(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(retryInvoiceIntakeAiRef(dcInstance, inputVars));
+}
+;
+
+const retryInvoiceIntakeAiTransientRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'RetryInvoiceIntakeAiTransient', inputVars);
+}
+retryInvoiceIntakeAiTransientRef.operationName = 'RetryInvoiceIntakeAiTransient';
+exports.retryInvoiceIntakeAiTransientRef = retryInvoiceIntakeAiTransientRef;
+
+exports.retryInvoiceIntakeAiTransient = function retryInvoiceIntakeAiTransient(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(retryInvoiceIntakeAiTransientRef(dcInstance, inputVars));
+}
+;
+
+const retryInvoiceIntakeAiTransientV2Ref = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'RetryInvoiceIntakeAiTransientV2', inputVars);
+}
+retryInvoiceIntakeAiTransientV2Ref.operationName = 'RetryInvoiceIntakeAiTransientV2';
+exports.retryInvoiceIntakeAiTransientV2Ref = retryInvoiceIntakeAiTransientV2Ref;
+
+exports.retryInvoiceIntakeAiTransientV2 = function retryInvoiceIntakeAiTransientV2(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(retryInvoiceIntakeAiTransientV2Ref(dcInstance, inputVars));
+}
+;
+
+const materializeInvoiceIntakeV2Ref = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'MaterializeInvoiceIntakeV2', inputVars);
+}
+materializeInvoiceIntakeV2Ref.operationName = 'MaterializeInvoiceIntakeV2';
+exports.materializeInvoiceIntakeV2Ref = materializeInvoiceIntakeV2Ref;
+
+exports.materializeInvoiceIntakeV2 = function materializeInvoiceIntakeV2(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(materializeInvoiceIntakeV2Ref(dcInstance, inputVars));
+}
+;
+
 const commitInvoiceIntakeRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -398,20 +468,6 @@ exports.commitInvoiceIntakeWithoutProjectRef = commitInvoiceIntakeWithoutProject
 exports.commitInvoiceIntakeWithoutProject = function commitInvoiceIntakeWithoutProject(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(commitInvoiceIntakeWithoutProjectRef(dcInstance, inputVars));
-}
-;
-
-const retryInvoiceIntakeAiRef = (dcOrVars, vars) => {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return mutationRef(dcInstance, 'RetryInvoiceIntakeAi', inputVars);
-}
-retryInvoiceIntakeAiRef.operationName = 'RetryInvoiceIntakeAi';
-exports.retryInvoiceIntakeAiRef = retryInvoiceIntakeAiRef;
-
-exports.retryInvoiceIntakeAi = function retryInvoiceIntakeAi(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
-  return executeMutation(retryInvoiceIntakeAiRef(dcInstance, inputVars));
 }
 ;
 

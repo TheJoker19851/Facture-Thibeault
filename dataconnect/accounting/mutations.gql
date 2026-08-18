@@ -42,7 +42,7 @@ mutation UpsertCreditCard(
   })
 }
 
-mutation CreateInvoiceIntake($receiptId: String!, $storageFolder: String!, $photoCount: Int!) @auth(expr: "auth.token.role == 'WORKER' || auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+mutation CreateInvoiceIntake($receiptId: String!, $storageFolder: String!, $photoCount: Int!) @auth(expr: "auth.token.role == 'WORKER' || auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") @transaction {
   invoiceIntake_upsert(data: {
     receiptId: $receiptId
     uploaderUid_expr: "auth.uid"
@@ -52,6 +52,29 @@ mutation CreateInvoiceIntake($receiptId: String!, $storageFolder: String!, $phot
     processingStatus: "PROCESSING"
     accountingStatus: "NOT_POSTED"
     lastError: null
+    aiErrorCode: null
+  })
+  query @redact @check(expr: "false", message: "Ce dépôt V1 est désactivé; actualisez l’application.") {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }, limit: 1) { receiptId }
+  }
+}
+
+mutation CreateInvoiceIntakeV2(
+  $receiptId: String!
+  $storageFolder: String!
+  $photoCount: Int!
+  $clientVersion: String!
+) @auth(expr: "(auth.token.role == 'WORKER' || auth.token.role == 'KIM' || auth.token.role == 'ADMIN') && vars.clientVersion == 'invoice-photo-v2'") {
+  invoiceIntake_upsert(data: {
+    receiptId: $receiptId
+    uploaderUid_expr: "auth.uid"
+    storageFolder: $storageFolder
+    photoCount: $photoCount
+    status: "PROCESSING"
+    processingStatus: "PROCESSING"
+    accountingStatus: "NOT_POSTED"
+    lastError: null
+    aiErrorCode: null
   })
 }
 
@@ -97,6 +120,7 @@ mutation UpdateInvoiceIntakeAiResult(
       processingStatus: $processingStatus
       accountingStatus: "NOT_POSTED"
       lastError: null
+      aiErrorCode: null
       aiModel: $aiModel
       aiConfidence: $aiConfidence
       extractedVendor: $extractedVendor
@@ -133,6 +157,7 @@ mutation UpdateInvoiceIntakeAiResult(
 mutation MarkInvoiceIntakeAiError(
   $receiptId: String!
   $error: String!
+  $aiErrorCode: String
   $accountingStatus: String = "NOT_POSTED"
   $decisionExceptions: String = "[]"
   $decisionChecks: String = "[]"
@@ -150,6 +175,7 @@ mutation MarkInvoiceIntakeAiError(
       processingStatus: "NEEDS_REVIEW"
       accountingStatus: "NOT_POSTED"
       lastError: $error
+      aiErrorCode: $aiErrorCode
       decisionExceptions: $decisionExceptions
       decisionChecks: $decisionChecks
       aiNotes: $error
@@ -182,6 +208,7 @@ mutation MarkInvoiceIntakeAutoPostingError(
       processingStatus: "NEEDS_REVIEW"
       accountingStatus: "POSTING_ERROR"
       lastError: $error
+      aiErrorCode: null
       decisionExceptions: $decisionExceptions
       decisionChecks: $decisionChecks
       aiNotes: $error
@@ -235,6 +262,7 @@ mutation UpdateInvoiceIntakeReview(
       processingStatus: $status
       accountingStatus: "NOT_POSTED"
       lastError: null
+      aiErrorCode: null
       extractedVendor: $extractedVendor
       extractedInvoiceNumber: $extractedInvoiceNumber
       extractedInvoiceDate: $extractedInvoiceDate
@@ -278,13 +306,257 @@ mutation MarkInvoiceIntakePostingError($receiptId: String!) @auth(expr: "auth.to
       processingStatus: "NEEDS_REVIEW"
       accountingStatus: "POSTING_ERROR"
       lastError: "La création de l’écriture comptable a échoué."
+      aiErrorCode: null
     }
   )
 }
 
-# Final accounting commit. The transaction and invoice IDs are derived from
-# the opaque receipt ID by the client, so retrying the button upserts the same
-# rows instead of creating duplicates. Only Kim/administrators can execute it.
+# A controlled retry is the only way to reopen a failed posting for the AI
+# route. Its compare-and-set guarantees that two retry requests cannot both
+# reopen the same intake.
+mutation RetryInvoiceIntakeAi($receiptId: String!) @auth(level: NO_ACCESS) @transaction {
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      processingStatus: { eq: "NEEDS_REVIEW" }
+      accountingStatus: { eq: "POSTING_ERROR" }
+    }
+    data: {
+      status: "PROCESSING"
+      processingStatus: "PROCESSING"
+      accountingStatus: "NOT_POSTED"
+      lastError: null
+      aiErrorCode: null
+    }
+  )
+  query @redact @check(expr: "response.invoiceIntake_updateMany == 1", message: "Aucun posting en erreur à relancer.") {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) {
+      receiptId
+    }
+  }
+}
+
+# Compatibility-only V1 operation retained for connector compatibility. It
+# fails closed inside its transaction; only the stricter V2 retry may reopen.
+mutation RetryInvoiceIntakeAiTransient($receiptId: String!) @auth(level: NO_ACCESS) @transaction {
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      processingStatus: { eq: "NEEDS_REVIEW" }
+      accountingStatus: { eq: "NOT_POSTED" }
+      lastError: { eq: "Le traitement IA a échoué; la facture doit être vérifiée manuellement." }
+    }
+    data: {
+      status: "PROCESSING"
+      processingStatus: "PROCESSING"
+      accountingStatus: "NOT_POSTED"
+      lastError: null
+      decisionExceptions: "[]"
+      decisionChecks: "[]"
+    }
+  )
+  query @redact @check(expr: "false", message: "Ce retry V1 est désactivé; utilisez RetryInvoiceIntakeAiTransientV2.") {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) { receiptId }
+  }
+}
+
+# A transient Gemini capacity failure is different from a manual-review
+# decision: no extraction was persisted and accounting was never attempted.
+# This server-only CAS reopens only that NOT_POSTED error state. The API route
+# additionally verifies the structured exception is a retryable capacity or
+# availability error before invoking this operation.
+mutation RetryInvoiceIntakeAiTransientV2(
+  $receiptId: String!
+  $invoiceId: String!
+  $storageFolder: String!
+) @auth(level: NO_ACCESS) @transaction {
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      processingStatus: { eq: "NEEDS_REVIEW" }
+      accountingStatus: { eq: "NOT_POSTED" }
+      lastError: { eq: "Le traitement IA a échoué; la facture doit être vérifiée manuellement." }
+      aiErrorCode: { eq: "GEMINI_TRANSIENT" }
+    }
+    data: {
+      status: "PROCESSING"
+      processingStatus: "PROCESSING"
+      accountingStatus: "NOT_POSTED"
+      lastError: null
+      aiErrorCode: null
+      decisionExceptions: "[]"
+      decisionChecks: "[]"
+    }
+  )
+  query @redact @check(
+    expr: "response.invoiceIntake_updateMany == 1 && response.query.invoicesById.size() == 0 && response.query.invoicesByStorage.size() == 0"
+    message: "Aucune erreur IA temporaire sans Invoice existante à relancer."
+  ) {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) {
+      receiptId
+    }
+    invoicesById: invoices(where: { id: { eq: $invoiceId } }, limit: 1) { id }
+    invoicesByStorage: invoices(where: { storageFolder: { eq: $storageFolder } }, limit: 1) { id }
+  }
+}
+
+# One server-only materialization path is shared by automatic and human
+# decisions. The API routes authenticate the caller and validate Storage; this
+# transaction owns every final SQL invariant and is inaccessible to clients.
+mutation MaterializeInvoiceIntakeV2(
+  $receiptId: String!
+  $transactionId: String!
+  $invoiceId: String!
+  $vendor: String!
+  $invoiceNumber: String
+  $invoiceDate: Date!
+  $subtotalCents: Int64!
+  $tpsCents: Int64!
+  $tvqCents: Int64!
+  $totalCents: Int64!
+  $currency: String!
+  $sku: String
+  $category: String!
+  $accountCode: String!
+  $cardId: String!
+  $statementPeriodId: String!
+  $project: Project_Key
+  $storageFolder: String!
+  $classificationNote: String!
+  $expectedProcessingStatus: String!
+  $classificationSource: String!
+  $classificationStatus: String!
+  $photoCount: Int!
+  $photo1Id: String!
+  $photo1StoragePath: String!
+  $photo1ContentType: String!
+  $hasPhoto2: Boolean!
+  $photo2Id: String!
+  $photo2StoragePath: String!
+  $photo2ContentType: String!
+  $hasPhoto3: Boolean!
+  $photo3Id: String!
+  $photo3StoragePath: String!
+  $photo3ContentType: String!
+  $hasPhoto4: Boolean!
+  $photo4Id: String!
+  $photo4StoragePath: String!
+  $photo4ContentType: String!
+  $hasPhoto5: Boolean!
+  $photo5Id: String!
+  $photo5StoragePath: String!
+  $photo5ContentType: String!
+) @auth(level: NO_ACCESS) @transaction {
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      processingStatus: { eq: $expectedProcessingStatus }
+      accountingStatus: { eq: "NOT_POSTED" }
+    }
+    data: { accountingStatus: "POSTED" }
+  )
+  query @redact @check(
+    expr: "response.invoiceIntake_updateMany == 1 && ((vars.expectedProcessingStatus == 'AUTO_APPROVED' && vars.classificationSource == 'AUTO_DECISION' && vars.classificationStatus == 'RESOLVED' && vars.project != null) || (vars.expectedProcessingStatus == 'VALIDATED' && vars.classificationSource == 'KIM_COMMIT' && vars.classificationStatus == 'COMMITTED')) && response.query.invoiceIntakes[0].photoCount == vars.photoCount && vars.photoCount >= 1 && vars.photoCount <= 5 && vars.hasPhoto2 == (vars.photoCount >= 2) && vars.hasPhoto3 == (vars.photoCount >= 3) && vars.hasPhoto4 == (vars.photoCount >= 4) && vars.hasPhoto5 == (vars.photoCount >= 5) && vars.photo1StoragePath.startsWith(vars.storageFolder + '/') && vars.photo1ContentType in ['image/jpeg', 'image/png', 'image/webp'] && (!vars.hasPhoto2 || (vars.photo2StoragePath.startsWith(vars.storageFolder + '/') && vars.photo2ContentType in ['image/jpeg', 'image/png', 'image/webp'])) && (!vars.hasPhoto3 || (vars.photo3StoragePath.startsWith(vars.storageFolder + '/') && vars.photo3ContentType in ['image/jpeg', 'image/png', 'image/webp'])) && (!vars.hasPhoto4 || (vars.photo4StoragePath.startsWith(vars.storageFolder + '/') && vars.photo4ContentType in ['image/jpeg', 'image/png', 'image/webp'])) && (!vars.hasPhoto5 || (vars.photo5StoragePath.startsWith(vars.storageFolder + '/') && vars.photo5ContentType in ['image/jpeg', 'image/png', 'image/webp']))"
+    message: "L’intake n’est pas commitable ou ses photos ne correspondent pas au dépôt Storage."
+  ) {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) {
+      receiptId
+      photoCount
+    }
+  }
+  expenseTransaction_upsert(data: {
+    id: $transactionId
+    transactionDate: $invoiceDate
+    vendor: $vendor
+    card: { id: $cardId }
+    statementPeriod: { id: $statementPeriodId }
+    project: $project
+    expenseAccount: { code: $accountCode }
+    categoryLabel: $category
+    sku: $sku
+    amountBeforeTaxCents: $subtotalCents
+    tpsCents: $tpsCents
+    tvqCents: $tvqCents
+    totalCents: $totalCents
+    currency: $currency
+    status: "VALIDATED"
+    processingStatus: $expectedProcessingStatus
+    accountingStatus: "POSTED"
+    reconciliationStatus: "UNMATCHED"
+    classificationSource: $classificationSource
+    classificationConfidence: 1.0
+    classificationNote: $classificationNote
+    invoiceNumber: $invoiceNumber
+    issue: null
+  })
+  invoice_upsert(data: {
+    id: $invoiceId
+    intake: { receiptId: $receiptId }
+    transaction: { id: $transactionId }
+    vendor: $vendor
+    invoiceNumber: $invoiceNumber
+    invoiceDate: $invoiceDate
+    subtotalCents: $subtotalCents
+    tpsCents: $tpsCents
+    tvqCents: $tvqCents
+    totalCents: $totalCents
+    processingStatus: $expectedProcessingStatus
+    accountingStatus: "POSTED"
+    reviewStatus: "VALIDATED"
+    storageFolder: $storageFolder
+  })
+  invoicePhoto1: invoicePhoto_upsert(data: {
+    id: $photo1Id
+    invoice: { id: $invoiceId }
+    storagePath: $photo1StoragePath
+    contentType: $photo1ContentType
+    sequence: 1
+  })
+  invoicePhoto2: invoicePhoto_upsert(data: {
+    id: $photo2Id
+    invoice: { id: $invoiceId }
+    storagePath: $photo2StoragePath
+    contentType: $photo2ContentType
+    sequence: 2
+  }) @include(if: $hasPhoto2)
+  invoicePhoto3: invoicePhoto_upsert(data: {
+    id: $photo3Id
+    invoice: { id: $invoiceId }
+    storagePath: $photo3StoragePath
+    contentType: $photo3ContentType
+    sequence: 3
+  }) @include(if: $hasPhoto3)
+  invoicePhoto4: invoicePhoto_upsert(data: {
+    id: $photo4Id
+    invoice: { id: $invoiceId }
+    storagePath: $photo4StoragePath
+    contentType: $photo4ContentType
+    sequence: 4
+  }) @include(if: $hasPhoto4)
+  invoicePhoto5: invoicePhoto_upsert(data: {
+    id: $photo5Id
+    invoice: { id: $invoiceId }
+    storagePath: $photo5StoragePath
+    contentType: $photo5ContentType
+    sequence: 5
+  }) @include(if: $hasPhoto5)
+  invoiceIntake_update(
+    key: { receiptId: $receiptId }
+    data: {
+      status: $expectedProcessingStatus
+      processingStatus: $expectedProcessingStatus
+      accountingStatus: "POSTED"
+      lastError: null
+      aiErrorCode: null
+      classificationSource: $classificationSource
+      classificationStatus: $classificationStatus
+      classificationConfidence: 1.0
+    }
+  )
+}
+
+# V1 signatures remain for connector compatibility, but fail closed inside the
+# transaction so a stale client cannot materialize an Invoice sans photos.
 mutation CommitInvoiceIntake(
   $receiptId: String!
   $transactionId: String!
@@ -306,8 +578,6 @@ mutation CommitInvoiceIntake(
   $storageFolder: String!
   $classificationNote: String!
 ) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") @transaction {
-  # Database-level posting lock. A concurrent retry waits for this
-  # transaction, then updates zero rows and cannot reach the upserts.
   invoiceIntake_updateMany(
     where: {
       receiptId: { eq: $receiptId }
@@ -316,10 +586,8 @@ mutation CommitInvoiceIntake(
     }
     data: { accountingStatus: "POSTED" }
   )
-  query @redact @check(expr: "response.invoiceIntake_updateMany == 1", message: "La facture est déjà postée ou n’est pas validée.") {
-    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) {
-      receiptId
-    }
+  query @redact @check(expr: "false", message: "Ce commit V1 est désactivé; actualisez l’application.") {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) { receiptId }
   }
   expenseTransaction_upsert(data: {
     id: $transactionId
@@ -403,10 +671,8 @@ mutation CommitInvoiceIntakeWithoutProject(
     }
     data: { accountingStatus: "POSTED" }
   )
-  query @redact @check(expr: "response.invoiceIntake_updateMany == 1", message: "La facture est déjà postée ou n’est pas validée.") {
-    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) {
-      receiptId
-    }
+  query @redact @check(expr: "false", message: "Ce commit V1 est désactivé; actualisez l’application.") {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) { receiptId }
   }
   expenseTransaction_upsert(data: {
     id: $transactionId
@@ -461,32 +727,6 @@ mutation CommitInvoiceIntakeWithoutProject(
   )
 }
 
-# A controlled retry is the only way to reopen a failed posting for the AI
-# route. Its compare-and-set guarantees that two retry requests cannot both
-# reopen the same intake.
-mutation RetryInvoiceIntakeAi($receiptId: String!) @auth(level: NO_ACCESS) @transaction {
-  invoiceIntake_updateMany(
-    where: {
-      receiptId: { eq: $receiptId }
-      processingStatus: { eq: "NEEDS_REVIEW" }
-      accountingStatus: { eq: "POSTING_ERROR" }
-    }
-    data: {
-      status: "PROCESSING"
-      processingStatus: "PROCESSING"
-      accountingStatus: "NOT_POSTED"
-      lastError: null
-    }
-  )
-  query @redact @check(expr: "response.invoiceIntake_updateMany == 1", message: "Aucun posting en erreur à relancer.") {
-    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) {
-      receiptId
-    }
-  }
-}
-
-# Server-only automatic posting. The route performs the deterministic decision
-# and this operation is intentionally inaccessible to browser clients.
 mutation AutoCommitInvoiceIntake(
   $receiptId: String!
   $transactionId: String!
@@ -516,10 +756,8 @@ mutation AutoCommitInvoiceIntake(
     }
     data: { accountingStatus: "POSTED" }
   )
-  query @redact @check(expr: "response.invoiceIntake_updateMany == 1", message: "La facture est déjà postée ou n’est pas auto-approuvée.") {
-    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) {
-      receiptId
-    }
+  query @redact @check(expr: "false", message: "Cet auto-commit V1 est désactivé; utilisez MaterializeInvoiceIntakeV2.") {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) { receiptId }
   }
   expenseTransaction_upsert(data: {
     id: $transactionId

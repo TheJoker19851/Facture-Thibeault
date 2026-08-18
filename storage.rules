@@ -28,13 +28,16 @@ service firebase.storage {
         && resource == null
         && request.resource.metadata.ownerUid == request.auth.uid
         && request.resource.metadata.receiptId == receiptId
-        && fileName.matches('original-[0-9]{2}\\.(jpg|jpeg|png|webp|heic)')
-        && request.resource.size < 15 * 1024 * 1024
-        && request.resource.contentType.matches('(image/jpeg|image/jpg|image/png|image/webp|image/heic)');
-      allow update: if isPrivileged()
-        && fileName.matches('original-[0-9]{2}\\.(jpg|jpeg|png|webp|heic)')
-        && request.resource.size < 15 * 1024 * 1024
-        && request.resource.contentType.matches('(image/jpeg|image/jpg|image/png|image/webp|image/heic)');
+        && request.resource.metadata.sequence.matches('[1-5]')
+        && 'invoiceClientVersion' in request.resource.metadata
+        && request.resource.metadata.invoiceClientVersion == 'invoice-photo-v2'
+        && request.resource.size <= 12 * 1024 * 1024
+        && ((fileName.matches('original-[0-9]{2}\\.jpg') && request.resource.contentType == 'image/jpeg')
+          || (fileName.matches('original-[0-9]{2}\\.png') && request.resource.contentType == 'image/png')
+          || (fileName.matches('original-[0-9]{2}\\.webp') && request.resource.contentType == 'image/webp'));
+      // Original evidence is immutable. Privileged cleanup may delete it, but
+      // no role may replace bytes or metadata in place.
+      allow update: if false;
       allow delete: if isPrivileged();
     }
 

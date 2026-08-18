@@ -2,7 +2,10 @@ import { generateText, Output } from "ai";
 import { createGoogle } from "@ai-sdk/google";
 import { z } from "zod";
 import { firebaseAdminConfigured, getFirebaseAdminAuth, getFirebaseAdminDataConnect } from "../../../../firebase/admin";
+import { materializeInvoiceIntake, readInvoiceIntakeStoragePhotos } from "../../../../firebase/invoice-intake-commit.server";
 import { inferApplicationEnvironment } from "../../../../lib/environment.mjs";
+import { isTransientGeminiCapacityRetry, transientGeminiErrorCode } from "../../../../lib/gemini-retry.mjs";
+import { clientUpdateRequiredResponse, isCurrentInvoiceClientVersion } from "../../../../lib/invoice-client-version.mjs";
 import { classifyInvoice, validateInvoiceExtraction } from "../../../../lib/invoice-processing.mjs";
 import {
   DEFAULT_INVOICE_AI_MIN_CONFIDENCE,
@@ -16,11 +19,7 @@ import {
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
-const MAX_PHOTOS = 5;
-const MAX_PHOTO_BYTES = 12 * 1024 * 1024;
-const MAX_TOTAL_BYTES = 40 * 1024 * 1024;
 const ALLOWED_ROLES = new Set(["WORKER", "KIM", "ADMIN"]);
-const ALLOWED_MEDIA_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 const invoiceExtractionSchema = z.object({
   vendor: z.string(),
@@ -48,9 +47,13 @@ type IntakeData = {
     receiptId: string;
     uploaderUid: string;
     storageFolder: string;
+    photoCount: number;
     processingStatus?: string | null;
     accountingStatus?: string | null;
     lastError?: string | null;
+    aiErrorCode?: string | null;
+    aiModel?: string | null;
+    decisionExceptions?: string | null;
   }>;
 };
 
@@ -237,8 +240,12 @@ export async function POST(request: Request) {
   let receiptIdForLog = "unknown";
   let ownedIntake = false;
   let autoCommitAttempted = false;
+  let transientGeminiFailure = false;
   let dataConnect: Awaited<ReturnType<typeof getFirebaseAdminDataConnect>> | null = null;
   try {
+    if (!isCurrentInvoiceClientVersion(request.headers.get("x-invoice-client-version"))) {
+      return clientUpdateRequiredResponse();
+    }
     const identity = await authenticate(request);
     if (!identity) return Response.json({ error: "Authentification Firebase requise." }, { status: 401 });
     if (!firebaseAdminConfigured()) {
@@ -247,28 +254,10 @@ export async function POST(request: Request) {
 
     const formData = await request.formData();
     const receiptId = formData.get("receiptId");
-    const files = formData.getAll("photos").filter((value): value is File => value instanceof File);
     if (typeof receiptId !== "string" || !/^[a-zA-Z0-9_-]{8,128}$/.test(receiptId)) {
       return Response.json({ error: "Identifiant de facture invalide." }, { status: 400 });
     }
     receiptIdForLog = receiptId;
-    if (!files.length || files.length > MAX_PHOTOS) {
-      return Response.json({ error: `Une facture doit contenir entre 1 et ${MAX_PHOTOS} photos.` }, { status: 400 });
-    }
-
-    let totalBytes = 0;
-    for (const file of files) {
-      if (!ALLOWED_MEDIA_TYPES.has(file.type)) {
-        return Response.json({ error: "L'analyse IA accepte les images JPEG, PNG ou WebP." }, { status: 400 });
-      }
-      if (!file.size || file.size > MAX_PHOTO_BYTES) {
-        return Response.json({ error: "Chaque photo doit faire au maximum 12 Mo." }, { status: 400 });
-      }
-      totalBytes += file.size;
-    }
-    if (totalBytes > MAX_TOTAL_BYTES) {
-      return Response.json({ error: "La facture complète doit faire au maximum 40 Mo." }, { status: 400 });
-    }
 
     dataConnect = await getFirebaseAdminDataConnect();
     const readIntake = async () => {
@@ -283,13 +272,19 @@ export async function POST(request: Request) {
     ownedIntake = true;
 
     // A posted/validated/reviewed intake is already owned by the existing
-    // result. Only POSTING_ERROR can be deliberately reopened for another AI
-    // attempt, and that reopen is itself a database compare-and-set.
-    if (isStableIntakeState(intake)) return existingIntakeResponse(receiptId, intake);
-    if (intake.accountingStatus === "POSTING_ERROR") {
+    // result. Only a verified transient Gemini error or POSTING_ERROR can be
+    // deliberately reopened, and each reopen is a database compare-and-set.
+    const transientGeminiRetry = isTransientGeminiCapacityRetry(intake);
+    if (isStableIntakeState(intake) && !transientGeminiRetry) return existingIntakeResponse(receiptId, intake);
+    if (transientGeminiRetry || intake.accountingStatus === "POSTING_ERROR") {
       let retry: { data: IntakeMutationData };
       try {
-        retry = await dataConnect.executeMutation<IntakeMutationData, { receiptId: string }>("RetryInvoiceIntakeAi", { receiptId });
+        retry = transientGeminiRetry
+          ? await dataConnect.executeMutation<IntakeMutationData, { receiptId: string; invoiceId: string; storageFolder: string }>(
+            "RetryInvoiceIntakeAiTransientV2",
+            { receiptId, invoiceId: `INV-${receiptId}`, storageFolder: intake.storageFolder },
+          )
+          : await dataConnect.executeMutation<IntakeMutationData, { receiptId: string }>("RetryInvoiceIntakeAi", { receiptId });
       } catch (error) {
         const latest = await readIntake();
         // Another request may already have claimed the controlled retry.
@@ -304,8 +299,12 @@ export async function POST(request: Request) {
       }
     }
 
+    const storedPhotos = await readInvoiceIntakeStoragePhotos(intake);
     const [{ model, extraction }, skuResponse, accountResponse, cardResponse, userResponse, projectResponse, periodResponse, transactionResponse] = await Promise.all([
-      extractInvoice(receiptId, files),
+      extractInvoice(receiptId, storedPhotos.map((photo) => photo.file)).catch((error) => {
+        transientGeminiFailure = transientGeminiErrorCode("GEMINI", error) === "GEMINI_TRANSIENT";
+        throw error;
+      }),
       dataConnect.executeQuery<ReferenceData>("ListSkuReferences"),
       dataConnect.executeQuery<AccountData>("ListExpenseAccounts"),
       dataConnect.executeQuery<CardData>("ListCreditCards"),
@@ -370,6 +369,7 @@ export async function POST(request: Request) {
       await dataConnect.executeMutation("MarkInvoiceIntakeAiError", {
         receiptId,
         error,
+        aiErrorCode: null,
         accountingStatus: "NOT_POSTED",
         decisionExceptions: serializeDecisionExceptions(decision.exceptions),
         decisionChecks: serializeDecisionChecks(decision.checks),
@@ -412,22 +412,19 @@ export async function POST(request: Request) {
 
     if (decision.decision === "AUTO_APPROVED") {
       const { accountCode, cardId, statementPeriodId, projectId } = decision.resolutions;
-      if (!accountCode || !cardId || !statementPeriodId || !projectId) {
+      if (!accountCode || !cardId || !statementPeriodId || !projectId || !normalized.invoiceDate) {
         throw new Error("La décision automatique ne contient pas toutes les références comptables requises.");
       }
       autoCommitAttempted = true;
       try {
-        await dataConnect.executeMutation("AutoCommitInvoiceIntake", {
-          receiptId,
-          transactionId: `TX-${receiptId}`,
-          invoiceId: `INV-${receiptId}`,
+        await materializeInvoiceIntake(dataConnect, intake, storedPhotos, {
           vendor: normalized.vendor,
           invoiceNumber: normalized.invoiceNumber,
           invoiceDate: normalized.invoiceDate,
-          subtotalCents: String(normalized.subtotalCents),
-          tpsCents: String(normalized.tpsCents),
-          tvqCents: String(normalized.tvqCents),
-          totalCents: String(normalized.totalCents),
+          subtotalCents: normalized.subtotalCents,
+          tpsCents: normalized.tpsCents,
+          tvqCents: normalized.tvqCents,
+          totalCents: normalized.totalCents,
           currency: normalized.currency,
           sku: normalized.sku,
           category: classification.category,
@@ -435,9 +432,8 @@ export async function POST(request: Request) {
           cardId,
           statementPeriodId,
           projectId,
-          storageFolder: intake.storageFolder,
           classificationNote: `${extraction.notes} ${classification.note}`.trim(),
-        });
+        }, "AUTO");
       } catch (error) {
         const latest = await readIntake();
         if (latest && isStableIntakeState(latest)) return existingIntakeResponse(receiptId, latest);
@@ -486,6 +482,7 @@ export async function POST(request: Request) {
         await dataConnect.executeMutation("MarkInvoiceIntakeAiError", {
           receiptId: receiptIdForLog,
           error: "Le traitement IA a échoué; la facture doit être vérifiée manuellement.",
+          aiErrorCode: transientGeminiFailure ? "GEMINI_TRANSIENT" : null,
           decisionExceptions,
           decisionChecks,
         }).catch(() => undefined);

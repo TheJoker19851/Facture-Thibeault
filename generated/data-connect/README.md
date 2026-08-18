@@ -42,14 +42,18 @@ This README will guide you through the process of using the generated JavaScript
   - [*UpsertUserProfile*](#upsertuserprofile)
   - [*UpsertCreditCard*](#upsertcreditcard)
   - [*CreateInvoiceIntake*](#createinvoiceintake)
+  - [*CreateInvoiceIntakeV2*](#createinvoiceintakev2)
   - [*UpdateInvoiceIntakeAiResult*](#updateinvoiceintakeairesult)
   - [*MarkInvoiceIntakeAiError*](#markinvoiceintakeaierror)
   - [*MarkInvoiceIntakeAutoPostingError*](#markinvoiceintakeautopostingerror)
   - [*UpdateInvoiceIntakeReview*](#updateinvoiceintakereview)
   - [*MarkInvoiceIntakePostingError*](#markinvoiceintakepostingerror)
+  - [*RetryInvoiceIntakeAi*](#retryinvoiceintakeai)
+  - [*RetryInvoiceIntakeAiTransient*](#retryinvoiceintakeaitransient)
+  - [*RetryInvoiceIntakeAiTransientV2*](#retryinvoiceintakeaitransientv2)
+  - [*MaterializeInvoiceIntakeV2*](#materializeinvoiceintakev2)
   - [*CommitInvoiceIntake*](#commitinvoiceintake)
   - [*CommitInvoiceIntakeWithoutProject*](#commitinvoiceintakewithoutproject)
-  - [*RetryInvoiceIntakeAi*](#retryinvoiceintakeai)
   - [*AutoCommitInvoiceIntake*](#autocommitinvoiceintake)
 
 # Accessing the connector
@@ -136,6 +140,9 @@ The `data` property is an object of type `AdminListInvoicesData`, which is defin
 export interface AdminListInvoicesData {
   invoices: ({
     id: string;
+    intake?: {
+      receiptId: string;
+    } & InvoiceIntake_Key;
     invoiceNumber?: string | null;
     processingStatus: string;
     accountingStatus: string;
@@ -1293,6 +1300,7 @@ export interface ListInvoiceIntakesData {
     processingStatus: string;
     accountingStatus: string;
     lastError?: string | null;
+    aiErrorCode?: string | null;
     aiModel?: string | null;
     aiConfidence?: number | null;
     extractedVendor?: string | null;
@@ -3648,6 +3656,124 @@ executeMutation(ref).then((response) => {
 });
 ```
 
+## CreateInvoiceIntakeV2
+You can execute the `CreateInvoiceIntakeV2` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+createInvoiceIntakeV2(vars: CreateInvoiceIntakeV2Variables): MutationPromise<CreateInvoiceIntakeV2Data, CreateInvoiceIntakeV2Variables>;
+
+interface CreateInvoiceIntakeV2Ref {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: CreateInvoiceIntakeV2Variables): MutationRef<CreateInvoiceIntakeV2Data, CreateInvoiceIntakeV2Variables>;
+}
+export const createInvoiceIntakeV2Ref: CreateInvoiceIntakeV2Ref;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+createInvoiceIntakeV2(dc: DataConnect, vars: CreateInvoiceIntakeV2Variables): MutationPromise<CreateInvoiceIntakeV2Data, CreateInvoiceIntakeV2Variables>;
+
+interface CreateInvoiceIntakeV2Ref {
+  ...
+  (dc: DataConnect, vars: CreateInvoiceIntakeV2Variables): MutationRef<CreateInvoiceIntakeV2Data, CreateInvoiceIntakeV2Variables>;
+}
+export const createInvoiceIntakeV2Ref: CreateInvoiceIntakeV2Ref;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the createInvoiceIntakeV2Ref:
+```typescript
+const name = createInvoiceIntakeV2Ref.operationName;
+console.log(name);
+```
+
+### Variables
+The `CreateInvoiceIntakeV2` mutation requires an argument of type `CreateInvoiceIntakeV2Variables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface CreateInvoiceIntakeV2Variables {
+  receiptId: string;
+  storageFolder: string;
+  photoCount: number;
+  clientVersion: string;
+}
+```
+### Return Type
+Recall that executing the `CreateInvoiceIntakeV2` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `CreateInvoiceIntakeV2Data`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface CreateInvoiceIntakeV2Data {
+  invoiceIntake_upsert: InvoiceIntake_Key;
+}
+```
+### Using `CreateInvoiceIntakeV2`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, createInvoiceIntakeV2, CreateInvoiceIntakeV2Variables } from '@factures-thibeault/data-connect-generated';
+
+// The `CreateInvoiceIntakeV2` mutation requires an argument of type `CreateInvoiceIntakeV2Variables`:
+const createInvoiceIntakeV2Vars: CreateInvoiceIntakeV2Variables = {
+  receiptId: ..., 
+  storageFolder: ..., 
+  photoCount: ..., 
+  clientVersion: ..., 
+};
+
+// Call the `createInvoiceIntakeV2()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await createInvoiceIntakeV2(createInvoiceIntakeV2Vars);
+// Variables can be defined inline as well.
+const { data } = await createInvoiceIntakeV2({ receiptId: ..., storageFolder: ..., photoCount: ..., clientVersion: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await createInvoiceIntakeV2(dataConnect, createInvoiceIntakeV2Vars);
+
+console.log(data.invoiceIntake_upsert);
+
+// Or, you can use the `Promise` API.
+createInvoiceIntakeV2(createInvoiceIntakeV2Vars).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_upsert);
+});
+```
+
+### Using `CreateInvoiceIntakeV2`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, createInvoiceIntakeV2Ref, CreateInvoiceIntakeV2Variables } from '@factures-thibeault/data-connect-generated';
+
+// The `CreateInvoiceIntakeV2` mutation requires an argument of type `CreateInvoiceIntakeV2Variables`:
+const createInvoiceIntakeV2Vars: CreateInvoiceIntakeV2Variables = {
+  receiptId: ..., 
+  storageFolder: ..., 
+  photoCount: ..., 
+  clientVersion: ..., 
+};
+
+// Call the `createInvoiceIntakeV2Ref()` function to get a reference to the mutation.
+const ref = createInvoiceIntakeV2Ref(createInvoiceIntakeV2Vars);
+// Variables can be defined inline as well.
+const ref = createInvoiceIntakeV2Ref({ receiptId: ..., storageFolder: ..., photoCount: ..., clientVersion: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = createInvoiceIntakeV2Ref(dataConnect, createInvoiceIntakeV2Vars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.invoiceIntake_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_upsert);
+});
+```
+
 ## UpdateInvoiceIntakeAiResult
 You can execute the `UpdateInvoiceIntakeAiResult` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
 ```typescript
@@ -3859,6 +3985,7 @@ The `MarkInvoiceIntakeAiError` mutation requires an argument of type `MarkInvoic
 export interface MarkInvoiceIntakeAiErrorVariables {
   receiptId: string;
   error: string;
+  aiErrorCode?: string | null;
   accountingStatus?: string | null;
   decisionExceptions?: string | null;
   decisionChecks?: string | null;
@@ -3883,6 +4010,7 @@ import { connectorConfig, markInvoiceIntakeAiError, MarkInvoiceIntakeAiErrorVari
 const markInvoiceIntakeAiErrorVars: MarkInvoiceIntakeAiErrorVariables = {
   receiptId: ..., 
   error: ..., 
+  aiErrorCode: ..., // optional
   accountingStatus: ..., // optional
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
@@ -3892,7 +4020,7 @@ const markInvoiceIntakeAiErrorVars: MarkInvoiceIntakeAiErrorVariables = {
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await markInvoiceIntakeAiError(markInvoiceIntakeAiErrorVars);
 // Variables can be defined inline as well.
-const { data } = await markInvoiceIntakeAiError({ receiptId: ..., error: ..., accountingStatus: ..., decisionExceptions: ..., decisionChecks: ..., });
+const { data } = await markInvoiceIntakeAiError({ receiptId: ..., error: ..., aiErrorCode: ..., accountingStatus: ..., decisionExceptions: ..., decisionChecks: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -3917,6 +4045,7 @@ import { connectorConfig, markInvoiceIntakeAiErrorRef, MarkInvoiceIntakeAiErrorV
 const markInvoiceIntakeAiErrorVars: MarkInvoiceIntakeAiErrorVariables = {
   receiptId: ..., 
   error: ..., 
+  aiErrorCode: ..., // optional
   accountingStatus: ..., // optional
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
@@ -3925,7 +4054,7 @@ const markInvoiceIntakeAiErrorVars: MarkInvoiceIntakeAiErrorVariables = {
 // Call the `markInvoiceIntakeAiErrorRef()` function to get a reference to the mutation.
 const ref = markInvoiceIntakeAiErrorRef(markInvoiceIntakeAiErrorVars);
 // Variables can be defined inline as well.
-const ref = markInvoiceIntakeAiErrorRef({ receiptId: ..., error: ..., accountingStatus: ..., decisionExceptions: ..., decisionChecks: ..., });
+const ref = markInvoiceIntakeAiErrorRef({ receiptId: ..., error: ..., aiErrorCode: ..., accountingStatus: ..., decisionExceptions: ..., decisionChecks: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -4340,6 +4469,611 @@ executeMutation(ref).then((response) => {
 });
 ```
 
+## RetryInvoiceIntakeAi
+You can execute the `RetryInvoiceIntakeAi` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+retryInvoiceIntakeAi(vars: RetryInvoiceIntakeAiVariables): MutationPromise<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
+
+interface RetryInvoiceIntakeAiRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: RetryInvoiceIntakeAiVariables): MutationRef<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
+}
+export const retryInvoiceIntakeAiRef: RetryInvoiceIntakeAiRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+retryInvoiceIntakeAi(dc: DataConnect, vars: RetryInvoiceIntakeAiVariables): MutationPromise<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
+
+interface RetryInvoiceIntakeAiRef {
+  ...
+  (dc: DataConnect, vars: RetryInvoiceIntakeAiVariables): MutationRef<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
+}
+export const retryInvoiceIntakeAiRef: RetryInvoiceIntakeAiRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the retryInvoiceIntakeAiRef:
+```typescript
+const name = retryInvoiceIntakeAiRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `RetryInvoiceIntakeAi` mutation requires an argument of type `RetryInvoiceIntakeAiVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface RetryInvoiceIntakeAiVariables {
+  receiptId: string;
+}
+```
+### Return Type
+Recall that executing the `RetryInvoiceIntakeAi` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `RetryInvoiceIntakeAiData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface RetryInvoiceIntakeAiData {
+  invoiceIntake_updateMany: number;
+}
+```
+### Using `RetryInvoiceIntakeAi`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, retryInvoiceIntakeAi, RetryInvoiceIntakeAiVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `RetryInvoiceIntakeAi` mutation requires an argument of type `RetryInvoiceIntakeAiVariables`:
+const retryInvoiceIntakeAiVars: RetryInvoiceIntakeAiVariables = {
+  receiptId: ..., 
+};
+
+// Call the `retryInvoiceIntakeAi()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await retryInvoiceIntakeAi(retryInvoiceIntakeAiVars);
+// Variables can be defined inline as well.
+const { data } = await retryInvoiceIntakeAi({ receiptId: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await retryInvoiceIntakeAi(dataConnect, retryInvoiceIntakeAiVars);
+
+console.log(data.invoiceIntake_updateMany);
+
+// Or, you can use the `Promise` API.
+retryInvoiceIntakeAi(retryInvoiceIntakeAiVars).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
+});
+```
+
+### Using `RetryInvoiceIntakeAi`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, retryInvoiceIntakeAiRef, RetryInvoiceIntakeAiVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `RetryInvoiceIntakeAi` mutation requires an argument of type `RetryInvoiceIntakeAiVariables`:
+const retryInvoiceIntakeAiVars: RetryInvoiceIntakeAiVariables = {
+  receiptId: ..., 
+};
+
+// Call the `retryInvoiceIntakeAiRef()` function to get a reference to the mutation.
+const ref = retryInvoiceIntakeAiRef(retryInvoiceIntakeAiVars);
+// Variables can be defined inline as well.
+const ref = retryInvoiceIntakeAiRef({ receiptId: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = retryInvoiceIntakeAiRef(dataConnect, retryInvoiceIntakeAiVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.invoiceIntake_updateMany);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
+});
+```
+
+## RetryInvoiceIntakeAiTransient
+You can execute the `RetryInvoiceIntakeAiTransient` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+retryInvoiceIntakeAiTransient(vars: RetryInvoiceIntakeAiTransientVariables): MutationPromise<RetryInvoiceIntakeAiTransientData, RetryInvoiceIntakeAiTransientVariables>;
+
+interface RetryInvoiceIntakeAiTransientRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: RetryInvoiceIntakeAiTransientVariables): MutationRef<RetryInvoiceIntakeAiTransientData, RetryInvoiceIntakeAiTransientVariables>;
+}
+export const retryInvoiceIntakeAiTransientRef: RetryInvoiceIntakeAiTransientRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+retryInvoiceIntakeAiTransient(dc: DataConnect, vars: RetryInvoiceIntakeAiTransientVariables): MutationPromise<RetryInvoiceIntakeAiTransientData, RetryInvoiceIntakeAiTransientVariables>;
+
+interface RetryInvoiceIntakeAiTransientRef {
+  ...
+  (dc: DataConnect, vars: RetryInvoiceIntakeAiTransientVariables): MutationRef<RetryInvoiceIntakeAiTransientData, RetryInvoiceIntakeAiTransientVariables>;
+}
+export const retryInvoiceIntakeAiTransientRef: RetryInvoiceIntakeAiTransientRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the retryInvoiceIntakeAiTransientRef:
+```typescript
+const name = retryInvoiceIntakeAiTransientRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `RetryInvoiceIntakeAiTransient` mutation requires an argument of type `RetryInvoiceIntakeAiTransientVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface RetryInvoiceIntakeAiTransientVariables {
+  receiptId: string;
+}
+```
+### Return Type
+Recall that executing the `RetryInvoiceIntakeAiTransient` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `RetryInvoiceIntakeAiTransientData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface RetryInvoiceIntakeAiTransientData {
+  invoiceIntake_updateMany: number;
+}
+```
+### Using `RetryInvoiceIntakeAiTransient`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, retryInvoiceIntakeAiTransient, RetryInvoiceIntakeAiTransientVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `RetryInvoiceIntakeAiTransient` mutation requires an argument of type `RetryInvoiceIntakeAiTransientVariables`:
+const retryInvoiceIntakeAiTransientVars: RetryInvoiceIntakeAiTransientVariables = {
+  receiptId: ..., 
+};
+
+// Call the `retryInvoiceIntakeAiTransient()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await retryInvoiceIntakeAiTransient(retryInvoiceIntakeAiTransientVars);
+// Variables can be defined inline as well.
+const { data } = await retryInvoiceIntakeAiTransient({ receiptId: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await retryInvoiceIntakeAiTransient(dataConnect, retryInvoiceIntakeAiTransientVars);
+
+console.log(data.invoiceIntake_updateMany);
+
+// Or, you can use the `Promise` API.
+retryInvoiceIntakeAiTransient(retryInvoiceIntakeAiTransientVars).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
+});
+```
+
+### Using `RetryInvoiceIntakeAiTransient`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, retryInvoiceIntakeAiTransientRef, RetryInvoiceIntakeAiTransientVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `RetryInvoiceIntakeAiTransient` mutation requires an argument of type `RetryInvoiceIntakeAiTransientVariables`:
+const retryInvoiceIntakeAiTransientVars: RetryInvoiceIntakeAiTransientVariables = {
+  receiptId: ..., 
+};
+
+// Call the `retryInvoiceIntakeAiTransientRef()` function to get a reference to the mutation.
+const ref = retryInvoiceIntakeAiTransientRef(retryInvoiceIntakeAiTransientVars);
+// Variables can be defined inline as well.
+const ref = retryInvoiceIntakeAiTransientRef({ receiptId: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = retryInvoiceIntakeAiTransientRef(dataConnect, retryInvoiceIntakeAiTransientVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.invoiceIntake_updateMany);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
+});
+```
+
+## RetryInvoiceIntakeAiTransientV2
+You can execute the `RetryInvoiceIntakeAiTransientV2` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+retryInvoiceIntakeAiTransientV2(vars: RetryInvoiceIntakeAiTransientV2Variables): MutationPromise<RetryInvoiceIntakeAiTransientV2Data, RetryInvoiceIntakeAiTransientV2Variables>;
+
+interface RetryInvoiceIntakeAiTransientV2Ref {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: RetryInvoiceIntakeAiTransientV2Variables): MutationRef<RetryInvoiceIntakeAiTransientV2Data, RetryInvoiceIntakeAiTransientV2Variables>;
+}
+export const retryInvoiceIntakeAiTransientV2Ref: RetryInvoiceIntakeAiTransientV2Ref;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+retryInvoiceIntakeAiTransientV2(dc: DataConnect, vars: RetryInvoiceIntakeAiTransientV2Variables): MutationPromise<RetryInvoiceIntakeAiTransientV2Data, RetryInvoiceIntakeAiTransientV2Variables>;
+
+interface RetryInvoiceIntakeAiTransientV2Ref {
+  ...
+  (dc: DataConnect, vars: RetryInvoiceIntakeAiTransientV2Variables): MutationRef<RetryInvoiceIntakeAiTransientV2Data, RetryInvoiceIntakeAiTransientV2Variables>;
+}
+export const retryInvoiceIntakeAiTransientV2Ref: RetryInvoiceIntakeAiTransientV2Ref;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the retryInvoiceIntakeAiTransientV2Ref:
+```typescript
+const name = retryInvoiceIntakeAiTransientV2Ref.operationName;
+console.log(name);
+```
+
+### Variables
+The `RetryInvoiceIntakeAiTransientV2` mutation requires an argument of type `RetryInvoiceIntakeAiTransientV2Variables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface RetryInvoiceIntakeAiTransientV2Variables {
+  receiptId: string;
+  invoiceId: string;
+  storageFolder: string;
+}
+```
+### Return Type
+Recall that executing the `RetryInvoiceIntakeAiTransientV2` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `RetryInvoiceIntakeAiTransientV2Data`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface RetryInvoiceIntakeAiTransientV2Data {
+  invoiceIntake_updateMany: number;
+}
+```
+### Using `RetryInvoiceIntakeAiTransientV2`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, retryInvoiceIntakeAiTransientV2, RetryInvoiceIntakeAiTransientV2Variables } from '@factures-thibeault/data-connect-generated';
+
+// The `RetryInvoiceIntakeAiTransientV2` mutation requires an argument of type `RetryInvoiceIntakeAiTransientV2Variables`:
+const retryInvoiceIntakeAiTransientV2Vars: RetryInvoiceIntakeAiTransientV2Variables = {
+  receiptId: ..., 
+  invoiceId: ..., 
+  storageFolder: ..., 
+};
+
+// Call the `retryInvoiceIntakeAiTransientV2()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await retryInvoiceIntakeAiTransientV2(retryInvoiceIntakeAiTransientV2Vars);
+// Variables can be defined inline as well.
+const { data } = await retryInvoiceIntakeAiTransientV2({ receiptId: ..., invoiceId: ..., storageFolder: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await retryInvoiceIntakeAiTransientV2(dataConnect, retryInvoiceIntakeAiTransientV2Vars);
+
+console.log(data.invoiceIntake_updateMany);
+
+// Or, you can use the `Promise` API.
+retryInvoiceIntakeAiTransientV2(retryInvoiceIntakeAiTransientV2Vars).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
+});
+```
+
+### Using `RetryInvoiceIntakeAiTransientV2`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, retryInvoiceIntakeAiTransientV2Ref, RetryInvoiceIntakeAiTransientV2Variables } from '@factures-thibeault/data-connect-generated';
+
+// The `RetryInvoiceIntakeAiTransientV2` mutation requires an argument of type `RetryInvoiceIntakeAiTransientV2Variables`:
+const retryInvoiceIntakeAiTransientV2Vars: RetryInvoiceIntakeAiTransientV2Variables = {
+  receiptId: ..., 
+  invoiceId: ..., 
+  storageFolder: ..., 
+};
+
+// Call the `retryInvoiceIntakeAiTransientV2Ref()` function to get a reference to the mutation.
+const ref = retryInvoiceIntakeAiTransientV2Ref(retryInvoiceIntakeAiTransientV2Vars);
+// Variables can be defined inline as well.
+const ref = retryInvoiceIntakeAiTransientV2Ref({ receiptId: ..., invoiceId: ..., storageFolder: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = retryInvoiceIntakeAiTransientV2Ref(dataConnect, retryInvoiceIntakeAiTransientV2Vars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.invoiceIntake_updateMany);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
+});
+```
+
+## MaterializeInvoiceIntakeV2
+You can execute the `MaterializeInvoiceIntakeV2` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+materializeInvoiceIntakeV2(vars: MaterializeInvoiceIntakeV2Variables): MutationPromise<MaterializeInvoiceIntakeV2Data, MaterializeInvoiceIntakeV2Variables>;
+
+interface MaterializeInvoiceIntakeV2Ref {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: MaterializeInvoiceIntakeV2Variables): MutationRef<MaterializeInvoiceIntakeV2Data, MaterializeInvoiceIntakeV2Variables>;
+}
+export const materializeInvoiceIntakeV2Ref: MaterializeInvoiceIntakeV2Ref;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+materializeInvoiceIntakeV2(dc: DataConnect, vars: MaterializeInvoiceIntakeV2Variables): MutationPromise<MaterializeInvoiceIntakeV2Data, MaterializeInvoiceIntakeV2Variables>;
+
+interface MaterializeInvoiceIntakeV2Ref {
+  ...
+  (dc: DataConnect, vars: MaterializeInvoiceIntakeV2Variables): MutationRef<MaterializeInvoiceIntakeV2Data, MaterializeInvoiceIntakeV2Variables>;
+}
+export const materializeInvoiceIntakeV2Ref: MaterializeInvoiceIntakeV2Ref;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the materializeInvoiceIntakeV2Ref:
+```typescript
+const name = materializeInvoiceIntakeV2Ref.operationName;
+console.log(name);
+```
+
+### Variables
+The `MaterializeInvoiceIntakeV2` mutation requires an argument of type `MaterializeInvoiceIntakeV2Variables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface MaterializeInvoiceIntakeV2Variables {
+  receiptId: string;
+  transactionId: string;
+  invoiceId: string;
+  vendor: string;
+  invoiceNumber?: string | null;
+  invoiceDate: DateString;
+  subtotalCents: Int64String;
+  tpsCents: Int64String;
+  tvqCents: Int64String;
+  totalCents: Int64String;
+  currency: string;
+  sku?: string | null;
+  category: string;
+  accountCode: string;
+  cardId: string;
+  statementPeriodId: string;
+  project?: Project_Key | null;
+  storageFolder: string;
+  classificationNote: string;
+  expectedProcessingStatus: string;
+  classificationSource: string;
+  classificationStatus: string;
+  photoCount: number;
+  photo1Id: string;
+  photo1StoragePath: string;
+  photo1ContentType: string;
+  hasPhoto2: boolean;
+  photo2Id: string;
+  photo2StoragePath: string;
+  photo2ContentType: string;
+  hasPhoto3: boolean;
+  photo3Id: string;
+  photo3StoragePath: string;
+  photo3ContentType: string;
+  hasPhoto4: boolean;
+  photo4Id: string;
+  photo4StoragePath: string;
+  photo4ContentType: string;
+  hasPhoto5: boolean;
+  photo5Id: string;
+  photo5StoragePath: string;
+  photo5ContentType: string;
+}
+```
+### Return Type
+Recall that executing the `MaterializeInvoiceIntakeV2` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `MaterializeInvoiceIntakeV2Data`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface MaterializeInvoiceIntakeV2Data {
+  invoiceIntake_updateMany: number;
+  expenseTransaction_upsert: ExpenseTransaction_Key;
+  invoice_upsert: Invoice_Key;
+  invoicePhoto1: InvoicePhoto_Key;
+  invoicePhoto2: InvoicePhoto_Key;
+  invoicePhoto3: InvoicePhoto_Key;
+  invoicePhoto4: InvoicePhoto_Key;
+  invoicePhoto5: InvoicePhoto_Key;
+  invoiceIntake_update?: InvoiceIntake_Key | null;
+}
+```
+### Using `MaterializeInvoiceIntakeV2`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, materializeInvoiceIntakeV2, MaterializeInvoiceIntakeV2Variables } from '@factures-thibeault/data-connect-generated';
+
+// The `MaterializeInvoiceIntakeV2` mutation requires an argument of type `MaterializeInvoiceIntakeV2Variables`:
+const materializeInvoiceIntakeV2Vars: MaterializeInvoiceIntakeV2Variables = {
+  receiptId: ..., 
+  transactionId: ..., 
+  invoiceId: ..., 
+  vendor: ..., 
+  invoiceNumber: ..., // optional
+  invoiceDate: ..., 
+  subtotalCents: ..., 
+  tpsCents: ..., 
+  tvqCents: ..., 
+  totalCents: ..., 
+  currency: ..., 
+  sku: ..., // optional
+  category: ..., 
+  accountCode: ..., 
+  cardId: ..., 
+  statementPeriodId: ..., 
+  project: ..., // optional
+  storageFolder: ..., 
+  classificationNote: ..., 
+  expectedProcessingStatus: ..., 
+  classificationSource: ..., 
+  classificationStatus: ..., 
+  photoCount: ..., 
+  photo1Id: ..., 
+  photo1StoragePath: ..., 
+  photo1ContentType: ..., 
+  hasPhoto2: ..., 
+  photo2Id: ..., 
+  photo2StoragePath: ..., 
+  photo2ContentType: ..., 
+  hasPhoto3: ..., 
+  photo3Id: ..., 
+  photo3StoragePath: ..., 
+  photo3ContentType: ..., 
+  hasPhoto4: ..., 
+  photo4Id: ..., 
+  photo4StoragePath: ..., 
+  photo4ContentType: ..., 
+  hasPhoto5: ..., 
+  photo5Id: ..., 
+  photo5StoragePath: ..., 
+  photo5ContentType: ..., 
+};
+
+// Call the `materializeInvoiceIntakeV2()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await materializeInvoiceIntakeV2(materializeInvoiceIntakeV2Vars);
+// Variables can be defined inline as well.
+const { data } = await materializeInvoiceIntakeV2({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriodId: ..., project: ..., storageFolder: ..., classificationNote: ..., expectedProcessingStatus: ..., classificationSource: ..., classificationStatus: ..., photoCount: ..., photo1Id: ..., photo1StoragePath: ..., photo1ContentType: ..., hasPhoto2: ..., photo2Id: ..., photo2StoragePath: ..., photo2ContentType: ..., hasPhoto3: ..., photo3Id: ..., photo3StoragePath: ..., photo3ContentType: ..., hasPhoto4: ..., photo4Id: ..., photo4StoragePath: ..., photo4ContentType: ..., hasPhoto5: ..., photo5Id: ..., photo5StoragePath: ..., photo5ContentType: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await materializeInvoiceIntakeV2(dataConnect, materializeInvoiceIntakeV2Vars);
+
+console.log(data.invoiceIntake_updateMany);
+console.log(data.expenseTransaction_upsert);
+console.log(data.invoice_upsert);
+console.log(data.invoicePhoto1);
+console.log(data.invoicePhoto2);
+console.log(data.invoicePhoto3);
+console.log(data.invoicePhoto4);
+console.log(data.invoicePhoto5);
+console.log(data.invoiceIntake_update);
+
+// Or, you can use the `Promise` API.
+materializeInvoiceIntakeV2(materializeInvoiceIntakeV2Vars).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
+  console.log(data.expenseTransaction_upsert);
+  console.log(data.invoice_upsert);
+  console.log(data.invoicePhoto1);
+  console.log(data.invoicePhoto2);
+  console.log(data.invoicePhoto3);
+  console.log(data.invoicePhoto4);
+  console.log(data.invoicePhoto5);
+  console.log(data.invoiceIntake_update);
+});
+```
+
+### Using `MaterializeInvoiceIntakeV2`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, materializeInvoiceIntakeV2Ref, MaterializeInvoiceIntakeV2Variables } from '@factures-thibeault/data-connect-generated';
+
+// The `MaterializeInvoiceIntakeV2` mutation requires an argument of type `MaterializeInvoiceIntakeV2Variables`:
+const materializeInvoiceIntakeV2Vars: MaterializeInvoiceIntakeV2Variables = {
+  receiptId: ..., 
+  transactionId: ..., 
+  invoiceId: ..., 
+  vendor: ..., 
+  invoiceNumber: ..., // optional
+  invoiceDate: ..., 
+  subtotalCents: ..., 
+  tpsCents: ..., 
+  tvqCents: ..., 
+  totalCents: ..., 
+  currency: ..., 
+  sku: ..., // optional
+  category: ..., 
+  accountCode: ..., 
+  cardId: ..., 
+  statementPeriodId: ..., 
+  project: ..., // optional
+  storageFolder: ..., 
+  classificationNote: ..., 
+  expectedProcessingStatus: ..., 
+  classificationSource: ..., 
+  classificationStatus: ..., 
+  photoCount: ..., 
+  photo1Id: ..., 
+  photo1StoragePath: ..., 
+  photo1ContentType: ..., 
+  hasPhoto2: ..., 
+  photo2Id: ..., 
+  photo2StoragePath: ..., 
+  photo2ContentType: ..., 
+  hasPhoto3: ..., 
+  photo3Id: ..., 
+  photo3StoragePath: ..., 
+  photo3ContentType: ..., 
+  hasPhoto4: ..., 
+  photo4Id: ..., 
+  photo4StoragePath: ..., 
+  photo4ContentType: ..., 
+  hasPhoto5: ..., 
+  photo5Id: ..., 
+  photo5StoragePath: ..., 
+  photo5ContentType: ..., 
+};
+
+// Call the `materializeInvoiceIntakeV2Ref()` function to get a reference to the mutation.
+const ref = materializeInvoiceIntakeV2Ref(materializeInvoiceIntakeV2Vars);
+// Variables can be defined inline as well.
+const ref = materializeInvoiceIntakeV2Ref({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriodId: ..., project: ..., storageFolder: ..., classificationNote: ..., expectedProcessingStatus: ..., classificationSource: ..., classificationStatus: ..., photoCount: ..., photo1Id: ..., photo1StoragePath: ..., photo1ContentType: ..., hasPhoto2: ..., photo2Id: ..., photo2StoragePath: ..., photo2ContentType: ..., hasPhoto3: ..., photo3Id: ..., photo3StoragePath: ..., photo3ContentType: ..., hasPhoto4: ..., photo4Id: ..., photo4StoragePath: ..., photo4ContentType: ..., hasPhoto5: ..., photo5Id: ..., photo5StoragePath: ..., photo5ContentType: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = materializeInvoiceIntakeV2Ref(dataConnect, materializeInvoiceIntakeV2Vars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.invoiceIntake_updateMany);
+console.log(data.expenseTransaction_upsert);
+console.log(data.invoice_upsert);
+console.log(data.invoicePhoto1);
+console.log(data.invoicePhoto2);
+console.log(data.invoicePhoto3);
+console.log(data.invoicePhoto4);
+console.log(data.invoicePhoto5);
+console.log(data.invoiceIntake_update);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
+  console.log(data.expenseTransaction_upsert);
+  console.log(data.invoice_upsert);
+  console.log(data.invoicePhoto1);
+  console.log(data.invoicePhoto2);
+  console.log(data.invoicePhoto3);
+  console.log(data.invoicePhoto4);
+  console.log(data.invoicePhoto5);
+  console.log(data.invoiceIntake_update);
+});
+```
+
 ## CommitInvoiceIntake
 You can execute the `CommitInvoiceIntake` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
 ```typescript
@@ -4690,115 +5424,6 @@ executeMutation(ref).then((response) => {
   console.log(data.expenseTransaction_upsert);
   console.log(data.invoice_upsert);
   console.log(data.invoiceIntake_update);
-});
-```
-
-## RetryInvoiceIntakeAi
-You can execute the `RetryInvoiceIntakeAi` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
-retryInvoiceIntakeAi(vars: RetryInvoiceIntakeAiVariables): MutationPromise<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
-
-interface RetryInvoiceIntakeAiRef {
-  ...
-  /* Allow users to create refs without passing in DataConnect */
-  (vars: RetryInvoiceIntakeAiVariables): MutationRef<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
-}
-export const retryInvoiceIntakeAiRef: RetryInvoiceIntakeAiRef;
-```
-You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
-retryInvoiceIntakeAi(dc: DataConnect, vars: RetryInvoiceIntakeAiVariables): MutationPromise<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
-
-interface RetryInvoiceIntakeAiRef {
-  ...
-  (dc: DataConnect, vars: RetryInvoiceIntakeAiVariables): MutationRef<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
-}
-export const retryInvoiceIntakeAiRef: RetryInvoiceIntakeAiRef;
-```
-
-If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the retryInvoiceIntakeAiRef:
-```typescript
-const name = retryInvoiceIntakeAiRef.operationName;
-console.log(name);
-```
-
-### Variables
-The `RetryInvoiceIntakeAi` mutation requires an argument of type `RetryInvoiceIntakeAiVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-
-```typescript
-export interface RetryInvoiceIntakeAiVariables {
-  receiptId: string;
-}
-```
-### Return Type
-Recall that executing the `RetryInvoiceIntakeAi` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
-
-The `data` property is an object of type `RetryInvoiceIntakeAiData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
-export interface RetryInvoiceIntakeAiData {
-  invoiceIntake_updateMany: number;
-}
-```
-### Using `RetryInvoiceIntakeAi`'s action shortcut function
-
-```typescript
-import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig, retryInvoiceIntakeAi, RetryInvoiceIntakeAiVariables } from '@factures-thibeault/data-connect-generated';
-
-// The `RetryInvoiceIntakeAi` mutation requires an argument of type `RetryInvoiceIntakeAiVariables`:
-const retryInvoiceIntakeAiVars: RetryInvoiceIntakeAiVariables = {
-  receiptId: ..., 
-};
-
-// Call the `retryInvoiceIntakeAi()` function to execute the mutation.
-// You can use the `await` keyword to wait for the promise to resolve.
-const { data } = await retryInvoiceIntakeAi(retryInvoiceIntakeAiVars);
-// Variables can be defined inline as well.
-const { data } = await retryInvoiceIntakeAi({ receiptId: ..., });
-
-// You can also pass in a `DataConnect` instance to the action shortcut function.
-const dataConnect = getDataConnect(connectorConfig);
-const { data } = await retryInvoiceIntakeAi(dataConnect, retryInvoiceIntakeAiVars);
-
-console.log(data.invoiceIntake_updateMany);
-
-// Or, you can use the `Promise` API.
-retryInvoiceIntakeAi(retryInvoiceIntakeAiVars).then((response) => {
-  const data = response.data;
-  console.log(data.invoiceIntake_updateMany);
-});
-```
-
-### Using `RetryInvoiceIntakeAi`'s `MutationRef` function
-
-```typescript
-import { getDataConnect, executeMutation } from 'firebase/data-connect';
-import { connectorConfig, retryInvoiceIntakeAiRef, RetryInvoiceIntakeAiVariables } from '@factures-thibeault/data-connect-generated';
-
-// The `RetryInvoiceIntakeAi` mutation requires an argument of type `RetryInvoiceIntakeAiVariables`:
-const retryInvoiceIntakeAiVars: RetryInvoiceIntakeAiVariables = {
-  receiptId: ..., 
-};
-
-// Call the `retryInvoiceIntakeAiRef()` function to get a reference to the mutation.
-const ref = retryInvoiceIntakeAiRef(retryInvoiceIntakeAiVars);
-// Variables can be defined inline as well.
-const ref = retryInvoiceIntakeAiRef({ receiptId: ..., });
-
-// You can also pass in a `DataConnect` instance to the `MutationRef` function.
-const dataConnect = getDataConnect(connectorConfig);
-const ref = retryInvoiceIntakeAiRef(dataConnect, retryInvoiceIntakeAiVars);
-
-// Call `executeMutation()` on the reference to execute the mutation.
-// You can use the `await` keyword to wait for the promise to resolve.
-const { data } = await executeMutation(ref);
-
-console.log(data.invoiceIntake_updateMany);
-
-// Or, you can use the `Promise` API.
-executeMutation(ref).then((response) => {
-  const data = response.data;
-  console.log(data.invoiceIntake_updateMany);
 });
 ```
 

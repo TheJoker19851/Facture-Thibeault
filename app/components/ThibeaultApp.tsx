@@ -4,14 +4,16 @@ import { ChangeEvent, createContext, FormEvent, useContext, useEffect, useMemo, 
 import { accountingReadSource, commitInvoiceIntake, createFirebaseUser, loadAccountingSnapshot, mapAccountingSnapshot, saveCreditCard, saveInvoiceIntakeReview, saveUserProfile } from "../../firebase/accounting";
 import { appCheckConfigured, firebaseConfigured } from "../../firebase/client";
 import { sqlConnectConfigured } from "../../firebase/data-connect";
-import { processInvoicePhotosWithGemini } from "../../firebase/ai";
-import { uploadInvoicePhotos } from "../../firebase/uploads";
+import { processInvoiceIntakeWithGemini } from "../../firebase/ai";
+import { invoicePhotoFileError, uploadInvoicePhotos } from "../../firebase/uploads";
 import { classifyInvoice } from "../../lib/invoice-processing.mjs";
 import { DecisionJsonError, parseDecisionExceptions, serializeDecisionChecks, serializeDecisionExceptions } from "../../lib/decision-json.mjs";
+import { INVOICE_CLIENT_VERSION } from "../../lib/invoice-client-version.mjs";
 import { useFirebaseIdentity, type AppRole } from "./FirebaseShell";
 
 type Role = AppRole;
 type View = "dashboard" | "transactions" | "review" | "reconciliation" | "reports" | "archives" | "settings" | "intakes" | "debug" | "capture" | "transaction";
+type ClientVersionState = "checking" | "current" | "obsolete" | "unavailable";
 
 type Transaction = {
   id: string;
@@ -314,8 +316,10 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
   const [draftReceiptId, setDraftReceiptId] = useState<string | null>(null);
   const [queueState, setQueueState] = useState<"idle" | "uploading" | "sent">("idle");
   const [isOnline, setIsOnline] = useState(true);
+  const [clientVersionState, setClientVersionState] = useState<ClientVersionState>(isProductionDataSource ? "checking" : "current");
   const [toast, setToast] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const serviceWorkerRegistrationRef = useRef<ServiceWorkerRegistration | null>(null);
 
   useEffect(() => {
     if (!isProductionDataSource || !canUseAccounting) return;
@@ -342,12 +346,64 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
     const onOffline = () => setIsOnline(false);
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => undefined);
     return () => {
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
     };
   }, []);
+
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    let reloading = false;
+    const onControllerChange = () => {
+      if (reloading) return;
+      reloading = true;
+      window.location.reload();
+    };
+    navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
+    const updateRegistration = async () => {
+      const registration = await navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" });
+      serviceWorkerRegistrationRef.current = registration;
+      await registration.update();
+    };
+    void updateRegistration().catch(() => undefined);
+    const interval = window.setInterval(() => void serviceWorkerRegistrationRef.current?.update().catch(() => undefined), 5 * 60 * 1000);
+    return () => {
+      window.clearInterval(interval);
+      navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isProductionDataSource) return;
+    let active = true;
+    const checkVersion = async () => {
+      try {
+        const response = await fetch(`/api/client-version?invoiceClientVersion=${encodeURIComponent(INVOICE_CLIENT_VERSION)}`, {
+          cache: "no-store",
+          headers: { "x-invoice-client-version": INVOICE_CLIENT_VERSION },
+        });
+        if (!active) return;
+        setClientVersionState(response.ok ? "current" : response.status === 426 ? "obsolete" : "unavailable");
+      } catch {
+        if (active) setClientVersionState("unavailable");
+      }
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") void checkVersion();
+    };
+    const onOnline = () => void checkVersion();
+    void checkVersion();
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("online", onOnline);
+    const interval = window.setInterval(() => void checkVersion(), 5 * 60 * 1000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("online", onOnline);
+    };
+  }, [isProductionDataSource]);
 
   const selected = appData.transactions.find((transaction) => transaction.id === selectedId) ?? appData.transactions[0] ?? null;
   const filteredTransactions = useMemo(() => {
@@ -380,6 +436,12 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
   const handleFiles = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    const validationError = invoicePhotoFileError(file);
+    if (validationError) {
+      notify(validationError);
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
     const next = await new Promise<PhotoItem>((resolve) => {
       const reader = new FileReader();
       reader.onload = () => resolve({ id: `${file.name}-${file.lastModified}-${crypto.randomUUID()}`, url: String(reader.result), name: file.name, file });
@@ -392,6 +454,10 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
 
   const sendPhotos = async () => {
     if (!photos.length) return;
+    if (isProductionDataSource && clientVersionState !== "current") {
+      notify("Actualisez l’application avant d’envoyer cette facture.");
+      return;
+    }
     if (!isOnline) {
       notify("En attente d'envoi — les photos restent sur cet appareil.");
       return;
@@ -403,12 +469,11 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
           photos.map((photo, index) => ({ file: photo.file, sequence: index + 1 })),
           draftReceiptId ?? crypto.randomUUID(),
         );
-        const submittedFiles = photos.map((photo) => photo.file);
         setPhotos([]);
         setDraftReceiptId(null);
         setQueueState("idle");
         notify(`Facture reçue · ${receipt.receiptId.slice(0, 8)} ✓ Vous pouvez en déposer une autre.`);
-        void processInvoicePhotosWithGemini(receipt.receiptId, submittedFiles)
+        void processInvoiceIntakeWithGemini(receipt.receiptId)
           .then((result) => {
             const vendor = result.extraction.vendor || "fournisseur à confirmer";
             notify(`IA enregistrée · ${vendor} · facture ${receipt.receiptId.slice(0, 8)} à vérifier.`);
@@ -439,6 +504,15 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
     setViewMode(nextView === "capture" ? "capture" : "accounting");
   };
 
+  const refreshApplication = () => {
+    void serviceWorkerRegistrationRef.current?.update().finally(() => window.location.reload());
+    if (!serviceWorkerRegistrationRef.current) window.location.reload();
+  };
+
+  if (isProductionDataSource && clientVersionState !== "current") {
+    return <ClientVersionGate state={clientVersionState} onRefresh={refreshApplication} />;
+  }
+
   if (!accountRole && firebaseConfigured) {
     return <RoleLoading />;
   }
@@ -465,7 +539,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
               <p>{photos.length ? `${photos.length} page${photos.length > 1 ? "s" : ""} prête${photos.length > 1 ? "s" : ""}` : "Prêt pour la première page"}</p>
               <span className="camera-hint">La caméra arrière s’ouvre avec le bouton ci-dessous. Ajoutez les pages dans l’ordre avant l’envoi.</span>
             </div>
-            <input ref={inputRef} className="sr-only" type="file" accept="image/*" capture="environment" onChange={handleFiles} />
+            <input ref={inputRef} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={handleFiles} />
             <button className="capture-button" onClick={() => inputRef.current?.click()} aria-label={photos.length ? "Ajouter la page suivante" : "Prendre la première photo"}><span>⌾</span> {photos.length ? "Ajouter la page suivante" : "Prendre la première photo"}</button>
           </div>
           {photos.length > 0 && (
@@ -474,7 +548,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
               <div className="photo-grid">
                 {photos.map((photo, index) => <div className="photo-thumb" key={photo.id}><PhotoPreview url={photo.url} alt={`Page ${index + 1}`} /><span>{index + 1}</span><button onClick={() => setPhotos((current) => { const next = current.filter((item) => item.id !== photo.id); if (!next.length) setDraftReceiptId(null); return next; })} aria-label={`Supprimer la photo ${index + 1}`}>×</button></div>)}
               </div>
-              <button className="send-button" onClick={sendPhotos} disabled={queueState === "uploading"}>{queueState === "uploading" ? "Envoi de la facture…" : isOnline ? "Envoyer la facture" : "Mettre en attente"}</button>
+              <button className="send-button" onClick={sendPhotos} disabled={queueState === "uploading" || clientVersionState !== "current"}>{queueState === "uploading" ? "Envoi de la facture…" : isOnline ? "Envoyer la facture" : "Mettre en attente"}</button>
             </div>
           )}
           {!isOnline && <div className="offline-notice"><span className="notice-icon">↯</span><div><strong>En attente d’envoi</strong><p>Vos photos restent sur cet appareil et seront reprises dès que le réseau revient.</p></div></div>}
@@ -567,6 +641,12 @@ function intakeStatusLabel(status: string) {
   if (status === "VALIDATED" || status === "READY_FOR_ACCOUNTING" || status === "COMMITTED") return "Validée";
   if (status === "REJECTED") return "Rejetée";
   return status.replaceAll("_", " ");
+}
+
+function ClientVersionGate({ state, onRefresh }: { state: Exclude<ClientVersionState, "current">; onRefresh: () => void }) {
+  const checking = state === "checking";
+  const unavailable = state === "unavailable";
+  return <main className="data-source-gate"><section className="data-source-card" aria-live="polite"><span className="eyebrow">Mise à jour sécurisée</span><h1>{checking ? "Vérification de la version" : unavailable ? "Version impossible à vérifier" : "Actualisation requise"}</h1><p className="muted">{checking ? "La version de l’application est vérifiée avant d’autoriser un dépôt." : unavailable ? "L’envoi est bloqué tant que la version courante ne peut pas être confirmée." : "Cette application est obsolète. Actualisez-la avant d’envoyer une facture."}</p>{checking ? <span className="data-source-spinner" aria-hidden="true" /> : <div className="data-source-actions"><button className="primary-button" type="button" onClick={onRefresh}>Actualiser l’application</button><span className="data-source-help">Aucune photo ne sera envoyée avec une version non validée.</span></div>}</section></main>;
 }
 
 function intakeStatusClass(status: string) {
@@ -787,7 +867,6 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
         cardId: commitCardId,
         statementPeriodId: commitPeriodId,
         projectId: draft.projectId || null,
-        storageFolder: selectedIntake.storageFolder,
         classificationNote: draft.notes.trim() || "Revue Kim confirmée.",
       });
       onSaved(selectedIntake.receiptId, {

@@ -108,6 +108,9 @@ type ExpenseTransaction @table(name: "expense_transactions", key: "id") {
 
 type Invoice @table(name: "invoices", key: "id") {
   id: String!
+  # Nullable for existing production rows. Every new intake-driven commit sets
+  # this relation, and @unique prevents one intake from owning two invoices.
+  intake: InvoiceIntake @unique
   transaction: ExpenseTransaction! @unique
   vendor: String!
   invoiceNumber: String
@@ -125,10 +128,12 @@ type Invoice @table(name: "invoices", key: "id") {
   updatedAt: Timestamp! @default(expr: "request.time")
 }
 
-type InvoicePhoto @table(name: "invoice_photos", key: "id") {
+type InvoicePhoto @table(name: "invoice_photos", key: "id") @unique(fields: ["invoice", "sequence"]) {
   id: String!
   invoice: Invoice!
-  storagePath: String!
+  # The same immutable Storage object cannot be attached twice, even if a
+  # caller supplies a different photo ID.
+  storagePath: String! @unique
   contentType: String!
   sequence: Int!
   createdAt: Timestamp! @default(expr: "request.time")
@@ -149,6 +154,9 @@ type InvoiceIntake @table(name: "invoice_intakes", key: "receiptId") {
   processingStatus: String! @default(value: "PROCESSING")
   accountingStatus: String! @default(value: "NOT_POSTED")
   lastError: String
+  # Machine-readable retry eligibility. Business exceptions such as
+  # UNKNOWN_PROJECT never set this field.
+  aiErrorCode: String
   aiModel: String
   aiConfidence: Float
   extractedVendor: String

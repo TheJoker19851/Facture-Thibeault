@@ -166,6 +166,7 @@ query ListInvoiceIntakes @auth(expr: "auth.token.role == 'KIM' || auth.token.rol
     processingStatus
     accountingStatus
     lastError
+    aiErrorCode
     aiModel
     aiConfidence
     extractedVendor

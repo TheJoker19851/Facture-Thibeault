@@ -1,8 +1,6 @@
 "use client";
 
 import {
-  commitInvoiceIntake as commitInvoiceIntakeMutation,
-  commitInvoiceIntakeWithoutProject as commitInvoiceIntakeWithoutProjectMutation,
   listCardStatementPeriods,
   listCreditCards,
   listExpenseAccounts,
@@ -12,7 +10,6 @@ import {
   listProjects,
   listSkuReferences,
   listUserProfiles,
-  markInvoiceIntakePostingError,
   upsertCreditCard,
   upsertUserProfile,
   updateInvoiceIntakeReview,
@@ -28,7 +25,9 @@ import type {
   ListSkuReferencesData,
   ListUserProfilesData,
 } from "../generated/data-connect";
+import { firebaseAuth } from "./client";
 import { firebaseDataConnect, sqlConnectConfigured } from "./data-connect";
+import { INVOICE_CLIENT_VERSION } from "../lib/invoice-client-version.mjs";
 
 export type AppAccountingData = {
   users: Array<{
@@ -185,7 +184,6 @@ export type InvoiceIntakeCommitInput = {
   cardId: string;
   statementPeriodId: string;
   projectId: string | null;
-  storageFolder: string;
   classificationNote: string;
 };
 
@@ -296,44 +294,20 @@ export async function commitInvoiceIntake(input: InvoiceIntakeCommitInput) {
   if (!firebaseDataConnect || !sqlConnectConfigured) {
     throw new Error("SQL Connect est requis pour créer l'écriture comptable.");
   }
-
-  const common = {
-    receiptId: input.receiptId,
-    transactionId: `TX-${input.receiptId}`,
-    invoiceId: `INV-${input.receiptId}`,
-    vendor: input.vendor,
-    invoiceNumber: input.invoiceNumber,
-    invoiceDate: input.invoiceDate,
-    subtotalCents: String(input.subtotalCents),
-    tpsCents: String(input.tpsCents),
-    tvqCents: String(input.tvqCents),
-    totalCents: String(input.totalCents),
-    currency: input.currency,
-    sku: input.sku,
-    category: input.category,
-    accountCode: input.accountCode,
-    cardId: input.cardId,
-    statementPeriodId: input.statementPeriodId,
-    storageFolder: input.storageFolder,
-    classificationNote: input.classificationNote,
-  };
-
-  try {
-    if (input.projectId) {
-      await commitInvoiceIntakeMutation(firebaseDataConnect, {
-        ...common,
-        projectId: input.projectId,
-      });
-    } else {
-      await commitInvoiceIntakeWithoutProjectMutation(firebaseDataConnect, common);
-    }
-  } catch (error) {
-    const current = (await listInvoiceIntakes(firebaseDataConnect)).data.invoiceIntakes.find(
-      (intake: ListInvoiceIntakesData["invoiceIntakes"][number]) => intake.receiptId === input.receiptId,
-    );
-    if (current?.accountingStatus === "POSTED") return;
-    await markInvoiceIntakePostingError(firebaseDataConnect, { receiptId: input.receiptId }).catch(() => undefined);
-    throw error;
+  const user = firebaseAuth?.currentUser;
+  if (!user) throw new Error("Une session Firebase Authentication est requise pour comptabiliser la facture.");
+  const response = await fetch("/api/invoices/commit-intake", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${await user.getIdToken()}`,
+      "x-invoice-client-version": INVOICE_CLIENT_VERSION,
+    },
+    body: JSON.stringify(input),
+  });
+  const payload = await response.json().catch(() => null) as { ok?: boolean; error?: string } | null;
+  if (!response.ok || !payload?.ok) {
+    throw new Error(payload?.error ?? "La création de l'écriture comptable a échoué.");
   }
 }
 

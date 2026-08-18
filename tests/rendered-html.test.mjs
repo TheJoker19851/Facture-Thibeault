@@ -25,6 +25,14 @@ test("server-renders the Thibeault administration shell", async () => {
   const html = await response.text();
   assert.match(html, /<title>Thibeault · Factures et dépenses<\/title>/i);
 
+  if (/Vérification de la version/.test(html)) {
+    assert.match(html, /Mise à jour sécurisée/);
+    assert.match(html, /avant d’autoriser un dépôt/);
+    assert.match(html, /manifest\.webmanifest/);
+    assert.doesNotMatch(html, /Alice Démo|Données de démonstration/);
+    return;
+  }
+
   if (/Vérification des permissions/.test(html)) {
     assert.match(html, /Le rôle Firebase du compte est vérifié/);
     assert.doesNotMatch(html, /Alice Démo|Données de démonstration/);
@@ -56,6 +64,13 @@ test("exposes a direct mobile capture route and PWA manifest", async () => {
   const response = await render("/capture");
   assert.equal(response.status, 200);
   const html = await response.text();
+  if (/Vérification de la version/.test(html)) {
+    assert.match(html, /Mise à jour sécurisée/);
+    assert.doesNotMatch(html, /Prendre la première photo/);
+    const manifest = await readFile(new URL("../public/manifest.webmanifest", import.meta.url), "utf8");
+    assert.match(manifest, /"start_url":\s*"\/capture"/);
+    return;
+  }
   if (/Vérification des permissions/.test(html)) {
     assert.match(html, /Accès sécurisé/);
     assert.doesNotMatch(html, /Prendre une photo/);
@@ -98,6 +113,23 @@ test("rejects unauthenticated direct access to privileged API routes", async () 
 
   const aiResponse = await worker.fetch(new Request("http://localhost/api/ai/process-invoice", {
     method: "POST",
+    headers: { "x-invoice-client-version": "invoice-photo-v2" },
   }), context);
   assert.equal(aiResponse.status, 401);
+});
+
+test("fails closed for an obsolete invoice client and exposes the current version", async () => {
+  const workerUrl = new URL("../.vercel/output/functions/__server.func/index.mjs", import.meta.url);
+  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}-version`);
+  const { default: worker } = await import(workerUrl.href);
+  const context = { waitUntil() {} };
+
+  const obsolete = await worker.fetch(new Request("http://localhost/api/client-version?invoiceClientVersion=invoice-photo-v1"), context);
+  assert.equal(obsolete.status, 426);
+  assert.equal((await obsolete.json()).code, "CLIENT_UPDATE_REQUIRED");
+
+  const current = await worker.fetch(new Request("http://localhost/api/client-version?invoiceClientVersion=invoice-photo-v2"), context);
+  assert.equal(current.status, 200);
+  assert.equal(current.headers.get("cache-control"), "no-store, max-age=0");
+  assert.equal((await current.json()).invoiceClientVersion, "invoice-photo-v2");
 });

@@ -1,11 +1,13 @@
 import type { App } from "firebase-admin/app";
 import type { Auth } from "firebase-admin/auth";
 import type { DataConnect } from "firebase-admin/data-connect";
+import type { Storage } from "firebase-admin/storage";
 import { validateFirebaseEnvironment } from "../lib/environment.mjs";
 
 let adminApp: App | null = null;
 let adminAuth: Auth | null = null;
 let adminDataConnect: DataConnect | null = null;
+let adminStorage: Storage | null = null;
 
 function serverEnvironmentValidation() {
   return validateFirebaseEnvironment({
@@ -80,4 +82,11 @@ export async function getFirebaseAdminDataConnect() {
     connector: process.env.NEXT_PUBLIC_SQL_CONNECT_CONNECTOR_ID ?? "accounting",
   }, await getFirebaseAdminApp());
   return adminDataConnect;
+}
+
+export async function getFirebaseAdminStorage() {
+  if (adminStorage) return adminStorage;
+  const { getStorage } = await import("firebase-admin/storage");
+  adminStorage = getStorage(await getFirebaseAdminApp());
+  return adminStorage;
 }

@@ -49,14 +49,18 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*UpsertUserProfile*](#upsertuserprofile)
   - [*UpsertCreditCard*](#upsertcreditcard)
   - [*CreateInvoiceIntake*](#createinvoiceintake)
+  - [*CreateInvoiceIntakeV2*](#createinvoiceintakev2)
   - [*UpdateInvoiceIntakeAiResult*](#updateinvoiceintakeairesult)
   - [*MarkInvoiceIntakeAiError*](#markinvoiceintakeaierror)
   - [*MarkInvoiceIntakeAutoPostingError*](#markinvoiceintakeautopostingerror)
   - [*UpdateInvoiceIntakeReview*](#updateinvoiceintakereview)
   - [*MarkInvoiceIntakePostingError*](#markinvoiceintakepostingerror)
+  - [*RetryInvoiceIntakeAi*](#retryinvoiceintakeai)
+  - [*RetryInvoiceIntakeAiTransient*](#retryinvoiceintakeaitransient)
+  - [*RetryInvoiceIntakeAiTransientV2*](#retryinvoiceintakeaitransientv2)
+  - [*MaterializeInvoiceIntakeV2*](#materializeinvoiceintakev2)
   - [*CommitInvoiceIntake*](#commitinvoiceintake)
   - [*CommitInvoiceIntakeWithoutProject*](#commitinvoiceintakewithoutproject)
-  - [*RetryInvoiceIntakeAi*](#retryinvoiceintakeai)
   - [*AutoCommitInvoiceIntake*](#autocommitinvoiceintake)
 
 # TanStack Query Firebase & TanStack React Query
@@ -172,6 +176,9 @@ To access the data returned by a Query, use the `UseQueryResult.data` field. The
 export interface AdminListInvoicesData {
   invoices: ({
     id: string;
+    intake?: {
+      receiptId: string;
+    } & InvoiceIntake_Key;
     invoiceNumber?: string | null;
     processingStatus: string;
     accountingStatus: string;
@@ -1087,6 +1094,7 @@ export interface ListInvoiceIntakesData {
     processingStatus: string;
     accountingStatus: string;
     lastError?: string | null;
+    aiErrorCode?: string | null;
     aiModel?: string | null;
     aiConfidence?: number | null;
     extractedVendor?: string | null;
@@ -3097,6 +3105,106 @@ export default function CreateInvoiceIntakeComponent() {
 }
 ```
 
+## CreateInvoiceIntakeV2
+You can execute the `CreateInvoiceIntakeV2` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useCreateInvoiceIntakeV2(options?: useDataConnectMutationOptions<CreateInvoiceIntakeV2Data, FirebaseError, CreateInvoiceIntakeV2Variables>): UseDataConnectMutationResult<CreateInvoiceIntakeV2Data, CreateInvoiceIntakeV2Variables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useCreateInvoiceIntakeV2(dc: DataConnect, options?: useDataConnectMutationOptions<CreateInvoiceIntakeV2Data, FirebaseError, CreateInvoiceIntakeV2Variables>): UseDataConnectMutationResult<CreateInvoiceIntakeV2Data, CreateInvoiceIntakeV2Variables>;
+```
+
+### Variables
+The `CreateInvoiceIntakeV2` Mutation requires an argument of type `CreateInvoiceIntakeV2Variables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface CreateInvoiceIntakeV2Variables {
+  receiptId: string;
+  storageFolder: string;
+  photoCount: number;
+  clientVersion: string;
+}
+```
+### Return Type
+Recall that calling the `CreateInvoiceIntakeV2` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `CreateInvoiceIntakeV2` Mutation is of type `CreateInvoiceIntakeV2Data`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface CreateInvoiceIntakeV2Data {
+  invoiceIntake_upsert: InvoiceIntake_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `CreateInvoiceIntakeV2`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, CreateInvoiceIntakeV2Variables } from '@factures-thibeault/data-connect-generated';
+import { useCreateInvoiceIntakeV2 } from '@factures-thibeault/data-connect-generated/react'
+
+export default function CreateInvoiceIntakeV2Component() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useCreateInvoiceIntakeV2();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useCreateInvoiceIntakeV2(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useCreateInvoiceIntakeV2(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useCreateInvoiceIntakeV2(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useCreateInvoiceIntakeV2` Mutation requires an argument of type `CreateInvoiceIntakeV2Variables`:
+  const createInvoiceIntakeV2Vars: CreateInvoiceIntakeV2Variables = {
+    receiptId: ..., 
+    storageFolder: ..., 
+    photoCount: ..., 
+    clientVersion: ..., 
+  };
+  mutation.mutate(createInvoiceIntakeV2Vars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ receiptId: ..., storageFolder: ..., photoCount: ..., clientVersion: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(createInvoiceIntakeV2Vars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.invoiceIntake_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
 ## UpdateInvoiceIntakeAiResult
 You can execute the `UpdateInvoiceIntakeAiResult` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
 ```javascript
@@ -3252,6 +3360,7 @@ The `MarkInvoiceIntakeAiError` Mutation requires an argument of type `MarkInvoic
 export interface MarkInvoiceIntakeAiErrorVariables {
   receiptId: string;
   error: string;
+  aiErrorCode?: string | null;
   accountingStatus?: string | null;
   decisionExceptions?: string | null;
   decisionChecks?: string | null;
@@ -3306,13 +3415,14 @@ export default function MarkInvoiceIntakeAiErrorComponent() {
   const markInvoiceIntakeAiErrorVars: MarkInvoiceIntakeAiErrorVariables = {
     receiptId: ..., 
     error: ..., 
+    aiErrorCode: ..., // optional
     accountingStatus: ..., // optional
     decisionExceptions: ..., // optional
     decisionChecks: ..., // optional
   };
   mutation.mutate(markInvoiceIntakeAiErrorVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ receiptId: ..., error: ..., accountingStatus: ..., decisionExceptions: ..., decisionChecks: ..., });
+  mutation.mutate({ receiptId: ..., error: ..., aiErrorCode: ..., accountingStatus: ..., decisionExceptions: ..., decisionChecks: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -3665,6 +3775,484 @@ export default function MarkInvoiceIntakePostingErrorComponent() {
 }
 ```
 
+## RetryInvoiceIntakeAi
+You can execute the `RetryInvoiceIntakeAi` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useRetryInvoiceIntakeAi(options?: useDataConnectMutationOptions<RetryInvoiceIntakeAiData, FirebaseError, RetryInvoiceIntakeAiVariables>): UseDataConnectMutationResult<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useRetryInvoiceIntakeAi(dc: DataConnect, options?: useDataConnectMutationOptions<RetryInvoiceIntakeAiData, FirebaseError, RetryInvoiceIntakeAiVariables>): UseDataConnectMutationResult<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
+```
+
+### Variables
+The `RetryInvoiceIntakeAi` Mutation requires an argument of type `RetryInvoiceIntakeAiVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface RetryInvoiceIntakeAiVariables {
+  receiptId: string;
+}
+```
+### Return Type
+Recall that calling the `RetryInvoiceIntakeAi` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `RetryInvoiceIntakeAi` Mutation is of type `RetryInvoiceIntakeAiData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface RetryInvoiceIntakeAiData {
+  invoiceIntake_updateMany: number;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `RetryInvoiceIntakeAi`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, RetryInvoiceIntakeAiVariables } from '@factures-thibeault/data-connect-generated';
+import { useRetryInvoiceIntakeAi } from '@factures-thibeault/data-connect-generated/react'
+
+export default function RetryInvoiceIntakeAiComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useRetryInvoiceIntakeAi();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useRetryInvoiceIntakeAi(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useRetryInvoiceIntakeAi(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useRetryInvoiceIntakeAi(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useRetryInvoiceIntakeAi` Mutation requires an argument of type `RetryInvoiceIntakeAiVariables`:
+  const retryInvoiceIntakeAiVars: RetryInvoiceIntakeAiVariables = {
+    receiptId: ..., 
+  };
+  mutation.mutate(retryInvoiceIntakeAiVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ receiptId: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(retryInvoiceIntakeAiVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.invoiceIntake_updateMany);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## RetryInvoiceIntakeAiTransient
+You can execute the `RetryInvoiceIntakeAiTransient` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useRetryInvoiceIntakeAiTransient(options?: useDataConnectMutationOptions<RetryInvoiceIntakeAiTransientData, FirebaseError, RetryInvoiceIntakeAiTransientVariables>): UseDataConnectMutationResult<RetryInvoiceIntakeAiTransientData, RetryInvoiceIntakeAiTransientVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useRetryInvoiceIntakeAiTransient(dc: DataConnect, options?: useDataConnectMutationOptions<RetryInvoiceIntakeAiTransientData, FirebaseError, RetryInvoiceIntakeAiTransientVariables>): UseDataConnectMutationResult<RetryInvoiceIntakeAiTransientData, RetryInvoiceIntakeAiTransientVariables>;
+```
+
+### Variables
+The `RetryInvoiceIntakeAiTransient` Mutation requires an argument of type `RetryInvoiceIntakeAiTransientVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface RetryInvoiceIntakeAiTransientVariables {
+  receiptId: string;
+}
+```
+### Return Type
+Recall that calling the `RetryInvoiceIntakeAiTransient` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `RetryInvoiceIntakeAiTransient` Mutation is of type `RetryInvoiceIntakeAiTransientData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface RetryInvoiceIntakeAiTransientData {
+  invoiceIntake_updateMany: number;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `RetryInvoiceIntakeAiTransient`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, RetryInvoiceIntakeAiTransientVariables } from '@factures-thibeault/data-connect-generated';
+import { useRetryInvoiceIntakeAiTransient } from '@factures-thibeault/data-connect-generated/react'
+
+export default function RetryInvoiceIntakeAiTransientComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useRetryInvoiceIntakeAiTransient();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useRetryInvoiceIntakeAiTransient(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useRetryInvoiceIntakeAiTransient(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useRetryInvoiceIntakeAiTransient(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useRetryInvoiceIntakeAiTransient` Mutation requires an argument of type `RetryInvoiceIntakeAiTransientVariables`:
+  const retryInvoiceIntakeAiTransientVars: RetryInvoiceIntakeAiTransientVariables = {
+    receiptId: ..., 
+  };
+  mutation.mutate(retryInvoiceIntakeAiTransientVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ receiptId: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(retryInvoiceIntakeAiTransientVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.invoiceIntake_updateMany);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## RetryInvoiceIntakeAiTransientV2
+You can execute the `RetryInvoiceIntakeAiTransientV2` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useRetryInvoiceIntakeAiTransientV2(options?: useDataConnectMutationOptions<RetryInvoiceIntakeAiTransientV2Data, FirebaseError, RetryInvoiceIntakeAiTransientV2Variables>): UseDataConnectMutationResult<RetryInvoiceIntakeAiTransientV2Data, RetryInvoiceIntakeAiTransientV2Variables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useRetryInvoiceIntakeAiTransientV2(dc: DataConnect, options?: useDataConnectMutationOptions<RetryInvoiceIntakeAiTransientV2Data, FirebaseError, RetryInvoiceIntakeAiTransientV2Variables>): UseDataConnectMutationResult<RetryInvoiceIntakeAiTransientV2Data, RetryInvoiceIntakeAiTransientV2Variables>;
+```
+
+### Variables
+The `RetryInvoiceIntakeAiTransientV2` Mutation requires an argument of type `RetryInvoiceIntakeAiTransientV2Variables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface RetryInvoiceIntakeAiTransientV2Variables {
+  receiptId: string;
+  invoiceId: string;
+  storageFolder: string;
+}
+```
+### Return Type
+Recall that calling the `RetryInvoiceIntakeAiTransientV2` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `RetryInvoiceIntakeAiTransientV2` Mutation is of type `RetryInvoiceIntakeAiTransientV2Data`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface RetryInvoiceIntakeAiTransientV2Data {
+  invoiceIntake_updateMany: number;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `RetryInvoiceIntakeAiTransientV2`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, RetryInvoiceIntakeAiTransientV2Variables } from '@factures-thibeault/data-connect-generated';
+import { useRetryInvoiceIntakeAiTransientV2 } from '@factures-thibeault/data-connect-generated/react'
+
+export default function RetryInvoiceIntakeAiTransientV2Component() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useRetryInvoiceIntakeAiTransientV2();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useRetryInvoiceIntakeAiTransientV2(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useRetryInvoiceIntakeAiTransientV2(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useRetryInvoiceIntakeAiTransientV2(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useRetryInvoiceIntakeAiTransientV2` Mutation requires an argument of type `RetryInvoiceIntakeAiTransientV2Variables`:
+  const retryInvoiceIntakeAiTransientV2Vars: RetryInvoiceIntakeAiTransientV2Variables = {
+    receiptId: ..., 
+    invoiceId: ..., 
+    storageFolder: ..., 
+  };
+  mutation.mutate(retryInvoiceIntakeAiTransientV2Vars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ receiptId: ..., invoiceId: ..., storageFolder: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(retryInvoiceIntakeAiTransientV2Vars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.invoiceIntake_updateMany);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## MaterializeInvoiceIntakeV2
+You can execute the `MaterializeInvoiceIntakeV2` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useMaterializeInvoiceIntakeV2(options?: useDataConnectMutationOptions<MaterializeInvoiceIntakeV2Data, FirebaseError, MaterializeInvoiceIntakeV2Variables>): UseDataConnectMutationResult<MaterializeInvoiceIntakeV2Data, MaterializeInvoiceIntakeV2Variables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useMaterializeInvoiceIntakeV2(dc: DataConnect, options?: useDataConnectMutationOptions<MaterializeInvoiceIntakeV2Data, FirebaseError, MaterializeInvoiceIntakeV2Variables>): UseDataConnectMutationResult<MaterializeInvoiceIntakeV2Data, MaterializeInvoiceIntakeV2Variables>;
+```
+
+### Variables
+The `MaterializeInvoiceIntakeV2` Mutation requires an argument of type `MaterializeInvoiceIntakeV2Variables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface MaterializeInvoiceIntakeV2Variables {
+  receiptId: string;
+  transactionId: string;
+  invoiceId: string;
+  vendor: string;
+  invoiceNumber?: string | null;
+  invoiceDate: DateString;
+  subtotalCents: Int64String;
+  tpsCents: Int64String;
+  tvqCents: Int64String;
+  totalCents: Int64String;
+  currency: string;
+  sku?: string | null;
+  category: string;
+  accountCode: string;
+  cardId: string;
+  statementPeriodId: string;
+  project?: Project_Key | null;
+  storageFolder: string;
+  classificationNote: string;
+  expectedProcessingStatus: string;
+  classificationSource: string;
+  classificationStatus: string;
+  photoCount: number;
+  photo1Id: string;
+  photo1StoragePath: string;
+  photo1ContentType: string;
+  hasPhoto2: boolean;
+  photo2Id: string;
+  photo2StoragePath: string;
+  photo2ContentType: string;
+  hasPhoto3: boolean;
+  photo3Id: string;
+  photo3StoragePath: string;
+  photo3ContentType: string;
+  hasPhoto4: boolean;
+  photo4Id: string;
+  photo4StoragePath: string;
+  photo4ContentType: string;
+  hasPhoto5: boolean;
+  photo5Id: string;
+  photo5StoragePath: string;
+  photo5ContentType: string;
+}
+```
+### Return Type
+Recall that calling the `MaterializeInvoiceIntakeV2` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `MaterializeInvoiceIntakeV2` Mutation is of type `MaterializeInvoiceIntakeV2Data`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface MaterializeInvoiceIntakeV2Data {
+  invoiceIntake_updateMany: number;
+  expenseTransaction_upsert: ExpenseTransaction_Key;
+  invoice_upsert: Invoice_Key;
+  invoicePhoto1: InvoicePhoto_Key;
+  invoicePhoto2: InvoicePhoto_Key;
+  invoicePhoto3: InvoicePhoto_Key;
+  invoicePhoto4: InvoicePhoto_Key;
+  invoicePhoto5: InvoicePhoto_Key;
+  invoiceIntake_update?: InvoiceIntake_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `MaterializeInvoiceIntakeV2`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, MaterializeInvoiceIntakeV2Variables } from '@factures-thibeault/data-connect-generated';
+import { useMaterializeInvoiceIntakeV2 } from '@factures-thibeault/data-connect-generated/react'
+
+export default function MaterializeInvoiceIntakeV2Component() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useMaterializeInvoiceIntakeV2();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useMaterializeInvoiceIntakeV2(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useMaterializeInvoiceIntakeV2(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useMaterializeInvoiceIntakeV2(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useMaterializeInvoiceIntakeV2` Mutation requires an argument of type `MaterializeInvoiceIntakeV2Variables`:
+  const materializeInvoiceIntakeV2Vars: MaterializeInvoiceIntakeV2Variables = {
+    receiptId: ..., 
+    transactionId: ..., 
+    invoiceId: ..., 
+    vendor: ..., 
+    invoiceNumber: ..., // optional
+    invoiceDate: ..., 
+    subtotalCents: ..., 
+    tpsCents: ..., 
+    tvqCents: ..., 
+    totalCents: ..., 
+    currency: ..., 
+    sku: ..., // optional
+    category: ..., 
+    accountCode: ..., 
+    cardId: ..., 
+    statementPeriodId: ..., 
+    project: ..., // optional
+    storageFolder: ..., 
+    classificationNote: ..., 
+    expectedProcessingStatus: ..., 
+    classificationSource: ..., 
+    classificationStatus: ..., 
+    photoCount: ..., 
+    photo1Id: ..., 
+    photo1StoragePath: ..., 
+    photo1ContentType: ..., 
+    hasPhoto2: ..., 
+    photo2Id: ..., 
+    photo2StoragePath: ..., 
+    photo2ContentType: ..., 
+    hasPhoto3: ..., 
+    photo3Id: ..., 
+    photo3StoragePath: ..., 
+    photo3ContentType: ..., 
+    hasPhoto4: ..., 
+    photo4Id: ..., 
+    photo4StoragePath: ..., 
+    photo4ContentType: ..., 
+    hasPhoto5: ..., 
+    photo5Id: ..., 
+    photo5StoragePath: ..., 
+    photo5ContentType: ..., 
+  };
+  mutation.mutate(materializeInvoiceIntakeV2Vars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriodId: ..., project: ..., storageFolder: ..., classificationNote: ..., expectedProcessingStatus: ..., classificationSource: ..., classificationStatus: ..., photoCount: ..., photo1Id: ..., photo1StoragePath: ..., photo1ContentType: ..., hasPhoto2: ..., photo2Id: ..., photo2StoragePath: ..., photo2ContentType: ..., hasPhoto3: ..., photo3Id: ..., photo3StoragePath: ..., photo3ContentType: ..., hasPhoto4: ..., photo4Id: ..., photo4StoragePath: ..., photo4ContentType: ..., hasPhoto5: ..., photo5Id: ..., photo5StoragePath: ..., photo5ContentType: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(materializeInvoiceIntakeV2Vars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.invoiceIntake_updateMany);
+    console.log(mutation.data.expenseTransaction_upsert);
+    console.log(mutation.data.invoice_upsert);
+    console.log(mutation.data.invoicePhoto1);
+    console.log(mutation.data.invoicePhoto2);
+    console.log(mutation.data.invoicePhoto3);
+    console.log(mutation.data.invoicePhoto4);
+    console.log(mutation.data.invoicePhoto5);
+    console.log(mutation.data.invoiceIntake_update);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
 ## CommitInvoiceIntake
 You can execute the `CommitInvoiceIntake` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
 ```javascript
@@ -3930,100 +4518,6 @@ export default function CommitInvoiceIntakeWithoutProjectComponent() {
     console.log(mutation.data.expenseTransaction_upsert);
     console.log(mutation.data.invoice_upsert);
     console.log(mutation.data.invoiceIntake_update);
-  }
-  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
-}
-```
-
-## RetryInvoiceIntakeAi
-You can execute the `RetryInvoiceIntakeAi` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
-useRetryInvoiceIntakeAi(options?: useDataConnectMutationOptions<RetryInvoiceIntakeAiData, FirebaseError, RetryInvoiceIntakeAiVariables>): UseDataConnectMutationResult<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
-```
-You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
-useRetryInvoiceIntakeAi(dc: DataConnect, options?: useDataConnectMutationOptions<RetryInvoiceIntakeAiData, FirebaseError, RetryInvoiceIntakeAiVariables>): UseDataConnectMutationResult<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
-```
-
-### Variables
-The `RetryInvoiceIntakeAi` Mutation requires an argument of type `RetryInvoiceIntakeAiVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-
-```javascript
-export interface RetryInvoiceIntakeAiVariables {
-  receiptId: string;
-}
-```
-### Return Type
-Recall that calling the `RetryInvoiceIntakeAi` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
-
-To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
-
-To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
-
-To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `RetryInvoiceIntakeAi` Mutation is of type `RetryInvoiceIntakeAiData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
-export interface RetryInvoiceIntakeAiData {
-  invoiceIntake_updateMany: number;
-}
-```
-
-To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
-
-### Using `RetryInvoiceIntakeAi`'s Mutation hook function
-
-```javascript
-import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig, RetryInvoiceIntakeAiVariables } from '@factures-thibeault/data-connect-generated';
-import { useRetryInvoiceIntakeAi } from '@factures-thibeault/data-connect-generated/react'
-
-export default function RetryInvoiceIntakeAiComponent() {
-  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
-  const mutation = useRetryInvoiceIntakeAi();
-
-  // You can also pass in a `DataConnect` instance to the Mutation hook function.
-  const dataConnect = getDataConnect(connectorConfig);
-  const mutation = useRetryInvoiceIntakeAi(dataConnect);
-
-  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
-  const options = {
-    onSuccess: () => { console.log('Mutation succeeded!'); }
-  };
-  const mutation = useRetryInvoiceIntakeAi(options);
-
-  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
-  const dataConnect = getDataConnect(connectorConfig);
-  const options = {
-    onSuccess: () => { console.log('Mutation succeeded!'); }
-  };
-  const mutation = useRetryInvoiceIntakeAi(dataConnect, options);
-
-  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
-  // The `useRetryInvoiceIntakeAi` Mutation requires an argument of type `RetryInvoiceIntakeAiVariables`:
-  const retryInvoiceIntakeAiVars: RetryInvoiceIntakeAiVariables = {
-    receiptId: ..., 
-  };
-  mutation.mutate(retryInvoiceIntakeAiVars);
-  // Variables can be defined inline as well.
-  mutation.mutate({ receiptId: ..., });
-
-  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
-  const options = {
-    onSuccess: () => { console.log('Mutation succeeded!'); }
-  };
-  mutation.mutate(retryInvoiceIntakeAiVars, options);
-
-  // Then, you can render your component dynamically based on the status of the Mutation.
-  if (mutation.isPending) {
-    return <div>Loading...</div>;
-  }
-
-  if (mutation.isError) {
-    return <div>Error: {mutation.error.message}</div>;
-  }
-
-  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
-  if (mutation.isSuccess) {
-    console.log(mutation.data.invoiceIntake_updateMany);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
 }
