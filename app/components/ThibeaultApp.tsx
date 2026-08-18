@@ -7,6 +7,7 @@ import { sqlConnectConfigured } from "../../firebase/data-connect";
 import { processInvoicePhotosWithGemini } from "../../firebase/ai";
 import { uploadInvoicePhotos } from "../../firebase/uploads";
 import { classifyInvoice } from "../../lib/invoice-processing.mjs";
+import { DecisionJsonError, parseDecisionExceptions, serializeDecisionChecks, serializeDecisionExceptions } from "../../lib/decision-json.mjs";
 import { useFirebaseIdentity, type AppRole } from "./FirebaseShell";
 
 type Role = AppRole;
@@ -287,12 +288,11 @@ function isIntakeException(intake: InvoiceIntake) {
 }
 
 function parseIntakeExceptions(intake: InvoiceIntake) {
-  if (!intake.decisionExceptions) return [] as Array<{ code?: string; fieldName?: string | null; message?: string; aiValue?: string | null; suggestedValue?: string | null }>;
   try {
-    const parsed = JSON.parse(intake.decisionExceptions);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
+    return parseDecisionExceptions(intake.decisionExceptions);
+  } catch (error) {
+    const message = error instanceof DecisionJsonError ? error.message : "JSON de décision invalide; correction technique requise.";
+    return [{ code: "INVALID_DECISION_JSON", fieldName: null, message, aiValue: null, suggestedValue: null, status: "OPEN" }];
   }
 }
 
@@ -716,8 +716,8 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
         classificationConfidence,
         classificationStatus,
         aiNotes: draft.notes.trim(),
-        decisionExceptions: JSON.stringify(decisionExceptions),
-        decisionChecks: JSON.stringify([{ code: "KIM_REVIEW", passed: isReadyForAccounting, message: isReadyForAccounting ? "Revue KIM complète." : "La revue KIM reste incomplète." }]),
+        decisionExceptions: serializeDecisionExceptions(decisionExceptions),
+        decisionChecks: serializeDecisionChecks([{ code: "KIM_REVIEW", passed: isReadyForAccounting, message: isReadyForAccounting ? "Revue KIM complète." : "La revue KIM reste incomplète." }]),
       });
       onSaved(selectedIntake.receiptId, {
         status,
@@ -741,8 +741,8 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
         classificationConfidence,
         classificationStatus,
         aiNotes: draft.notes.trim(),
-        decisionExceptions: JSON.stringify(decisionExceptions),
-        decisionChecks: JSON.stringify([{ code: "KIM_REVIEW", passed: isReadyForAccounting, message: isReadyForAccounting ? "Revue KIM complète." : "La revue KIM reste incomplète." }]),
+        decisionExceptions: serializeDecisionExceptions(decisionExceptions),
+        decisionChecks: serializeDecisionChecks([{ code: "KIM_REVIEW", passed: isReadyForAccounting, message: isReadyForAccounting ? "Revue KIM complète." : "La revue KIM reste incomplète." }]),
       });
       setDraftDirty(false);
       setCommitState("idle");

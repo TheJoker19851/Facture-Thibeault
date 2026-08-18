@@ -11,10 +11,12 @@ This README will guide you through the process of using the generated JavaScript
   - [*Connecting to the local Emulator*](#connecting-to-the-local-emulator)
 - [**Queries**](#queries)
   - [*AdminListInvoices*](#adminlistinvoices)
+  - [*AdminListInvoicePhotos*](#adminlistinvoicephotos)
   - [*ListUserProfiles*](#listuserprofiles)
   - [*ListCreditCards*](#listcreditcards)
   - [*ListCardStatementPeriods*](#listcardstatementperiods)
   - [*ListExpenseAccounts*](#listexpenseaccounts)
+  - [*ListTaxAccounts*](#listtaxaccounts)
   - [*ListProjects*](#listprojects)
   - [*ListSkuReferences*](#listskureferences)
   - [*ListExpenseTransactions*](#listexpensetransactions)
@@ -132,8 +134,25 @@ export interface AdminListInvoicesData {
   invoices: ({
     id: string;
     invoiceNumber?: string | null;
+    processingStatus: string;
+    accountingStatus: string;
     reviewStatus: string;
     storageFolder?: string | null;
+    transaction: {
+      id: string;
+      vendor: string;
+      invoiceNumber?: string | null;
+    } & ExpenseTransaction_Key;
+    createdBy?: {
+      id: string;
+      firebaseUid: string;
+    } & UserProfile_Key;
+    invoicePhotos_on_invoice: ({
+      id: string;
+      storagePath: string;
+      contentType: string;
+      sequence: number;
+    } & InvoicePhoto_Key)[];
   } & Invoice_Key)[];
 }
 ```
@@ -185,6 +204,106 @@ console.log(data.invoices);
 executeQuery(ref).then((response) => {
   const data = response.data;
   console.log(data.invoices);
+});
+```
+
+## AdminListInvoicePhotos
+You can execute the `AdminListInvoicePhotos` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+adminListInvoicePhotos(options?: ExecuteQueryOptions): QueryPromise<AdminListInvoicePhotosData, undefined>;
+
+interface AdminListInvoicePhotosRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<AdminListInvoicePhotosData, undefined>;
+}
+export const adminListInvoicePhotosRef: AdminListInvoicePhotosRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+adminListInvoicePhotos(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<AdminListInvoicePhotosData, undefined>;
+
+interface AdminListInvoicePhotosRef {
+  ...
+  (dc: DataConnect): QueryRef<AdminListInvoicePhotosData, undefined>;
+}
+export const adminListInvoicePhotosRef: AdminListInvoicePhotosRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminListInvoicePhotosRef:
+```typescript
+const name = adminListInvoicePhotosRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `AdminListInvoicePhotos` query has no variables.
+### Return Type
+Recall that executing the `AdminListInvoicePhotos` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `AdminListInvoicePhotosData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface AdminListInvoicePhotosData {
+  invoicePhotos: ({
+    id: string;
+    invoice: {
+      id: string;
+      storageFolder?: string | null;
+    } & Invoice_Key;
+    storagePath: string;
+    contentType: string;
+    sequence: number;
+  } & InvoicePhoto_Key)[];
+}
+```
+### Using `AdminListInvoicePhotos`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, adminListInvoicePhotos } from '@factures-thibeault/data-connect-generated';
+
+
+// Call the `adminListInvoicePhotos()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await adminListInvoicePhotos();
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await adminListInvoicePhotos(dataConnect);
+
+console.log(data.invoicePhotos);
+
+// Or, you can use the `Promise` API.
+adminListInvoicePhotos().then((response) => {
+  const data = response.data;
+  console.log(data.invoicePhotos);
+});
+```
+
+### Using `AdminListInvoicePhotos`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, adminListInvoicePhotosRef } from '@factures-thibeault/data-connect-generated';
+
+
+// Call the `adminListInvoicePhotosRef()` function to get a reference to the query.
+const ref = adminListInvoicePhotosRef();
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = adminListInvoicePhotosRef(dataConnect);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.invoicePhotos);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.invoicePhotos);
 });
 ```
 
@@ -581,6 +700,101 @@ console.log(data.expenseAccounts);
 executeQuery(ref).then((response) => {
   const data = response.data;
   console.log(data.expenseAccounts);
+});
+```
+
+## ListTaxAccounts
+You can execute the `ListTaxAccounts` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+listTaxAccounts(options?: ExecuteQueryOptions): QueryPromise<ListTaxAccountsData, undefined>;
+
+interface ListTaxAccountsRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListTaxAccountsData, undefined>;
+}
+export const listTaxAccountsRef: ListTaxAccountsRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+listTaxAccounts(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListTaxAccountsData, undefined>;
+
+interface ListTaxAccountsRef {
+  ...
+  (dc: DataConnect): QueryRef<ListTaxAccountsData, undefined>;
+}
+export const listTaxAccountsRef: ListTaxAccountsRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listTaxAccountsRef:
+```typescript
+const name = listTaxAccountsRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ListTaxAccounts` query has no variables.
+### Return Type
+Recall that executing the `ListTaxAccounts` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ListTaxAccountsData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ListTaxAccountsData {
+  taxAccounts: ({
+    code: string;
+    label: string;
+    status: string;
+  } & TaxAccount_Key)[];
+}
+```
+### Using `ListTaxAccounts`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, listTaxAccounts } from '@factures-thibeault/data-connect-generated';
+
+
+// Call the `listTaxAccounts()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await listTaxAccounts();
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await listTaxAccounts(dataConnect);
+
+console.log(data.taxAccounts);
+
+// Or, you can use the `Promise` API.
+listTaxAccounts().then((response) => {
+  const data = response.data;
+  console.log(data.taxAccounts);
+});
+```
+
+### Using `ListTaxAccounts`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, listTaxAccountsRef } from '@factures-thibeault/data-connect-generated';
+
+
+// Call the `listTaxAccountsRef()` function to get a reference to the query.
+const ref = listTaxAccountsRef();
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = listTaxAccountsRef(dataConnect);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.taxAccounts);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.taxAccounts);
 });
 ```
 

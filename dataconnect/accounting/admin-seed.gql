@@ -190,7 +190,37 @@ query AdminListInvoices @auth(level: NO_ACCESS) {
   invoices(limit: 1000) {
     id
     invoiceNumber
+    processingStatus
+    accountingStatus
     reviewStatus
     storageFolder
+    transaction {
+      id
+      vendor
+      invoiceNumber
+    }
+    createdBy {
+      id
+      firebaseUid
+    }
+    invoicePhotos_on_invoice {
+      id
+      storagePath
+      contentType
+      sequence
+    }
+  }
+}
+
+query AdminListInvoicePhotos @auth(level: NO_ACCESS) {
+  invoicePhotos(limit: 1000) {
+    id
+    invoice {
+      id
+      storageFolder
+    }
+    storagePath
+    contentType
+    sequence
   }
 }

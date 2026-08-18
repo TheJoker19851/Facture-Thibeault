@@ -50,6 +50,14 @@ query ListExpenseAccounts @auth(expr: "auth.token.role == 'KIM' || auth.token.ro
   }
 }
 
+query ListTaxAccounts @auth(level: NO_ACCESS) {
+  taxAccounts {
+    code
+    label
+    status
+  }
+}
+
 query ListProjects @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   projects {
     id

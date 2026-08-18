@@ -9,7 +9,8 @@ import {
   decideInvoice,
   findPotentialDuplicates,
   resolveUploaderCards,
-  serializeDecision,
+  serializeDecisionChecks,
+  serializeDecisionExceptions,
 } from "../../../../lib/invoice-decision-engine.mjs";
 
 export const runtime = "nodejs";
@@ -309,8 +310,8 @@ export async function POST(request: Request) {
         receiptId,
         error,
         accountingStatus: "NOT_POSTED",
-        decisionExceptions: serializeDecision(decision.exceptions),
-        decisionChecks: serializeDecision(decision.checks),
+        decisionExceptions: serializeDecisionExceptions(decision.exceptions),
+        decisionChecks: serializeDecisionChecks(decision.checks),
       });
       return Response.json({ error, code: "AI_OUTPUT_REQUIRES_REVIEW", decision }, { status: 422 });
     }
@@ -340,8 +341,8 @@ export async function POST(request: Request) {
       aiNotes: `${extraction.notes} ${classification.note}`.trim(),
       processingStatus: decision.decision,
       accountingStatus: "NOT_POSTED",
-      decisionExceptions: serializeDecision(decision.exceptions),
-      decisionChecks: serializeDecision(decision.checks),
+      decisionExceptions: serializeDecisionExceptions(decision.exceptions),
+      decisionChecks: serializeDecisionChecks(decision.checks),
     });
 
     if (decision.decision === "AUTO_APPROVED") {
@@ -387,7 +388,7 @@ export async function POST(request: Request) {
         receiptId: receiptIdForLog,
         error: "Le traitement IA a échoué; la facture doit être vérifiée manuellement.",
         accountingStatus: autoCommitAttempted ? "POSTING_ERROR" : "NOT_POSTED",
-        decisionExceptions: serializeDecision([{
+        decisionExceptions: serializeDecisionExceptions([{
           code: autoCommitAttempted ? "ACCOUNTING_POSTING_ERROR" : "AI_PROCESSING_ERROR",
           fieldName: null,
           message: autoCommitAttempted ? "La création de l’écriture comptable a échoué." : error instanceof Error ? error.message : "Erreur technique inconnue.",
@@ -395,7 +396,7 @@ export async function POST(request: Request) {
           suggestedValue: null,
           status: "OPEN",
         }]),
-        decisionChecks: serializeDecision([{ code: "AI_PROCESSING", passed: false, message: "Le traitement serveur a échoué." }]),
+        decisionChecks: serializeDecisionChecks([{ code: "AI_PROCESSING", passed: false, message: "Le traitement serveur a échoué." }]),
       }).catch(() => undefined);
     }
     console.error("[invoice-ai] request failed", {

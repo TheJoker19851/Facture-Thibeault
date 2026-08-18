@@ -18,10 +18,12 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*Connecting to the local Emulator*](#connecting-to-the-local-emulator)
 - [**Queries**](#queries)
   - [*AdminListInvoices*](#adminlistinvoices)
+  - [*AdminListInvoicePhotos*](#adminlistinvoicephotos)
   - [*ListUserProfiles*](#listuserprofiles)
   - [*ListCreditCards*](#listcreditcards)
   - [*ListCardStatementPeriods*](#listcardstatementperiods)
   - [*ListExpenseAccounts*](#listexpenseaccounts)
+  - [*ListTaxAccounts*](#listtaxaccounts)
   - [*ListProjects*](#listprojects)
   - [*ListSkuReferences*](#listskureferences)
   - [*ListExpenseTransactions*](#listexpensetransactions)
@@ -168,8 +170,25 @@ export interface AdminListInvoicesData {
   invoices: ({
     id: string;
     invoiceNumber?: string | null;
+    processingStatus: string;
+    accountingStatus: string;
     reviewStatus: string;
     storageFolder?: string | null;
+    transaction: {
+      id: string;
+      vendor: string;
+      invoiceNumber?: string | null;
+    } & ExpenseTransaction_Key;
+    createdBy?: {
+      id: string;
+      firebaseUid: string;
+    } & UserProfile_Key;
+    invoicePhotos_on_invoice: ({
+      id: string;
+      storagePath: string;
+      contentType: string;
+      sequence: number;
+    } & InvoicePhoto_Key)[];
   } & Invoice_Key)[];
 }
 ```
@@ -213,6 +232,84 @@ export default function AdminListInvoicesComponent() {
   // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
   if (query.isSuccess) {
     console.log(query.data.invoices);
+  }
+  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## AdminListInvoicePhotos
+You can execute the `AdminListInvoicePhotos` Query using the following Query hook function, which is defined in [data-connect/react/index.d.ts](./index.d.ts):
+
+```javascript
+useAdminListInvoicePhotos(dc: DataConnect, options?: useDataConnectQueryOptions<AdminListInvoicePhotosData>): UseDataConnectQueryResult<AdminListInvoicePhotosData, undefined>;
+```
+You can also pass in a `DataConnect` instance to the Query hook function.
+```javascript
+useAdminListInvoicePhotos(options?: useDataConnectQueryOptions<AdminListInvoicePhotosData>): UseDataConnectQueryResult<AdminListInvoicePhotosData, undefined>;
+```
+
+### Variables
+The `AdminListInvoicePhotos` Query has no variables.
+### Return Type
+Recall that calling the `AdminListInvoicePhotos` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+
+To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
+
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `AdminListInvoicePhotos` Query is of type `AdminListInvoicePhotosData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface AdminListInvoicePhotosData {
+  invoicePhotos: ({
+    id: string;
+    invoice: {
+      id: string;
+      storageFolder?: string | null;
+    } & Invoice_Key;
+    storagePath: string;
+    contentType: string;
+    sequence: number;
+  } & InvoicePhoto_Key)[];
+}
+```
+
+To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
+
+### Using `AdminListInvoicePhotos`'s Query hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig } from '@factures-thibeault/data-connect-generated';
+import { useAdminListInvoicePhotos } from '@factures-thibeault/data-connect-generated/react'
+
+export default function AdminListInvoicePhotosComponent() {
+  // You don't have to do anything to "execute" the Query.
+  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useAdminListInvoicePhotos();
+
+  // You can also pass in a `DataConnect` instance to the Query hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const query = useAdminListInvoicePhotos(dataConnect);
+
+  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
+  const options = { staleTime: 5 * 1000 };
+  const query = useAdminListInvoicePhotos(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = { staleTime: 5 * 1000 };
+  const query = useAdminListInvoicePhotos(dataConnect, options);
+
+  // Then, you can render your component dynamically based on the status of the Query.
+  if (query.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (query.isError) {
+    return <div>Error: {query.error.message}</div>;
+  }
+
+  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
+  if (query.isSuccess) {
+    console.log(query.data.invoicePhotos);
   }
   return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
 }
@@ -521,6 +618,79 @@ export default function ListExpenseAccountsComponent() {
   // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
   if (query.isSuccess) {
     console.log(query.data.expenseAccounts);
+  }
+  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## ListTaxAccounts
+You can execute the `ListTaxAccounts` Query using the following Query hook function, which is defined in [data-connect/react/index.d.ts](./index.d.ts):
+
+```javascript
+useListTaxAccounts(dc: DataConnect, options?: useDataConnectQueryOptions<ListTaxAccountsData>): UseDataConnectQueryResult<ListTaxAccountsData, undefined>;
+```
+You can also pass in a `DataConnect` instance to the Query hook function.
+```javascript
+useListTaxAccounts(options?: useDataConnectQueryOptions<ListTaxAccountsData>): UseDataConnectQueryResult<ListTaxAccountsData, undefined>;
+```
+
+### Variables
+The `ListTaxAccounts` Query has no variables.
+### Return Type
+Recall that calling the `ListTaxAccounts` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+
+To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
+
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListTaxAccounts` Query is of type `ListTaxAccountsData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface ListTaxAccountsData {
+  taxAccounts: ({
+    code: string;
+    label: string;
+    status: string;
+  } & TaxAccount_Key)[];
+}
+```
+
+To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
+
+### Using `ListTaxAccounts`'s Query hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig } from '@factures-thibeault/data-connect-generated';
+import { useListTaxAccounts } from '@factures-thibeault/data-connect-generated/react'
+
+export default function ListTaxAccountsComponent() {
+  // You don't have to do anything to "execute" the Query.
+  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useListTaxAccounts();
+
+  // You can also pass in a `DataConnect` instance to the Query hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const query = useListTaxAccounts(dataConnect);
+
+  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
+  const options = { staleTime: 5 * 1000 };
+  const query = useListTaxAccounts(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = { staleTime: 5 * 1000 };
+  const query = useListTaxAccounts(dataConnect, options);
+
+  // Then, you can render your component dynamically based on the status of the Query.
+  if (query.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (query.isError) {
+    return <div>Error: {query.error.message}</div>;
+  }
+
+  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
+  if (query.isSuccess) {
+    console.log(query.data.taxAccounts);
   }
   return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
 }

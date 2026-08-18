@@ -246,6 +246,21 @@ exports.adminListInvoices = function adminListInvoices(dcOrOptions, options) {
 }
 ;
 
+const adminListInvoicePhotosRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'AdminListInvoicePhotos');
+}
+adminListInvoicePhotosRef.operationName = 'AdminListInvoicePhotos';
+exports.adminListInvoicePhotosRef = adminListInvoicePhotosRef;
+
+exports.adminListInvoicePhotos = function adminListInvoicePhotos(dcOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(adminListInvoicePhotosRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
 const upsertUserProfileRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -429,6 +444,21 @@ exports.listExpenseAccounts = function listExpenseAccounts(dcOrOptions, options)
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
   return executeQuery(listExpenseAccountsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listTaxAccountsRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListTaxAccounts');
+}
+listTaxAccountsRef.operationName = 'ListTaxAccounts';
+exports.listTaxAccountsRef = listTaxAccountsRef;
+
+exports.listTaxAccounts = function listTaxAccounts(dcOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(listTaxAccountsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 

@@ -99,12 +99,42 @@ export interface AdminDeleteUserProfileVariables {
   id: string;
 }
 
+export interface AdminListInvoicePhotosData {
+  invoicePhotos: ({
+    id: string;
+    invoice: {
+      id: string;
+      storageFolder?: string | null;
+    } & Invoice_Key;
+    storagePath: string;
+    contentType: string;
+    sequence: number;
+  } & InvoicePhoto_Key)[];
+}
+
 export interface AdminListInvoicesData {
   invoices: ({
     id: string;
     invoiceNumber?: string | null;
+    processingStatus: string;
+    accountingStatus: string;
     reviewStatus: string;
     storageFolder?: string | null;
+    transaction: {
+      id: string;
+      vendor: string;
+      invoiceNumber?: string | null;
+    } & ExpenseTransaction_Key;
+    createdBy?: {
+      id: string;
+      firebaseUid: string;
+    } & UserProfile_Key;
+    invoicePhotos_on_invoice: ({
+      id: string;
+      storagePath: string;
+      contentType: string;
+      sequence: number;
+    } & InvoicePhoto_Key)[];
   } & Invoice_Key)[];
 }
 
@@ -500,6 +530,14 @@ export interface ListSkuReferencesData {
   } & SkuReference_Key)[];
 }
 
+export interface ListTaxAccountsData {
+  taxAccounts: ({
+    code: string;
+    label: string;
+    status: string;
+  } & TaxAccount_Key)[];
+}
+
 export interface ListUserProfilesData {
   userProfiles: ({
     id: string;
@@ -842,6 +880,18 @@ export const adminListInvoicesRef: AdminListInvoicesRef;
 export function adminListInvoices(options?: ExecuteQueryOptions): QueryPromise<AdminListInvoicesData, undefined>;
 export function adminListInvoices(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<AdminListInvoicesData, undefined>;
 
+interface AdminListInvoicePhotosRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<AdminListInvoicePhotosData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<AdminListInvoicePhotosData, undefined>;
+  operationName: string;
+}
+export const adminListInvoicePhotosRef: AdminListInvoicePhotosRef;
+
+export function adminListInvoicePhotos(options?: ExecuteQueryOptions): QueryPromise<AdminListInvoicePhotosData, undefined>;
+export function adminListInvoicePhotos(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<AdminListInvoicePhotosData, undefined>;
+
 interface UpsertUserProfileRef {
   /* Allow users to create refs without passing in DataConnect */
   (vars: UpsertUserProfileVariables): MutationRef<UpsertUserProfileData, UpsertUserProfileVariables>;
@@ -997,6 +1047,18 @@ export const listExpenseAccountsRef: ListExpenseAccountsRef;
 
 export function listExpenseAccounts(options?: ExecuteQueryOptions): QueryPromise<ListExpenseAccountsData, undefined>;
 export function listExpenseAccounts(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListExpenseAccountsData, undefined>;
+
+interface ListTaxAccountsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListTaxAccountsData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<ListTaxAccountsData, undefined>;
+  operationName: string;
+}
+export const listTaxAccountsRef: ListTaxAccountsRef;
+
+export function listTaxAccounts(options?: ExecuteQueryOptions): QueryPromise<ListTaxAccountsData, undefined>;
+export function listTaxAccounts(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListTaxAccountsData, undefined>;
 
 interface ListProjectsRef {
   /* Allow users to create refs without passing in DataConnect */
