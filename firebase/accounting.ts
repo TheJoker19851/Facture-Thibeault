@@ -12,6 +12,7 @@ import {
   listProjects,
   listSkuReferences,
   listUserProfiles,
+  markInvoiceIntakePostingError,
   upsertCreditCard,
   upsertUserProfile,
   updateInvoiceIntakeReview,
@@ -146,7 +147,7 @@ export const accountingReadSource = sqlConnectConfigured
 
 export type InvoiceIntakeReviewInput = {
   receiptId: string;
-  status: string;
+  status: "NEEDS_REVIEW" | "VALIDATED";
   vendor: string;
   invoiceNumber: string | null;
   invoiceDate: string | null;
@@ -256,7 +257,7 @@ export async function saveInvoiceIntakeReview(input: InvoiceIntakeReviewInput) {
     throw new Error("SQL Connect est requis pour enregistrer la revue.");
   }
 
-  await updateInvoiceIntakeReview(firebaseDataConnect, {
+  const result = await updateInvoiceIntakeReview(firebaseDataConnect, {
     receiptId: input.receiptId,
     status: input.status,
     extractedVendor: input.vendor,
@@ -279,6 +280,16 @@ export async function saveInvoiceIntakeReview(input: InvoiceIntakeReviewInput) {
     decisionExceptions: input.decisionExceptions ?? "[]",
     decisionChecks: input.decisionChecks ?? "[]",
   });
+
+  if (result.data.invoiceIntake_updateMany === 0) {
+    const current = (await listInvoiceIntakes(firebaseDataConnect)).data.invoiceIntakes.find(
+      (intake: ListInvoiceIntakesData["invoiceIntakes"][number]) => intake.receiptId === input.receiptId,
+    );
+    if (current?.accountingStatus === "POSTED") {
+      throw new Error("Cette facture est déjà comptabilisée; la correction n’a pas été réappliquée.");
+    }
+    throw new Error("La facture n’est plus dans un état révisable.");
+  }
 }
 
 export async function commitInvoiceIntake(input: InvoiceIntakeCommitInput) {
@@ -307,13 +318,22 @@ export async function commitInvoiceIntake(input: InvoiceIntakeCommitInput) {
     classificationNote: input.classificationNote,
   };
 
-  if (input.projectId) {
-    await commitInvoiceIntakeMutation(firebaseDataConnect, {
-      ...common,
-      projectId: input.projectId,
-    });
-  } else {
-    await commitInvoiceIntakeWithoutProjectMutation(firebaseDataConnect, common);
+  try {
+    if (input.projectId) {
+      await commitInvoiceIntakeMutation(firebaseDataConnect, {
+        ...common,
+        projectId: input.projectId,
+      });
+    } else {
+      await commitInvoiceIntakeWithoutProjectMutation(firebaseDataConnect, common);
+    }
+  } catch (error) {
+    const current = (await listInvoiceIntakes(firebaseDataConnect)).data.invoiceIntakes.find(
+      (intake: ListInvoiceIntakesData["invoiceIntakes"][number]) => intake.receiptId === input.receiptId,
+    );
+    if (current?.accountingStatus === "POSTED") return;
+    await markInvoiceIntakePostingError(firebaseDataConnect, { receiptId: input.receiptId }).catch(() => undefined);
+    throw error;
   }
 }
 
@@ -415,7 +435,7 @@ export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccounti
       project: transaction.project ? `${transaction.project.id} · ${transaction.project.name}` : "—",
       category: transaction.expenseAccount?.label ?? transaction.categoryLabel ?? "Divers",
       total: centsToCad(transaction.totalCents),
-      status: transactionStatus(transaction.processingStatus ?? transaction.status),
+      status: transactionStatus(transaction.processingStatus),
       processingStatus: transaction.processingStatus,
       accountingStatus: transaction.accountingStatus,
       reconciliation: reconciliationStatus(transaction.reconciliationStatus),

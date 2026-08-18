@@ -233,6 +233,7 @@ export interface AuditEvent_Key {
 }
 
 export interface AutoCommitInvoiceIntakeData {
+  invoiceIntake_updateMany: number;
   expenseTransaction_upsert: ExpenseTransaction_Key;
   invoice_upsert: Invoice_Key;
   invoiceIntake_update?: InvoiceIntake_Key | null;
@@ -266,6 +267,7 @@ export interface CardStatementPeriod_Key {
 }
 
 export interface CommitInvoiceIntakeData {
+  invoiceIntake_updateMany: number;
   expenseTransaction_upsert: ExpenseTransaction_Key;
   invoice_upsert: Invoice_Key;
   invoiceIntake_update?: InvoiceIntake_Key | null;
@@ -294,6 +296,7 @@ export interface CommitInvoiceIntakeVariables {
 }
 
 export interface CommitInvoiceIntakeWithoutProjectData {
+  invoiceIntake_updateMany: number;
   expenseTransaction_upsert: ExpenseTransaction_Key;
   invoice_upsert: Invoice_Key;
   invoiceIntake_update?: InvoiceIntake_Key | null;
@@ -551,7 +554,7 @@ export interface ListUserProfilesData {
 }
 
 export interface MarkInvoiceIntakeAiErrorData {
-  invoiceIntake_update?: InvoiceIntake_Key | null;
+  invoiceIntake_updateMany: number;
 }
 
 export interface MarkInvoiceIntakeAiErrorVariables {
@@ -562,9 +565,36 @@ export interface MarkInvoiceIntakeAiErrorVariables {
   decisionChecks?: string | null;
 }
 
+export interface MarkInvoiceIntakeAutoPostingErrorData {
+  invoiceIntake_updateMany: number;
+}
+
+export interface MarkInvoiceIntakeAutoPostingErrorVariables {
+  receiptId: string;
+  error: string;
+  decisionExceptions?: string | null;
+  decisionChecks?: string | null;
+}
+
+export interface MarkInvoiceIntakePostingErrorData {
+  invoiceIntake_updateMany: number;
+}
+
+export interface MarkInvoiceIntakePostingErrorVariables {
+  receiptId: string;
+}
+
 export interface Project_Key {
   id: string;
   __typename?: 'Project_Key';
+}
+
+export interface RetryInvoiceIntakeAiData {
+  invoiceIntake_updateMany: number;
+}
+
+export interface RetryInvoiceIntakeAiVariables {
+  receiptId: string;
 }
 
 export interface SkuReference_Key {
@@ -584,12 +614,11 @@ export interface TransactionCorrection_Key {
 }
 
 export interface UpdateInvoiceIntakeAiResultData {
-  invoiceIntake_update?: InvoiceIntake_Key | null;
+  invoiceIntake_updateMany: number;
 }
 
 export interface UpdateInvoiceIntakeAiResultVariables {
   receiptId: string;
-  status: string;
   aiModel: string;
   aiConfidence: number;
   extractedVendor: string;
@@ -610,13 +639,12 @@ export interface UpdateInvoiceIntakeAiResultVariables {
   classificationStatus: string;
   aiNotes: string;
   processingStatus?: string | null;
-  accountingStatus?: string | null;
   decisionExceptions?: string | null;
   decisionChecks?: string | null;
 }
 
 export interface UpdateInvoiceIntakeReviewData {
-  invoiceIntake_update?: InvoiceIntake_Key | null;
+  invoiceIntake_updateMany: number;
 }
 
 export interface UpdateInvoiceIntakeReviewVariables {
@@ -952,6 +980,18 @@ export const markInvoiceIntakeAiErrorRef: MarkInvoiceIntakeAiErrorRef;
 export function markInvoiceIntakeAiError(vars: MarkInvoiceIntakeAiErrorVariables): MutationPromise<MarkInvoiceIntakeAiErrorData, MarkInvoiceIntakeAiErrorVariables>;
 export function markInvoiceIntakeAiError(dc: DataConnect, vars: MarkInvoiceIntakeAiErrorVariables): MutationPromise<MarkInvoiceIntakeAiErrorData, MarkInvoiceIntakeAiErrorVariables>;
 
+interface MarkInvoiceIntakeAutoPostingErrorRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: MarkInvoiceIntakeAutoPostingErrorVariables): MutationRef<MarkInvoiceIntakeAutoPostingErrorData, MarkInvoiceIntakeAutoPostingErrorVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: MarkInvoiceIntakeAutoPostingErrorVariables): MutationRef<MarkInvoiceIntakeAutoPostingErrorData, MarkInvoiceIntakeAutoPostingErrorVariables>;
+  operationName: string;
+}
+export const markInvoiceIntakeAutoPostingErrorRef: MarkInvoiceIntakeAutoPostingErrorRef;
+
+export function markInvoiceIntakeAutoPostingError(vars: MarkInvoiceIntakeAutoPostingErrorVariables): MutationPromise<MarkInvoiceIntakeAutoPostingErrorData, MarkInvoiceIntakeAutoPostingErrorVariables>;
+export function markInvoiceIntakeAutoPostingError(dc: DataConnect, vars: MarkInvoiceIntakeAutoPostingErrorVariables): MutationPromise<MarkInvoiceIntakeAutoPostingErrorData, MarkInvoiceIntakeAutoPostingErrorVariables>;
+
 interface UpdateInvoiceIntakeReviewRef {
   /* Allow users to create refs without passing in DataConnect */
   (vars: UpdateInvoiceIntakeReviewVariables): MutationRef<UpdateInvoiceIntakeReviewData, UpdateInvoiceIntakeReviewVariables>;
@@ -963,6 +1003,18 @@ export const updateInvoiceIntakeReviewRef: UpdateInvoiceIntakeReviewRef;
 
 export function updateInvoiceIntakeReview(vars: UpdateInvoiceIntakeReviewVariables): MutationPromise<UpdateInvoiceIntakeReviewData, UpdateInvoiceIntakeReviewVariables>;
 export function updateInvoiceIntakeReview(dc: DataConnect, vars: UpdateInvoiceIntakeReviewVariables): MutationPromise<UpdateInvoiceIntakeReviewData, UpdateInvoiceIntakeReviewVariables>;
+
+interface MarkInvoiceIntakePostingErrorRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: MarkInvoiceIntakePostingErrorVariables): MutationRef<MarkInvoiceIntakePostingErrorData, MarkInvoiceIntakePostingErrorVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: MarkInvoiceIntakePostingErrorVariables): MutationRef<MarkInvoiceIntakePostingErrorData, MarkInvoiceIntakePostingErrorVariables>;
+  operationName: string;
+}
+export const markInvoiceIntakePostingErrorRef: MarkInvoiceIntakePostingErrorRef;
+
+export function markInvoiceIntakePostingError(vars: MarkInvoiceIntakePostingErrorVariables): MutationPromise<MarkInvoiceIntakePostingErrorData, MarkInvoiceIntakePostingErrorVariables>;
+export function markInvoiceIntakePostingError(dc: DataConnect, vars: MarkInvoiceIntakePostingErrorVariables): MutationPromise<MarkInvoiceIntakePostingErrorData, MarkInvoiceIntakePostingErrorVariables>;
 
 interface CommitInvoiceIntakeRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -987,6 +1039,18 @@ export const commitInvoiceIntakeWithoutProjectRef: CommitInvoiceIntakeWithoutPro
 
 export function commitInvoiceIntakeWithoutProject(vars: CommitInvoiceIntakeWithoutProjectVariables): MutationPromise<CommitInvoiceIntakeWithoutProjectData, CommitInvoiceIntakeWithoutProjectVariables>;
 export function commitInvoiceIntakeWithoutProject(dc: DataConnect, vars: CommitInvoiceIntakeWithoutProjectVariables): MutationPromise<CommitInvoiceIntakeWithoutProjectData, CommitInvoiceIntakeWithoutProjectVariables>;
+
+interface RetryInvoiceIntakeAiRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: RetryInvoiceIntakeAiVariables): MutationRef<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: RetryInvoiceIntakeAiVariables): MutationRef<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
+  operationName: string;
+}
+export const retryInvoiceIntakeAiRef: RetryInvoiceIntakeAiRef;
+
+export function retryInvoiceIntakeAi(vars: RetryInvoiceIntakeAiVariables): MutationPromise<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
+export function retryInvoiceIntakeAi(dc: DataConnect, vars: RetryInvoiceIntakeAiVariables): MutationPromise<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
 
 interface AutoCommitInvoiceIntakeRef {
   /* Allow users to create refs without passing in DataConnect */

@@ -276,11 +276,9 @@ function statusClass(status: Transaction["status"] | Transaction["reconciliation
 }
 
 function processingStatusOf(intake: InvoiceIntake) {
-  if (intake.processingStatus) return intake.processingStatus;
-  if (intake.status === "AI_REVIEW" || intake.status === "AI_ERROR") return "NEEDS_REVIEW";
-  if (intake.status === "READY_FOR_ACCOUNTING" || intake.status === "COMMITTED") return "VALIDATED";
-  if (intake.status === "RECEIVED") return "PROCESSING";
-  return intake.status;
+  // The legacy status is displayed only for compatibility elsewhere; it is
+  // never allowed to drive the KIM queue or a posting decision.
+  return intake.processingStatus ?? "PROCESSING";
 }
 
 function isIntakeException(intake: InvoiceIntake) {
@@ -1017,9 +1015,8 @@ function KimAccountingReport({ period, onPeriodChange, embedded = false }: { per
   const people = Array.from(new Set(cards.map((card) => card.holder)));
   const visibleTransactions = useMemo(() => transactions.filter((transaction) => {
     const matchesPerson = selectedPerson === "TOUS" || transaction.person === selectedPerson;
-    const isIncludedStatus = transaction.accountingStatus
-      ? transaction.accountingStatus === "POSTED" && (transaction.processingStatus === "AUTO_APPROVED" || transaction.processingStatus === "VALIDATED")
-      : transaction.status === "Validée" || transaction.status === "À valider";
+    const isIncludedStatus = transaction.accountingStatus === "POSTED" &&
+      (transaction.processingStatus === "AUTO_APPROVED" || transaction.processingStatus === "VALIDATED");
     return matchesPerson && isIncludedStatus;
   }), [selectedPerson, transactions]);
   const visibleTotals = useMemo(() => {

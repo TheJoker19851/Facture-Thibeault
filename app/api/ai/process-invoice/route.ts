@@ -44,7 +44,18 @@ type AuthenticatedIdentity = {
 };
 
 type IntakeData = {
-  invoiceIntakes: Array<{ receiptId: string; uploaderUid: string; storageFolder: string }>;
+  invoiceIntakes: Array<{
+    receiptId: string;
+    uploaderUid: string;
+    storageFolder: string;
+    processingStatus?: string | null;
+    accountingStatus?: string | null;
+    lastError?: string | null;
+  }>;
+};
+
+type IntakeMutationData = {
+  invoiceIntake_updateMany: number;
 };
 
 type ReferenceData = {
@@ -157,6 +168,31 @@ function matchingStatementPeriod(invoiceDate: string | null, periods: PeriodData
   return matches.length === 1 ? matches[0] : null;
 }
 
+function stateOf(intake: IntakeData["invoiceIntakes"][number]) {
+  return {
+    processingStatus: intake.processingStatus ?? "PROCESSING",
+    accountingStatus: intake.accountingStatus ?? "NOT_POSTED",
+    ...(intake.lastError ? { lastError: intake.lastError } : {}),
+  };
+}
+
+function existingIntakeResponse(receiptId: string, intake: IntakeData["invoiceIntakes"][number]) {
+  return Response.json({
+    ok: true,
+    idempotent: true,
+    receiptId,
+    state: stateOf(intake),
+  });
+}
+
+function isStableIntakeState(intake: IntakeData["invoiceIntakes"][number]) {
+  return intake.accountingStatus === "POSTED" || (
+    intake.processingStatus &&
+    intake.processingStatus !== "PROCESSING" &&
+    intake.accountingStatus !== "POSTING_ERROR"
+  );
+}
+
 async function extractInvoice(receiptId: string, files: File[]) {
   const environment = inferApplicationEnvironment({
     appEnvironment: process.env.APP_ENV ?? process.env.NEXT_PUBLIC_APP_ENV,
@@ -235,13 +271,38 @@ export async function POST(request: Request) {
     }
 
     dataConnect = await getFirebaseAdminDataConnect();
-    const intakeResponse = await dataConnect.executeQuery<IntakeData>("ListInvoiceIntakes");
-    const intake = intakeResponse.data.invoiceIntakes.find((item) => item.receiptId === receiptId);
+    const readIntake = async () => {
+      const response = await dataConnect!.executeQuery<IntakeData>("ListInvoiceIntakes");
+      return response.data.invoiceIntakes.find((item) => item.receiptId === receiptId) ?? null;
+    };
+    const intake = await readIntake();
     if (!intake) return Response.json({ error: "Le dépôt de facture n'existe pas." }, { status: 404 });
     if (intake.uploaderUid !== identity.uid) {
       return Response.json({ error: "Ce dépôt appartient à un autre utilisateur." }, { status: 403 });
     }
     ownedIntake = true;
+
+    // A posted/validated/reviewed intake is already owned by the existing
+    // result. Only POSTING_ERROR can be deliberately reopened for another AI
+    // attempt, and that reopen is itself a database compare-and-set.
+    if (isStableIntakeState(intake)) return existingIntakeResponse(receiptId, intake);
+    if (intake.accountingStatus === "POSTING_ERROR") {
+      let retry: { data: IntakeMutationData };
+      try {
+        retry = await dataConnect.executeMutation<IntakeMutationData, { receiptId: string }>("RetryInvoiceIntakeAi", { receiptId });
+      } catch (error) {
+        const latest = await readIntake();
+        // Another request may already have claimed the controlled retry.
+        // Never convert that winner into a new AI error.
+        if (latest) return existingIntakeResponse(receiptId, latest);
+        throw error;
+      }
+      if (retry.data.invoiceIntake_updateMany !== 1) {
+        const latest = await readIntake();
+        if (latest) return existingIntakeResponse(receiptId, latest);
+        throw new Error("Le dépôt de facture n'existe plus pendant le retry.");
+      }
+    }
 
     const [{ model, extraction }, skuResponse, accountResponse, cardResponse, userResponse, projectResponse, periodResponse, transactionResponse] = await Promise.all([
       extractInvoice(receiptId, files),
@@ -317,9 +378,8 @@ export async function POST(request: Request) {
     }
     const normalized = validation.value as NormalizedExtraction;
 
-    await dataConnect.executeMutation("UpdateInvoiceIntakeAiResult", {
+    const aiResult = await dataConnect.executeMutation<IntakeMutationData, Record<string, unknown>>("UpdateInvoiceIntakeAiResult", {
       receiptId,
-      status: decision.decision,
       aiModel: model,
       aiConfidence: extraction.confidence,
       extractedVendor: normalized.vendor,
@@ -340,10 +400,15 @@ export async function POST(request: Request) {
       classificationStatus: classification.resolution,
       aiNotes: `${extraction.notes} ${classification.note}`.trim(),
       processingStatus: decision.decision,
-      accountingStatus: "NOT_POSTED",
       decisionExceptions: serializeDecisionExceptions(decision.exceptions),
       decisionChecks: serializeDecisionChecks(decision.checks),
     });
+
+    if (aiResult.data.invoiceIntake_updateMany !== 1) {
+      const latest = await readIntake();
+      if (latest) return existingIntakeResponse(receiptId, latest);
+      throw new Error("La transition IA idempotente n’a modifié aucun intake.");
+    }
 
     if (decision.decision === "AUTO_APPROVED") {
       const { accountCode, cardId, statementPeriodId, projectId } = decision.resolutions;
@@ -351,27 +416,33 @@ export async function POST(request: Request) {
         throw new Error("La décision automatique ne contient pas toutes les références comptables requises.");
       }
       autoCommitAttempted = true;
-      await dataConnect.executeMutation("AutoCommitInvoiceIntake", {
-        receiptId,
-        transactionId: `TX-${receiptId}`,
-        invoiceId: `INV-${receiptId}`,
-        vendor: normalized.vendor,
-        invoiceNumber: normalized.invoiceNumber,
-        invoiceDate: normalized.invoiceDate,
-        subtotalCents: String(normalized.subtotalCents),
-        tpsCents: String(normalized.tpsCents),
-        tvqCents: String(normalized.tvqCents),
-        totalCents: String(normalized.totalCents),
-        currency: normalized.currency,
-        sku: normalized.sku,
-        category: classification.category,
-        accountCode,
-        cardId,
-        statementPeriodId,
-        projectId,
-        storageFolder: intake.storageFolder,
-        classificationNote: `${extraction.notes} ${classification.note}`.trim(),
-      });
+      try {
+        await dataConnect.executeMutation("AutoCommitInvoiceIntake", {
+          receiptId,
+          transactionId: `TX-${receiptId}`,
+          invoiceId: `INV-${receiptId}`,
+          vendor: normalized.vendor,
+          invoiceNumber: normalized.invoiceNumber,
+          invoiceDate: normalized.invoiceDate,
+          subtotalCents: String(normalized.subtotalCents),
+          tpsCents: String(normalized.tpsCents),
+          tvqCents: String(normalized.tvqCents),
+          totalCents: String(normalized.totalCents),
+          currency: normalized.currency,
+          sku: normalized.sku,
+          category: classification.category,
+          accountCode,
+          cardId,
+          statementPeriodId,
+          projectId,
+          storageFolder: intake.storageFolder,
+          classificationNote: `${extraction.notes} ${classification.note}`.trim(),
+        });
+      } catch (error) {
+        const latest = await readIntake();
+        if (latest && isStableIntakeState(latest)) return existingIntakeResponse(receiptId, latest);
+        throw error;
+      }
     }
 
     return Response.json({
@@ -384,20 +455,45 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (ownedIntake && dataConnect && receiptIdForLog !== "unknown") {
-      await dataConnect.executeMutation("MarkInvoiceIntakeAiError", {
-        receiptId: receiptIdForLog,
-        error: "Le traitement IA a échoué; la facture doit être vérifiée manuellement.",
-        accountingStatus: autoCommitAttempted ? "POSTING_ERROR" : "NOT_POSTED",
-        decisionExceptions: serializeDecisionExceptions([{
-          code: autoCommitAttempted ? "ACCOUNTING_POSTING_ERROR" : "AI_PROCESSING_ERROR",
-          fieldName: null,
-          message: autoCommitAttempted ? "La création de l’écriture comptable a échoué." : error instanceof Error ? error.message : "Erreur technique inconnue.",
-          aiValue: null,
-          suggestedValue: null,
-          status: "OPEN",
-        }]),
-        decisionChecks: serializeDecisionChecks([{ code: "AI_PROCESSING", passed: false, message: "Le traitement serveur a échoué." }]),
-      }).catch(() => undefined);
+      const latest = await dataConnect.executeQuery<IntakeData>("ListInvoiceIntakes").catch(() => null);
+      const current = latest?.data.invoiceIntakes.find((item) => item.receiptId === receiptIdForLog);
+      // A competing request has already produced a decision or posting
+      // outcome. Its state must win over this stale error path.
+      if (current && (
+        current.accountingStatus === "POSTED" ||
+        current.accountingStatus === "POSTING_ERROR" ||
+        (!autoCommitAttempted && current.processingStatus !== "PROCESSING") ||
+        (autoCommitAttempted && current.processingStatus !== "AUTO_APPROVED")
+      )) return existingIntakeResponse(receiptIdForLog, current);
+
+      const decisionExceptions = serializeDecisionExceptions([{
+        code: autoCommitAttempted ? "ACCOUNTING_POSTING_ERROR" : "AI_PROCESSING_ERROR",
+        fieldName: null,
+        message: autoCommitAttempted ? "La création de l’écriture comptable a échoué." : error instanceof Error ? error.message : "Erreur technique inconnue.",
+        aiValue: null,
+        suggestedValue: null,
+        status: "OPEN",
+      }]);
+      const decisionChecks = serializeDecisionChecks([{ code: "AI_PROCESSING", passed: false, message: "Le traitement serveur a échoué." }]);
+      if (autoCommitAttempted) {
+        await dataConnect.executeMutation("MarkInvoiceIntakeAutoPostingError", {
+          receiptId: receiptIdForLog,
+          error: "La création de l’écriture comptable a échoué.",
+          decisionExceptions,
+          decisionChecks,
+        }).catch(() => undefined);
+      } else {
+        await dataConnect.executeMutation("MarkInvoiceIntakeAiError", {
+          receiptId: receiptIdForLog,
+          error: "Le traitement IA a échoué; la facture doit être vérifiée manuellement.",
+          decisionExceptions,
+          decisionChecks,
+        }).catch(() => undefined);
+      }
+
+      const afterError = await dataConnect.executeQuery<IntakeData>("ListInvoiceIntakes").catch(() => null);
+      const afterErrorIntake = afterError?.data.invoiceIntakes.find((item) => item.receiptId === receiptIdForLog);
+      if (afterErrorIntake && isStableIntakeState(afterErrorIntake)) return existingIntakeResponse(receiptIdForLog, afterErrorIntake);
     }
     console.error("[invoice-ai] request failed", {
       receiptId: receiptIdForLog,

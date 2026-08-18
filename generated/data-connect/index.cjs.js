@@ -255,7 +255,7 @@ adminListInvoicePhotosRef.operationName = 'AdminListInvoicePhotos';
 exports.adminListInvoicePhotosRef = adminListInvoicePhotosRef;
 
 exports.adminListInvoicePhotos = function adminListInvoicePhotos(dcOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
   return executeQuery(adminListInvoicePhotosRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
@@ -331,6 +331,20 @@ exports.markInvoiceIntakeAiError = function markInvoiceIntakeAiError(dcOrVars, v
 }
 ;
 
+const markInvoiceIntakeAutoPostingErrorRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'MarkInvoiceIntakeAutoPostingError', inputVars);
+}
+markInvoiceIntakeAutoPostingErrorRef.operationName = 'MarkInvoiceIntakeAutoPostingError';
+exports.markInvoiceIntakeAutoPostingErrorRef = markInvoiceIntakeAutoPostingErrorRef;
+
+exports.markInvoiceIntakeAutoPostingError = function markInvoiceIntakeAutoPostingError(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(markInvoiceIntakeAutoPostingErrorRef(dcInstance, inputVars));
+}
+;
+
 const updateInvoiceIntakeReviewRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -342,6 +356,20 @@ exports.updateInvoiceIntakeReviewRef = updateInvoiceIntakeReviewRef;
 exports.updateInvoiceIntakeReview = function updateInvoiceIntakeReview(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(updateInvoiceIntakeReviewRef(dcInstance, inputVars));
+}
+;
+
+const markInvoiceIntakePostingErrorRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'MarkInvoiceIntakePostingError', inputVars);
+}
+markInvoiceIntakePostingErrorRef.operationName = 'MarkInvoiceIntakePostingError';
+exports.markInvoiceIntakePostingErrorRef = markInvoiceIntakePostingErrorRef;
+
+exports.markInvoiceIntakePostingError = function markInvoiceIntakePostingError(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(markInvoiceIntakePostingErrorRef(dcInstance, inputVars));
 }
 ;
 
@@ -370,6 +398,20 @@ exports.commitInvoiceIntakeWithoutProjectRef = commitInvoiceIntakeWithoutProject
 exports.commitInvoiceIntakeWithoutProject = function commitInvoiceIntakeWithoutProject(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(commitInvoiceIntakeWithoutProjectRef(dcInstance, inputVars));
+}
+;
+
+const retryInvoiceIntakeAiRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'RetryInvoiceIntakeAi', inputVars);
+}
+retryInvoiceIntakeAiRef.operationName = 'RetryInvoiceIntakeAi';
+exports.retryInvoiceIntakeAiRef = retryInvoiceIntakeAiRef;
+
+exports.retryInvoiceIntakeAi = function retryInvoiceIntakeAi(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(retryInvoiceIntakeAiRef(dcInstance, inputVars));
 }
 ;
 
@@ -456,7 +498,7 @@ listTaxAccountsRef.operationName = 'ListTaxAccounts';
 exports.listTaxAccountsRef = listTaxAccountsRef;
 
 exports.listTaxAccounts = function listTaxAccounts(dcOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
   return executeQuery(listTaxAccountsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }

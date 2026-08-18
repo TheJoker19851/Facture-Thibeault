@@ -44,9 +44,12 @@ This README will guide you through the process of using the generated JavaScript
   - [*CreateInvoiceIntake*](#createinvoiceintake)
   - [*UpdateInvoiceIntakeAiResult*](#updateinvoiceintakeairesult)
   - [*MarkInvoiceIntakeAiError*](#markinvoiceintakeaierror)
+  - [*MarkInvoiceIntakeAutoPostingError*](#markinvoiceintakeautopostingerror)
   - [*UpdateInvoiceIntakeReview*](#updateinvoiceintakereview)
+  - [*MarkInvoiceIntakePostingError*](#markinvoiceintakepostingerror)
   - [*CommitInvoiceIntake*](#commitinvoiceintake)
   - [*CommitInvoiceIntakeWithoutProject*](#commitinvoiceintakewithoutproject)
+  - [*RetryInvoiceIntakeAi*](#retryinvoiceintakeai)
   - [*AutoCommitInvoiceIntake*](#autocommitinvoiceintake)
 
 # Accessing the connector
@@ -3680,7 +3683,6 @@ The `UpdateInvoiceIntakeAiResult` mutation requires an argument of type `UpdateI
 ```typescript
 export interface UpdateInvoiceIntakeAiResultVariables {
   receiptId: string;
-  status: string;
   aiModel: string;
   aiConfidence: number;
   extractedVendor: string;
@@ -3701,7 +3703,6 @@ export interface UpdateInvoiceIntakeAiResultVariables {
   classificationStatus: string;
   aiNotes: string;
   processingStatus?: string | null;
-  accountingStatus?: string | null;
   decisionExceptions?: string | null;
   decisionChecks?: string | null;
 }
@@ -3712,7 +3713,7 @@ Recall that executing the `UpdateInvoiceIntakeAiResult` mutation returns a `Muta
 The `data` property is an object of type `UpdateInvoiceIntakeAiResultData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 ```typescript
 export interface UpdateInvoiceIntakeAiResultData {
-  invoiceIntake_update?: InvoiceIntake_Key | null;
+  invoiceIntake_updateMany: number;
 }
 ```
 ### Using `UpdateInvoiceIntakeAiResult`'s action shortcut function
@@ -3724,7 +3725,6 @@ import { connectorConfig, updateInvoiceIntakeAiResult, UpdateInvoiceIntakeAiResu
 // The `UpdateInvoiceIntakeAiResult` mutation requires an argument of type `UpdateInvoiceIntakeAiResultVariables`:
 const updateInvoiceIntakeAiResultVars: UpdateInvoiceIntakeAiResultVariables = {
   receiptId: ..., 
-  status: ..., 
   aiModel: ..., 
   aiConfidence: ..., 
   extractedVendor: ..., 
@@ -3745,7 +3745,6 @@ const updateInvoiceIntakeAiResultVars: UpdateInvoiceIntakeAiResultVariables = {
   classificationStatus: ..., 
   aiNotes: ..., 
   processingStatus: ..., // optional
-  accountingStatus: ..., // optional
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
 };
@@ -3754,18 +3753,18 @@ const updateInvoiceIntakeAiResultVars: UpdateInvoiceIntakeAiResultVariables = {
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await updateInvoiceIntakeAiResult(updateInvoiceIntakeAiResultVars);
 // Variables can be defined inline as well.
-const { data } = await updateInvoiceIntakeAiResult({ receiptId: ..., status: ..., aiModel: ..., aiConfidence: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., processingStatus: ..., accountingStatus: ..., decisionExceptions: ..., decisionChecks: ..., });
+const { data } = await updateInvoiceIntakeAiResult({ receiptId: ..., aiModel: ..., aiConfidence: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., processingStatus: ..., decisionExceptions: ..., decisionChecks: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
 const { data } = await updateInvoiceIntakeAiResult(dataConnect, updateInvoiceIntakeAiResultVars);
 
-console.log(data.invoiceIntake_update);
+console.log(data.invoiceIntake_updateMany);
 
 // Or, you can use the `Promise` API.
 updateInvoiceIntakeAiResult(updateInvoiceIntakeAiResultVars).then((response) => {
   const data = response.data;
-  console.log(data.invoiceIntake_update);
+  console.log(data.invoiceIntake_updateMany);
 });
 ```
 
@@ -3778,7 +3777,6 @@ import { connectorConfig, updateInvoiceIntakeAiResultRef, UpdateInvoiceIntakeAiR
 // The `UpdateInvoiceIntakeAiResult` mutation requires an argument of type `UpdateInvoiceIntakeAiResultVariables`:
 const updateInvoiceIntakeAiResultVars: UpdateInvoiceIntakeAiResultVariables = {
   receiptId: ..., 
-  status: ..., 
   aiModel: ..., 
   aiConfidence: ..., 
   extractedVendor: ..., 
@@ -3799,7 +3797,6 @@ const updateInvoiceIntakeAiResultVars: UpdateInvoiceIntakeAiResultVariables = {
   classificationStatus: ..., 
   aiNotes: ..., 
   processingStatus: ..., // optional
-  accountingStatus: ..., // optional
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
 };
@@ -3807,7 +3804,7 @@ const updateInvoiceIntakeAiResultVars: UpdateInvoiceIntakeAiResultVariables = {
 // Call the `updateInvoiceIntakeAiResultRef()` function to get a reference to the mutation.
 const ref = updateInvoiceIntakeAiResultRef(updateInvoiceIntakeAiResultVars);
 // Variables can be defined inline as well.
-const ref = updateInvoiceIntakeAiResultRef({ receiptId: ..., status: ..., aiModel: ..., aiConfidence: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., processingStatus: ..., accountingStatus: ..., decisionExceptions: ..., decisionChecks: ..., });
+const ref = updateInvoiceIntakeAiResultRef({ receiptId: ..., aiModel: ..., aiConfidence: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., processingStatus: ..., decisionExceptions: ..., decisionChecks: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -3817,12 +3814,12 @@ const ref = updateInvoiceIntakeAiResultRef(dataConnect, updateInvoiceIntakeAiRes
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await executeMutation(ref);
 
-console.log(data.invoiceIntake_update);
+console.log(data.invoiceIntake_updateMany);
 
 // Or, you can use the `Promise` API.
 executeMutation(ref).then((response) => {
   const data = response.data;
-  console.log(data.invoiceIntake_update);
+  console.log(data.invoiceIntake_updateMany);
 });
 ```
 
@@ -3873,7 +3870,7 @@ Recall that executing the `MarkInvoiceIntakeAiError` mutation returns a `Mutatio
 The `data` property is an object of type `MarkInvoiceIntakeAiErrorData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 ```typescript
 export interface MarkInvoiceIntakeAiErrorData {
-  invoiceIntake_update?: InvoiceIntake_Key | null;
+  invoiceIntake_updateMany: number;
 }
 ```
 ### Using `MarkInvoiceIntakeAiError`'s action shortcut function
@@ -3901,12 +3898,12 @@ const { data } = await markInvoiceIntakeAiError({ receiptId: ..., error: ..., ac
 const dataConnect = getDataConnect(connectorConfig);
 const { data } = await markInvoiceIntakeAiError(dataConnect, markInvoiceIntakeAiErrorVars);
 
-console.log(data.invoiceIntake_update);
+console.log(data.invoiceIntake_updateMany);
 
 // Or, you can use the `Promise` API.
 markInvoiceIntakeAiError(markInvoiceIntakeAiErrorVars).then((response) => {
   const data = response.data;
-  console.log(data.invoiceIntake_update);
+  console.log(data.invoiceIntake_updateMany);
 });
 ```
 
@@ -3938,12 +3935,130 @@ const ref = markInvoiceIntakeAiErrorRef(dataConnect, markInvoiceIntakeAiErrorVar
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await executeMutation(ref);
 
-console.log(data.invoiceIntake_update);
+console.log(data.invoiceIntake_updateMany);
 
 // Or, you can use the `Promise` API.
 executeMutation(ref).then((response) => {
   const data = response.data;
-  console.log(data.invoiceIntake_update);
+  console.log(data.invoiceIntake_updateMany);
+});
+```
+
+## MarkInvoiceIntakeAutoPostingError
+You can execute the `MarkInvoiceIntakeAutoPostingError` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+markInvoiceIntakeAutoPostingError(vars: MarkInvoiceIntakeAutoPostingErrorVariables): MutationPromise<MarkInvoiceIntakeAutoPostingErrorData, MarkInvoiceIntakeAutoPostingErrorVariables>;
+
+interface MarkInvoiceIntakeAutoPostingErrorRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: MarkInvoiceIntakeAutoPostingErrorVariables): MutationRef<MarkInvoiceIntakeAutoPostingErrorData, MarkInvoiceIntakeAutoPostingErrorVariables>;
+}
+export const markInvoiceIntakeAutoPostingErrorRef: MarkInvoiceIntakeAutoPostingErrorRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+markInvoiceIntakeAutoPostingError(dc: DataConnect, vars: MarkInvoiceIntakeAutoPostingErrorVariables): MutationPromise<MarkInvoiceIntakeAutoPostingErrorData, MarkInvoiceIntakeAutoPostingErrorVariables>;
+
+interface MarkInvoiceIntakeAutoPostingErrorRef {
+  ...
+  (dc: DataConnect, vars: MarkInvoiceIntakeAutoPostingErrorVariables): MutationRef<MarkInvoiceIntakeAutoPostingErrorData, MarkInvoiceIntakeAutoPostingErrorVariables>;
+}
+export const markInvoiceIntakeAutoPostingErrorRef: MarkInvoiceIntakeAutoPostingErrorRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the markInvoiceIntakeAutoPostingErrorRef:
+```typescript
+const name = markInvoiceIntakeAutoPostingErrorRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `MarkInvoiceIntakeAutoPostingError` mutation requires an argument of type `MarkInvoiceIntakeAutoPostingErrorVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface MarkInvoiceIntakeAutoPostingErrorVariables {
+  receiptId: string;
+  error: string;
+  decisionExceptions?: string | null;
+  decisionChecks?: string | null;
+}
+```
+### Return Type
+Recall that executing the `MarkInvoiceIntakeAutoPostingError` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `MarkInvoiceIntakeAutoPostingErrorData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface MarkInvoiceIntakeAutoPostingErrorData {
+  invoiceIntake_updateMany: number;
+}
+```
+### Using `MarkInvoiceIntakeAutoPostingError`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, markInvoiceIntakeAutoPostingError, MarkInvoiceIntakeAutoPostingErrorVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `MarkInvoiceIntakeAutoPostingError` mutation requires an argument of type `MarkInvoiceIntakeAutoPostingErrorVariables`:
+const markInvoiceIntakeAutoPostingErrorVars: MarkInvoiceIntakeAutoPostingErrorVariables = {
+  receiptId: ..., 
+  error: ..., 
+  decisionExceptions: ..., // optional
+  decisionChecks: ..., // optional
+};
+
+// Call the `markInvoiceIntakeAutoPostingError()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await markInvoiceIntakeAutoPostingError(markInvoiceIntakeAutoPostingErrorVars);
+// Variables can be defined inline as well.
+const { data } = await markInvoiceIntakeAutoPostingError({ receiptId: ..., error: ..., decisionExceptions: ..., decisionChecks: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await markInvoiceIntakeAutoPostingError(dataConnect, markInvoiceIntakeAutoPostingErrorVars);
+
+console.log(data.invoiceIntake_updateMany);
+
+// Or, you can use the `Promise` API.
+markInvoiceIntakeAutoPostingError(markInvoiceIntakeAutoPostingErrorVars).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
+});
+```
+
+### Using `MarkInvoiceIntakeAutoPostingError`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, markInvoiceIntakeAutoPostingErrorRef, MarkInvoiceIntakeAutoPostingErrorVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `MarkInvoiceIntakeAutoPostingError` mutation requires an argument of type `MarkInvoiceIntakeAutoPostingErrorVariables`:
+const markInvoiceIntakeAutoPostingErrorVars: MarkInvoiceIntakeAutoPostingErrorVariables = {
+  receiptId: ..., 
+  error: ..., 
+  decisionExceptions: ..., // optional
+  decisionChecks: ..., // optional
+};
+
+// Call the `markInvoiceIntakeAutoPostingErrorRef()` function to get a reference to the mutation.
+const ref = markInvoiceIntakeAutoPostingErrorRef(markInvoiceIntakeAutoPostingErrorVars);
+// Variables can be defined inline as well.
+const ref = markInvoiceIntakeAutoPostingErrorRef({ receiptId: ..., error: ..., decisionExceptions: ..., decisionChecks: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = markInvoiceIntakeAutoPostingErrorRef(dataConnect, markInvoiceIntakeAutoPostingErrorVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.invoiceIntake_updateMany);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
 });
 ```
 
@@ -4010,7 +4125,7 @@ Recall that executing the `UpdateInvoiceIntakeReview` mutation returns a `Mutati
 The `data` property is an object of type `UpdateInvoiceIntakeReviewData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 ```typescript
 export interface UpdateInvoiceIntakeReviewData {
-  invoiceIntake_update?: InvoiceIntake_Key | null;
+  invoiceIntake_updateMany: number;
 }
 ```
 ### Using `UpdateInvoiceIntakeReview`'s action shortcut function
@@ -4054,12 +4169,12 @@ const { data } = await updateInvoiceIntakeReview({ receiptId: ..., status: ..., 
 const dataConnect = getDataConnect(connectorConfig);
 const { data } = await updateInvoiceIntakeReview(dataConnect, updateInvoiceIntakeReviewVars);
 
-console.log(data.invoiceIntake_update);
+console.log(data.invoiceIntake_updateMany);
 
 // Or, you can use the `Promise` API.
 updateInvoiceIntakeReview(updateInvoiceIntakeReviewVars).then((response) => {
   const data = response.data;
-  console.log(data.invoiceIntake_update);
+  console.log(data.invoiceIntake_updateMany);
 });
 ```
 
@@ -4107,12 +4222,121 @@ const ref = updateInvoiceIntakeReviewRef(dataConnect, updateInvoiceIntakeReviewV
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await executeMutation(ref);
 
-console.log(data.invoiceIntake_update);
+console.log(data.invoiceIntake_updateMany);
 
 // Or, you can use the `Promise` API.
 executeMutation(ref).then((response) => {
   const data = response.data;
-  console.log(data.invoiceIntake_update);
+  console.log(data.invoiceIntake_updateMany);
+});
+```
+
+## MarkInvoiceIntakePostingError
+You can execute the `MarkInvoiceIntakePostingError` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+markInvoiceIntakePostingError(vars: MarkInvoiceIntakePostingErrorVariables): MutationPromise<MarkInvoiceIntakePostingErrorData, MarkInvoiceIntakePostingErrorVariables>;
+
+interface MarkInvoiceIntakePostingErrorRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: MarkInvoiceIntakePostingErrorVariables): MutationRef<MarkInvoiceIntakePostingErrorData, MarkInvoiceIntakePostingErrorVariables>;
+}
+export const markInvoiceIntakePostingErrorRef: MarkInvoiceIntakePostingErrorRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+markInvoiceIntakePostingError(dc: DataConnect, vars: MarkInvoiceIntakePostingErrorVariables): MutationPromise<MarkInvoiceIntakePostingErrorData, MarkInvoiceIntakePostingErrorVariables>;
+
+interface MarkInvoiceIntakePostingErrorRef {
+  ...
+  (dc: DataConnect, vars: MarkInvoiceIntakePostingErrorVariables): MutationRef<MarkInvoiceIntakePostingErrorData, MarkInvoiceIntakePostingErrorVariables>;
+}
+export const markInvoiceIntakePostingErrorRef: MarkInvoiceIntakePostingErrorRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the markInvoiceIntakePostingErrorRef:
+```typescript
+const name = markInvoiceIntakePostingErrorRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `MarkInvoiceIntakePostingError` mutation requires an argument of type `MarkInvoiceIntakePostingErrorVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface MarkInvoiceIntakePostingErrorVariables {
+  receiptId: string;
+}
+```
+### Return Type
+Recall that executing the `MarkInvoiceIntakePostingError` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `MarkInvoiceIntakePostingErrorData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface MarkInvoiceIntakePostingErrorData {
+  invoiceIntake_updateMany: number;
+}
+```
+### Using `MarkInvoiceIntakePostingError`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, markInvoiceIntakePostingError, MarkInvoiceIntakePostingErrorVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `MarkInvoiceIntakePostingError` mutation requires an argument of type `MarkInvoiceIntakePostingErrorVariables`:
+const markInvoiceIntakePostingErrorVars: MarkInvoiceIntakePostingErrorVariables = {
+  receiptId: ..., 
+};
+
+// Call the `markInvoiceIntakePostingError()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await markInvoiceIntakePostingError(markInvoiceIntakePostingErrorVars);
+// Variables can be defined inline as well.
+const { data } = await markInvoiceIntakePostingError({ receiptId: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await markInvoiceIntakePostingError(dataConnect, markInvoiceIntakePostingErrorVars);
+
+console.log(data.invoiceIntake_updateMany);
+
+// Or, you can use the `Promise` API.
+markInvoiceIntakePostingError(markInvoiceIntakePostingErrorVars).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
+});
+```
+
+### Using `MarkInvoiceIntakePostingError`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, markInvoiceIntakePostingErrorRef, MarkInvoiceIntakePostingErrorVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `MarkInvoiceIntakePostingError` mutation requires an argument of type `MarkInvoiceIntakePostingErrorVariables`:
+const markInvoiceIntakePostingErrorVars: MarkInvoiceIntakePostingErrorVariables = {
+  receiptId: ..., 
+};
+
+// Call the `markInvoiceIntakePostingErrorRef()` function to get a reference to the mutation.
+const ref = markInvoiceIntakePostingErrorRef(markInvoiceIntakePostingErrorVars);
+// Variables can be defined inline as well.
+const ref = markInvoiceIntakePostingErrorRef({ receiptId: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = markInvoiceIntakePostingErrorRef(dataConnect, markInvoiceIntakePostingErrorVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.invoiceIntake_updateMany);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
 });
 ```
 
@@ -4177,6 +4401,7 @@ Recall that executing the `CommitInvoiceIntake` mutation returns a `MutationProm
 The `data` property is an object of type `CommitInvoiceIntakeData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 ```typescript
 export interface CommitInvoiceIntakeData {
+  invoiceIntake_updateMany: number;
   expenseTransaction_upsert: ExpenseTransaction_Key;
   invoice_upsert: Invoice_Key;
   invoiceIntake_update?: InvoiceIntake_Key | null;
@@ -4221,6 +4446,7 @@ const { data } = await commitInvoiceIntake({ receiptId: ..., transactionId: ...,
 const dataConnect = getDataConnect(connectorConfig);
 const { data } = await commitInvoiceIntake(dataConnect, commitInvoiceIntakeVars);
 
+console.log(data.invoiceIntake_updateMany);
 console.log(data.expenseTransaction_upsert);
 console.log(data.invoice_upsert);
 console.log(data.invoiceIntake_update);
@@ -4228,6 +4454,7 @@ console.log(data.invoiceIntake_update);
 // Or, you can use the `Promise` API.
 commitInvoiceIntake(commitInvoiceIntakeVars).then((response) => {
   const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
   console.log(data.expenseTransaction_upsert);
   console.log(data.invoice_upsert);
   console.log(data.invoiceIntake_update);
@@ -4276,6 +4503,7 @@ const ref = commitInvoiceIntakeRef(dataConnect, commitInvoiceIntakeVars);
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await executeMutation(ref);
 
+console.log(data.invoiceIntake_updateMany);
 console.log(data.expenseTransaction_upsert);
 console.log(data.invoice_upsert);
 console.log(data.invoiceIntake_update);
@@ -4283,6 +4511,7 @@ console.log(data.invoiceIntake_update);
 // Or, you can use the `Promise` API.
 executeMutation(ref).then((response) => {
   const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
   console.log(data.expenseTransaction_upsert);
   console.log(data.invoice_upsert);
   console.log(data.invoiceIntake_update);
@@ -4349,6 +4578,7 @@ Recall that executing the `CommitInvoiceIntakeWithoutProject` mutation returns a
 The `data` property is an object of type `CommitInvoiceIntakeWithoutProjectData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 ```typescript
 export interface CommitInvoiceIntakeWithoutProjectData {
+  invoiceIntake_updateMany: number;
   expenseTransaction_upsert: ExpenseTransaction_Key;
   invoice_upsert: Invoice_Key;
   invoiceIntake_update?: InvoiceIntake_Key | null;
@@ -4392,6 +4622,7 @@ const { data } = await commitInvoiceIntakeWithoutProject({ receiptId: ..., trans
 const dataConnect = getDataConnect(connectorConfig);
 const { data } = await commitInvoiceIntakeWithoutProject(dataConnect, commitInvoiceIntakeWithoutProjectVars);
 
+console.log(data.invoiceIntake_updateMany);
 console.log(data.expenseTransaction_upsert);
 console.log(data.invoice_upsert);
 console.log(data.invoiceIntake_update);
@@ -4399,6 +4630,7 @@ console.log(data.invoiceIntake_update);
 // Or, you can use the `Promise` API.
 commitInvoiceIntakeWithoutProject(commitInvoiceIntakeWithoutProjectVars).then((response) => {
   const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
   console.log(data.expenseTransaction_upsert);
   console.log(data.invoice_upsert);
   console.log(data.invoiceIntake_update);
@@ -4446,6 +4678,7 @@ const ref = commitInvoiceIntakeWithoutProjectRef(dataConnect, commitInvoiceIntak
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await executeMutation(ref);
 
+console.log(data.invoiceIntake_updateMany);
 console.log(data.expenseTransaction_upsert);
 console.log(data.invoice_upsert);
 console.log(data.invoiceIntake_update);
@@ -4453,9 +4686,119 @@ console.log(data.invoiceIntake_update);
 // Or, you can use the `Promise` API.
 executeMutation(ref).then((response) => {
   const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
   console.log(data.expenseTransaction_upsert);
   console.log(data.invoice_upsert);
   console.log(data.invoiceIntake_update);
+});
+```
+
+## RetryInvoiceIntakeAi
+You can execute the `RetryInvoiceIntakeAi` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+retryInvoiceIntakeAi(vars: RetryInvoiceIntakeAiVariables): MutationPromise<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
+
+interface RetryInvoiceIntakeAiRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: RetryInvoiceIntakeAiVariables): MutationRef<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
+}
+export const retryInvoiceIntakeAiRef: RetryInvoiceIntakeAiRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+retryInvoiceIntakeAi(dc: DataConnect, vars: RetryInvoiceIntakeAiVariables): MutationPromise<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
+
+interface RetryInvoiceIntakeAiRef {
+  ...
+  (dc: DataConnect, vars: RetryInvoiceIntakeAiVariables): MutationRef<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
+}
+export const retryInvoiceIntakeAiRef: RetryInvoiceIntakeAiRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the retryInvoiceIntakeAiRef:
+```typescript
+const name = retryInvoiceIntakeAiRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `RetryInvoiceIntakeAi` mutation requires an argument of type `RetryInvoiceIntakeAiVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface RetryInvoiceIntakeAiVariables {
+  receiptId: string;
+}
+```
+### Return Type
+Recall that executing the `RetryInvoiceIntakeAi` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `RetryInvoiceIntakeAiData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface RetryInvoiceIntakeAiData {
+  invoiceIntake_updateMany: number;
+}
+```
+### Using `RetryInvoiceIntakeAi`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, retryInvoiceIntakeAi, RetryInvoiceIntakeAiVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `RetryInvoiceIntakeAi` mutation requires an argument of type `RetryInvoiceIntakeAiVariables`:
+const retryInvoiceIntakeAiVars: RetryInvoiceIntakeAiVariables = {
+  receiptId: ..., 
+};
+
+// Call the `retryInvoiceIntakeAi()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await retryInvoiceIntakeAi(retryInvoiceIntakeAiVars);
+// Variables can be defined inline as well.
+const { data } = await retryInvoiceIntakeAi({ receiptId: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await retryInvoiceIntakeAi(dataConnect, retryInvoiceIntakeAiVars);
+
+console.log(data.invoiceIntake_updateMany);
+
+// Or, you can use the `Promise` API.
+retryInvoiceIntakeAi(retryInvoiceIntakeAiVars).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
+});
+```
+
+### Using `RetryInvoiceIntakeAi`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, retryInvoiceIntakeAiRef, RetryInvoiceIntakeAiVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `RetryInvoiceIntakeAi` mutation requires an argument of type `RetryInvoiceIntakeAiVariables`:
+const retryInvoiceIntakeAiVars: RetryInvoiceIntakeAiVariables = {
+  receiptId: ..., 
+};
+
+// Call the `retryInvoiceIntakeAiRef()` function to get a reference to the mutation.
+const ref = retryInvoiceIntakeAiRef(retryInvoiceIntakeAiVars);
+// Variables can be defined inline as well.
+const ref = retryInvoiceIntakeAiRef({ receiptId: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = retryInvoiceIntakeAiRef(dataConnect, retryInvoiceIntakeAiVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.invoiceIntake_updateMany);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
 });
 ```
 
@@ -4520,6 +4863,7 @@ Recall that executing the `AutoCommitInvoiceIntake` mutation returns a `Mutation
 The `data` property is an object of type `AutoCommitInvoiceIntakeData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 ```typescript
 export interface AutoCommitInvoiceIntakeData {
+  invoiceIntake_updateMany: number;
   expenseTransaction_upsert: ExpenseTransaction_Key;
   invoice_upsert: Invoice_Key;
   invoiceIntake_update?: InvoiceIntake_Key | null;
@@ -4564,6 +4908,7 @@ const { data } = await autoCommitInvoiceIntake({ receiptId: ..., transactionId: 
 const dataConnect = getDataConnect(connectorConfig);
 const { data } = await autoCommitInvoiceIntake(dataConnect, autoCommitInvoiceIntakeVars);
 
+console.log(data.invoiceIntake_updateMany);
 console.log(data.expenseTransaction_upsert);
 console.log(data.invoice_upsert);
 console.log(data.invoiceIntake_update);
@@ -4571,6 +4916,7 @@ console.log(data.invoiceIntake_update);
 // Or, you can use the `Promise` API.
 autoCommitInvoiceIntake(autoCommitInvoiceIntakeVars).then((response) => {
   const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
   console.log(data.expenseTransaction_upsert);
   console.log(data.invoice_upsert);
   console.log(data.invoiceIntake_update);
@@ -4619,6 +4965,7 @@ const ref = autoCommitInvoiceIntakeRef(dataConnect, autoCommitInvoiceIntakeVars)
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await executeMutation(ref);
 
+console.log(data.invoiceIntake_updateMany);
 console.log(data.expenseTransaction_upsert);
 console.log(data.invoice_upsert);
 console.log(data.invoiceIntake_update);
@@ -4626,6 +4973,7 @@ console.log(data.invoiceIntake_update);
 // Or, you can use the `Promise` API.
 executeMutation(ref).then((response) => {
   const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
   console.log(data.expenseTransaction_upsert);
   console.log(data.invoice_upsert);
   console.log(data.invoiceIntake_update);

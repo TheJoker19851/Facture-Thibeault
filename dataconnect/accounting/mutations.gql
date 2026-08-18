@@ -60,7 +60,7 @@ mutation CreateInvoiceIntake($receiptId: String!, $storageFolder: String!, $phot
 # before executing this operation. Browser clients cannot call it directly.
 mutation UpdateInvoiceIntakeAiResult(
   $receiptId: String!
-  $status: String!
+  $status: String @retired(reason: "Legacy status is retained for wire compatibility; processingStatus is the source of truth.")
   $aiModel: String!
   $aiConfidence: Float!
   $extractedVendor: String!
@@ -81,16 +81,21 @@ mutation UpdateInvoiceIntakeAiResult(
   $classificationStatus: String!
   $aiNotes: String!
   $processingStatus: String = "NEEDS_REVIEW"
-  $accountingStatus: String = "NOT_POSTED"
   $decisionExceptions: String = "[]"
   $decisionChecks: String = "[]"
-) @auth(level: NO_ACCESS) {
-  invoiceIntake_update(
-    key: { receiptId: $receiptId }
+) @auth(level: NO_ACCESS) @transaction {
+  # Compare-and-set: exactly one AI attempt may claim a PROCESSING intake.
+  # Retries after POSTING_ERROR first pass through RetryInvoiceIntakeAi.
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      processingStatus: { eq: "PROCESSING" }
+      accountingStatus: { eq: "NOT_POSTED" }
+    }
     data: {
-      status: $status
+      status: $processingStatus
       processingStatus: $processingStatus
-      accountingStatus: $accountingStatus
+      accountingStatus: "NOT_POSTED"
       lastError: null
       aiModel: $aiModel
       aiConfidence: $aiConfidence
@@ -115,6 +120,14 @@ mutation UpdateInvoiceIntakeAiResult(
       decisionChecks: $decisionChecks
     }
   )
+  query @redact @check(expr: "response.invoiceIntake_updateMany == 1", message: "Le résultat IA a déjà été enregistré ou l’intake n’est plus en traitement.") {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) {
+      receiptId
+    }
+  }
+  # Retained only for old wire clients; it runs after the CAS and cannot
+  # bypass the transition guard.
+  invoiceIntake_update(key: { receiptId: $receiptId }, data: { lastError: null }) @retired(reason: "Use the CAS result invoiceIntake_updateMany; legacy response retained temporarily.")
 }
 
 mutation MarkInvoiceIntakeAiError(
@@ -123,19 +136,63 @@ mutation MarkInvoiceIntakeAiError(
   $accountingStatus: String = "NOT_POSTED"
   $decisionExceptions: String = "[]"
   $decisionChecks: String = "[]"
-) @auth(level: NO_ACCESS) {
-  invoiceIntake_update(
-    key: { receiptId: $receiptId }
+) @auth(level: NO_ACCESS) @transaction {
+  # Never downgrade a validated or posted intake. This update is deliberately
+  # conditional because it also runs from the error path of a concurrent call.
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      processingStatus: { eq: "PROCESSING" }
+      accountingStatus: { eq: "NOT_POSTED" }
+    }
     data: {
       status: "NEEDS_REVIEW"
       processingStatus: "NEEDS_REVIEW"
-      accountingStatus: $accountingStatus
+      accountingStatus: "NOT_POSTED"
       lastError: $error
       decisionExceptions: $decisionExceptions
       decisionChecks: $decisionChecks
       aiNotes: $error
     }
   )
+  query @redact @check(expr: "response.invoiceIntake_updateMany == 1", message: "L’intake n’est plus dans un état pouvant être marqué en erreur.") {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) {
+      receiptId
+    }
+  }
+  invoiceIntake_update(key: { receiptId: $receiptId }, data: { lastError: $error }) @retired(reason: "Use the guarded invoiceIntake_updateMany transition; legacy response retained temporarily.")
+}
+
+mutation MarkInvoiceIntakeAutoPostingError(
+  $receiptId: String!
+  $error: String!
+  $decisionExceptions: String = "[]"
+  $decisionChecks: String = "[]"
+) @auth(level: NO_ACCESS) @transaction {
+  # Only the server-side automatic posting path may mark an AUTO_APPROVED
+  # intake as a posting error. A losing AI request cannot use this transition.
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      processingStatus: { eq: "AUTO_APPROVED" }
+      accountingStatus: { eq: "NOT_POSTED" }
+    }
+    data: {
+      status: "NEEDS_REVIEW"
+      processingStatus: "NEEDS_REVIEW"
+      accountingStatus: "POSTING_ERROR"
+      lastError: $error
+      decisionExceptions: $decisionExceptions
+      decisionChecks: $decisionChecks
+      aiNotes: $error
+    }
+  )
+  query @redact @check(expr: "response.invoiceIntake_updateMany == 1", message: "L’intake n’est plus dans l’état AUTO_APPROVED attendu pour le posting.") {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) {
+      receiptId
+    }
+  }
+  invoiceIntake_update(key: { receiptId: $receiptId }, data: { lastError: $error }) @retired(reason: "Use the guarded automatic-posting transition; legacy response retained temporarily.")
 }
 
 # Kim or an administrator can correct the AI suggestion and explicitly move
@@ -164,9 +221,15 @@ mutation UpdateInvoiceIntakeReview(
   $aiNotes: String!
   $decisionExceptions: String = "[]"
   $decisionChecks: String = "[]"
-) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  invoiceIntake_update(
-    key: { receiptId: $receiptId }
+) @auth(expr: "(auth.token.role == 'KIM' || auth.token.role == 'ADMIN') && (vars.status in ['NEEDS_REVIEW', 'VALIDATED'])") @transaction {
+  # KIM may resolve an exception exactly once. The new processing/accounting
+  # fields are the decision fields; a second validation cannot match this CAS.
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      processingStatus: { eq: "NEEDS_REVIEW" }
+      accountingStatus: { eq: "NOT_POSTED" }
+    }
     data: {
       status: $status
       processingStatus: $status
@@ -191,6 +254,30 @@ mutation UpdateInvoiceIntakeReview(
       aiNotes: $aiNotes
       decisionExceptions: $decisionExceptions
       decisionChecks: $decisionChecks
+    }
+  )
+  query @redact @check(expr: "response.invoiceIntake_updateMany == 1", message: "La facture n’est plus dans un état révisable.") {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) {
+      receiptId
+    }
+  }
+  invoiceIntake_update(key: { receiptId: $receiptId }, data: { lastError: null }) @retired(reason: "Use the guarded invoiceIntake_updateMany transition; legacy response retained temporarily.")
+}
+
+mutation MarkInvoiceIntakePostingError($receiptId: String!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  # Client-side KIM commits use this compensating transition only after the
+  # transactional posting mutation fails. It cannot create or post anything.
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      processingStatus: { in: ["VALIDATED", "AUTO_APPROVED"] }
+      accountingStatus: { eq: "NOT_POSTED" }
+    }
+    data: {
+      status: "NEEDS_REVIEW"
+      processingStatus: "NEEDS_REVIEW"
+      accountingStatus: "POSTING_ERROR"
+      lastError: "La création de l’écriture comptable a échoué."
     }
   )
 }
@@ -218,7 +305,22 @@ mutation CommitInvoiceIntake(
   $projectId: String!
   $storageFolder: String!
   $classificationNote: String!
-) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") @transaction {
+  # Database-level posting lock. A concurrent retry waits for this
+  # transaction, then updates zero rows and cannot reach the upserts.
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      processingStatus: { eq: "VALIDATED" }
+      accountingStatus: { eq: "NOT_POSTED" }
+    }
+    data: { accountingStatus: "POSTED" }
+  )
+  query @redact @check(expr: "response.invoiceIntake_updateMany == 1", message: "La facture est déjà postée ou n’est pas validée.") {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) {
+      receiptId
+    }
+  }
   expenseTransaction_upsert(data: {
     id: $transactionId
     transactionDate: $invoiceDate
@@ -292,7 +394,20 @@ mutation CommitInvoiceIntakeWithoutProject(
   $statementPeriodId: String!
   $storageFolder: String!
   $classificationNote: String!
-) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") @transaction {
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      processingStatus: { eq: "VALIDATED" }
+      accountingStatus: { eq: "NOT_POSTED" }
+    }
+    data: { accountingStatus: "POSTED" }
+  )
+  query @redact @check(expr: "response.invoiceIntake_updateMany == 1", message: "La facture est déjà postée ou n’est pas validée.") {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) {
+      receiptId
+    }
+  }
   expenseTransaction_upsert(data: {
     id: $transactionId
     transactionDate: $invoiceDate
@@ -346,6 +461,30 @@ mutation CommitInvoiceIntakeWithoutProject(
   )
 }
 
+# A controlled retry is the only way to reopen a failed posting for the AI
+# route. Its compare-and-set guarantees that two retry requests cannot both
+# reopen the same intake.
+mutation RetryInvoiceIntakeAi($receiptId: String!) @auth(level: NO_ACCESS) @transaction {
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      processingStatus: { eq: "NEEDS_REVIEW" }
+      accountingStatus: { eq: "POSTING_ERROR" }
+    }
+    data: {
+      status: "PROCESSING"
+      processingStatus: "PROCESSING"
+      accountingStatus: "NOT_POSTED"
+      lastError: null
+    }
+  )
+  query @redact @check(expr: "response.invoiceIntake_updateMany == 1", message: "Aucun posting en erreur à relancer.") {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) {
+      receiptId
+    }
+  }
+}
+
 # Server-only automatic posting. The route performs the deterministic decision
 # and this operation is intentionally inaccessible to browser clients.
 mutation AutoCommitInvoiceIntake(
@@ -368,7 +507,20 @@ mutation AutoCommitInvoiceIntake(
   $projectId: String!
   $storageFolder: String!
   $classificationNote: String!
-) @auth(level: NO_ACCESS) {
+) @auth(level: NO_ACCESS) @transaction {
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      processingStatus: { eq: "AUTO_APPROVED" }
+      accountingStatus: { eq: "NOT_POSTED" }
+    }
+    data: { accountingStatus: "POSTED" }
+  )
+  query @redact @check(expr: "response.invoiceIntake_updateMany == 1", message: "La facture est déjà postée ou n’est pas auto-approuvée.") {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) {
+      receiptId
+    }
+  }
   expenseTransaction_upsert(data: {
     id: $transactionId
     transactionDate: $invoiceDate
