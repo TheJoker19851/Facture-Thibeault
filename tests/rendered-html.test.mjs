@@ -52,7 +52,8 @@ test("server-renders the Thibeault administration shell", async () => {
   assert.match(html, /À vérifier/);
   assert.match(html, /1 · Titulaires/);
   assert.match(html, /2 · Transactions par personne/);
-  assert.match(html, /3 · Factures à corriger/);
+  assert.match(html, /Factures à vérifier/);
+  assert.doesNotMatch(html, /Exceptions IA/);
   assert.match(html, /4 · Tableau comptable/);
   assert.match(html, /Alice Démo/);
   assert.match(html, /Période des cartes/);

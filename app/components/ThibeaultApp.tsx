@@ -1,8 +1,9 @@
 "use client";
 
 import { ChangeEvent, createContext, FormEvent, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { getDownloadURL, ref } from "firebase/storage";
 import { accountingReadSource, commitInvoiceIntake, createFirebaseUser, loadAccountingSnapshot, mapAccountingSnapshot, saveCreditCard, saveInvoiceIntakeReview, saveUserProfile } from "../../firebase/accounting";
-import { appCheckConfigured, firebaseConfigured } from "../../firebase/client";
+import { appCheckConfigured, firebaseConfigured, firebaseStorage } from "../../firebase/client";
 import { sqlConnectConfigured } from "../../firebase/data-connect";
 import { processInvoiceIntakeWithGemini } from "../../firebase/ai";
 import { invoicePhotoFileError, uploadInvoicePhotos } from "../../firebase/uploads";
@@ -12,7 +13,7 @@ import { INVOICE_CLIENT_VERSION } from "../../lib/invoice-client-version.mjs";
 import { useFirebaseIdentity, type AppRole } from "./FirebaseShell";
 
 type Role = AppRole;
-type View = "dashboard" | "transactions" | "review" | "reconciliation" | "reports" | "archives" | "settings" | "intakes" | "debug" | "capture" | "transaction";
+type View = "dashboard" | "transactions" | "reconciliation" | "reports" | "archives" | "settings" | "intakes" | "debug" | "capture" | "transaction";
 type ClientVersionState = "checking" | "current" | "obsolete" | "unavailable";
 
 type Transaction = {
@@ -252,8 +253,7 @@ function useAppData() {
 const navItems: Array<{ id: View; label: string; icon: string }> = [
   { id: "dashboard", label: "Tableau de bord", icon: "⌂" },
   { id: "transactions", label: "Transactions", icon: "▤" },
-  { id: "review", label: "À vérifier", icon: "!" },
-  { id: "intakes", label: "Exceptions IA", icon: "◌" },
+  { id: "intakes", label: "Factures à vérifier", icon: "!" },
   { id: "reconciliation", label: "Rapprochement", icon: "⇄" },
   { id: "reports", label: "Rapports", icon: "◔" },
   { id: "archives", label: "Archives", icon: "▣" },
@@ -287,13 +287,88 @@ function isIntakeException(intake: InvoiceIntake) {
   return processingStatusOf(intake) === "NEEDS_REVIEW" || intake.accountingStatus === "POSTING_ERROR";
 }
 
-function parseIntakeExceptions(intake: InvoiceIntake) {
+type IntakeDecisionException = {
+  code: string;
+  fieldName?: string | null;
+  message: string;
+  aiValue?: string | null;
+  suggestedValue?: string | null;
+  status?: string;
+};
+
+const technicalIntakeExceptionCodes = new Set(["AI_PROCESSING_ERROR", "INVALID_DECISION_JSON"]);
+
+function parseIntakeExceptions(intake: InvoiceIntake): IntakeDecisionException[] {
   try {
-    return parseDecisionExceptions(intake.decisionExceptions);
+    return parseDecisionExceptions(intake.decisionExceptions) as IntakeDecisionException[];
   } catch (error) {
     const message = error instanceof DecisionJsonError ? error.message : "JSON de décision invalide; correction technique requise.";
     return [{ code: "INVALID_DECISION_JSON", fieldName: null, message, aiValue: null, suggestedValue: null, status: "OPEN" }];
   }
+}
+
+function intakeFieldLabel(fieldName?: string | null) {
+  const labels: Record<string, string> = {
+    vendor: "le fournisseur",
+    invoiceNumber: "le numéro de facture",
+    invoiceDate: "la date de facture",
+    subtotalCents: "le sous-total",
+    totalCents: "le total",
+    tpsCents: "la TPS",
+    tvqCents: "la TVQ",
+    sku: "le SKU",
+    accountCode: "le compte comptable",
+    cardId: "la carte utilisée",
+    projectId: "le chantier / projet",
+    statementPeriodId: "la période du relevé",
+    confidence: "les informations extraites",
+  };
+  return fieldName ? labels[fieldName] ?? "ce champ" : "les informations proposées";
+}
+
+function humanizeIntakeException(exception: IntakeDecisionException) {
+  switch (exception.code) {
+    case "UNKNOWN_PROJECT":
+      return "Projet introuvable — sélectionnez le chantier correspondant.";
+    case "LOW_CONFIDENCE":
+      return "Informations incertaines — vérifiez les champs proposés.";
+    case "MISSING_ACCOUNT":
+      return "Compte comptable manquant — choisissez le compte approprié.";
+    case "AMBIGUOUS_ACCOUNT":
+      return "Plusieurs comptes sont possibles — choisissez le compte approprié.";
+    case "UNKNOWN_CARD":
+      return "Carte utilisée introuvable — vérifiez la carte associée.";
+    case "AMBIGUOUS_CARD":
+      return "Plusieurs cartes sont possibles — vérifiez la carte associée.";
+    case "UNKNOWN_SKU":
+      return "Article non reconnu — vérifiez le SKU ou la catégorie.";
+    case "POSSIBLE_DUPLICATE":
+      return "Doublon potentiel — confirmez qu’il s’agit bien d’une nouvelle facture.";
+    case "TOTAL_MISMATCH":
+      return "Total incohérent — vérifiez le sous-total et les taxes.";
+    case "TAX_MISMATCH":
+      return "Taxes incohérentes — vérifiez la TPS et la TVQ.";
+    case "INVALID_DATE":
+      return "Date de facture invalide — corrigez la date.";
+    case "MISSING_REQUIRED_FIELD":
+      return `${intakeFieldLabel(exception.fieldName)} est requis — complétez cette information.`;
+    case "INVALID_DECISION_JSON":
+    case "AI_PROCESSING_ERROR":
+      return "Vérification manuelle requise — complétez ou corrigez les informations de la facture.";
+    default:
+      return `${intakeFieldLabel(exception.fieldName)} à vérifier — corrigez la valeur proposée.`;
+  }
+}
+
+function intakeReviewMessages(intake: InvoiceIntake) {
+  const exceptions = parseIntakeExceptions(intake);
+  const businessMessages = exceptions
+    .filter((exception) => !technicalIntakeExceptionCodes.has(exception.code))
+    .map(humanizeIntakeException);
+  if (businessMessages.length) return Array.from(new Set(businessMessages));
+  if (intake.accountingStatus === "POSTING_ERROR") return ["L’écriture comptable n’a pas été créée — vérifiez les informations et réessayez."];
+  if (exceptions.length || intake.lastError) return ["Vérification manuelle requise — complétez ou corrigez les informations de la facture."];
+  return [];
 }
 
 export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) {
@@ -577,16 +652,15 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
         <div className="brand-block"><div className="brand-mark"><span className="brand-glyph">MT</span><div><strong>Maçonnerie</strong><span>Thibeault</span></div></div><span className="prototype-pill">{isProductionDataSource ? "Production" : "Prototype"}</span></div>
         <div className="workspace-switcher"><span className="avatar avatar-blue">K</span><div><strong>Kim / Administration</strong><span>Équipe dépenses</span></div><span className="chevron">⌄</span></div>
         <nav className="main-nav" aria-label="Navigation principale">
-          {navItems.filter((item) => item.id !== "debug" || canUseDiagnostics).map((item) => <button key={item.id} className={`nav-item ${view === item.id ? "active" : ""}`} onClick={() => goTo(item.id)}><span className="nav-icon">{item.icon}</span><span>{item.label}</span>{item.id === "review" && <span className="nav-count">3</span>}{item.id === "intakes" && appData.intakes.filter(isIntakeException).length > 0 && <span className="nav-count">{appData.intakes.filter(isIntakeException).length}</span>}</button>)}
+          {navItems.filter((item) => item.id !== "debug" || canUseDiagnostics).map((item) => <button key={item.id} className={`nav-item ${view === item.id ? "active" : ""}`} onClick={() => goTo(item.id)}><span className="nav-icon">{item.icon}</span><span>{item.label}</span>{item.id === "intakes" && appData.intakes.filter(isIntakeException).length > 0 && <span className="nav-count">{appData.intakes.filter(isIntakeException).length}</span>}</button>)}
         </nav>
         <div className="sidebar-bottom"><div className="archive-mini"><span className="archive-icon">◷</span><div><strong>Archivage recommandé</strong><span>842 photos admissibles</span></div><span className="arrow">→</span></div>{canUseAccounting && <button className="worker-mode-button" onClick={() => goTo("capture")}><span>⌾</span> Ouvrir le mode dépôt</button>}<div className="user-footer"><span className="avatar avatar-gold">{accountRole === "ADMIN" ? "A" : "K"}</span><div><strong>{accountRole === "ADMIN" ? "Administration" : "Kim"}</strong><span>{accountRole === "KIM" ? "Contrôle comptable" : "Administrateur"}</span></div><button className="icon-button" aria-label="Options du compte">•••</button></div></div>
       </aside>
       <section className="content-area">
         <header className="topbar"><div className="breadcrumbs"><span>Maçonnerie Thibeault</span><span>/</span><strong>{navItems.find((item) => item.id === view)?.label ?? "Tableau de bord"}</strong></div><div className="topbar-actions"><span className="demo-note">{dataSourceLabel}</span><button className="icon-button" aria-label="Notifications">♧<span className="notification-dot" /></button><button className="avatar avatar-gold small" onClick={() => goTo("capture")} aria-label="Ouvrir le mode dépôt">{accountRole === "ADMIN" ? "A" : "K"}</button></div></header>
         <div className="page-content">
-          {view === "dashboard" && <Dashboard onNavigate={goTo} onOpenTransaction={(id) => { setSelectedId(id); setView("transaction"); }} period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
+          {view === "dashboard" && <Dashboard onNavigate={goTo} onOpenTransactions={(person) => { setQuery(person ?? ""); setStatusFilter("Toutes"); goTo("transactions"); }} period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
           {view === "transactions" && <TransactionsPage items={filteredTransactions} query={query} setQuery={setQuery} statusFilter={statusFilter} setStatusFilter={setStatusFilter} onOpen={(id) => { setSelectedId(id); setView("transaction" as View); }} />}
-          {view === "review" && <ReviewPage items={appData.transactions.filter((item) => item.status !== "Validée")} onOpen={(id) => { setSelectedId(id); setView("transaction" as View); }} />}
           {view === "reconciliation" && <ReconciliationPage period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
           {view === "reports" && <ReportsPage period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
           {view === "archives" && <ArchivesPage onNotify={notify} />}
@@ -701,6 +775,73 @@ function dollarsToCents(value: string) {
   return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed * 100) : null;
 }
 
+type IntakeEvidencePhoto = { sequence: number; url: string };
+type IntakeEvidenceState = { key: string; status: "loading" | "ready" | "error"; photos: IntakeEvidencePhoto[] };
+
+const intakePhotoExtensions = ["jpg", "png", "webp"] as const;
+
+async function loadIntakeEvidencePhotos(intake: InvoiceIntake): Promise<IntakeEvidencePhoto[]> {
+  if (!firebaseStorage) throw new Error("Firebase Storage n'est pas configure.");
+  if (!intake.storageFolder || intake.photoCount < 1) return [];
+
+  const photos: IntakeEvidencePhoto[] = [];
+  for (let sequence = 1; sequence <= intake.photoCount; sequence += 1) {
+    const stem = `${intake.storageFolder}/original-${String(sequence).padStart(2, "0")}`;
+    let lastError: unknown;
+    for (const extension of intakePhotoExtensions) {
+      try {
+        const url = await getDownloadURL(ref(firebaseStorage, `${stem}.${extension}`));
+        photos.push({ sequence, url });
+        lastError = undefined;
+        break;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    if (lastError) throw new Error(`La photo ${sequence} de la facture n'est pas disponible dans Storage.`);
+  }
+  return photos;
+}
+
+function InvoiceIntakeEvidence({ intake }: { intake: InvoiceIntake }) {
+  const evidenceKey = `${intake.receiptId}:${intake.storageFolder}:${intake.photoCount}`;
+  const [evidence, setEvidence] = useState<IntakeEvidenceState>({ key: "", status: "loading", photos: [] });
+  const [activeSequence, setActiveSequence] = useState(1);
+
+  useEffect(() => {
+    let active = true;
+    void loadIntakeEvidencePhotos(intake)
+      .then((photos) => {
+        if (active) setEvidence({ key: evidenceKey, status: "ready", photos });
+      })
+      .catch(() => {
+        if (active) setEvidence({ key: evidenceKey, status: "error", photos: [] });
+      });
+    return () => {
+      active = false;
+    };
+  }, [evidenceKey, intake]);
+
+  const currentEvidence = evidence.key === evidenceKey ? evidence : { key: evidenceKey, status: "loading" as const, photos: [] };
+  const activePhoto = currentEvidence.photos.find((photo) => photo.sequence === activeSequence) ?? currentEvidence.photos[0];
+
+  return <section className="intake-evidence" aria-label="Photo Storage de la facture">
+    <div className="intake-evidence-header">
+      <div><p className="eyebrow">Preuve originale</p><h3>Photo de la facture</h3></div>
+      <span className="data-source-help">Lecture seule · Storage</span>
+    </div>
+    {currentEvidence.status === "loading" && <p className="intake-evidence-message">Chargement de la photo associée…</p>}
+    {currentEvidence.status === "error" && <p className="intake-evidence-message error">La photo Storage n’a pas pu être chargée. Aucun fichier n’a été recréé.</p>}
+    {currentEvidence.status === "ready" && !activePhoto && <p className="intake-evidence-message">Aucune photo n’est associée à cette facture.</p>}
+    {currentEvidence.status === "ready" && activePhoto && <>
+      <div className="intake-evidence-main"><IntakeEvidencePreview url={activePhoto.url} alt={`Preuve originale de la facture ${intake.receiptId}, page ${activePhoto.sequence}`} /></div>
+      {currentEvidence.photos.length > 1 && <div className="intake-evidence-thumbs" aria-label="Pages de la facture">
+        {currentEvidence.photos.map((photo) => <button className={`intake-evidence-thumb ${photo.sequence === activePhoto.sequence ? "active" : ""}`} type="button" key={photo.sequence} onClick={() => setActiveSequence(photo.sequence)} aria-label={`Afficher la page ${photo.sequence}`} aria-pressed={photo.sequence === activePhoto.sequence}><IntakeEvidencePreview url={photo.url} alt={`Miniature, page ${photo.sequence}`} /></button>)}
+      </div>}
+    </>}
+  </section>;
+}
+
 function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: (receiptId: string, patch: Partial<InvoiceIntake>) => void }) {
   const { accounts, cards, periods, projects, skuReferences, users } = useAppData();
   const sortedItems = [...items].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
@@ -750,6 +891,7 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
   const messageState = commitState === "error" || commitState === "saved" ? commitState : saveState;
   const suggestedCard = cards.find((card) => card.id === commitCardId);
   const suggestedUploader = selectedIntake ? users.find((user) => user.firebaseUid === selectedIntake.uploaderUid) : undefined;
+  const selectedReviewMessages = selectedIntake ? intakeReviewMessages(selectedIntake) : [];
 
   const saveReview = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -887,7 +1029,7 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
   };
 
   return <>
-    <PageHeading eyebrow="Traitement des factures" title="Exceptions IA" description="Seules les factures qui échouent à un contrôle automatique sont présentées à KIM." />
+    <PageHeading eyebrow="Traitement des factures" title="Factures à vérifier" description="Seules les factures bloquées par une exception nécessitant une intervention sont présentées à Kim. Les dépôts en cours de traitement restent masqués." />
     <section className="intake-review-layout">
       <section className="panel intake-panel">
         <div className="panel-header">
@@ -904,8 +1046,8 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
               <div className="intake-main">
                 <strong>{intake.extractedVendor ?? "Fournisseur à identifier"}</strong>
                 <span>{intake.receiptId.slice(0, 8)} · {intake.photoCount} photo{intake.photoCount > 1 ? "s" : ""} · {formatDate(intake.updatedAt.slice(0, 10))}</span>
-                {intake.lastError && <small className="intake-error">{intake.lastError}</small>}
-                {!intake.lastError && (parseIntakeExceptions(intake).length > 0 ? <small>{parseIntakeExceptions(intake).map((exception) => exception.code).filter(Boolean).join(" · ")}</small> : intake.aiNotes && <small>{intake.aiNotes}</small>)}
+                {intakeReviewMessages(intake).map((message) => <small className="intake-error" key={message}>{message}</small>)}
+                {!intakeReviewMessages(intake).length && intake.aiNotes && <small>{intake.aiNotes}</small>}
               </div>
               <div className="intake-fields"><span>Catégorie <strong>{category}</strong></span><span>Compte <strong>{account}</strong></span></div>
               <strong className="intake-total">{total == null || Number.isNaN(total) ? "—" : formatCurrency(total)}</strong>
@@ -915,12 +1057,13 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
         </div> : <div className="empty-state"><span>◌</span><strong>Les prochains dépôts apparaîtront ici</strong><p>Après un envoi, Gemini extrait la facture et conserve sa proposition pour validation.</p></div>}
       </section>
       {selectedIntake ? <form className="panel intake-review" onSubmit={saveReview}>
-        <div className="panel-header"><div><p className="eyebrow">Exception à résoudre</p><h2>{draft.vendor || "Facture sélectionnée"}</h2></div><span className={intakeStatusClass(isReadyForAccounting ? "VALIDATED" : processingStatusOf(selectedIntake))}>{isReadyForAccounting ? "Validée" : intakeStatusLabel(processingStatusOf(selectedIntake))}</span></div>
-        {parseIntakeExceptions(selectedIntake).length > 0 && <div className="detail-alert"><div className="detail-alert-icon">!</div><div><p className="eyebrow">Contrôles en échec</p>{parseIntakeExceptions(selectedIntake).map((exception, index) => <span key={`${exception.code}-${index}`}><strong>{exception.code}</strong>{exception.fieldName ? ` · ${exception.fieldName}` : ""} · {exception.message}</span>)}</div></div>}
+        <div className="panel-header"><div><p className="eyebrow">Exception à résoudre</p><h2>{draft.vendor || "Facture sélectionnée"}</h2></div><span className={intakeStatusClass(processingStatusOf(selectedIntake))}>{intakeStatusLabel(processingStatusOf(selectedIntake))}</span></div>
+        {selectedReviewMessages.length > 0 && <div className="detail-alert"><div className="detail-alert-icon">!</div><div><p className="eyebrow">À corriger</p>{selectedReviewMessages.map((message) => <span key={message}>{message}</span>)}</div></div>}
+        <InvoiceIntakeEvidence intake={selectedIntake} />
         <div className="intake-review-form">
           <label className="field wide"><span>Fournisseur</span><input value={draft.vendor} onChange={(event) => updateDraft("vendor", event.target.value)} /></label>
           <div className="field-grid"><label className="field"><span>No de facture</span><input value={draft.invoiceNumber} onChange={(event) => updateDraft("invoiceNumber", event.target.value)} /></label><label className="field"><span>Date</span><input type="date" value={draft.invoiceDate} onChange={(event) => updateDraft("invoiceDate", event.target.value)} /></label></div>
-          <div className="field-grid"><label className="field"><span>Sous-total · CAD</span><input inputMode="decimal" value={draft.subtotal} onChange={(event) => updateDraft("subtotal", event.target.value)} /></label><label className="field"><span>Total · CAD</span><input inputMode="decimal" value={draft.total} onChange={(event) => updateDraft("total", event.target.value)} /></label><label className="field"><span>TPS · CAD</span><input inputMode="decimal" value={draft.tps} onChange={(event) => updateDraft("tps", event.target.value)} /></label><label className="field"><span>TVQ · CAD</span><input inputMode="decimal" value={draft.tvq} onChange={(event) => updateDraft("tvq", event.target.value)} /></label></div>
+          <div className="field-grid"><label className="field"><span>Sous-total</span><input inputMode="decimal" value={draft.subtotal} onChange={(event) => updateDraft("subtotal", event.target.value)} /></label><label className="field"><span>Total</span><input inputMode="decimal" value={draft.total} onChange={(event) => updateDraft("total", event.target.value)} /></label><label className="field"><span>TPS</span><input inputMode="decimal" value={draft.tps} onChange={(event) => updateDraft("tps", event.target.value)} /></label><label className="field"><span>TVQ</span><input inputMode="decimal" value={draft.tvq} onChange={(event) => updateDraft("tvq", event.target.value)} /></label></div>
           <label className="field wide"><span>Compte comptable confirmé</span><select value={draft.accountCode} onChange={(event) => updateDraft("accountCode", event.target.value)}><option value="">Choisir le compte</option>{accounts.map((account) => <option key={account.code} value={account.code}>{account.code} · {account.label}</option>)}</select><small>{inferredClassification.accountCode ? `Suggestion automatique : ${inferredClassification.accountCode} · ${inferredClassification.category}` : "Aucune suggestion fiable; le choix de Kim est requis."}</small></label>
           <label className="field wide"><span>Chantier / projet (facultatif pour cette revue)</span><select value={draft.projectId} onChange={(event) => updateDraft("projectId", event.target.value)}><option value="">Aucun projet sélectionné</option>{projects.map((project) => { const [projectId, ...projectName] = project.split(" · "); return <option key={projectId} value={projectId}>{projectName.join(" · ") || projectId}</option>; })}</select></label>
           <label className="field wide"><span>Note de revue</span><textarea rows={3} value={draft.notes} onChange={(event) => updateDraft("notes", event.target.value)} /></label>
@@ -957,34 +1100,23 @@ function PeriodSelector({ period, onChange }: { period: CardPeriod; onChange: (p
   return <div className="period-selector"><span>Période des cartes</span><select value={selectedPreset} onChange={(event) => { const option = periods.find((candidate) => candidate.id === event.target.value); if (option) onChange(option); }}><option value="custom">Période personnalisée</option>{periods.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select><div className="period-custom-dates"><label><span>Du</span><input type="date" value={period.start} max={period.end} onChange={(event) => updateDate("start", event.target.value)} /></label><span className="period-date-arrow">→</span><label><span>Au</span><input type="date" value={period.end} min={period.start} onChange={(event) => updateDate("end", event.target.value)} /></label></div><small>Toutes les cartes actives utilisent ce même cycle.</small></div>;
 }
 
-type DashboardTab = "holders" | "transactions" | "review" | "accounting";
-
-function Dashboard({ onNavigate, onOpenTransaction, period, onPeriodChange }: { onNavigate: (view: View) => void; onOpenTransaction: (id: string) => void; period: CardPeriod; onPeriodChange: (period: CardPeriod) => void }) {
+function Dashboard({ onNavigate, onOpenTransactions, period, onPeriodChange }: { onNavigate: (view: View) => void; onOpenTransactions: (person?: string) => void; period: CardPeriod; onPeriodChange: (period: CardPeriod) => void }) {
   const { cards, transactions } = useAppData();
-  const [activeTab, setActiveTab] = useState<DashboardTab>("holders");
-  const [focusedPerson, setFocusedPerson] = useState("TOUS");
   const holderRows = cards.filter((card) => card.status === "Actif").map((card) => {
     const items = transactions.filter((transaction) => transaction.person === card.holder);
     return { card, items, total: items.reduce((sum, item) => sum + item.total, 0) };
   });
-  const choosePerson = (person: string) => {
-    setFocusedPerson(person);
-    setActiveTab("transactions");
-  };
 
   return <>
     <PageHeading eyebrow="Vue d’ensemble" title="Bonjour Kim" description="Un espace de contrôle organisé par titulaire, facture et période comptable." action={<button className="primary-button" onClick={() => onNavigate("capture")}><span>＋</span> Ouvrir le mode travailleur</button>} />
     <div className="filter-strip"><PeriodSelector period={period} onChange={onPeriodChange} /><span className="filter-divider" /><span className="live-indicator"><span className="status-dot" /> Données prêtes pour le cycle sélectionné</span></div>
-    <div className="dashboard-tabs" role="tablist" aria-label="Sections du tableau de bord">
-      <button className={`dashboard-tab ${activeTab === "holders" ? "active" : ""}`} onClick={() => setActiveTab("holders")} role="tab" aria-selected={activeTab === "holders"}>1 · Titulaires</button>
-      <button className={`dashboard-tab ${activeTab === "transactions" ? "active" : ""}`} onClick={() => setActiveTab("transactions")} role="tab" aria-selected={activeTab === "transactions"}>2 · Transactions par personne</button>
-      <button className={`dashboard-tab ${activeTab === "review" ? "active" : ""}`} onClick={() => setActiveTab("review")} role="tab" aria-selected={activeTab === "review"}>3 · Factures à corriger</button>
-      <button className={`dashboard-tab ${activeTab === "accounting" ? "active" : ""}`} onClick={() => setActiveTab("accounting")} role="tab" aria-selected={activeTab === "accounting"}>4 · Tableau comptable</button>
+    <div className="dashboard-tabs" aria-label="Raccourcis du tableau de bord">
+      <button className="dashboard-tab active" aria-current="page">1 · Titulaires</button>
+      <button className="dashboard-tab" onClick={() => onOpenTransactions()}>2 · Transactions par personne</button>
+      <button className="dashboard-tab" onClick={() => onNavigate("intakes")}>3 · Factures à vérifier</button>
+      <button className="dashboard-tab" onClick={() => onNavigate("reports")}>4 · Tableau comptable</button>
     </div>
-    {activeTab === "holders" && <DashboardHoldersTab rows={holderRows} onChoose={choosePerson} />}
-    {activeTab === "transactions" && <DashboardTransactionsTab rows={holderRows} focusedPerson={focusedPerson} onFocus={setFocusedPerson} onOpen={onOpenTransaction} />}
-    {activeTab === "review" && <DashboardReviewTab onOpen={onOpenTransaction} />}
-    {activeTab === "accounting" && <KimAccountingReport period={period} onPeriodChange={onPeriodChange} embedded />}
+    <DashboardHoldersTab rows={holderRows} onChoose={onOpenTransactions} />
   </>;
 }
 
@@ -999,23 +1131,6 @@ function DashboardHoldersTab({ rows, onChoose }: { rows: HolderRow[]; onChoose: 
   </section>;
 }
 
-function DashboardTransactionsTab({ rows, focusedPerson, onFocus, onOpen }: { rows: HolderRow[]; focusedPerson: string; onFocus: (person: string) => void; onOpen: (id: string) => void }) {
-  const visibleRows = focusedPerson === "TOUS" ? rows : rows.filter((row) => row.card.holder === focusedPerson);
-  return <section className="dashboard-tab-panel">
-    <div className="dashboard-tab-heading"><div><p className="eyebrow">2e onglet · groupes extensibles</p><h2>Transactions par utilisateur</h2><p className="muted">Ouvrez seulement le titulaire que vous devez contrôler; les autres restent repliés.</p></div><label className="dashboard-person-filter"><span>Titulaire</span><select value={focusedPerson} onChange={(event) => onFocus(event.target.value)}><option value="TOUS">Tous les titulaires</option>{rows.map((row) => <option value={row.card.holder} key={row.card.id}>{row.card.holder}</option>)}</select></label></div>
-    <div className="user-transaction-list">{visibleRows.map((row) => <details className="user-transaction-card" key={row.card.id} open={focusedPerson !== "TOUS"}><summary><span className="avatar avatar-blue small">{row.card.holder.charAt(0)}</span><span className="user-transaction-heading"><strong>{row.card.holder}</strong><small>Carte ···· {row.card.lastFour} · {row.items.length} transaction{row.items.length === 1 ? "" : "s"}</small></span><strong>{formatCurrency(row.total)}</strong><span className="details-chevron">⌄</span></summary><div className="user-transaction-body"><TransactionTable items={row.items} compact onOpen={onOpen} /></div></details>)}</div>
-  </section>;
-}
-
-function DashboardReviewTab({ onOpen }: { onOpen: (id: string) => void }) {
-  const { transactions } = useAppData();
-  const items = transactions.filter((transaction) => transaction.issue || transaction.status !== "Validée");
-  return <section className="dashboard-tab-panel">
-    <div className="dashboard-tab-heading"><div><p className="eyebrow">3e onglet · contrôle humain</p><h2>Factures avec corrections</h2><p className="muted">Sélectionnez une facture pour ouvrir sa preuve et voir le champ à corriger en évidence.</p></div><span className="badge badge-warning">{items.length} dossiers</span></div>
-    <div className="dashboard-review-list">{items.map((item) => <button className="dashboard-review-card" key={item.id} onClick={() => onOpen(item.id)}><span className="dashboard-review-icon">!</span><span className="dashboard-review-copy"><strong>{item.vendor} · {formatCurrency(item.total)}</strong><span>{item.issue ?? "Validation administrative requise"}</span><small>{item.id} · {item.imageCount} photo{item.imageCount === 1 ? "" : "s"} · {item.correctionField === "account" ? "compte comptable" : item.correctionField === "subtotal" ? "sous-total" : "pièce justificative"}</small></span><span className="row-arrow">→</span></button>)}</div>
-  </section>;
-}
-
 function TransactionsPage({ items, query, setQuery, statusFilter, setStatusFilter, onOpen }: { items: Transaction[]; query: string; setQuery: (value: string) => void; statusFilter: string; setStatusFilter: (value: string) => void; onOpen: (id: string) => void }) {
   return <><PageHeading eyebrow="Registre principal" title="Transactions" description="Toutes les dépenses, avec leur provenance et leur état de contrôle." action={<button className="primary-button"><span>⇩</span> Exporter</button>} /><div className="filter-panel"><div className="search-box"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un fournisseur, une personne, un chantier…" /></div><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option>Toutes</option><option>À vérifier</option><option>À valider</option><option>Validée</option></select><button className="filter-select">Période <b>⌄</b></button><button className="filter-select">Plus de filtres <b>＋</b></button></div><div className="quick-filters"><button className="quick-filter active" onClick={() => setStatusFilter("Toutes")}>Toutes <span>18</span></button><button className="quick-filter" onClick={() => setStatusFilter("À vérifier")}>À vérifier <span>3</span></button><button className="quick-filter" onClick={() => setStatusFilter("À valider")}>À valider <span>2</span></button><button className="quick-filter">Validées <span>13</span></button><button className="quick-filter">Non rapprochées <span>4</span></button></div><section className="panel transaction-panel"><div className="table-meta"><span><strong>{items.length}</strong> transactions affichées</span><span className="muted">Dernière synchronisation · il y a 2 min</span></div><TransactionTable items={items} onOpen={onOpen} /></section></>;
 }
@@ -1023,10 +1138,6 @@ function TransactionsPage({ items, query, setQuery, statusFilter, setStatusFilte
 function TransactionTable({ items, compact = false, onOpen }: { items: Transaction[]; compact?: boolean; onOpen?: (id: string) => void }) {
   const data = useAppData();
   return <div className={`table-wrap ${compact ? "compact" : ""}`}><table><thead><tr><th>Transaction</th><th>Date</th><th>Fournisseur</th><th>Titulaire</th><th>Chantier</th><th>Montant</th><th>État</th><th /></tr></thead><tbody>{items.map((item) => { const classification = classifyTransaction(item, data); return <tr key={item.id} onClick={() => onOpen?.(item.id)}><td><div className="transaction-id"><span className="receipt-icon">▧</span><span><strong>{item.id}</strong><small>{item.invoiceNumber} · {item.imageCount} photo{item.imageCount > 1 ? "s" : ""}</small></span></div></td><td>{formatDate(item.date)}</td><td><strong>{item.vendor}</strong><small>{classification.code} · {classification.category}</small></td><td>{item.person}<small>Carte ···· {item.card}</small></td><td>{item.project}</td><td><strong>{formatCurrency(item.total)}</strong></td><td><span className={statusClass(item.status)}>{item.status}</span><small className="table-substatus">{item.reconciliation}</small></td><td><button className="row-menu" onClick={(event) => { event.stopPropagation(); onOpen?.(item.id); }} aria-label={`Ouvrir ${item.id}`}>→</button></td></tr>; })}</tbody></table>{items.length === 0 && <div className="empty-state"><span>⌕</span><strong>Aucune transaction trouvée</strong><p>Modifiez vos filtres pour élargir la recherche.</p></div>}</div>;
-}
-
-function ReviewPage({ items, onOpen }: { items: Transaction[]; onOpen: (id: string) => void }) {
-  return <><PageHeading eyebrow="File de traitement" title="À vérifier" description="Les exceptions sont regroupées par raison pour accélérer la validation." action={<button className="secondary-button">Assigner la sélection</button>} /><div className="review-summary"><div><span className="summary-icon gold">!</span><strong>3</strong><span>exceptions actives</span></div><div><span className="summary-icon rose">◷</span><strong>1</strong><span>depuis plus de 24 h</span></div><div><span className="summary-icon blue">⌁</span><strong>2</strong><span>nécessitent une photo</span></div></div><div className="review-groups"><section className="panel"><div className="panel-header"><div><p className="eyebrow">Priorité haute</p><h2>Contrôles à résoudre</h2></div><span className="badge badge-warning">3 dossiers</span></div><div className="review-list">{items.map((item) => <button className="review-row" key={item.id} onClick={() => onOpen(item.id)}><span className="review-check" /><span className="review-icon">{item.issue?.includes("Sous-total") ? "≋" : item.category === "Divers" ? "⌁" : "!"}</span><span className="review-content"><strong>{item.issue ?? "Vérification administrative requise"}</strong><span>{item.correction ?? "Correction humaine requise avant validation."}</span><small>{item.vendor} · {formatCurrency(item.total)} · {item.id}</small></span><span className="review-date">{formatDate(item.date)}</span><span className="row-arrow">→</span></button>)}</div></section><aside className="panel review-guide"><p className="eyebrow">Règle métier</p><h2>Un seul champ en alerte à la fois.</h2><p>Les contrôles sont ciblés pour que Kim ne perde pas de temps dans une mer d’avertissements. Une correction humaine reste prioritaire sur toute nouvelle proposition IA.</p><div className="rule-list"><span>✓</span>Écart monétaire toléré: 0,01 $</div><div className="rule-list"><span>✓</span>Carte absente non bloquante si le dossier est connu</div><div className="rule-list"><span>✓</span>Doublon potentiel jamais supprimé automatiquement</div></aside></div></>;
 }
 
 function TransactionDetail({ transaction, onBack, onNotify }: { transaction: Transaction; onBack: () => void; onNotify: (message: string) => void }) {
@@ -1070,6 +1181,12 @@ function Field({ label, value, hint, tone, wide = false, invalid = false }: { la
 
 function PhotoPreview({ url, alt }: { url: string; alt: string }) {
   // These are local FileReader previews, so Next image optimization is not applicable.
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url} alt={alt} />;
+}
+
+function IntakeEvidencePreview({ url, alt }: { url: string; alt: string }) {
+  // Firebase Storage returns a signed URL that is not known at build time.
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={url} alt={alt} />;
 }

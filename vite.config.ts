@@ -8,6 +8,7 @@ const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
 
 const { d1, r2 } = hostingConfig;
+const hasCloudflareBindings = Boolean(d1 || r2);
 
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
@@ -42,7 +43,10 @@ export default defineConfig(async () => {
   process.env.WRANGLER_LOG_PATH ??= ".wrangler/logs";
   process.env.MINIFLARE_REGISTRY_PATH ??= ".wrangler/registry";
 
-  if (isVercelDeployment) {
+  // This application has no Cloudflare bindings and is deployed through the
+  // Nitro/Vercel output. Running it through the Cloudflare RSC environment in
+  // that configuration drops the App Router root layout in development.
+  if (isVercelDeployment || !hasCloudflareBindings) {
     return {
       server: isCodexSeatbeltSandbox
         ? { watch: { useFsEvents: false, usePolling: true } }
