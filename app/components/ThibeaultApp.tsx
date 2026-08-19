@@ -2,7 +2,7 @@
 
 import { ChangeEvent, createContext, FormEvent, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getDownloadURL, ref } from "firebase/storage";
-import { accountingReadSource, commitInvoiceIntake, createFirebaseUser, loadAccountingSnapshot, mapAccountingSnapshot, saveCreditCard, saveInvoiceIntakeReview, saveUserProfile } from "../../firebase/accounting";
+import { accountingReadSource, commitInvoiceIntake, createFirebaseUser, loadAccountingSnapshot, mapAccountingSnapshot, removeDemoAccountingData, saveCreditCard, saveInvoiceIntakeReview, saveUserProfile } from "../../firebase/accounting";
 import { appCheckConfigured, firebaseConfigured, firebaseStorage } from "../../firebase/client";
 import { sqlConnectConfigured } from "../../firebase/data-connect";
 import { processInvoiceIntakeWithGemini } from "../../firebase/ai";
@@ -23,6 +23,7 @@ type Transaction = {
   submittedBy: string;
   person: string;
   card: string;
+  periodId?: string;
   project: string;
   category: string;
   total: number;
@@ -141,8 +142,8 @@ const demoUserProfiles: UserProfile[] = [
 ];
 
 const cardPeriods: CardPeriod[] = [
-  { id: "DEMO-2026-08", label: "Période Démo · août 2026", start: "2026-08-01", end: "2026-08-31", statementLabel: "Relevé Démo · août" },
-  { id: "DEMO-2026-07", label: "Période Démo · juillet 2026", start: "2026-07-01", end: "2026-07-31", statementLabel: "Relevé Démo · juillet" },
+  { id: "DEMO-2026-08", label: "Période Démo · 10 août → 9 septembre 2026", start: "2026-08-10", end: "2026-09-09", statementLabel: "Relevé Démo · cycle du 10 au 9" },
+  { id: "DEMO-2026-07", label: "Période Démo · 10 juillet → 9 août 2026", start: "2026-07-10", end: "2026-08-09", statementLabel: "Relevé Démo · cycle du 10 au 9" },
 ];
 
 const skuReferences: SkuReference[] = [
@@ -184,6 +185,7 @@ const transactions: Transaction[] = [
     submittedBy: "Alice Démo",
     person: "Alice Démo",
     card: "9001",
+    periodId: "DEMO-2026-08",
     project: "DEMO-PROJET-001 · Chantier Démo A",
     category: "Matériaux Démo",
     total: 114.98,
@@ -204,6 +206,7 @@ const transactions: Transaction[] = [
     submittedBy: "Alice Démo",
     person: "Alice Démo",
     card: "9001",
+    periodId: "DEMO-2026-08",
     project: "DEMO-PROJET-002 · Chantier Démo B",
     category: "Carburant Démo",
     total: 91.98,
@@ -220,6 +223,7 @@ const transactions: Transaction[] = [
     submittedBy: "Benoît Démo",
     person: "Benoît Démo",
     card: "9002",
+    periodId: "DEMO-2026-08",
     project: "DEMO-ADMIN · Administration Démo",
     category: "Équipement Démo",
     total: 229.95,
@@ -271,6 +275,11 @@ function formatDate(value: string) {
   return dateFormat.format(new Date(`${value}T12:00:00`));
 }
 
+function isTransactionInPeriod(transaction: Pick<Transaction, "date" | "periodId">, period: CardPeriod) {
+  return transaction.date >= period.start && transaction.date <= period.end &&
+    (!transaction.periodId || period.id === "custom" || transaction.periodId === period.id);
+}
+
 function statusClass(status: Transaction["status"] | Transaction["reconciliation"]) {
   if (status === "Validée" || status === "Rapprochée") return "badge badge-success";
   if (status === "À vérifier" || status === "Facture manquante") return "badge badge-warning";
@@ -305,6 +314,25 @@ function parseIntakeExceptions(intake: InvoiceIntake): IntakeDecisionException[]
     const message = error instanceof DecisionJsonError ? error.message : "JSON de décision invalide; correction technique requise.";
     return [{ code: "INVALID_DECISION_JSON", fieldName: null, message, aiValue: null, suggestedValue: null, status: "OPEN" }];
   }
+}
+
+function isOptionalReviewException(exception: IntakeDecisionException) {
+  return exception.code === "MISSING_REQUIRED_FIELD" && exception.fieldName === "statementPeriodId";
+}
+
+function intakeCorrectionFields(intake: InvoiceIntake) {
+  const fields = new Set<string>();
+  for (const exception of parseIntakeExceptions(intake)) {
+    if (isOptionalReviewException(exception)) continue;
+    for (const fieldName of (exception.fieldName ?? "").split(/[/,]/)) {
+      if (fieldName.trim()) fields.add(fieldName.trim());
+    }
+    if (exception.code === "TAX_MISMATCH") {
+      fields.add("tpsCents");
+      fields.add("tvqCents");
+    }
+  }
+  return fields;
 }
 
 function intakeFieldLabel(fieldName?: string | null) {
@@ -362,12 +390,13 @@ function humanizeIntakeException(exception: IntakeDecisionException) {
 
 function intakeReviewMessages(intake: InvoiceIntake) {
   const exceptions = parseIntakeExceptions(intake);
-  const businessMessages = exceptions
+  const actionableExceptions = exceptions.filter((exception) => !isOptionalReviewException(exception));
+  const businessMessages = actionableExceptions
     .filter((exception) => !technicalIntakeExceptionCodes.has(exception.code))
     .map(humanizeIntakeException);
   if (businessMessages.length) return Array.from(new Set(businessMessages));
   if (intake.accountingStatus === "POSTING_ERROR") return ["L’écriture comptable n’a pas été créée — vérifiez les informations et réessayez."];
-  if (exceptions.length || intake.lastError) return ["Vérification manuelle requise — complétez ou corrigez les informations de la facture."];
+  if (actionableExceptions.length || intake.lastError) return ["Vérification manuelle requise — complétez ou corrigez les informations de la facture."];
   return [];
 }
 
@@ -402,7 +431,8 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
     loadAccountingSnapshot()
       .then((snapshot) => {
         if (!active) return;
-        const nextData = mapAccountingSnapshot(snapshot);
+        const mappedData = mapAccountingSnapshot(snapshot);
+        const nextData = removeDemoAccountingData(mappedData);
         setAppData(nextData);
         setSelectedId((current) => nextData.transactions.some((transaction) => transaction.id === current) ? current : (nextData.transactions[0]?.id ?? ""));
         setSelectedPeriod((current) => nextData.periods.find((period) => period.id === current.id) ?? nextData.periods[0] ?? current);
@@ -642,7 +672,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
   }
 
   if (isProductionDataSource && dataSourceState === "ready" && appData.cards.length === 0 && appData.transactions.length === 0) {
-    return <AccountingDataEmpty intakeCount={appData.intakes.length} onOpenSettings={() => { setView("settings"); setViewMode("accounting"); }} />;
+    return <AccountingDataEmpty intakeCount={appData.intakes.length} onOpenSettings={() => { setView("settings"); setViewMode("accounting"); }} onOpenIntakes={() => { setView("intakes"); setViewMode("accounting"); }} />;
   }
 
   return (
@@ -661,9 +691,9 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
         <div className="page-content">
           {view === "dashboard" && <Dashboard onNavigate={goTo} onOpenTransactions={(person) => { setQuery(person ?? ""); setStatusFilter("Toutes"); goTo("transactions"); }} period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
           {view === "transactions" && <TransactionsPage items={filteredTransactions} query={query} setQuery={setQuery} statusFilter={statusFilter} setStatusFilter={setStatusFilter} onOpen={(id) => { setSelectedId(id); setView("transaction" as View); }} />}
-          {view === "reconciliation" && <ReconciliationPage period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
+          {view === "reconciliation" && <ReconciliationPage period={selectedPeriod} onPeriodChange={setSelectedPeriod} isProductionDataSource={isProductionDataSource} />}
           {view === "reports" && <ReportsPage period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
-          {view === "archives" && <ArchivesPage onNotify={notify} />}
+          {view === "archives" && <ArchivesPage onNotify={notify} isProductionDataSource={isProductionDataSource} />}
           {view === "settings" && <AdminDirectoryPage onDataChange={(patch) => setAppData((current) => ({ ...current, ...patch }))} role={accountRole ?? "ADMIN"} />}
           {view === "intakes" && canUseAccounting && <IntakeQueuePage items={appData.intakes.filter(isIntakeException)} onSaved={(receiptId, patch) => setAppData((current) => ({ ...current, intakes: current.intakes.map((intake) => intake.receiptId === receiptId ? { ...intake, ...patch } : intake) }))} />}
           {view === "debug" && canUseDiagnostics && <DebugPage dataSourceState={dataSourceState} onRetry={retryAccounting} role={accountRole ?? "ADMIN"} />}
@@ -684,8 +714,8 @@ function AccountingDataError({ onRetry }: { onRetry: () => void }) {
   return <main className="data-source-gate"><section className="data-source-card"><span className="eyebrow">Connexion requise</span><h1>Données comptables indisponibles</h1><p className="muted">Le connecteur de production n’a pas répondu. Vérifiez que l’utilisateur est authentifié et que le connecteur SQL Connect <strong>accounting</strong> est déployé dans Firebase.</p><div className="data-source-actions"><button className="primary-button" type="button" onClick={onRetry}>Réessayer</button><span className="data-source-help">Aucune donnée fictive n’est utilisée dans ce mode.</span></div></section></main>;
 }
 
-function AccountingDataEmpty({ intakeCount = 0, onOpenSettings }: { intakeCount?: number; onOpenSettings: () => void }) {
-  return <main className="data-source-gate"><section className="data-source-card"><span className="eyebrow">Base prête</span><h1>{intakeCount ? `${intakeCount} dépôt${intakeCount > 1 ? "s" : ""} en traitement` : "Aucune donnée comptable"}</h1><p className="muted">{intakeCount ? "Les photos reçues sont enregistrées et attendent le traitement OCR et la classification." : "Le schéma SQL Connect est déployé, mais aucune carte ou transaction n’a encore été chargée dans la base de production."}</p><div className="data-source-actions"><button className="primary-button" type="button" onClick={onOpenSettings}>Ouvrir la configuration</button><span className="data-source-help">Aucune donnée de démonstration n’est affichée dans ce mode.</span></div></section></main>;
+function AccountingDataEmpty({ intakeCount = 0, onOpenSettings, onOpenIntakes }: { intakeCount?: number; onOpenSettings: () => void; onOpenIntakes: () => void }) {
+  return <main className="data-source-gate"><section className="data-source-card"><span className="eyebrow">Base prête</span><h1>{intakeCount ? `${intakeCount} dépôt${intakeCount > 1 ? "s" : ""} en traitement` : "Aucune donnée comptable"}</h1><p className="muted">{intakeCount ? "Les photos reçues sont enregistrées et attendent le traitement OCR et la classification." : "Le schéma SQL Connect est déployé, mais aucune carte ou transaction opérationnelle n’a encore été chargée dans la base de production."}</p><div className="data-source-actions">{intakeCount > 0 && <button className="primary-button" type="button" onClick={onOpenIntakes}>Ouvrir les factures à vérifier</button>}<button className="secondary-button" type="button" onClick={onOpenSettings}>Ouvrir la configuration</button><span className="data-source-help">Les données de démonstration sont masquées en production.</span></div></section></main>;
 }
 
 function RoleLoading() {
@@ -892,6 +922,8 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
   const suggestedCard = cards.find((card) => card.id === commitCardId);
   const suggestedUploader = selectedIntake ? users.find((user) => user.firebaseUid === selectedIntake.uploaderUid) : undefined;
   const selectedReviewMessages = selectedIntake ? intakeReviewMessages(selectedIntake) : [];
+  const selectedCorrectionFields = selectedIntake ? intakeCorrectionFields(selectedIntake) : new Set<string>();
+  const needsCorrection = (...fieldNames: string[]) => fieldNames.some((fieldName) => selectedCorrectionFields.has(fieldName));
 
   const saveReview = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -985,9 +1017,9 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
     const tpsCents = dollarsToCents(draft.tps);
     const tvqCents = dollarsToCents(draft.tvq);
     const totalCents = dollarsToCents(draft.total);
-    if (!draft.vendor.trim() || !draft.invoiceDate || subtotalCents == null || tpsCents == null || tvqCents == null || totalCents == null || !draft.accountCode || !commitCardId || !commitPeriodId) {
+    if (!draft.vendor.trim() || !draft.invoiceDate || subtotalCents == null || tpsCents == null || tvqCents == null || totalCents == null || !draft.accountCode || !commitCardId) {
       setCommitState("error");
-      setSaveMessage("Le fournisseur, la date, les montants, le compte, la carte et la période du relevé sont requis.");
+      setSaveMessage("Le fournisseur, la date, les montants, le compte et la carte sont requis. La période du relevé est facultative.");
       return;
     }
     setCommitState("saving");
@@ -1007,7 +1039,7 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
         category: classificationCategory || "Divers",
         accountCode: draft.accountCode,
         cardId: commitCardId,
-        statementPeriodId: commitPeriodId,
+        statementPeriodId: commitPeriodId || null,
         projectId: draft.projectId || null,
         classificationNote: draft.notes.trim() || "Revue Kim confirmée.",
       });
@@ -1061,17 +1093,17 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
         {selectedReviewMessages.length > 0 && <div className="detail-alert"><div className="detail-alert-icon">!</div><div><p className="eyebrow">À corriger</p>{selectedReviewMessages.map((message) => <span key={message}>{message}</span>)}</div></div>}
         <InvoiceIntakeEvidence intake={selectedIntake} />
         <div className="intake-review-form">
-          <label className="field wide"><span>Fournisseur</span><input value={draft.vendor} onChange={(event) => updateDraft("vendor", event.target.value)} /></label>
-          <div className="field-grid"><label className="field"><span>No de facture</span><input value={draft.invoiceNumber} onChange={(event) => updateDraft("invoiceNumber", event.target.value)} /></label><label className="field"><span>Date</span><input type="date" value={draft.invoiceDate} onChange={(event) => updateDraft("invoiceDate", event.target.value)} /></label></div>
-          <div className="field-grid"><label className="field"><span>Sous-total</span><input inputMode="decimal" value={draft.subtotal} onChange={(event) => updateDraft("subtotal", event.target.value)} /></label><label className="field"><span>Total</span><input inputMode="decimal" value={draft.total} onChange={(event) => updateDraft("total", event.target.value)} /></label><label className="field"><span>TPS</span><input inputMode="decimal" value={draft.tps} onChange={(event) => updateDraft("tps", event.target.value)} /></label><label className="field"><span>TVQ</span><input inputMode="decimal" value={draft.tvq} onChange={(event) => updateDraft("tvq", event.target.value)} /></label></div>
-          <label className="field wide"><span>Compte comptable confirmé</span><select value={draft.accountCode} onChange={(event) => updateDraft("accountCode", event.target.value)}><option value="">Choisir le compte</option>{accounts.map((account) => <option key={account.code} value={account.code}>{account.code} · {account.label}</option>)}</select><small>{inferredClassification.accountCode ? `Suggestion automatique : ${inferredClassification.accountCode} · ${inferredClassification.category}` : "Aucune suggestion fiable; le choix de Kim est requis."}</small></label>
-          <label className="field wide"><span>Chantier / projet (facultatif pour cette revue)</span><select value={draft.projectId} onChange={(event) => updateDraft("projectId", event.target.value)}><option value="">Aucun projet sélectionné</option>{projects.map((project) => { const [projectId, ...projectName] = project.split(" · "); return <option key={projectId} value={projectId}>{projectName.join(" · ") || projectId}</option>; })}</select></label>
+          <label className={`field wide ${needsCorrection("vendor") ? "needs-correction" : ""}`}><span>Fournisseur</span><input aria-invalid={needsCorrection("vendor")} value={draft.vendor} onChange={(event) => updateDraft("vendor", event.target.value)} /></label>
+          <div className="field-grid"><label className={`field ${needsCorrection("invoiceNumber") ? "needs-correction" : ""}`}><span>No de facture</span><input aria-invalid={needsCorrection("invoiceNumber")} value={draft.invoiceNumber} onChange={(event) => updateDraft("invoiceNumber", event.target.value)} /></label><label className={`field ${needsCorrection("invoiceDate") ? "needs-correction" : ""}`}><span>Date</span><input aria-invalid={needsCorrection("invoiceDate")} type="date" value={draft.invoiceDate} onChange={(event) => updateDraft("invoiceDate", event.target.value)} /></label></div>
+          <div className="field-grid"><label className={`field ${needsCorrection("subtotalCents") ? "needs-correction" : ""}`}><span>Sous-total</span><input aria-invalid={needsCorrection("subtotalCents")} inputMode="decimal" value={draft.subtotal} onChange={(event) => updateDraft("subtotal", event.target.value)} /></label><label className={`field ${needsCorrection("totalCents") ? "needs-correction" : ""}`}><span>Total</span><input aria-invalid={needsCorrection("totalCents")} inputMode="decimal" value={draft.total} onChange={(event) => updateDraft("total", event.target.value)} /></label><label className={`field ${needsCorrection("tpsCents") ? "needs-correction" : ""}`}><span>TPS</span><input aria-invalid={needsCorrection("tpsCents")} inputMode="decimal" value={draft.tps} onChange={(event) => updateDraft("tps", event.target.value)} /></label><label className={`field ${needsCorrection("tvqCents") ? "needs-correction" : ""}`}><span>TVQ</span><input aria-invalid={needsCorrection("tvqCents")} inputMode="decimal" value={draft.tvq} onChange={(event) => updateDraft("tvq", event.target.value)} /></label></div>
+          <label className={`field wide ${needsCorrection("accountCode") ? "needs-correction" : ""}`}><span>Compte comptable confirmé</span><select aria-invalid={needsCorrection("accountCode")} value={draft.accountCode} onChange={(event) => updateDraft("accountCode", event.target.value)}><option value="">Choisir le compte</option>{accounts.map((account) => <option key={account.code} value={account.code}>{account.code} · {account.label}</option>)}</select><small>{inferredClassification.accountCode ? `Suggestion automatique : ${inferredClassification.accountCode} · ${inferredClassification.category}` : "Aucune suggestion fiable; le choix de Kim est requis."}</small></label>
+          <label className={`field wide ${needsCorrection("projectId") ? "needs-correction" : ""}`}><span>Chantier / projet (facultatif pour cette revue)</span><select aria-invalid={needsCorrection("projectId")} value={draft.projectId} onChange={(event) => updateDraft("projectId", event.target.value)}><option value="">Aucun projet sélectionné</option>{projects.map((project) => { const [projectId, ...projectName] = project.split(" · "); return <option key={projectId} value={projectId}>{projectName.join(" · ") || projectId}</option>; })}</select></label>
           <label className="field wide"><span>Note de revue</span><textarea rows={3} value={draft.notes} onChange={(event) => updateDraft("notes", event.target.value)} /></label>
           <section className="intake-commit-card">
-            <div><p className="eyebrow">Création comptable</p><h3>Carte et période du relevé</h3><p className="muted">Ces deux choix sont conservés sur la transaction pour permettre le rapprochement mensuel.</p></div>
+            <div><p className="eyebrow">Création comptable</p><h3>Références comptables</h3><p className="muted">La carte est requise pour créer l’écriture. La période du relevé est facultative et pourra être associée lors du rapprochement.</p></div>
             <div className="field-grid">
-              <label className="field"><span>Carte utilisée</span><select value={commitCardId} onChange={(event) => { setCommitCardId(event.target.value); setCommitState("idle"); }}><option value="">Choisir la carte</option>{cards.filter((card) => card.status === "Actif").map((card) => <option key={card.id} value={card.id}>•••• {card.lastFour} · {card.holder}</option>)}</select>{suggestedCard && suggestedUploader && <small>Suggestion : carte de {suggestedUploader.displayName}, selon le compte qui a envoyé la facture.</small>}</label>
-              <label className="field"><span>Période du relevé</span><select value={commitPeriodId} onChange={(event) => { setCommitPeriodId(event.target.value); setCommitState("idle"); }}><option value="">Choisir la période</option>{periods.map((period) => <option key={period.id} value={period.id}>{period.label}</option>)}</select></label>
+              <label className={`field ${needsCorrection("cardId") ? "needs-correction" : ""}`}><span>Carte utilisée</span><select aria-invalid={needsCorrection("cardId")} value={commitCardId} onChange={(event) => { setCommitCardId(event.target.value); setCommitState("idle"); }}><option value="">Choisir la carte</option>{cards.filter((card) => card.status === "Actif").map((card) => <option key={card.id} value={card.id}>•••• {card.lastFour} · {card.holder}</option>)}</select>{suggestedCard && suggestedUploader && <small>Suggestion : carte de {suggestedUploader.displayName}, selon le compte qui a envoyé la facture.</small>}</label>
+              <label className="field"><span>Période du relevé (facultatif)</span><select value={commitPeriodId} onChange={(event) => { setCommitPeriodId(event.target.value); setCommitState("idle"); }}><option value="">Aucune période sélectionnée</option>{periods.map((period) => <option key={period.id} value={period.id}>{period.label}</option>)}</select><small>Association possible plus tard dans le rapprochement.</small></label>
             </div>
             {processingStatusOf(selectedIntake) !== "VALIDATED" && <small>Enregistrez la correction et confirmez un compte avant de créer l’écriture.</small>}
             {draftDirty && <small>Des changements non enregistrés désactivent la création jusqu&apos;à la prochaine sauvegarde.</small>}
@@ -1097,13 +1129,13 @@ function PeriodSelector({ period, onChange }: { period: CardPeriod; onChange: (p
     const nextEnd = field === "end" ? value : period.end;
     onChange({ ...period, id: "custom", start: nextStart, end: nextEnd, label: formatDate(nextStart) + " → " + formatDate(nextEnd), statementLabel: "Relevé Mastercard · période personnalisée" });
   };
-  return <div className="period-selector"><span>Période des cartes</span><select value={selectedPreset} onChange={(event) => { const option = periods.find((candidate) => candidate.id === event.target.value); if (option) onChange(option); }}><option value="custom">Période personnalisée</option>{periods.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select><div className="period-custom-dates"><label><span>Du</span><input type="date" value={period.start} max={period.end} onChange={(event) => updateDate("start", event.target.value)} /></label><span className="period-date-arrow">→</span><label><span>Au</span><input type="date" value={period.end} min={period.start} onChange={(event) => updateDate("end", event.target.value)} /></label></div><small>Toutes les cartes actives utilisent ce même cycle.</small></div>;
+  return <div className="period-selector"><span>Période des cartes</span><select value={selectedPreset} onChange={(event) => { const option = periods.find((candidate) => candidate.id === event.target.value); if (option) onChange(option); }}><option value="custom">Période personnalisée</option>{periods.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select><div className="period-custom-dates"><label><span>Du</span><input type="date" value={period.start} max={period.end} onChange={(event) => updateDate("start", event.target.value)} /></label><span className="period-date-arrow">→</span><label><span>Au</span><input type="date" value={period.end} min={period.start} onChange={(event) => updateDate("end", event.target.value)} /></label></div><small>Cycle standard : du 10 au 9. Kim peut ajuster les dates avec une période personnalisée.</small></div>;
 }
 
 function Dashboard({ onNavigate, onOpenTransactions, period, onPeriodChange }: { onNavigate: (view: View) => void; onOpenTransactions: (person?: string) => void; period: CardPeriod; onPeriodChange: (period: CardPeriod) => void }) {
   const { cards, transactions } = useAppData();
   const holderRows = cards.filter((card) => card.status === "Actif").map((card) => {
-    const items = transactions.filter((transaction) => transaction.person === card.holder);
+    const items = transactions.filter((transaction) => transaction.person === card.holder && isTransactionInPeriod(transaction, period));
     return { card, items, total: items.reduce((sum, item) => sum + item.total, 0) };
   });
 
@@ -1191,9 +1223,28 @@ function IntakeEvidencePreview({ url, alt }: { url: string; alt: string }) {
   return <img src={url} alt={alt} />;
 }
 
-function ReconciliationPage({ period, onPeriodChange }: { period: CardPeriod; onPeriodChange: (period: CardPeriod) => void }) {
-  const { cards } = useAppData();
-  return <><PageHeading eyebrow="Contrôle des relevés" title="Rapprochement" description="Chaque relevé est comparé aux factures reçues pour la même période et la même carte." action={<button className="primary-button"><span>↑</span> Importer un relevé</button>} /><div className="reconciliation-toolbar"><PeriodSelector period={period} onChange={onPeriodChange} /><div className="period-card"><span className="card-icon teal">▤</span><div><span>Cartes incluses</span><strong>{cards.filter((card) => card.status === "Actif").length} cartes actives · titulaires associés</strong></div><button className="icon-button">⌄</button></div></div><div className="card-roster">{cards.filter((card) => card.status === "Actif").map((card) => <span className="card-chip" key={card.id}><b>•••• {card.lastFour}</b><span>{card.holder}</span></span>)}</div><div className="reconciliation-stats"><StatTile label="Lignes du relevé" value="3" /><StatTile label="Rapprochées" value="1" tone="success" /><StatTile label="À vérifier" value="1" tone="warning" /><StatTile label="Factures manquantes" value="1" tone="danger" /></div><section className="panel reconciliation-panel"><div className="panel-header"><div><p className="eyebrow">{period.statementLabel} · {period.label}</p><h2>Correspondances et exceptions · données fictives</h2></div><button className="secondary-button">Exporter les exceptions</button></div><div className="reconciliation-explainer"><span className="summary-icon rose">!</span><div><strong>Chaque ligne ci-dessous est une donnée de démonstration.</strong><span>Les cartes, titulaires, fournisseurs et montants sont fictifs.</span></div></div><div className="statement-list"><StatementRow date="12 août 2026" vendor="Quincaillerie Démo" amount="114,98 $" card="9001" holder="Alice Démo" status="FACTURE MANQUANTE" tone="danger" reason="Aucune facture démo reçue pour cette ligne fictive." action="Tester le dépôt mobile avec le compte WORKER de démonstration." /><StatementRow date="11 août 2026" vendor="Station Démo" amount="91,98 $" card="9001" holder="Alice Démo" status="RAPPROCHÉE · DEMO-TX-002" tone="success" reason="Facture fictive trouvée et montant concordant." action="Aucune action — scénario de démonstration réussi." /><StatementRow date="10 août 2026" vendor="Équipement Démo" amount="229,95 $" card="9002" holder="Benoît Démo" status="À VÉRIFIER" tone="warning" reason="Catégorie démo encore à confirmer." action="Ouvrir la facture avec KIM et confirmer le compte 90003." /></div></section></>;
+function ReconciliationPage({ period, onPeriodChange, isProductionDataSource }: { period: CardPeriod; onPeriodChange: (period: CardPeriod) => void; isProductionDataSource: boolean }) {
+  const { cards, transactions } = useAppData();
+  const activeCards = cards.filter((card) => card.status === "Actif");
+  const visibleTransactions = transactions.filter((transaction) => isTransactionInPeriod(transaction, period));
+  const matchedCount = visibleTransactions.filter((transaction) => transaction.reconciliation === "Rapprochée").length;
+  const missingCount = visibleTransactions.filter((transaction) => transaction.reconciliation === "Facture manquante").length;
+  const reviewCount = visibleTransactions.filter((transaction) => transaction.reconciliation === "Non rapprochée").length;
+
+  return <>
+    <PageHeading eyebrow="Contrôle des relevés" title="Rapprochement" description="Chaque relevé est comparé aux factures reçues pour la même période et la même carte." action={<button className="primary-button"><span>↑</span> Importer un relevé</button>} />
+    <div className="reconciliation-toolbar"><PeriodSelector period={period} onChange={onPeriodChange} /><div className="period-card"><span className="card-icon teal">▤</span><div><span>Cartes incluses</span><strong>{activeCards.length} cartes actives · titulaires associés</strong></div><button className="icon-button">⌄</button></div></div>
+    <div className="card-roster">{activeCards.map((card) => <span className="card-chip" key={card.id}><b>•••• {card.lastFour}</b><span>{card.holder}</span></span>)}</div>
+    <div className="reconciliation-stats"><StatTile label="Lignes du relevé" value={String(visibleTransactions.length)} /><StatTile label="Rapprochées" value={String(matchedCount)} tone="success" /><StatTile label="À vérifier" value={String(reviewCount)} tone="warning" /><StatTile label="Factures manquantes" value={String(missingCount)} tone="danger" /></div>
+    <section className="panel reconciliation-panel"><div className="panel-header"><div><p className="eyebrow">{period.statementLabel} · {period.label}</p><h2>{isProductionDataSource ? "Correspondances et exceptions" : "Correspondances et exceptions · données fictives"}</h2></div><button className="secondary-button">Exporter les exceptions</button></div>
+      <div className="reconciliation-explainer"><span className="summary-icon rose">!</span><div>{isProductionDataSource ? <><strong>Les lignes proviennent de Firebase SQL Connect.</strong><span>Les états de rapprochement sont calculés à partir des transactions du cycle sélectionné.</span></> : <><strong>Chaque ligne ci-dessous est une donnée de démonstration.</strong><span>Les cartes, titulaires, fournisseurs et montants sont fictifs.</span></>}</div></div>
+      <div className="statement-list">{isProductionDataSource ? visibleTransactions.map((transaction) => {
+        const isMatched = transaction.reconciliation === "Rapprochée";
+        const isMissing = transaction.reconciliation === "Facture manquante";
+        return <StatementRow key={transaction.id} date={formatDate(transaction.date)} vendor={transaction.vendor} amount={formatCurrency(transaction.total)} card={transaction.card} holder={transaction.person} status={isMatched ? "RAPPROCHÉE" : isMissing ? "FACTURE MANQUANTE" : "À VÉRIFIER"} tone={isMatched ? "success" : isMissing ? "danger" : "warning"} reason={isMatched ? "Facture associée et montant concordant." : isMissing ? "Aucune facture associée à cette ligne de relevé." : transaction.issue ?? "La ligne doit être vérifiée par Kim."} action={isMatched ? "Aucune action requise." : isMissing ? "Importer ou associer la facture correspondante." : "Ouvrir la transaction et confirmer le rapprochement."} />;
+      }) : <><StatementRow date="12 août 2026" vendor="Quincaillerie Démo" amount="114,98 $" card="9001" holder="Alice Démo" status="FACTURE MANQUANTE" tone="danger" reason="Aucune facture démo reçue pour cette ligne fictive." action="Tester le dépôt mobile avec le compte WORKER de démonstration." /><StatementRow date="11 août 2026" vendor="Station Démo" amount="91,98 $" card="9001" holder="Alice Démo" status="RAPPROCHÉE · DEMO-TX-002" tone="success" reason="Facture fictive trouvée et montant concordant." action="Aucune action — scénario de démonstration réussi." /><StatementRow date="10 août 2026" vendor="Équipement Démo" amount="229,95 $" card="9002" holder="Benoît Démo" status="À VÉRIFIER" tone="warning" reason="Catégorie démo encore à confirmer." action="Ouvrir la facture avec KIM et confirmer le compte 90003." /></>}{isProductionDataSource && visibleTransactions.length === 0 && <div className="empty-state"><span>⇄</span><strong>Aucune ligne pour cette période</strong><p>Importez un relevé ou sélectionnez une autre période.</p></div>}</div>
+    </section>
+  </>;
 }
 
 function StatTile({ label, value, tone = "" }: { label: string; value: string; tone?: string }) { return <div className={`stat-tile ${tone}`}><span>{label}</span><strong>{value}</strong></div>; }
@@ -1211,10 +1262,11 @@ function KimAccountingReport({ period, onPeriodChange, embedded = false }: { per
   const people = Array.from(new Set(cards.map((card) => card.holder)));
   const visibleTransactions = useMemo(() => transactions.filter((transaction) => {
     const matchesPerson = selectedPerson === "TOUS" || transaction.person === selectedPerson;
+    const matchesPeriod = isTransactionInPeriod(transaction, period);
     const isIncludedStatus = transaction.accountingStatus === "POSTED" &&
       (transaction.processingStatus === "AUTO_APPROVED" || transaction.processingStatus === "VALIDATED");
-    return matchesPerson && isIncludedStatus;
-  }), [selectedPerson, transactions]);
+    return matchesPerson && matchesPeriod && isIncludedStatus;
+  }), [period, selectedPerson, transactions]);
   const visibleTotals = useMemo(() => {
     const totals = new Map<string, number>();
     visibleTransactions.forEach((transaction) => {
@@ -1290,7 +1342,10 @@ function DemoReportsPage({ period, onPeriodChange }: { period: CardPeriod; onPer
   </>;
 }
 
-function ArchivesPage({ onNotify }: { onNotify: (message: string) => void }) {
+function ArchivesPage({ onNotify, isProductionDataSource }: { onNotify: (message: string) => void; isProductionDataSource: boolean }) {
+  if (isProductionDataSource) {
+    return <><PageHeading eyebrow="Conservation" title="Archives" description="Les données structurées restent accessibles; les photos ne seront purgées qu’après un export vérifié." action={<button className="secondary-button" onClick={() => onNotify("L’export d’archives doit encore être configuré avec le manifeste Storage.")}>Préparer un export</button>} /><section className="panel data-source-card"><p className="eyebrow">Préparation requise</p><h2>Archivage de production à configurer</h2><p className="muted">Les statistiques d’archives ne sont pas encore calculées depuis Storage. Aucun chiffre fictif ni aucune suppression automatique ne sont affichés dans ce mode.</p><button className="primary-button" onClick={() => onNotify("Le manifeste d’archive sera ajouté dans une prochaine étape.")}>Voir la prochaine étape</button></section></>;
+  }
   return <><PageHeading eyebrow="Conservation" title="Archives" description="Les données structurées restent accessibles; seules les photos admissibles peuvent être purgées." action={<button className="secondary-button" onClick={() => onNotify("La préparation d’archive sera disponible après la connexion Firebase.")}>Préparer un export</button>} /><div className="archive-banner"><span className="archive-icon large">◷</span><div><p className="eyebrow">Archivage recommandé</p><h2>842 photos de factures validées peuvent être archivées.</h2><p>Période: 1er juin au 31 août 2026 · aucune suppression automatique activée</p></div><button className="primary-button" onClick={() => onNotify("Rappel reporté de 30 jours.")}>Reporter</button></div><section className="archive-grid"><div className="panel archive-card"><div className="archive-card-icon">✓</div><p className="eyebrow">Photos admissibles</p><strong>842</strong><span>après contrôles d’intégrité</span><div className="progress"><span style={{ width: "72%" }} /></div><small>72% de la période est prête</small></div><div className="panel archive-card"><div className="archive-card-icon blue">▣</div><p className="eyebrow">Dernier export vérifié</p><strong>31 mai 2026</strong><span>Factures_2026-03_2026-05</span><button className="text-button">Ouvrir le manifeste →</button></div><div className="panel archive-card"><div className="archive-card-icon gold">⌁</div><p className="eyebrow">Politique</p><strong>Mode manuel</strong><span>La purge automatique est désactivée.</span><button className="text-button">Modifier dans Configuration →</button></div></section></>;
 }
 

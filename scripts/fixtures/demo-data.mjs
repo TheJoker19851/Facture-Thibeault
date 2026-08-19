@@ -26,8 +26,8 @@ export const demoTaxAccounts = [
 ];
 
 export const demoPeriods = [
-  { id: "DEMO-2026-08", label: "Période Démo · août 2026", startDate: "2026-08-01", endDate: "2026-08-31", statementLabel: "Relevé Démo · août", status: "OPEN" },
-  { id: "DEMO-2026-07", label: "Période Démo · juillet 2026", startDate: "2026-07-01", endDate: "2026-07-31", statementLabel: "Relevé Démo · juillet", status: "CLOSED" },
+  { id: "DEMO-2026-08", label: "Période Démo · 10 août → 9 septembre 2026", startDate: "2026-08-10", endDate: "2026-09-09", statementLabel: "Relevé Démo · cycle du 10 au 9", status: "OPEN" },
+  { id: "DEMO-2026-07", label: "Période Démo · 10 juillet → 9 août 2026", startDate: "2026-07-10", endDate: "2026-08-09", statementLabel: "Relevé Démo · cycle du 10 au 9", status: "CLOSED" },
 ];
 
 export function businessFixture(firebaseUids) {

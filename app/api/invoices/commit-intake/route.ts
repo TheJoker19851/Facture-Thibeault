@@ -20,7 +20,7 @@ const commitSchema = z.object({
   category: z.string().trim().min(1),
   accountCode: z.string().trim().min(1),
   cardId: z.string().trim().min(1),
-  statementPeriodId: z.string().trim().min(1),
+  statementPeriodId: z.string().trim().min(1).nullable(),
   projectId: z.string().trim().min(1).nullable(),
   classificationNote: z.string().trim().min(1),
 });

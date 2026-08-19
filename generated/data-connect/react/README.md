@@ -893,7 +893,7 @@ export interface ListExpenseTransactionsData {
         displayName: string;
       } & UserProfile_Key;
     } & CreditCard_Key;
-    statementPeriod: {
+    statementPeriod?: {
       id: string;
       label: string;
       startDate: DateString;
@@ -4091,7 +4091,7 @@ export interface MaterializeInvoiceIntakeV2Variables {
   category: string;
   accountCode: string;
   cardId: string;
-  statementPeriodId: string;
+  statementPeriod?: CardStatementPeriod_Key | null;
   project?: Project_Key | null;
   storageFolder: string;
   classificationNote: string;
@@ -4190,7 +4190,7 @@ export default function MaterializeInvoiceIntakeV2Component() {
     category: ..., 
     accountCode: ..., 
     cardId: ..., 
-    statementPeriodId: ..., 
+    statementPeriod: ..., // optional
     project: ..., // optional
     storageFolder: ..., 
     classificationNote: ..., 
@@ -4220,7 +4220,7 @@ export default function MaterializeInvoiceIntakeV2Component() {
   };
   mutation.mutate(materializeInvoiceIntakeV2Vars);
   // Variables can be defined inline as well.
-  mutation.mutate({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriodId: ..., project: ..., storageFolder: ..., classificationNote: ..., expectedProcessingStatus: ..., classificationSource: ..., classificationStatus: ..., photoCount: ..., photo1Id: ..., photo1StoragePath: ..., photo1ContentType: ..., hasPhoto2: ..., photo2Id: ..., photo2StoragePath: ..., photo2ContentType: ..., hasPhoto3: ..., photo3Id: ..., photo3StoragePath: ..., photo3ContentType: ..., hasPhoto4: ..., photo4Id: ..., photo4StoragePath: ..., photo4ContentType: ..., hasPhoto5: ..., photo5Id: ..., photo5StoragePath: ..., photo5ContentType: ..., });
+  mutation.mutate({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriod: ..., project: ..., storageFolder: ..., classificationNote: ..., expectedProcessingStatus: ..., classificationSource: ..., classificationStatus: ..., photoCount: ..., photo1Id: ..., photo1StoragePath: ..., photo1ContentType: ..., hasPhoto2: ..., photo2Id: ..., photo2StoragePath: ..., photo2ContentType: ..., hasPhoto3: ..., photo3Id: ..., photo3StoragePath: ..., photo3ContentType: ..., hasPhoto4: ..., photo4Id: ..., photo4StoragePath: ..., photo4ContentType: ..., hasPhoto5: ..., photo5Id: ..., photo5StoragePath: ..., photo5ContentType: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {

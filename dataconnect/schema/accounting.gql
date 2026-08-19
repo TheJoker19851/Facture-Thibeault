@@ -81,7 +81,7 @@ type ExpenseTransaction @table(name: "expense_transactions", key: "id") {
   transactionDate: Date!
   vendor: String!
   card: CreditCard!
-  statementPeriod: CardStatementPeriod!
+  statementPeriod: CardStatementPeriod
   project: Project
   expenseAccount: ExpenseAccount
   categoryLabel: String

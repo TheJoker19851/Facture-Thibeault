@@ -182,7 +182,7 @@ export type InvoiceIntakeCommitInput = {
   category: string;
   accountCode: string;
   cardId: string;
-  statementPeriodId: string;
+  statementPeriodId: string | null;
   projectId: string | null;
   classificationNote: string;
 };
@@ -406,6 +406,7 @@ export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccounti
       submittedBy: transaction.card.holder.displayName,
       person: transaction.card.holder.displayName,
       card: transaction.card.lastFour,
+      ...(transaction.statementPeriod?.id ? { periodId: transaction.statementPeriod.id } : {}),
       project: transaction.project ? `${transaction.project.id} · ${transaction.project.name}` : "—",
       category: transaction.expenseAccount?.label ?? transaction.categoryLabel ?? "Divers",
       total: centsToCad(transaction.totalCents),
@@ -452,5 +453,28 @@ export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccounti
       createdAt: intake.createdAt,
       updatedAt: intake.updatedAt,
     })),
+  };
+}
+
+function isDemoValue(value: string | null | undefined) {
+  return typeof value === "string" && value.startsWith("DEMO-");
+}
+
+/**
+ * Production must never render the controlled DEMO seed beside operational data.
+ * The seed remains available in Firebase for validation, but the live UI only
+ * exposes rows that can be tied to a real company reference.
+ */
+export function removeDemoAccountingData(data: AppAccountingData): AppAccountingData {
+  return {
+    ...data,
+    users: data.users.filter((user) => !isDemoValue(user.id) && !isDemoValue(user.firebaseUid) && !user.email?.endsWith("@example.test")),
+    accounts: data.accounts.filter((account) => !isDemoValue(account.code)),
+    cards: data.cards.filter((card) => !isDemoValue(card.id)),
+    periods: data.periods.filter((period) => !isDemoValue(period.id)),
+    projects: data.projects.filter((project) => !isDemoValue(project.split(" · ", 1)[0])),
+    skuReferences: data.skuReferences.filter((reference) => !isDemoValue(reference.sku) && !reference.merchant.includes("Démo")),
+    transactions: data.transactions.filter((transaction) => !isDemoValue(transaction.id)),
+    intakes: data.intakes.filter((intake) => !isDemoValue(intake.receiptId)),
   };
 }

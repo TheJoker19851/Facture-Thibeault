@@ -426,7 +426,7 @@ export interface ListExpenseTransactionsData {
         displayName: string;
       } & UserProfile_Key;
     } & CreditCard_Key;
-    statementPeriod: {
+    statementPeriod?: {
       id: string;
       label: string;
       startDate: DateString;
@@ -628,7 +628,7 @@ export interface MaterializeInvoiceIntakeV2Variables {
   category: string;
   accountCode: string;
   cardId: string;
-  statementPeriodId: string;
+  statementPeriod?: CardStatementPeriod_Key | null;
   project?: Project_Key | null;
   storageFolder: string;
   classificationNote: string;

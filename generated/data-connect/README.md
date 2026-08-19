@@ -1055,7 +1055,7 @@ export interface ListExpenseTransactionsData {
         displayName: string;
       } & UserProfile_Key;
     } & CreditCard_Key;
-    statementPeriod: {
+    statementPeriod?: {
       id: string;
       label: string;
       startDate: DateString;
@@ -4851,7 +4851,7 @@ export interface MaterializeInvoiceIntakeV2Variables {
   category: string;
   accountCode: string;
   cardId: string;
-  statementPeriodId: string;
+  statementPeriod?: CardStatementPeriod_Key | null;
   project?: Project_Key | null;
   storageFolder: string;
   classificationNote: string;
@@ -4920,7 +4920,7 @@ const materializeInvoiceIntakeV2Vars: MaterializeInvoiceIntakeV2Variables = {
   category: ..., 
   accountCode: ..., 
   cardId: ..., 
-  statementPeriodId: ..., 
+  statementPeriod: ..., // optional
   project: ..., // optional
   storageFolder: ..., 
   classificationNote: ..., 
@@ -4953,7 +4953,7 @@ const materializeInvoiceIntakeV2Vars: MaterializeInvoiceIntakeV2Variables = {
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await materializeInvoiceIntakeV2(materializeInvoiceIntakeV2Vars);
 // Variables can be defined inline as well.
-const { data } = await materializeInvoiceIntakeV2({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriodId: ..., project: ..., storageFolder: ..., classificationNote: ..., expectedProcessingStatus: ..., classificationSource: ..., classificationStatus: ..., photoCount: ..., photo1Id: ..., photo1StoragePath: ..., photo1ContentType: ..., hasPhoto2: ..., photo2Id: ..., photo2StoragePath: ..., photo2ContentType: ..., hasPhoto3: ..., photo3Id: ..., photo3StoragePath: ..., photo3ContentType: ..., hasPhoto4: ..., photo4Id: ..., photo4StoragePath: ..., photo4ContentType: ..., hasPhoto5: ..., photo5Id: ..., photo5StoragePath: ..., photo5ContentType: ..., });
+const { data } = await materializeInvoiceIntakeV2({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriod: ..., project: ..., storageFolder: ..., classificationNote: ..., expectedProcessingStatus: ..., classificationSource: ..., classificationStatus: ..., photoCount: ..., photo1Id: ..., photo1StoragePath: ..., photo1ContentType: ..., hasPhoto2: ..., photo2Id: ..., photo2StoragePath: ..., photo2ContentType: ..., hasPhoto3: ..., photo3Id: ..., photo3StoragePath: ..., photo3ContentType: ..., hasPhoto4: ..., photo4Id: ..., photo4StoragePath: ..., photo4ContentType: ..., hasPhoto5: ..., photo5Id: ..., photo5StoragePath: ..., photo5ContentType: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -5007,7 +5007,7 @@ const materializeInvoiceIntakeV2Vars: MaterializeInvoiceIntakeV2Variables = {
   category: ..., 
   accountCode: ..., 
   cardId: ..., 
-  statementPeriodId: ..., 
+  statementPeriod: ..., // optional
   project: ..., // optional
   storageFolder: ..., 
   classificationNote: ..., 
@@ -5039,7 +5039,7 @@ const materializeInvoiceIntakeV2Vars: MaterializeInvoiceIntakeV2Variables = {
 // Call the `materializeInvoiceIntakeV2Ref()` function to get a reference to the mutation.
 const ref = materializeInvoiceIntakeV2Ref(materializeInvoiceIntakeV2Vars);
 // Variables can be defined inline as well.
-const ref = materializeInvoiceIntakeV2Ref({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriodId: ..., project: ..., storageFolder: ..., classificationNote: ..., expectedProcessingStatus: ..., classificationSource: ..., classificationStatus: ..., photoCount: ..., photo1Id: ..., photo1StoragePath: ..., photo1ContentType: ..., hasPhoto2: ..., photo2Id: ..., photo2StoragePath: ..., photo2ContentType: ..., hasPhoto3: ..., photo3Id: ..., photo3StoragePath: ..., photo3ContentType: ..., hasPhoto4: ..., photo4Id: ..., photo4StoragePath: ..., photo4ContentType: ..., hasPhoto5: ..., photo5Id: ..., photo5StoragePath: ..., photo5ContentType: ..., });
+const ref = materializeInvoiceIntakeV2Ref({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriod: ..., project: ..., storageFolder: ..., classificationNote: ..., expectedProcessingStatus: ..., classificationSource: ..., classificationStatus: ..., photoCount: ..., photo1Id: ..., photo1StoragePath: ..., photo1ContentType: ..., hasPhoto2: ..., photo2Id: ..., photo2StoragePath: ..., photo2ContentType: ..., hasPhoto3: ..., photo3Id: ..., photo3StoragePath: ..., photo3ContentType: ..., hasPhoto4: ..., photo4Id: ..., photo4StoragePath: ..., photo4ContentType: ..., hasPhoto5: ..., photo5Id: ..., photo5StoragePath: ..., photo5ContentType: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
