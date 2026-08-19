@@ -671,10 +671,6 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
     return <AccountingDataError onRetry={retryAccounting} />;
   }
 
-  if (isProductionDataSource && dataSourceState === "ready" && appData.cards.length === 0 && appData.transactions.length === 0) {
-    return <AccountingDataEmpty intakeCount={appData.intakes.length} onOpenSettings={() => { setView("settings"); setViewMode("accounting"); }} onOpenIntakes={() => { setView("intakes"); setViewMode("accounting"); }} />;
-  }
-
   return (
     <AppDataContext.Provider value={appData}>
       <main className="app-shell">
@@ -712,10 +708,6 @@ function AccountingDataLoading() {
 
 function AccountingDataError({ onRetry }: { onRetry: () => void }) {
   return <main className="data-source-gate"><section className="data-source-card"><span className="eyebrow">Connexion requise</span><h1>Données comptables indisponibles</h1><p className="muted">Le connecteur de production n’a pas répondu. Vérifiez que l’utilisateur est authentifié et que le connecteur SQL Connect <strong>accounting</strong> est déployé dans Firebase.</p><div className="data-source-actions"><button className="primary-button" type="button" onClick={onRetry}>Réessayer</button><span className="data-source-help">Aucune donnée fictive n’est utilisée dans ce mode.</span></div></section></main>;
-}
-
-function AccountingDataEmpty({ intakeCount = 0, onOpenSettings, onOpenIntakes }: { intakeCount?: number; onOpenSettings: () => void; onOpenIntakes: () => void }) {
-  return <main className="data-source-gate"><section className="data-source-card"><span className="eyebrow">Base prête</span><h1>{intakeCount ? `${intakeCount} dépôt${intakeCount > 1 ? "s" : ""} en traitement` : "Aucune donnée comptable"}</h1><p className="muted">{intakeCount ? "Les photos reçues sont enregistrées et attendent le traitement OCR et la classification." : "Le schéma SQL Connect est déployé, mais aucune carte ou transaction opérationnelle n’a encore été chargée dans la base de production."}</p><div className="data-source-actions">{intakeCount > 0 && <button className="primary-button" type="button" onClick={onOpenIntakes}>Ouvrir les factures à vérifier</button>}<button className="secondary-button" type="button" onClick={onOpenSettings}>Ouvrir la configuration</button><span className="data-source-help">Les données de démonstration sont masquées en production.</span></div></section></main>;
 }
 
 function RoleLoading() {
