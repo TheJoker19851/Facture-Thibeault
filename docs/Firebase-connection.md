@@ -17,7 +17,8 @@ Facture Thibeault ne crée pas de projet Firebase séparé pour le moment.
 - Aucun hôte d’émulateur n’est accepté en production. Un projet différent est refusé.
 - Les credentials Admin et Gemini restent dans `.env.local`/Vercel, jamais dans Git.
 - La commande générale `seed:local` ne peut pas viser la production.
-- La seule écriture de données prévue avant l’import réel est `npm run seed:demo:production`, qui exige `CONFIRM_DEMO_PRODUCTION=facture-thibeault`, crée uniquement des comptes et données `DEMO-*`, et refuse tout compte Auth existant non marqué `demo=true`.
+- La seule écriture de fixtures prévue avant l’import réel est `npm run seed:demo:production`, qui exige `CONFIRM_DEMO_PRODUCTION=facture-thibeault` et `CONFIRM_DEMO_SEED_EXECUTE=SEED_DEMO_ONLY`, crée uniquement des comptes et données `DEMO-*`, et refuse tout compte Auth existant non marqué `demo=true`.
+- Le registre réel des dix cartes est une opération séparée et explicitement limitée aux profils titulaires et cartes : `scripts/configure-production-card-roster.mjs` exige `CONFIRM_PRODUCTION_CARD_ROSTER=APPLY_REAL_CARD_ROSTER`; il ne crée aucun compte Auth, facture, transaction, relevé ou rapprochement.
 - `npm run cleanup:demo:production` exige deux confirmations et ne supprime que les fixtures `DEMO-*` vérifiées, l’intake E2E reconnue par ses marqueurs exacts, les comptes Auth DEMO et les fichiers Storage reliés à ces fixtures; les ressources non-DEMO sont conservées.
 
 ## Schéma Data Connect

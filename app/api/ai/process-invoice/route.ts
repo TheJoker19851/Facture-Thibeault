@@ -7,6 +7,7 @@ import { inferApplicationEnvironment } from "../../../../lib/environment.mjs";
 import { isTransientGeminiCapacityRetry, transientGeminiErrorCode } from "../../../../lib/gemini-retry.mjs";
 import { clientUpdateRequiredResponse, isCurrentInvoiceClientVersion } from "../../../../lib/invoice-client-version.mjs";
 import { classifyInvoice, validateInvoiceExtraction } from "../../../../lib/invoice-processing.mjs";
+import { AUDIT_ACTIONS, auditDetails, auditEventId } from "../../../../lib/audit-events.mjs";
 import {
   DEFAULT_INVOICE_AI_MIN_CONFIDENCE,
   decideInvoice,
@@ -241,6 +242,7 @@ export async function POST(request: Request) {
   let ownedIntake = false;
   let autoCommitAttempted = false;
   let transientGeminiFailure = false;
+  let identityForAudit: AuthenticatedIdentity | null = null;
   let dataConnect: Awaited<ReturnType<typeof getFirebaseAdminDataConnect>> | null = null;
   try {
     if (!isCurrentInvoiceClientVersion(request.headers.get("x-invoice-client-version"))) {
@@ -248,6 +250,7 @@ export async function POST(request: Request) {
     }
     const identity = await authenticate(request);
     if (!identity) return Response.json({ error: "Authentification Firebase requise." }, { status: 401 });
+    identityForAudit = identity;
     if (!firebaseAdminConfigured()) {
       return Response.json({ error: "Firebase Admin n'est pas configuré pour cet environnement." }, { status: 503 });
     }
@@ -373,6 +376,11 @@ export async function POST(request: Request) {
         accountingStatus: "NOT_POSTED",
         decisionExceptions: serializeDecisionExceptions(decision.exceptions),
         decisionChecks: serializeDecisionChecks(decision.checks),
+        actorUid: identity.uid,
+        actorRole: identity.role,
+        writeAudit: true,
+        auditEventId: auditEventId(receiptId, AUDIT_ACTIONS.AI_PROCESSING_FAILED, "validation"),
+        auditDetails: auditDetails({ reason: error, code: "AI_OUTPUT_REQUIRES_REVIEW" }),
       });
       return Response.json({ error, code: "AI_OUTPUT_REQUIRES_REVIEW", decision }, { status: 422 });
     }
@@ -402,6 +410,20 @@ export async function POST(request: Request) {
       processingStatus: decision.decision,
       decisionExceptions: serializeDecisionExceptions(decision.exceptions),
       decisionChecks: serializeDecisionChecks(decision.checks),
+      actorUid: identity.uid,
+      actorRole: identity.role,
+      writeAudit: true,
+      auditEventId: auditEventId(receiptId, AUDIT_ACTIONS.AI_EXTRACTION_COMPLETED),
+      auditDetails: auditDetails({
+        model,
+        confidence: extraction.confidence,
+        vendor: normalized.vendor,
+        invoiceNumber: normalized.invoiceNumber,
+        invoiceDate: normalized.invoiceDate,
+        totalCents: normalized.totalCents,
+        decision: decision.decision,
+        exceptionCodes: decision.exceptions.map((exception) => exception.code),
+      }),
     });
 
     if (aiResult.data.invoiceIntake_updateMany !== 1) {
@@ -433,6 +455,8 @@ export async function POST(request: Request) {
           statementPeriodId,
           projectId,
           classificationNote: `${extraction.notes} ${classification.note}`.trim(),
+          actorUid: identity.uid,
+          actorRole: identity.role,
         }, "AUTO");
       } catch (error) {
         const latest = await readIntake();
@@ -477,6 +501,11 @@ export async function POST(request: Request) {
           error: "La création de l’écriture comptable a échoué.",
           decisionExceptions,
           decisionChecks,
+          actorUid: identityForAudit?.uid ?? "unknown",
+          actorRole: identityForAudit?.role ?? "UNKNOWN",
+          writeAudit: true,
+          auditEventId: auditEventId(receiptIdForLog, AUDIT_ACTIONS.AI_PROCESSING_FAILED, "posting"),
+          auditDetails: auditDetails({ reason: "ACCOUNTING_POSTING_ERROR", autoCommitAttempted: true }),
         }).catch(() => undefined);
       } else {
         await dataConnect.executeMutation("MarkInvoiceIntakeAiError", {
@@ -485,6 +514,14 @@ export async function POST(request: Request) {
           aiErrorCode: transientGeminiFailure ? "GEMINI_TRANSIENT" : null,
           decisionExceptions,
           decisionChecks,
+          actorUid: identityForAudit?.uid ?? "unknown",
+          actorRole: identityForAudit?.role ?? "UNKNOWN",
+          writeAudit: true,
+          auditEventId: auditEventId(receiptIdForLog, AUDIT_ACTIONS.AI_PROCESSING_FAILED),
+          auditDetails: auditDetails({
+            reason: "AI_PROCESSING_ERROR",
+            aiErrorCode: transientGeminiFailure ? "GEMINI_TRANSIENT" : null,
+          }),
         }).catch(() => undefined);
       }
 

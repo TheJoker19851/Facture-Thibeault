@@ -289,6 +289,48 @@ exports.upsertCreditCard = function upsertCreditCard(dcOrVars, vars) {
 }
 ;
 
+const upsertProjectRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertProject', inputVars);
+}
+upsertProjectRef.operationName = 'UpsertProject';
+exports.upsertProjectRef = upsertProjectRef;
+
+exports.upsertProject = function upsertProject(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertProjectRef(dcInstance, inputVars));
+}
+;
+
+const upsertExpenseAccountRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertExpenseAccount', inputVars);
+}
+upsertExpenseAccountRef.operationName = 'UpsertExpenseAccount';
+exports.upsertExpenseAccountRef = upsertExpenseAccountRef;
+
+exports.upsertExpenseAccount = function upsertExpenseAccount(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertExpenseAccountRef(dcInstance, inputVars));
+}
+;
+
+const upsertCardStatementPeriodRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertCardStatementPeriod', inputVars);
+}
+upsertCardStatementPeriodRef.operationName = 'UpsertCardStatementPeriod';
+exports.upsertCardStatementPeriodRef = upsertCardStatementPeriodRef;
+
+exports.upsertCardStatementPeriod = function upsertCardStatementPeriod(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertCardStatementPeriodRef(dcInstance, inputVars));
+}
+;
+
 const createInvoiceIntakeRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -632,5 +674,20 @@ exports.listInvoiceIntakes = function listInvoiceIntakes(dcOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
   return executeQuery(listInvoiceIntakesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listAuditEventsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListAuditEvents', inputVars);
+}
+listAuditEventsRef.operationName = 'ListAuditEvents';
+exports.listAuditEventsRef = listAuditEventsRef;
+
+exports.listAuditEvents = function listAuditEvents(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listAuditEventsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;

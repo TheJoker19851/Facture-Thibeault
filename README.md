@@ -119,6 +119,9 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
   production fixture
 - `npm run cleanup:demo:production`: remove only verified DEMO/E2E resources after
   two explicit confirmations; operational non-DEMO data is preserved
+- `node scripts/configure-production-card-roster.mjs`: configure only the explicitly
+  provided real card roster after `CONFIRM_PRODUCTION_CARD_ROSTER=APPLY_REAL_CARD_ROSTER`;
+  it creates no Firebase Auth account, invoice, transaction or reconciliation
 - `npm run test:emulator`: verify Auth, Storage and Data Connect permissions
 - `npm run build`: verify the vinext build output
 - `npm test`: build the application and verify the rendered PWA shell

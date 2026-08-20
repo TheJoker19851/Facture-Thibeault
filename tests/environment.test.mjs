@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  assertSafeDemoProductionTarget, assertSafeSeedTarget, inferApplicationEnvironment,
-  LOCAL_FIREBASE_PROJECT_ID, PRODUCTION_FIREBASE_PROJECT_ID, validateFirebaseEnvironment,
+  assertSafeDemoProductionSeedExecution, assertSafeDemoProductionTarget, assertSafeSeedTarget, inferApplicationEnvironment,
+  LOCAL_FIREBASE_PROJECT_ID, PRODUCTION_FIREBASE_PROJECT_ID, PRODUCTION_CARD_ROSTER_CONFIRMATION, validateFirebaseEnvironment,
+  assertSafeProductionCardRoster,
 } from "../lib/environment.mjs";
 import { configurationFrom, localEmulatorEnvironment } from "../scripts/lib/env-files.mjs";
 
@@ -42,6 +43,18 @@ test("dedicated DEMO production guard requires exact project and confirmation", 
   assert.throws(() => assertSafeDemoProductionTarget({ ...args, projectId: "other-project" }), /refusée|exige/i);
   assert.throws(() => assertSafeDemoProductionTarget({ ...args, confirmation: "wrong" }), /confirmation/i);
   assert.throws(() => assertSafeDemoProductionTarget({ ...args, adminProjectId: undefined }), /Admin exact/i);
+});
+
+test("DEMO production seed requires a second explicit execution confirmation", () => {
+  const args = { projectId: PRODUCTION_FIREBASE_PROJECT_ID, adminProjectId: PRODUCTION_FIREBASE_PROJECT_ID, appEnvironment: "production", publicAppEnvironment: "production", useEmulators: "false", confirmation: PRODUCTION_FIREBASE_PROJECT_ID };
+  assert.throws(() => assertSafeDemoProductionSeedExecution(args), /SEED_DEMO_ONLY/);
+  assert.doesNotThrow(() => assertSafeDemoProductionSeedExecution({ ...args, executionConfirmation: "SEED_DEMO_ONLY" }));
+});
+
+test("real production card roster requires a dedicated confirmation", () => {
+  const args = { projectId: PRODUCTION_FIREBASE_PROJECT_ID, adminProjectId: PRODUCTION_FIREBASE_PROJECT_ID, appEnvironment: "production", publicAppEnvironment: "production", useEmulators: "false", confirmation: PRODUCTION_CARD_ROSTER_CONFIRMATION };
+  assert.throws(() => assertSafeProductionCardRoster({ ...args, confirmation: "wrong" }), /registre de cartes|confirmation/i);
+  assert.doesNotThrow(() => assertSafeProductionCardRoster(args));
 });
 
 test("production configuration requires live credentials", () => {

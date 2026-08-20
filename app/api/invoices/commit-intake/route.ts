@@ -54,7 +54,8 @@ export async function POST(request: Request) {
   if (!firebaseAdminConfigured()) {
     return Response.json({ error: "Firebase Admin n'est pas configuré pour cet environnement." }, { status: 503 });
   }
-  if (!await privilegedIdentity(request)) {
+  const identity = await privilegedIdentity(request);
+  if (!identity) {
     return Response.json({ error: "Le rôle KIM ou ADMIN est requis." }, { status: 403 });
   }
   const parsed = commitSchema.safeParse(await request.json().catch(() => null));
@@ -76,7 +77,11 @@ export async function POST(request: Request) {
 
   try {
     const photos = await readInvoiceIntakeStoragePhotos(intake);
-    await materializeInvoiceIntake(dataConnect, intake, photos, parsed.data, "HUMAN");
+    await materializeInvoiceIntake(dataConnect, intake, photos, {
+      ...parsed.data,
+      actorUid: identity.uid,
+      actorRole: identity.role,
+    }, "HUMAN");
     return Response.json({ ok: true, idempotent: false, receiptId: intake.receiptId, photoCount: photos.length });
   } catch (error) {
     const latest = await readIntake().catch(() => null);

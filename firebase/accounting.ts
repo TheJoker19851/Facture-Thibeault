@@ -10,7 +10,10 @@ import {
   listProjects,
   listSkuReferences,
   listUserProfiles,
+  upsertCardStatementPeriod,
   upsertCreditCard,
+  upsertExpenseAccount,
+  upsertProject,
   upsertUserProfile,
   updateInvoiceIntakeReview,
 } from "../generated/data-connect/esm/index.esm.js";
@@ -29,6 +32,7 @@ import { firebaseAuth } from "./client";
 import { firebaseDataConnect, sqlConnectConfigured } from "./data-connect";
 import { INVOICE_CLIENT_VERSION } from "../lib/invoice-client-version.mjs";
 import { isDemoIdentifier, isDemoOrE2EInvoiceIntake } from "../lib/demo-data-policy.mjs";
+import { AUDIT_ACTIONS, auditDetails, auditEventId } from "../lib/audit-events.mjs";
 
 export type AppAccountingData = {
   users: Array<{
@@ -40,7 +44,7 @@ export type AppAccountingData = {
     role: string;
     status: string;
   }>;
-  accounts: Array<{ code: string; label: string }>;
+  accounts: Array<{ code: string; label: string; status?: string }>;
   cards: Array<{
     id: string;
     lastFour: string;
@@ -57,8 +61,9 @@ export type AppAccountingData = {
     start: string;
     end: string;
     statementLabel: string;
+    status?: string;
   }>;
-  projects: string[];
+  projects: Array<{ id: string; name: string; status?: string }>;
   skuReferences: Array<{
     merchant: string;
     sku: string;
@@ -167,6 +172,7 @@ export type InvoiceIntakeReviewInput = {
   aiNotes: string;
   decisionExceptions?: string;
   decisionChecks?: string;
+  auditDetails?: string;
 };
 
 export type InvoiceIntakeCommitInput = {
@@ -208,6 +214,10 @@ export type CreditCardInput = {
   inactiveFrom: string | null;
 };
 
+export type ProjectInput = { id: string; name: string; status: string };
+export type ExpenseAccountInput = { code: string; label: string; status: string };
+export type StatementPeriodInput = { id: string; label: string; startDate: string; endDate: string; statementLabel: string | null; status: string };
+
 export async function saveUserProfile(input: UserProfileInput) {
   if (!firebaseDataConnect || !sqlConnectConfigured) {
     throw new Error("SQL Connect est requis pour enregistrer le profil.");
@@ -220,6 +230,21 @@ export async function saveCreditCard(input: CreditCardInput) {
     throw new Error("SQL Connect est requis pour enregistrer la carte.");
   }
   await upsertCreditCard(firebaseDataConnect, input);
+}
+
+export async function saveProject(input: ProjectInput) {
+  if (!firebaseDataConnect || !sqlConnectConfigured) throw new Error("SQL Connect est requis pour enregistrer le projet.");
+  await upsertProject(firebaseDataConnect, input);
+}
+
+export async function saveExpenseAccount(input: ExpenseAccountInput) {
+  if (!firebaseDataConnect || !sqlConnectConfigured) throw new Error("SQL Connect est requis pour enregistrer le compte.");
+  await upsertExpenseAccount(firebaseDataConnect, input);
+}
+
+export async function saveStatementPeriod(input: StatementPeriodInput) {
+  if (!firebaseDataConnect || !sqlConnectConfigured) throw new Error("SQL Connect est requis pour enregistrer la période.");
+  await upsertCardStatementPeriod(firebaseDataConnect, input);
 }
 
 export async function createFirebaseUser(input: { displayName: string; email: string; password: string; jobTitle: string; role: string }, idToken: string) {
@@ -278,6 +303,9 @@ export async function saveInvoiceIntakeReview(input: InvoiceIntakeReviewInput) {
     aiNotes: input.aiNotes,
     decisionExceptions: input.decisionExceptions ?? "[]",
     decisionChecks: input.decisionChecks ?? "[]",
+    writeAudit: true,
+    auditEventId: auditEventId(input.receiptId, AUDIT_ACTIONS.HUMAN_CORRECTION, crypto.randomUUID()),
+    auditDetails: input.auditDetails ?? auditDetails({ status: input.status }),
   });
 
   if (result.data.invoiceIntake_updateMany === 0) {
@@ -373,7 +401,7 @@ export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccounti
       role: user.role,
       status: user.status,
     })),
-    accounts: snapshot.accounts.map((account) => ({ code: account.code, label: account.label })),
+    accounts: snapshot.accounts.map((account) => ({ code: account.code, label: account.label, status: account.status })),
     cards: snapshot.cards.map((card) => ({
       id: card.id,
       lastFour: card.lastFour,
@@ -390,8 +418,9 @@ export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccounti
       start: period.startDate,
       end: period.endDate,
       statementLabel: period.statementLabel ?? "Relevé Mastercard",
+      status: period.status,
     })),
-    projects: snapshot.projects.map((project) => `${project.id} · ${project.name}`),
+    projects: snapshot.projects.map((project) => ({ id: project.id, name: project.name, status: project.status })),
     skuReferences: snapshot.skuReferences.map((reference) => ({
       merchant: reference.merchant,
       sku: reference.sku,
@@ -469,7 +498,7 @@ export function removeDemoAccountingData(data: AppAccountingData): AppAccounting
     accounts: data.accounts.filter((account) => !isDemoIdentifier(account.code)),
     cards: data.cards.filter((card) => !isDemoIdentifier(card.id)),
     periods: data.periods.filter((period) => !isDemoIdentifier(period.id)),
-    projects: data.projects.filter((project) => !isDemoIdentifier(project.split(" · ", 1)[0])),
+    projects: data.projects.filter((project) => !isDemoIdentifier(project.id)),
     skuReferences: data.skuReferences.filter((reference) => !isDemoIdentifier(reference.sku) && !reference.merchant.includes("Démo")),
     transactions: data.transactions.filter((transaction) => !isDemoIdentifier(transaction.id)),
     intakes: data.intakes.filter((intake) => !isDemoOrE2EInvoiceIntake(intake)),

@@ -4,6 +4,7 @@ import { firebaseAuth, firebaseStorage } from "./client";
 import { firebaseDataConnect, sqlConnectConfigured } from "./data-connect";
 import { SUPPORTED_INVOICE_MEDIA_TYPES } from "../lib/invoice-storage.mjs";
 import { INVOICE_CLIENT_VERSION } from "../lib/invoice-client-version.mjs";
+import { AUDIT_ACTIONS, auditDetails, auditEventId } from "../lib/audit-events.mjs";
 
 export type InvoicePhotoUpload = {
   file: File;
@@ -84,6 +85,9 @@ export async function uploadInvoicePhotos(
     storageFolder,
     photoCount: photos.length,
     clientVersion: INVOICE_CLIENT_VERSION,
+    writeAudit: true,
+    auditEventId: auditEventId(receiptId, AUDIT_ACTIONS.DEPOSIT_CREATED),
+    auditDetails: auditDetails({ photoCount: photos.length, storageFolder }),
   });
 
   return { receiptId, paths };

@@ -8,7 +8,7 @@ La décision automatique est déterministe après l’extraction IA. `INVOICE_AI
 
 1. Vérifier `.env.local` (`APP_ENV=production`, `NEXT_PUBLIC_APP_ENV=production`, `INVOICE_AI_MODE=live`, aucun hôte d’émulateur).
 2. Générer et relire `npm run firebase:plan:production`; ne pas appliquer la migration pendant cette validation.
-3. Exécuter le seed DEMO uniquement après décision explicite et avec `CONFIRM_DEMO_PRODUCTION=facture-thibeault`.
+3. Exécuter le seed DEMO uniquement après décision explicite et avec `CONFIRM_DEMO_PRODUCTION=facture-thibeault` et `CONFIRM_DEMO_SEED_EXECUTE=SEED_DEMO_ONLY`. Les tests et seeds refusent toute cible Production implicite.
 
 ## Parcours réel
 

@@ -192,3 +192,23 @@ query ListInvoiceIntakes @auth(expr: "auth.token.role == 'KIM' || auth.token.rol
     updatedAt
   }
 }
+
+query ListAuditEvents($entityType: String!, $entityId: String!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  auditEvents(
+    where: {
+      entityType: { eq: $entityType }
+      entityId: { eq: $entityId }
+    }
+    limit: 100
+  ) {
+    id
+    actorUid
+    actorRole
+    actor { displayName role }
+    action
+    entityType
+    entityId
+    details
+    createdAt
+  }
+}

@@ -42,6 +42,40 @@ mutation UpsertCreditCard(
   })
 }
 
+mutation UpsertProject(
+  $id: String!
+  $name: String!
+  $status: String!
+) @auth(expr: "auth.token.role == 'ADMIN'") {
+  project_upsert(data: { id: $id name: $name status: $status })
+}
+
+mutation UpsertExpenseAccount(
+  $code: String!
+  $label: String!
+  $status: String!
+) @auth(expr: "auth.token.role == 'ADMIN'") {
+  expenseAccount_upsert(data: { code: $code label: $label status: $status })
+}
+
+mutation UpsertCardStatementPeriod(
+  $id: String!
+  $label: String!
+  $startDate: Date!
+  $endDate: Date!
+  $statementLabel: String
+  $status: String!
+) @auth(expr: "auth.token.role == 'ADMIN'") {
+  cardStatementPeriod_upsert(data: {
+    id: $id
+    label: $label
+    startDate: $startDate
+    endDate: $endDate
+    statementLabel: $statementLabel
+    status: $status
+  })
+}
+
 mutation CreateInvoiceIntake($receiptId: String!, $storageFolder: String!, $photoCount: Int!) @auth(expr: "auth.token.role == 'WORKER' || auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") @transaction {
   invoiceIntake_upsert(data: {
     receiptId: $receiptId
@@ -64,7 +98,10 @@ mutation CreateInvoiceIntakeV2(
   $storageFolder: String!
   $photoCount: Int!
   $clientVersion: String!
-) @auth(expr: "(auth.token.role == 'WORKER' || auth.token.role == 'KIM' || auth.token.role == 'ADMIN') && vars.clientVersion == 'invoice-photo-v2'") {
+  $writeAudit: Boolean = false
+  $auditEventId: String = ""
+  $auditDetails: String = "{}"
+) @auth(expr: "(auth.token.role == 'WORKER' || auth.token.role == 'KIM' || auth.token.role == 'ADMIN') && vars.clientVersion == 'invoice-photo-v2'") @transaction {
   invoiceIntake_upsert(data: {
     receiptId: $receiptId
     uploaderUid_expr: "auth.uid"
@@ -76,6 +113,15 @@ mutation CreateInvoiceIntakeV2(
     lastError: null
     aiErrorCode: null
   })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid_expr: "auth.uid"
+    actorRole_expr: "auth.token.role"
+    action: "DEPOSIT_CREATED"
+    entityType: "InvoiceIntake"
+    entityId: $receiptId
+    details: $auditDetails
+  }) @include(if: $writeAudit)
 }
 
 # Server-only AI persistence. The Admin SDK verifies the Firebase token,
@@ -106,6 +152,11 @@ mutation UpdateInvoiceIntakeAiResult(
   $processingStatus: String = "NEEDS_REVIEW"
   $decisionExceptions: String = "[]"
   $decisionChecks: String = "[]"
+  $actorUid: String = ""
+  $actorRole: String = ""
+  $writeAudit: Boolean = false
+  $auditEventId: String = ""
+  $auditDetails: String = "{}"
 ) @auth(level: NO_ACCESS) @transaction {
   # Compare-and-set: exactly one AI attempt may claim a PROCESSING intake.
   # Retries after POSTING_ERROR first pass through RetryInvoiceIntakeAi.
@@ -152,6 +203,15 @@ mutation UpdateInvoiceIntakeAiResult(
   # Retained only for old wire clients; it runs after the CAS and cannot
   # bypass the transition guard.
   invoiceIntake_update(key: { receiptId: $receiptId }, data: { lastError: null }) @retired(reason: "Use the CAS result invoiceIntake_updateMany; legacy response retained temporarily.")
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: "AI_EXTRACTION_COMPLETED"
+    entityType: "InvoiceIntake"
+    entityId: $receiptId
+    details: $auditDetails
+  }) @include(if: $writeAudit)
 }
 
 mutation MarkInvoiceIntakeAiError(
@@ -161,6 +221,11 @@ mutation MarkInvoiceIntakeAiError(
   $accountingStatus: String = "NOT_POSTED"
   $decisionExceptions: String = "[]"
   $decisionChecks: String = "[]"
+  $actorUid: String = ""
+  $actorRole: String = ""
+  $writeAudit: Boolean = false
+  $auditEventId: String = ""
+  $auditDetails: String = "{}"
 ) @auth(level: NO_ACCESS) @transaction {
   # Never downgrade a validated or posted intake. This update is deliberately
   # conditional because it also runs from the error path of a concurrent call.
@@ -187,6 +252,15 @@ mutation MarkInvoiceIntakeAiError(
     }
   }
   invoiceIntake_update(key: { receiptId: $receiptId }, data: { lastError: $error }) @retired(reason: "Use the guarded invoiceIntake_updateMany transition; legacy response retained temporarily.")
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: "AI_PROCESSING_FAILED"
+    entityType: "InvoiceIntake"
+    entityId: $receiptId
+    details: $auditDetails
+  }) @include(if: $writeAudit)
 }
 
 mutation MarkInvoiceIntakeAutoPostingError(
@@ -194,6 +268,11 @@ mutation MarkInvoiceIntakeAutoPostingError(
   $error: String!
   $decisionExceptions: String = "[]"
   $decisionChecks: String = "[]"
+  $actorUid: String = ""
+  $actorRole: String = ""
+  $writeAudit: Boolean = false
+  $auditEventId: String = ""
+  $auditDetails: String = "{}"
 ) @auth(level: NO_ACCESS) @transaction {
   # Only the server-side automatic posting path may mark an AUTO_APPROVED
   # intake as a posting error. A losing AI request cannot use this transition.
@@ -220,6 +299,15 @@ mutation MarkInvoiceIntakeAutoPostingError(
     }
   }
   invoiceIntake_update(key: { receiptId: $receiptId }, data: { lastError: $error }) @retired(reason: "Use the guarded automatic-posting transition; legacy response retained temporarily.")
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: "AI_PROCESSING_FAILED"
+    entityType: "InvoiceIntake"
+    entityId: $receiptId
+    details: $auditDetails
+  }) @include(if: $writeAudit)
 }
 
 # Kim or an administrator can correct the AI suggestion and explicitly move
@@ -248,6 +336,9 @@ mutation UpdateInvoiceIntakeReview(
   $aiNotes: String!
   $decisionExceptions: String = "[]"
   $decisionChecks: String = "[]"
+  $writeAudit: Boolean = false
+  $auditEventId: String = ""
+  $auditDetails: String = "{}"
 ) @auth(expr: "(auth.token.role == 'KIM' || auth.token.role == 'ADMIN') && (vars.status in ['NEEDS_REVIEW', 'VALIDATED'])") @transaction {
   # KIM may resolve an exception exactly once. The new processing/accounting
   # fields are the decision fields; a second validation cannot match this CAS.
@@ -290,6 +381,15 @@ mutation UpdateInvoiceIntakeReview(
     }
   }
   invoiceIntake_update(key: { receiptId: $receiptId }, data: { lastError: null }) @retired(reason: "Use the guarded invoiceIntake_updateMany transition; legacy response retained temporarily.")
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid_expr: "auth.uid"
+    actorRole_expr: "auth.token.role"
+    action: "HUMAN_CORRECTION"
+    entityType: "InvoiceIntake"
+    entityId: $receiptId
+    details: $auditDetails
+  }) @include(if: $writeAudit)
 }
 
 mutation MarkInvoiceIntakePostingError($receiptId: String!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
@@ -426,6 +526,11 @@ mutation MaterializeInvoiceIntakeV2(
   $expectedProcessingStatus: String!
   $classificationSource: String!
   $classificationStatus: String!
+  $actorUid: String = ""
+  $actorRole: String = ""
+  $writeAudit: Boolean = false
+  $auditEventId: String = ""
+  $auditDetails: String = "{}"
   $photoCount: Int!
   $photo1Id: String!
   $photo1StoragePath: String!
@@ -553,6 +658,15 @@ mutation MaterializeInvoiceIntakeV2(
       classificationConfidence: 1.0
     }
   )
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: "TRANSACTION_CREATED"
+    entityType: "InvoiceIntake"
+    entityId: $receiptId
+    details: $auditDetails
+  }) @include(if: $writeAudit)
 }
 
 # V1 signatures remain for connector compatibility, but fail closed inside the

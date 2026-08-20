@@ -1,6 +1,7 @@
 import type { DataConnect } from "firebase-admin/data-connect";
 import { getFirebaseAdminStorage } from "./admin";
 import { invoicePhotoMutationVariables, loadStoredInvoicePhotos } from "../lib/invoice-storage.mjs";
+import { AUDIT_ACTIONS, auditDetails, auditEventId } from "../lib/audit-events.mjs";
 
 export type InvoiceIntakeStorageIdentity = {
   receiptId: string;
@@ -25,6 +26,8 @@ export type InvoiceCommitValues = {
   statementPeriodId: string | null;
   projectId: string | null;
   classificationNote: string;
+  actorUid?: string;
+  actorRole?: string;
 };
 
 export async function readInvoiceIntakeStoragePhotos(intake: InvoiceIntakeStorageIdentity) {
@@ -66,6 +69,16 @@ export async function materializeInvoiceIntake(
     expectedProcessingStatus,
     classificationSource,
     classificationStatus,
+    actorUid: values.actorUid ?? intake.uploaderUid,
+    actorRole: values.actorRole ?? "UNKNOWN",
+    writeAudit: true,
+    auditEventId: auditEventId(intake.receiptId, AUDIT_ACTIONS.TRANSACTION_CREATED),
+    auditDetails: auditDetails({
+      transactionId: `TX-${intake.receiptId}`,
+      invoiceId: `INV-${intake.receiptId}`,
+      decision,
+      validation: decision === "HUMAN" ? "HUMAN_VALIDATION" : "AUTO_VALIDATION",
+    }),
     ...invoicePhotoMutationVariables(intake.receiptId, intake.storageFolder, photos),
   });
 }

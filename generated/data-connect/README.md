@@ -22,6 +22,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*ListExpenseTransactions*](#listexpensetransactions)
   - [*ListInvoicesToReview*](#listinvoicestoreview)
   - [*ListInvoiceIntakes*](#listinvoiceintakes)
+  - [*ListAuditEvents*](#listauditevents)
 - [**Mutations**](#mutations)
   - [*AdminSeedCreditCard*](#adminseedcreditcard)
   - [*AdminSeedSkuReference*](#adminseedskureference)
@@ -41,6 +42,9 @@ This README will guide you through the process of using the generated JavaScript
   - [*AdminDeleteUserProfile*](#admindeleteuserprofile)
   - [*UpsertUserProfile*](#upsertuserprofile)
   - [*UpsertCreditCard*](#upsertcreditcard)
+  - [*UpsertProject*](#upsertproject)
+  - [*UpsertExpenseAccount*](#upsertexpenseaccount)
+  - [*UpsertCardStatementPeriod*](#upsertcardstatementperiod)
   - [*CreateInvoiceIntake*](#createinvoiceintake)
   - [*CreateInvoiceIntakeV2*](#createinvoiceintakev2)
   - [*UpdateInvoiceIntakeAiResult*](#updateinvoiceintakeairesult)
@@ -1375,6 +1379,131 @@ console.log(data.invoiceIntakes);
 executeQuery(ref).then((response) => {
   const data = response.data;
   console.log(data.invoiceIntakes);
+});
+```
+
+## ListAuditEvents
+You can execute the `ListAuditEvents` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+listAuditEvents(vars: ListAuditEventsVariables, options?: ExecuteQueryOptions): QueryPromise<ListAuditEventsData, ListAuditEventsVariables>;
+
+interface ListAuditEventsRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ListAuditEventsVariables): QueryRef<ListAuditEventsData, ListAuditEventsVariables>;
+}
+export const listAuditEventsRef: ListAuditEventsRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+listAuditEvents(dc: DataConnect, vars: ListAuditEventsVariables, options?: ExecuteQueryOptions): QueryPromise<ListAuditEventsData, ListAuditEventsVariables>;
+
+interface ListAuditEventsRef {
+  ...
+  (dc: DataConnect, vars: ListAuditEventsVariables): QueryRef<ListAuditEventsData, ListAuditEventsVariables>;
+}
+export const listAuditEventsRef: ListAuditEventsRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listAuditEventsRef:
+```typescript
+const name = listAuditEventsRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ListAuditEvents` query requires an argument of type `ListAuditEventsVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ListAuditEventsVariables {
+  entityType: string;
+  entityId: string;
+}
+```
+### Return Type
+Recall that executing the `ListAuditEvents` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ListAuditEventsData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ListAuditEventsData {
+  auditEvents: ({
+    id: string;
+    actorUid?: string | null;
+    actorRole?: string | null;
+    actor?: {
+      displayName: string;
+      role: string;
+    };
+    action: string;
+    entityType: string;
+    entityId: string;
+    details?: string | null;
+    createdAt: TimestampString;
+  } & AuditEvent_Key)[];
+}
+```
+### Using `ListAuditEvents`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, listAuditEvents, ListAuditEventsVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `ListAuditEvents` query requires an argument of type `ListAuditEventsVariables`:
+const listAuditEventsVars: ListAuditEventsVariables = {
+  entityType: ..., 
+  entityId: ..., 
+};
+
+// Call the `listAuditEvents()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await listAuditEvents(listAuditEventsVars);
+// Variables can be defined inline as well.
+const { data } = await listAuditEvents({ entityType: ..., entityId: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await listAuditEvents(dataConnect, listAuditEventsVars);
+
+console.log(data.auditEvents);
+
+// Or, you can use the `Promise` API.
+listAuditEvents(listAuditEventsVars).then((response) => {
+  const data = response.data;
+  console.log(data.auditEvents);
+});
+```
+
+### Using `ListAuditEvents`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, listAuditEventsRef, ListAuditEventsVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `ListAuditEvents` query requires an argument of type `ListAuditEventsVariables`:
+const listAuditEventsVars: ListAuditEventsVariables = {
+  entityType: ..., 
+  entityId: ..., 
+};
+
+// Call the `listAuditEventsRef()` function to get a reference to the query.
+const ref = listAuditEventsRef(listAuditEventsVars);
+// Variables can be defined inline as well.
+const ref = listAuditEventsRef({ entityType: ..., entityId: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = listAuditEventsRef(dataConnect, listAuditEventsVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.auditEvents);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.auditEvents);
 });
 ```
 
@@ -3541,6 +3670,360 @@ executeMutation(ref).then((response) => {
 });
 ```
 
+## UpsertProject
+You can execute the `UpsertProject` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+upsertProject(vars: UpsertProjectVariables): MutationPromise<UpsertProjectData, UpsertProjectVariables>;
+
+interface UpsertProjectRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertProjectVariables): MutationRef<UpsertProjectData, UpsertProjectVariables>;
+}
+export const upsertProjectRef: UpsertProjectRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+upsertProject(dc: DataConnect, vars: UpsertProjectVariables): MutationPromise<UpsertProjectData, UpsertProjectVariables>;
+
+interface UpsertProjectRef {
+  ...
+  (dc: DataConnect, vars: UpsertProjectVariables): MutationRef<UpsertProjectData, UpsertProjectVariables>;
+}
+export const upsertProjectRef: UpsertProjectRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertProjectRef:
+```typescript
+const name = upsertProjectRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpsertProject` mutation requires an argument of type `UpsertProjectVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpsertProjectVariables {
+  id: string;
+  name: string;
+  status: string;
+}
+```
+### Return Type
+Recall that executing the `UpsertProject` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpsertProjectData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpsertProjectData {
+  project_upsert: Project_Key;
+}
+```
+### Using `UpsertProject`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, upsertProject, UpsertProjectVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `UpsertProject` mutation requires an argument of type `UpsertProjectVariables`:
+const upsertProjectVars: UpsertProjectVariables = {
+  id: ..., 
+  name: ..., 
+  status: ..., 
+};
+
+// Call the `upsertProject()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await upsertProject(upsertProjectVars);
+// Variables can be defined inline as well.
+const { data } = await upsertProject({ id: ..., name: ..., status: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await upsertProject(dataConnect, upsertProjectVars);
+
+console.log(data.project_upsert);
+
+// Or, you can use the `Promise` API.
+upsertProject(upsertProjectVars).then((response) => {
+  const data = response.data;
+  console.log(data.project_upsert);
+});
+```
+
+### Using `UpsertProject`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, upsertProjectRef, UpsertProjectVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `UpsertProject` mutation requires an argument of type `UpsertProjectVariables`:
+const upsertProjectVars: UpsertProjectVariables = {
+  id: ..., 
+  name: ..., 
+  status: ..., 
+};
+
+// Call the `upsertProjectRef()` function to get a reference to the mutation.
+const ref = upsertProjectRef(upsertProjectVars);
+// Variables can be defined inline as well.
+const ref = upsertProjectRef({ id: ..., name: ..., status: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = upsertProjectRef(dataConnect, upsertProjectVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.project_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.project_upsert);
+});
+```
+
+## UpsertExpenseAccount
+You can execute the `UpsertExpenseAccount` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+upsertExpenseAccount(vars: UpsertExpenseAccountVariables): MutationPromise<UpsertExpenseAccountData, UpsertExpenseAccountVariables>;
+
+interface UpsertExpenseAccountRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertExpenseAccountVariables): MutationRef<UpsertExpenseAccountData, UpsertExpenseAccountVariables>;
+}
+export const upsertExpenseAccountRef: UpsertExpenseAccountRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+upsertExpenseAccount(dc: DataConnect, vars: UpsertExpenseAccountVariables): MutationPromise<UpsertExpenseAccountData, UpsertExpenseAccountVariables>;
+
+interface UpsertExpenseAccountRef {
+  ...
+  (dc: DataConnect, vars: UpsertExpenseAccountVariables): MutationRef<UpsertExpenseAccountData, UpsertExpenseAccountVariables>;
+}
+export const upsertExpenseAccountRef: UpsertExpenseAccountRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertExpenseAccountRef:
+```typescript
+const name = upsertExpenseAccountRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpsertExpenseAccount` mutation requires an argument of type `UpsertExpenseAccountVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpsertExpenseAccountVariables {
+  code: string;
+  label: string;
+  status: string;
+}
+```
+### Return Type
+Recall that executing the `UpsertExpenseAccount` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpsertExpenseAccountData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpsertExpenseAccountData {
+  expenseAccount_upsert: ExpenseAccount_Key;
+}
+```
+### Using `UpsertExpenseAccount`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, upsertExpenseAccount, UpsertExpenseAccountVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `UpsertExpenseAccount` mutation requires an argument of type `UpsertExpenseAccountVariables`:
+const upsertExpenseAccountVars: UpsertExpenseAccountVariables = {
+  code: ..., 
+  label: ..., 
+  status: ..., 
+};
+
+// Call the `upsertExpenseAccount()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await upsertExpenseAccount(upsertExpenseAccountVars);
+// Variables can be defined inline as well.
+const { data } = await upsertExpenseAccount({ code: ..., label: ..., status: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await upsertExpenseAccount(dataConnect, upsertExpenseAccountVars);
+
+console.log(data.expenseAccount_upsert);
+
+// Or, you can use the `Promise` API.
+upsertExpenseAccount(upsertExpenseAccountVars).then((response) => {
+  const data = response.data;
+  console.log(data.expenseAccount_upsert);
+});
+```
+
+### Using `UpsertExpenseAccount`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, upsertExpenseAccountRef, UpsertExpenseAccountVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `UpsertExpenseAccount` mutation requires an argument of type `UpsertExpenseAccountVariables`:
+const upsertExpenseAccountVars: UpsertExpenseAccountVariables = {
+  code: ..., 
+  label: ..., 
+  status: ..., 
+};
+
+// Call the `upsertExpenseAccountRef()` function to get a reference to the mutation.
+const ref = upsertExpenseAccountRef(upsertExpenseAccountVars);
+// Variables can be defined inline as well.
+const ref = upsertExpenseAccountRef({ code: ..., label: ..., status: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = upsertExpenseAccountRef(dataConnect, upsertExpenseAccountVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.expenseAccount_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.expenseAccount_upsert);
+});
+```
+
+## UpsertCardStatementPeriod
+You can execute the `UpsertCardStatementPeriod` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+upsertCardStatementPeriod(vars: UpsertCardStatementPeriodVariables): MutationPromise<UpsertCardStatementPeriodData, UpsertCardStatementPeriodVariables>;
+
+interface UpsertCardStatementPeriodRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertCardStatementPeriodVariables): MutationRef<UpsertCardStatementPeriodData, UpsertCardStatementPeriodVariables>;
+}
+export const upsertCardStatementPeriodRef: UpsertCardStatementPeriodRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+upsertCardStatementPeriod(dc: DataConnect, vars: UpsertCardStatementPeriodVariables): MutationPromise<UpsertCardStatementPeriodData, UpsertCardStatementPeriodVariables>;
+
+interface UpsertCardStatementPeriodRef {
+  ...
+  (dc: DataConnect, vars: UpsertCardStatementPeriodVariables): MutationRef<UpsertCardStatementPeriodData, UpsertCardStatementPeriodVariables>;
+}
+export const upsertCardStatementPeriodRef: UpsertCardStatementPeriodRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertCardStatementPeriodRef:
+```typescript
+const name = upsertCardStatementPeriodRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpsertCardStatementPeriod` mutation requires an argument of type `UpsertCardStatementPeriodVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpsertCardStatementPeriodVariables {
+  id: string;
+  label: string;
+  startDate: DateString;
+  endDate: DateString;
+  statementLabel?: string | null;
+  status: string;
+}
+```
+### Return Type
+Recall that executing the `UpsertCardStatementPeriod` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpsertCardStatementPeriodData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpsertCardStatementPeriodData {
+  cardStatementPeriod_upsert: CardStatementPeriod_Key;
+}
+```
+### Using `UpsertCardStatementPeriod`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, upsertCardStatementPeriod, UpsertCardStatementPeriodVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `UpsertCardStatementPeriod` mutation requires an argument of type `UpsertCardStatementPeriodVariables`:
+const upsertCardStatementPeriodVars: UpsertCardStatementPeriodVariables = {
+  id: ..., 
+  label: ..., 
+  startDate: ..., 
+  endDate: ..., 
+  statementLabel: ..., // optional
+  status: ..., 
+};
+
+// Call the `upsertCardStatementPeriod()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await upsertCardStatementPeriod(upsertCardStatementPeriodVars);
+// Variables can be defined inline as well.
+const { data } = await upsertCardStatementPeriod({ id: ..., label: ..., startDate: ..., endDate: ..., statementLabel: ..., status: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await upsertCardStatementPeriod(dataConnect, upsertCardStatementPeriodVars);
+
+console.log(data.cardStatementPeriod_upsert);
+
+// Or, you can use the `Promise` API.
+upsertCardStatementPeriod(upsertCardStatementPeriodVars).then((response) => {
+  const data = response.data;
+  console.log(data.cardStatementPeriod_upsert);
+});
+```
+
+### Using `UpsertCardStatementPeriod`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, upsertCardStatementPeriodRef, UpsertCardStatementPeriodVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `UpsertCardStatementPeriod` mutation requires an argument of type `UpsertCardStatementPeriodVariables`:
+const upsertCardStatementPeriodVars: UpsertCardStatementPeriodVariables = {
+  id: ..., 
+  label: ..., 
+  startDate: ..., 
+  endDate: ..., 
+  statementLabel: ..., // optional
+  status: ..., 
+};
+
+// Call the `upsertCardStatementPeriodRef()` function to get a reference to the mutation.
+const ref = upsertCardStatementPeriodRef(upsertCardStatementPeriodVars);
+// Variables can be defined inline as well.
+const ref = upsertCardStatementPeriodRef({ id: ..., label: ..., startDate: ..., endDate: ..., statementLabel: ..., status: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = upsertCardStatementPeriodRef(dataConnect, upsertCardStatementPeriodVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.cardStatementPeriod_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.cardStatementPeriod_upsert);
+});
+```
+
 ## CreateInvoiceIntake
 You can execute the `CreateInvoiceIntake` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
 ```typescript
@@ -3694,6 +4177,9 @@ export interface CreateInvoiceIntakeV2Variables {
   storageFolder: string;
   photoCount: number;
   clientVersion: string;
+  writeAudit?: boolean | null;
+  auditEventId?: string | null;
+  auditDetails?: string | null;
 }
 ```
 ### Return Type
@@ -3703,6 +4189,7 @@ The `data` property is an object of type `CreateInvoiceIntakeV2Data`, which is d
 ```typescript
 export interface CreateInvoiceIntakeV2Data {
   invoiceIntake_upsert: InvoiceIntake_Key;
+  auditEvent_upsert: AuditEvent_Key;
 }
 ```
 ### Using `CreateInvoiceIntakeV2`'s action shortcut function
@@ -3717,24 +4204,29 @@ const createInvoiceIntakeV2Vars: CreateInvoiceIntakeV2Variables = {
   storageFolder: ..., 
   photoCount: ..., 
   clientVersion: ..., 
+  writeAudit: ..., // optional
+  auditEventId: ..., // optional
+  auditDetails: ..., // optional
 };
 
 // Call the `createInvoiceIntakeV2()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await createInvoiceIntakeV2(createInvoiceIntakeV2Vars);
 // Variables can be defined inline as well.
-const { data } = await createInvoiceIntakeV2({ receiptId: ..., storageFolder: ..., photoCount: ..., clientVersion: ..., });
+const { data } = await createInvoiceIntakeV2({ receiptId: ..., storageFolder: ..., photoCount: ..., clientVersion: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
 const { data } = await createInvoiceIntakeV2(dataConnect, createInvoiceIntakeV2Vars);
 
 console.log(data.invoiceIntake_upsert);
+console.log(data.auditEvent_upsert);
 
 // Or, you can use the `Promise` API.
 createInvoiceIntakeV2(createInvoiceIntakeV2Vars).then((response) => {
   const data = response.data;
   console.log(data.invoiceIntake_upsert);
+  console.log(data.auditEvent_upsert);
 });
 ```
 
@@ -3750,12 +4242,15 @@ const createInvoiceIntakeV2Vars: CreateInvoiceIntakeV2Variables = {
   storageFolder: ..., 
   photoCount: ..., 
   clientVersion: ..., 
+  writeAudit: ..., // optional
+  auditEventId: ..., // optional
+  auditDetails: ..., // optional
 };
 
 // Call the `createInvoiceIntakeV2Ref()` function to get a reference to the mutation.
 const ref = createInvoiceIntakeV2Ref(createInvoiceIntakeV2Vars);
 // Variables can be defined inline as well.
-const ref = createInvoiceIntakeV2Ref({ receiptId: ..., storageFolder: ..., photoCount: ..., clientVersion: ..., });
+const ref = createInvoiceIntakeV2Ref({ receiptId: ..., storageFolder: ..., photoCount: ..., clientVersion: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -3766,11 +4261,13 @@ const ref = createInvoiceIntakeV2Ref(dataConnect, createInvoiceIntakeV2Vars);
 const { data } = await executeMutation(ref);
 
 console.log(data.invoiceIntake_upsert);
+console.log(data.auditEvent_upsert);
 
 // Or, you can use the `Promise` API.
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.invoiceIntake_upsert);
+  console.log(data.auditEvent_upsert);
 });
 ```
 
@@ -3831,6 +4328,11 @@ export interface UpdateInvoiceIntakeAiResultVariables {
   processingStatus?: string | null;
   decisionExceptions?: string | null;
   decisionChecks?: string | null;
+  actorUid?: string | null;
+  actorRole?: string | null;
+  writeAudit?: boolean | null;
+  auditEventId?: string | null;
+  auditDetails?: string | null;
 }
 ```
 ### Return Type
@@ -3840,6 +4342,7 @@ The `data` property is an object of type `UpdateInvoiceIntakeAiResultData`, whic
 ```typescript
 export interface UpdateInvoiceIntakeAiResultData {
   invoiceIntake_updateMany: number;
+  auditEvent_upsert: AuditEvent_Key;
 }
 ```
 ### Using `UpdateInvoiceIntakeAiResult`'s action shortcut function
@@ -3873,24 +4376,31 @@ const updateInvoiceIntakeAiResultVars: UpdateInvoiceIntakeAiResultVariables = {
   processingStatus: ..., // optional
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
+  actorUid: ..., // optional
+  actorRole: ..., // optional
+  writeAudit: ..., // optional
+  auditEventId: ..., // optional
+  auditDetails: ..., // optional
 };
 
 // Call the `updateInvoiceIntakeAiResult()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await updateInvoiceIntakeAiResult(updateInvoiceIntakeAiResultVars);
 // Variables can be defined inline as well.
-const { data } = await updateInvoiceIntakeAiResult({ receiptId: ..., aiModel: ..., aiConfidence: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., processingStatus: ..., decisionExceptions: ..., decisionChecks: ..., });
+const { data } = await updateInvoiceIntakeAiResult({ receiptId: ..., aiModel: ..., aiConfidence: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., processingStatus: ..., decisionExceptions: ..., decisionChecks: ..., actorUid: ..., actorRole: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
 const { data } = await updateInvoiceIntakeAiResult(dataConnect, updateInvoiceIntakeAiResultVars);
 
 console.log(data.invoiceIntake_updateMany);
+console.log(data.auditEvent_upsert);
 
 // Or, you can use the `Promise` API.
 updateInvoiceIntakeAiResult(updateInvoiceIntakeAiResultVars).then((response) => {
   const data = response.data;
   console.log(data.invoiceIntake_updateMany);
+  console.log(data.auditEvent_upsert);
 });
 ```
 
@@ -3925,12 +4435,17 @@ const updateInvoiceIntakeAiResultVars: UpdateInvoiceIntakeAiResultVariables = {
   processingStatus: ..., // optional
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
+  actorUid: ..., // optional
+  actorRole: ..., // optional
+  writeAudit: ..., // optional
+  auditEventId: ..., // optional
+  auditDetails: ..., // optional
 };
 
 // Call the `updateInvoiceIntakeAiResultRef()` function to get a reference to the mutation.
 const ref = updateInvoiceIntakeAiResultRef(updateInvoiceIntakeAiResultVars);
 // Variables can be defined inline as well.
-const ref = updateInvoiceIntakeAiResultRef({ receiptId: ..., aiModel: ..., aiConfidence: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., processingStatus: ..., decisionExceptions: ..., decisionChecks: ..., });
+const ref = updateInvoiceIntakeAiResultRef({ receiptId: ..., aiModel: ..., aiConfidence: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., processingStatus: ..., decisionExceptions: ..., decisionChecks: ..., actorUid: ..., actorRole: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -3941,11 +4456,13 @@ const ref = updateInvoiceIntakeAiResultRef(dataConnect, updateInvoiceIntakeAiRes
 const { data } = await executeMutation(ref);
 
 console.log(data.invoiceIntake_updateMany);
+console.log(data.auditEvent_upsert);
 
 // Or, you can use the `Promise` API.
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.invoiceIntake_updateMany);
+  console.log(data.auditEvent_upsert);
 });
 ```
 
@@ -3989,6 +4506,11 @@ export interface MarkInvoiceIntakeAiErrorVariables {
   accountingStatus?: string | null;
   decisionExceptions?: string | null;
   decisionChecks?: string | null;
+  actorUid?: string | null;
+  actorRole?: string | null;
+  writeAudit?: boolean | null;
+  auditEventId?: string | null;
+  auditDetails?: string | null;
 }
 ```
 ### Return Type
@@ -3998,6 +4520,7 @@ The `data` property is an object of type `MarkInvoiceIntakeAiErrorData`, which i
 ```typescript
 export interface MarkInvoiceIntakeAiErrorData {
   invoiceIntake_updateMany: number;
+  auditEvent_upsert: AuditEvent_Key;
 }
 ```
 ### Using `MarkInvoiceIntakeAiError`'s action shortcut function
@@ -4014,24 +4537,31 @@ const markInvoiceIntakeAiErrorVars: MarkInvoiceIntakeAiErrorVariables = {
   accountingStatus: ..., // optional
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
+  actorUid: ..., // optional
+  actorRole: ..., // optional
+  writeAudit: ..., // optional
+  auditEventId: ..., // optional
+  auditDetails: ..., // optional
 };
 
 // Call the `markInvoiceIntakeAiError()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await markInvoiceIntakeAiError(markInvoiceIntakeAiErrorVars);
 // Variables can be defined inline as well.
-const { data } = await markInvoiceIntakeAiError({ receiptId: ..., error: ..., aiErrorCode: ..., accountingStatus: ..., decisionExceptions: ..., decisionChecks: ..., });
+const { data } = await markInvoiceIntakeAiError({ receiptId: ..., error: ..., aiErrorCode: ..., accountingStatus: ..., decisionExceptions: ..., decisionChecks: ..., actorUid: ..., actorRole: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
 const { data } = await markInvoiceIntakeAiError(dataConnect, markInvoiceIntakeAiErrorVars);
 
 console.log(data.invoiceIntake_updateMany);
+console.log(data.auditEvent_upsert);
 
 // Or, you can use the `Promise` API.
 markInvoiceIntakeAiError(markInvoiceIntakeAiErrorVars).then((response) => {
   const data = response.data;
   console.log(data.invoiceIntake_updateMany);
+  console.log(data.auditEvent_upsert);
 });
 ```
 
@@ -4049,12 +4579,17 @@ const markInvoiceIntakeAiErrorVars: MarkInvoiceIntakeAiErrorVariables = {
   accountingStatus: ..., // optional
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
+  actorUid: ..., // optional
+  actorRole: ..., // optional
+  writeAudit: ..., // optional
+  auditEventId: ..., // optional
+  auditDetails: ..., // optional
 };
 
 // Call the `markInvoiceIntakeAiErrorRef()` function to get a reference to the mutation.
 const ref = markInvoiceIntakeAiErrorRef(markInvoiceIntakeAiErrorVars);
 // Variables can be defined inline as well.
-const ref = markInvoiceIntakeAiErrorRef({ receiptId: ..., error: ..., aiErrorCode: ..., accountingStatus: ..., decisionExceptions: ..., decisionChecks: ..., });
+const ref = markInvoiceIntakeAiErrorRef({ receiptId: ..., error: ..., aiErrorCode: ..., accountingStatus: ..., decisionExceptions: ..., decisionChecks: ..., actorUid: ..., actorRole: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -4065,11 +4600,13 @@ const ref = markInvoiceIntakeAiErrorRef(dataConnect, markInvoiceIntakeAiErrorVar
 const { data } = await executeMutation(ref);
 
 console.log(data.invoiceIntake_updateMany);
+console.log(data.auditEvent_upsert);
 
 // Or, you can use the `Promise` API.
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.invoiceIntake_updateMany);
+  console.log(data.auditEvent_upsert);
 });
 ```
 
@@ -4111,6 +4648,11 @@ export interface MarkInvoiceIntakeAutoPostingErrorVariables {
   error: string;
   decisionExceptions?: string | null;
   decisionChecks?: string | null;
+  actorUid?: string | null;
+  actorRole?: string | null;
+  writeAudit?: boolean | null;
+  auditEventId?: string | null;
+  auditDetails?: string | null;
 }
 ```
 ### Return Type
@@ -4120,6 +4662,7 @@ The `data` property is an object of type `MarkInvoiceIntakeAutoPostingErrorData`
 ```typescript
 export interface MarkInvoiceIntakeAutoPostingErrorData {
   invoiceIntake_updateMany: number;
+  auditEvent_upsert: AuditEvent_Key;
 }
 ```
 ### Using `MarkInvoiceIntakeAutoPostingError`'s action shortcut function
@@ -4134,24 +4677,31 @@ const markInvoiceIntakeAutoPostingErrorVars: MarkInvoiceIntakeAutoPostingErrorVa
   error: ..., 
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
+  actorUid: ..., // optional
+  actorRole: ..., // optional
+  writeAudit: ..., // optional
+  auditEventId: ..., // optional
+  auditDetails: ..., // optional
 };
 
 // Call the `markInvoiceIntakeAutoPostingError()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await markInvoiceIntakeAutoPostingError(markInvoiceIntakeAutoPostingErrorVars);
 // Variables can be defined inline as well.
-const { data } = await markInvoiceIntakeAutoPostingError({ receiptId: ..., error: ..., decisionExceptions: ..., decisionChecks: ..., });
+const { data } = await markInvoiceIntakeAutoPostingError({ receiptId: ..., error: ..., decisionExceptions: ..., decisionChecks: ..., actorUid: ..., actorRole: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
 const { data } = await markInvoiceIntakeAutoPostingError(dataConnect, markInvoiceIntakeAutoPostingErrorVars);
 
 console.log(data.invoiceIntake_updateMany);
+console.log(data.auditEvent_upsert);
 
 // Or, you can use the `Promise` API.
 markInvoiceIntakeAutoPostingError(markInvoiceIntakeAutoPostingErrorVars).then((response) => {
   const data = response.data;
   console.log(data.invoiceIntake_updateMany);
+  console.log(data.auditEvent_upsert);
 });
 ```
 
@@ -4167,12 +4717,17 @@ const markInvoiceIntakeAutoPostingErrorVars: MarkInvoiceIntakeAutoPostingErrorVa
   error: ..., 
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
+  actorUid: ..., // optional
+  actorRole: ..., // optional
+  writeAudit: ..., // optional
+  auditEventId: ..., // optional
+  auditDetails: ..., // optional
 };
 
 // Call the `markInvoiceIntakeAutoPostingErrorRef()` function to get a reference to the mutation.
 const ref = markInvoiceIntakeAutoPostingErrorRef(markInvoiceIntakeAutoPostingErrorVars);
 // Variables can be defined inline as well.
-const ref = markInvoiceIntakeAutoPostingErrorRef({ receiptId: ..., error: ..., decisionExceptions: ..., decisionChecks: ..., });
+const ref = markInvoiceIntakeAutoPostingErrorRef({ receiptId: ..., error: ..., decisionExceptions: ..., decisionChecks: ..., actorUid: ..., actorRole: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -4183,11 +4738,13 @@ const ref = markInvoiceIntakeAutoPostingErrorRef(dataConnect, markInvoiceIntakeA
 const { data } = await executeMutation(ref);
 
 console.log(data.invoiceIntake_updateMany);
+console.log(data.auditEvent_upsert);
 
 // Or, you can use the `Promise` API.
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.invoiceIntake_updateMany);
+  console.log(data.auditEvent_upsert);
 });
 ```
 
@@ -4246,6 +4803,9 @@ export interface UpdateInvoiceIntakeReviewVariables {
   aiNotes: string;
   decisionExceptions?: string | null;
   decisionChecks?: string | null;
+  writeAudit?: boolean | null;
+  auditEventId?: string | null;
+  auditDetails?: string | null;
 }
 ```
 ### Return Type
@@ -4255,6 +4815,7 @@ The `data` property is an object of type `UpdateInvoiceIntakeReviewData`, which 
 ```typescript
 export interface UpdateInvoiceIntakeReviewData {
   invoiceIntake_updateMany: number;
+  auditEvent_upsert: AuditEvent_Key;
 }
 ```
 ### Using `UpdateInvoiceIntakeReview`'s action shortcut function
@@ -4286,24 +4847,29 @@ const updateInvoiceIntakeReviewVars: UpdateInvoiceIntakeReviewVariables = {
   aiNotes: ..., 
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
+  writeAudit: ..., // optional
+  auditEventId: ..., // optional
+  auditDetails: ..., // optional
 };
 
 // Call the `updateInvoiceIntakeReview()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await updateInvoiceIntakeReview(updateInvoiceIntakeReviewVars);
 // Variables can be defined inline as well.
-const { data } = await updateInvoiceIntakeReview({ receiptId: ..., status: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., decisionExceptions: ..., decisionChecks: ..., });
+const { data } = await updateInvoiceIntakeReview({ receiptId: ..., status: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., decisionExceptions: ..., decisionChecks: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
 const { data } = await updateInvoiceIntakeReview(dataConnect, updateInvoiceIntakeReviewVars);
 
 console.log(data.invoiceIntake_updateMany);
+console.log(data.auditEvent_upsert);
 
 // Or, you can use the `Promise` API.
 updateInvoiceIntakeReview(updateInvoiceIntakeReviewVars).then((response) => {
   const data = response.data;
   console.log(data.invoiceIntake_updateMany);
+  console.log(data.auditEvent_upsert);
 });
 ```
 
@@ -4336,12 +4902,15 @@ const updateInvoiceIntakeReviewVars: UpdateInvoiceIntakeReviewVariables = {
   aiNotes: ..., 
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
+  writeAudit: ..., // optional
+  auditEventId: ..., // optional
+  auditDetails: ..., // optional
 };
 
 // Call the `updateInvoiceIntakeReviewRef()` function to get a reference to the mutation.
 const ref = updateInvoiceIntakeReviewRef(updateInvoiceIntakeReviewVars);
 // Variables can be defined inline as well.
-const ref = updateInvoiceIntakeReviewRef({ receiptId: ..., status: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., decisionExceptions: ..., decisionChecks: ..., });
+const ref = updateInvoiceIntakeReviewRef({ receiptId: ..., status: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., decisionExceptions: ..., decisionChecks: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -4352,11 +4921,13 @@ const ref = updateInvoiceIntakeReviewRef(dataConnect, updateInvoiceIntakeReviewV
 const { data } = await executeMutation(ref);
 
 console.log(data.invoiceIntake_updateMany);
+console.log(data.auditEvent_upsert);
 
 // Or, you can use the `Promise` API.
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.invoiceIntake_updateMany);
+  console.log(data.auditEvent_upsert);
 });
 ```
 
@@ -4858,6 +5429,11 @@ export interface MaterializeInvoiceIntakeV2Variables {
   expectedProcessingStatus: string;
   classificationSource: string;
   classificationStatus: string;
+  actorUid?: string | null;
+  actorRole?: string | null;
+  writeAudit?: boolean | null;
+  auditEventId?: string | null;
+  auditDetails?: string | null;
   photoCount: number;
   photo1Id: string;
   photo1StoragePath: string;
@@ -4895,6 +5471,7 @@ export interface MaterializeInvoiceIntakeV2Data {
   invoicePhoto4: InvoicePhoto_Key;
   invoicePhoto5: InvoicePhoto_Key;
   invoiceIntake_update?: InvoiceIntake_Key | null;
+  auditEvent_upsert: AuditEvent_Key;
 }
 ```
 ### Using `MaterializeInvoiceIntakeV2`'s action shortcut function
@@ -4927,6 +5504,11 @@ const materializeInvoiceIntakeV2Vars: MaterializeInvoiceIntakeV2Variables = {
   expectedProcessingStatus: ..., 
   classificationSource: ..., 
   classificationStatus: ..., 
+  actorUid: ..., // optional
+  actorRole: ..., // optional
+  writeAudit: ..., // optional
+  auditEventId: ..., // optional
+  auditDetails: ..., // optional
   photoCount: ..., 
   photo1Id: ..., 
   photo1StoragePath: ..., 
@@ -4953,7 +5535,7 @@ const materializeInvoiceIntakeV2Vars: MaterializeInvoiceIntakeV2Variables = {
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await materializeInvoiceIntakeV2(materializeInvoiceIntakeV2Vars);
 // Variables can be defined inline as well.
-const { data } = await materializeInvoiceIntakeV2({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriod: ..., project: ..., storageFolder: ..., classificationNote: ..., expectedProcessingStatus: ..., classificationSource: ..., classificationStatus: ..., photoCount: ..., photo1Id: ..., photo1StoragePath: ..., photo1ContentType: ..., hasPhoto2: ..., photo2Id: ..., photo2StoragePath: ..., photo2ContentType: ..., hasPhoto3: ..., photo3Id: ..., photo3StoragePath: ..., photo3ContentType: ..., hasPhoto4: ..., photo4Id: ..., photo4StoragePath: ..., photo4ContentType: ..., hasPhoto5: ..., photo5Id: ..., photo5StoragePath: ..., photo5ContentType: ..., });
+const { data } = await materializeInvoiceIntakeV2({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriod: ..., project: ..., storageFolder: ..., classificationNote: ..., expectedProcessingStatus: ..., classificationSource: ..., classificationStatus: ..., actorUid: ..., actorRole: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., photoCount: ..., photo1Id: ..., photo1StoragePath: ..., photo1ContentType: ..., hasPhoto2: ..., photo2Id: ..., photo2StoragePath: ..., photo2ContentType: ..., hasPhoto3: ..., photo3Id: ..., photo3StoragePath: ..., photo3ContentType: ..., hasPhoto4: ..., photo4Id: ..., photo4StoragePath: ..., photo4ContentType: ..., hasPhoto5: ..., photo5Id: ..., photo5StoragePath: ..., photo5ContentType: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -4968,6 +5550,7 @@ console.log(data.invoicePhoto3);
 console.log(data.invoicePhoto4);
 console.log(data.invoicePhoto5);
 console.log(data.invoiceIntake_update);
+console.log(data.auditEvent_upsert);
 
 // Or, you can use the `Promise` API.
 materializeInvoiceIntakeV2(materializeInvoiceIntakeV2Vars).then((response) => {
@@ -4981,6 +5564,7 @@ materializeInvoiceIntakeV2(materializeInvoiceIntakeV2Vars).then((response) => {
   console.log(data.invoicePhoto4);
   console.log(data.invoicePhoto5);
   console.log(data.invoiceIntake_update);
+  console.log(data.auditEvent_upsert);
 });
 ```
 
@@ -5014,6 +5598,11 @@ const materializeInvoiceIntakeV2Vars: MaterializeInvoiceIntakeV2Variables = {
   expectedProcessingStatus: ..., 
   classificationSource: ..., 
   classificationStatus: ..., 
+  actorUid: ..., // optional
+  actorRole: ..., // optional
+  writeAudit: ..., // optional
+  auditEventId: ..., // optional
+  auditDetails: ..., // optional
   photoCount: ..., 
   photo1Id: ..., 
   photo1StoragePath: ..., 
@@ -5039,7 +5628,7 @@ const materializeInvoiceIntakeV2Vars: MaterializeInvoiceIntakeV2Variables = {
 // Call the `materializeInvoiceIntakeV2Ref()` function to get a reference to the mutation.
 const ref = materializeInvoiceIntakeV2Ref(materializeInvoiceIntakeV2Vars);
 // Variables can be defined inline as well.
-const ref = materializeInvoiceIntakeV2Ref({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriod: ..., project: ..., storageFolder: ..., classificationNote: ..., expectedProcessingStatus: ..., classificationSource: ..., classificationStatus: ..., photoCount: ..., photo1Id: ..., photo1StoragePath: ..., photo1ContentType: ..., hasPhoto2: ..., photo2Id: ..., photo2StoragePath: ..., photo2ContentType: ..., hasPhoto3: ..., photo3Id: ..., photo3StoragePath: ..., photo3ContentType: ..., hasPhoto4: ..., photo4Id: ..., photo4StoragePath: ..., photo4ContentType: ..., hasPhoto5: ..., photo5Id: ..., photo5StoragePath: ..., photo5ContentType: ..., });
+const ref = materializeInvoiceIntakeV2Ref({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriod: ..., project: ..., storageFolder: ..., classificationNote: ..., expectedProcessingStatus: ..., classificationSource: ..., classificationStatus: ..., actorUid: ..., actorRole: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., photoCount: ..., photo1Id: ..., photo1StoragePath: ..., photo1ContentType: ..., hasPhoto2: ..., photo2Id: ..., photo2StoragePath: ..., photo2ContentType: ..., hasPhoto3: ..., photo3Id: ..., photo3StoragePath: ..., photo3ContentType: ..., hasPhoto4: ..., photo4Id: ..., photo4StoragePath: ..., photo4ContentType: ..., hasPhoto5: ..., photo5Id: ..., photo5StoragePath: ..., photo5ContentType: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -5058,6 +5647,7 @@ console.log(data.invoicePhoto3);
 console.log(data.invoicePhoto4);
 console.log(data.invoicePhoto5);
 console.log(data.invoiceIntake_update);
+console.log(data.auditEvent_upsert);
 
 // Or, you can use the `Promise` API.
 executeMutation(ref).then((response) => {
@@ -5071,6 +5661,7 @@ executeMutation(ref).then((response) => {
   console.log(data.invoicePhoto4);
   console.log(data.invoicePhoto5);
   console.log(data.invoiceIntake_update);
+  console.log(data.auditEvent_upsert);
 });
 ```
 

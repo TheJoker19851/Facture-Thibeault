@@ -332,6 +332,7 @@ export interface CreateInvoiceIntakeData {
 
 export interface CreateInvoiceIntakeV2Data {
   invoiceIntake_upsert: InvoiceIntake_Key;
+  auditEvent_upsert: AuditEvent_Key;
 }
 
 export interface CreateInvoiceIntakeV2Variables {
@@ -339,6 +340,9 @@ export interface CreateInvoiceIntakeV2Variables {
   storageFolder: string;
   photoCount: number;
   clientVersion: string;
+  writeAudit?: boolean | null;
+  auditEventId?: string | null;
+  auditDetails?: string | null;
 }
 
 export interface CreateInvoiceIntakeVariables {
@@ -375,6 +379,28 @@ export interface InvoicePhoto_Key {
 export interface Invoice_Key {
   id: string;
   __typename?: 'Invoice_Key';
+}
+
+export interface ListAuditEventsData {
+  auditEvents: ({
+    id: string;
+    actorUid?: string | null;
+    actorRole?: string | null;
+    actor?: {
+      displayName: string;
+      role: string;
+    };
+    action: string;
+    entityType: string;
+    entityId: string;
+    details?: string | null;
+    createdAt: TimestampString;
+  } & AuditEvent_Key)[];
+}
+
+export interface ListAuditEventsVariables {
+  entityType: string;
+  entityId: string;
 }
 
 export interface ListCardStatementPeriodsData {
@@ -570,6 +596,7 @@ export interface ListUserProfilesData {
 
 export interface MarkInvoiceIntakeAiErrorData {
   invoiceIntake_updateMany: number;
+  auditEvent_upsert: AuditEvent_Key;
 }
 
 export interface MarkInvoiceIntakeAiErrorVariables {
@@ -579,10 +606,16 @@ export interface MarkInvoiceIntakeAiErrorVariables {
   accountingStatus?: string | null;
   decisionExceptions?: string | null;
   decisionChecks?: string | null;
+  actorUid?: string | null;
+  actorRole?: string | null;
+  writeAudit?: boolean | null;
+  auditEventId?: string | null;
+  auditDetails?: string | null;
 }
 
 export interface MarkInvoiceIntakeAutoPostingErrorData {
   invoiceIntake_updateMany: number;
+  auditEvent_upsert: AuditEvent_Key;
 }
 
 export interface MarkInvoiceIntakeAutoPostingErrorVariables {
@@ -590,6 +623,11 @@ export interface MarkInvoiceIntakeAutoPostingErrorVariables {
   error: string;
   decisionExceptions?: string | null;
   decisionChecks?: string | null;
+  actorUid?: string | null;
+  actorRole?: string | null;
+  writeAudit?: boolean | null;
+  auditEventId?: string | null;
+  auditDetails?: string | null;
 }
 
 export interface MarkInvoiceIntakePostingErrorData {
@@ -610,6 +648,7 @@ export interface MaterializeInvoiceIntakeV2Data {
   invoicePhoto4: InvoicePhoto_Key;
   invoicePhoto5: InvoicePhoto_Key;
   invoiceIntake_update?: InvoiceIntake_Key | null;
+  auditEvent_upsert: AuditEvent_Key;
 }
 
 export interface MaterializeInvoiceIntakeV2Variables {
@@ -635,6 +674,11 @@ export interface MaterializeInvoiceIntakeV2Variables {
   expectedProcessingStatus: string;
   classificationSource: string;
   classificationStatus: string;
+  actorUid?: string | null;
+  actorRole?: string | null;
+  writeAudit?: boolean | null;
+  auditEventId?: string | null;
+  auditDetails?: string | null;
   photoCount: number;
   photo1Id: string;
   photo1StoragePath: string;
@@ -706,6 +750,7 @@ export interface TransactionCorrection_Key {
 
 export interface UpdateInvoiceIntakeAiResultData {
   invoiceIntake_updateMany: number;
+  auditEvent_upsert: AuditEvent_Key;
 }
 
 export interface UpdateInvoiceIntakeAiResultVariables {
@@ -732,10 +777,16 @@ export interface UpdateInvoiceIntakeAiResultVariables {
   processingStatus?: string | null;
   decisionExceptions?: string | null;
   decisionChecks?: string | null;
+  actorUid?: string | null;
+  actorRole?: string | null;
+  writeAudit?: boolean | null;
+  auditEventId?: string | null;
+  auditDetails?: string | null;
 }
 
 export interface UpdateInvoiceIntakeReviewData {
   invoiceIntake_updateMany: number;
+  auditEvent_upsert: AuditEvent_Key;
 }
 
 export interface UpdateInvoiceIntakeReviewVariables {
@@ -760,6 +811,22 @@ export interface UpdateInvoiceIntakeReviewVariables {
   aiNotes: string;
   decisionExceptions?: string | null;
   decisionChecks?: string | null;
+  writeAudit?: boolean | null;
+  auditEventId?: string | null;
+  auditDetails?: string | null;
+}
+
+export interface UpsertCardStatementPeriodData {
+  cardStatementPeriod_upsert: CardStatementPeriod_Key;
+}
+
+export interface UpsertCardStatementPeriodVariables {
+  id: string;
+  label: string;
+  startDate: DateString;
+  endDate: DateString;
+  statementLabel?: string | null;
+  status: string;
 }
 
 export interface UpsertCreditCardData {
@@ -774,6 +841,26 @@ export interface UpsertCreditCardVariables {
   status: string;
   activeFrom?: DateString | null;
   inactiveFrom?: DateString | null;
+}
+
+export interface UpsertExpenseAccountData {
+  expenseAccount_upsert: ExpenseAccount_Key;
+}
+
+export interface UpsertExpenseAccountVariables {
+  code: string;
+  label: string;
+  status: string;
+}
+
+export interface UpsertProjectData {
+  project_upsert: Project_Key;
+}
+
+export interface UpsertProjectVariables {
+  id: string;
+  name: string;
+  status: string;
 }
 
 export interface UpsertUserProfileData {
@@ -1034,6 +1121,42 @@ export const upsertCreditCardRef: UpsertCreditCardRef;
 
 export function upsertCreditCard(vars: UpsertCreditCardVariables): MutationPromise<UpsertCreditCardData, UpsertCreditCardVariables>;
 export function upsertCreditCard(dc: DataConnect, vars: UpsertCreditCardVariables): MutationPromise<UpsertCreditCardData, UpsertCreditCardVariables>;
+
+interface UpsertProjectRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertProjectVariables): MutationRef<UpsertProjectData, UpsertProjectVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpsertProjectVariables): MutationRef<UpsertProjectData, UpsertProjectVariables>;
+  operationName: string;
+}
+export const upsertProjectRef: UpsertProjectRef;
+
+export function upsertProject(vars: UpsertProjectVariables): MutationPromise<UpsertProjectData, UpsertProjectVariables>;
+export function upsertProject(dc: DataConnect, vars: UpsertProjectVariables): MutationPromise<UpsertProjectData, UpsertProjectVariables>;
+
+interface UpsertExpenseAccountRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertExpenseAccountVariables): MutationRef<UpsertExpenseAccountData, UpsertExpenseAccountVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpsertExpenseAccountVariables): MutationRef<UpsertExpenseAccountData, UpsertExpenseAccountVariables>;
+  operationName: string;
+}
+export const upsertExpenseAccountRef: UpsertExpenseAccountRef;
+
+export function upsertExpenseAccount(vars: UpsertExpenseAccountVariables): MutationPromise<UpsertExpenseAccountData, UpsertExpenseAccountVariables>;
+export function upsertExpenseAccount(dc: DataConnect, vars: UpsertExpenseAccountVariables): MutationPromise<UpsertExpenseAccountData, UpsertExpenseAccountVariables>;
+
+interface UpsertCardStatementPeriodRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertCardStatementPeriodVariables): MutationRef<UpsertCardStatementPeriodData, UpsertCardStatementPeriodVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpsertCardStatementPeriodVariables): MutationRef<UpsertCardStatementPeriodData, UpsertCardStatementPeriodVariables>;
+  operationName: string;
+}
+export const upsertCardStatementPeriodRef: UpsertCardStatementPeriodRef;
+
+export function upsertCardStatementPeriod(vars: UpsertCardStatementPeriodVariables): MutationPromise<UpsertCardStatementPeriodData, UpsertCardStatementPeriodVariables>;
+export function upsertCardStatementPeriod(dc: DataConnect, vars: UpsertCardStatementPeriodVariables): MutationPromise<UpsertCardStatementPeriodData, UpsertCardStatementPeriodVariables>;
 
 interface CreateInvoiceIntakeRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -1322,4 +1445,16 @@ export const listInvoiceIntakesRef: ListInvoiceIntakesRef;
 
 export function listInvoiceIntakes(options?: ExecuteQueryOptions): QueryPromise<ListInvoiceIntakesData, undefined>;
 export function listInvoiceIntakes(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListInvoiceIntakesData, undefined>;
+
+interface ListAuditEventsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ListAuditEventsVariables): QueryRef<ListAuditEventsData, ListAuditEventsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: ListAuditEventsVariables): QueryRef<ListAuditEventsData, ListAuditEventsVariables>;
+  operationName: string;
+}
+export const listAuditEventsRef: ListAuditEventsRef;
+
+export function listAuditEvents(vars: ListAuditEventsVariables, options?: ExecuteQueryOptions): QueryPromise<ListAuditEventsData, ListAuditEventsVariables>;
+export function listAuditEvents(dc: DataConnect, vars: ListAuditEventsVariables, options?: ExecuteQueryOptions): QueryPromise<ListAuditEventsData, ListAuditEventsVariables>;
 

@@ -207,6 +207,19 @@ main .table-wrap td small { font-size: 10px; }
 .intake-review-form input, .intake-review-form select, .intake-review-form textarea { min-height: 44px; border-radius: 9px; padding: 9px 12px; font-size: 13px; }
 .intake-review-form textarea { min-height: 100px; }
 .intake-review-form .needs-correction { border: 1px solid #e7c75c; border-radius: 10px; padding: 9px; background: #fff8d6; }
+.intake-evidence-zoom-stage { display: grid; min-height: 180px; max-height: 320px; width: 100%; place-items: center; overflow: auto; border-radius: 7px; background: #eaf1f2; }
+.intake-evidence-zoom-stage > div { display: grid; place-items: center; transform-origin: center; transition: transform .15s ease; }
+.intake-evidence-tools { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--muted); font-size: 9px; }
+.intake-evidence-tools .icon-button { min-width: 27px; min-height: 27px; }
+.audit-trail { margin: 0 21px 16px; border-top: 1px solid var(--line); padding-top: 16px; }
+.audit-trail .section-heading { margin-bottom: 10px; }
+.audit-event-list { display: grid; gap: 7px; }
+.audit-event { display: grid; gap: 5px; border: 1px solid #dcebed; border-radius: 8px; padding: 8px 10px; background: #f8fcfc; }
+.audit-event > div:first-child { display: flex; justify-content: space-between; gap: 8px; }
+.audit-event strong { color: var(--navy); font-size: 10px; }
+.audit-event small, .audit-corrections { color: var(--muted); font-size: 8px; }
+.audit-corrections { display: grid; gap: 3px; border-top: 1px dashed #cfe1e4; padding-top: 5px; }
+.audit-corrections b { color: #80651f; }
 .intake-review-form .needs-correction > span { color: #795f16; }
 .intake-review-form .needs-correction > span::after { content: " · correction requise"; font-weight: 800; }
 .intake-review-form .needs-correction input, .intake-review-form .needs-correction select, .intake-review-form .needs-correction textarea { border-color: #d9ad2d; background: #fff3a8; box-shadow: 0 0 0 3px rgba(217, 173, 45, .16); }

@@ -198,6 +198,8 @@ type TransactionCorrection @table(name: "transaction_corrections", key: "id") {
 
 type AuditEvent @table(name: "audit_events", key: "id") {
   id: String!
+  actorUid: String
+  actorRole: String
   actor: UserProfile
   action: String!
   entityType: String!

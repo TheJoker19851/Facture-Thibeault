@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
-import { assertSafeDemoProductionTarget, assertSafeSeedTarget } from "../lib/environment.mjs";
+import { assertSafeDemoProductionSeedExecution, assertSafeSeedTarget } from "../lib/environment.mjs";
 import { businessFixture, demoExpenseAccounts, demoPeriods, demoProjects, demoTaxAccounts, demoUsers, LOCAL_DEMO_PASSWORD } from "./fixtures/demo-data.mjs";
 import { localEmulatorEnvironment, readEnvFile } from "./lib/env-files.mjs";
 
@@ -139,7 +139,7 @@ export async function seedDemo(target) {
   if (target === "local") {
     assertSafeSeedTarget({ target, projectId, useEmulators: values.NEXT_PUBLIC_FIREBASE_USE_EMULATORS });
   } else {
-    assertSafeDemoProductionTarget({
+    assertSafeDemoProductionSeedExecution({
       projectId, adminProjectId: values.FIREBASE_ADMIN_PROJECT_ID,
       appEnvironment: values.APP_ENV, publicAppEnvironment: values.NEXT_PUBLIC_APP_ENV,
       useEmulators: values.NEXT_PUBLIC_FIREBASE_USE_EMULATORS,
@@ -148,6 +148,7 @@ export async function seedDemo(target) {
       storageEmulatorHost: values.FIREBASE_STORAGE_EMULATOR_HOST,
       previewMode: values.NEXT_PUBLIC_FIREBASE_PREVIEW_MODE,
       confirmation: values.CONFIRM_DEMO_PRODUCTION,
+      executionConfirmation: values.CONFIRM_DEMO_SEED_EXECUTE,
     });
     if (values.INVOICE_AI_MODE !== "live") throw new Error("Le seed DEMO production exige INVOICE_AI_MODE=live.");
     console.log("TARGET PROJECT: facture-thibeault");
