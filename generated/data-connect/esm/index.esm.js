@@ -161,18 +161,6 @@ export function adminDeleteExpenseAccount(dcOrVars, vars) {
   return executeMutation(adminDeleteExpenseAccountRef(dcInstance, inputVars));
 }
 
-export const adminDeleteTaxAccountRef = (dcOrVars, vars) => {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return mutationRef(dcInstance, 'AdminDeleteTaxAccount', inputVars);
-}
-adminDeleteTaxAccountRef.operationName = 'AdminDeleteTaxAccount';
-
-export function adminDeleteTaxAccount(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
-  return executeMutation(adminDeleteTaxAccountRef(dcInstance, inputVars));
-}
-
 export const adminDeleteCardStatementPeriodRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -269,6 +257,30 @@ upsertExpenseAccountRef.operationName = 'UpsertExpenseAccount';
 export function upsertExpenseAccount(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(upsertExpenseAccountRef(dcInstance, inputVars));
+}
+
+export const deleteProjectRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'DeleteProject', inputVars);
+}
+deleteProjectRef.operationName = 'DeleteProject';
+
+export function deleteProject(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(deleteProjectRef(dcInstance, inputVars));
+}
+
+export const deleteExpenseAccountRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'DeleteExpenseAccount', inputVars);
+}
+deleteExpenseAccountRef.operationName = 'DeleteExpenseAccount';
+
+export function deleteExpenseAccount(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(deleteExpenseAccountRef(dcInstance, inputVars));
 }
 
 export const upsertCardStatementPeriodRef = (dcOrVars, vars) => {
@@ -501,19 +513,6 @@ export function listExpenseAccounts(dcOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
   return executeQuery(listExpenseAccountsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
-}
-
-export const listTaxAccountsRef = (dc) => {
-  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'ListTaxAccounts');
-}
-listTaxAccountsRef.operationName = 'ListTaxAccounts';
-
-export function listTaxAccounts(dcOrOptions, options) {
-  
-  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
-  return executeQuery(listTaxAccountsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 
 export const listProjectsRef = (dc) => {

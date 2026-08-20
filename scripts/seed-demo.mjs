@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { assertSafeDemoProductionSeedExecution, assertSafeSeedTarget } from "../lib/environment.mjs";
-import { businessFixture, demoExpenseAccounts, demoPeriods, demoProjects, demoTaxAccounts, demoUsers, LOCAL_DEMO_PASSWORD } from "./fixtures/demo-data.mjs";
+import { businessFixture, demoExpenseAccounts, demoPeriods, demoProjects, demoUsers, LOCAL_DEMO_PASSWORD } from "./fixtures/demo-data.mjs";
 import { localEmulatorEnvironment, readEnvFile } from "./lib/env-files.mjs";
 
 async function createOrUpdateDemoUsers(auth, password, { production = false } = {}) {
@@ -47,7 +47,6 @@ async function seedDataConnect(dataConnect, firebaseUids) {
     ["UserProfile", profiles],
     ["Project", demoProjects],
     ["ExpenseAccount", demoExpenseAccounts],
-    ["TaxAccount", demoTaxAccounts],
     ["CardStatementPeriod", demoPeriods],
     ["InvoiceIntake", fixture.invoiceIntakes],
   ];
@@ -63,7 +62,7 @@ async function seedDataConnect(dataConnect, firebaseUids) {
   for (const reference of fixture.skuReferences) {
     await dataConnect.executeMutation("AdminSeedSkuReference", {
       ...reference,
-      accountCode: reference.expenseAccount.code,
+       accountId: reference.expenseAccount.id,
       expenseAccount: undefined,
     });
   }
@@ -73,7 +72,7 @@ async function seedDataConnect(dataConnect, firebaseUids) {
       cardId: transaction.card.id,
       statementPeriodId: transaction.statementPeriod.id,
       projectId: transaction.project.id,
-      accountCode: transaction.expenseAccount.code,
+       accountId: transaction.expenseAccount.id,
       card: undefined,
       statementPeriod: undefined,
       project: undefined,
@@ -101,8 +100,8 @@ async function seedDataConnect(dataConnect, firebaseUids) {
 function assertDemoFixture() {
   const fixture = businessFixture({ WORKER: "DEMO-UID-WORKER", KIM: "DEMO-UID-KIM", ADMIN: "DEMO-UID-ADMIN" });
   const keyedValues = [
-    ...demoUsers.map((row) => row.id), ...demoProjects.map((row) => row.id), ...demoExpenseAccounts.map((row) => row.code),
-    ...demoTaxAccounts.map((row) => row.code), ...demoPeriods.map((row) => row.id),
+    ...demoUsers.map((row) => row.id), ...demoProjects.map((row) => row.id), ...demoExpenseAccounts.map((row) => row.id),
+    ...demoExpenseAccounts.map((row) => row.number), ...demoPeriods.map((row) => row.id),
     ...fixture.cards.map((row) => row.id), ...fixture.skuReferences.map((row) => row.sku),
     ...fixture.transactions.map((row) => row.id), ...fixture.invoices.map((row) => row.id),
     ...fixture.invoicePhotos.map((row) => row.id), ...fixture.invoiceIntakes.map((row) => row.receiptId),

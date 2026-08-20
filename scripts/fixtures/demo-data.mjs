@@ -9,20 +9,17 @@ export const demoUsers = [
 ];
 
 export const demoProjects = [
-  { id: "DEMO-PROJET-001", name: "Chantier Démo A", status: "ACTIVE" },
-  { id: "DEMO-PROJET-002", name: "Chantier Démo B", status: "ACTIVE" },
-  { id: "DEMO-ADMIN", name: "Administration Démo", status: "ACTIVE" },
+  { id: "DEMO-PROJET-001", number: "DEMO-001", name: "Chantier Démo A", status: "ACTIVE" },
+  { id: "DEMO-PROJET-002", number: "DEMO-002", name: "Chantier Démo B", status: "ACTIVE" },
+  { id: "DEMO-ADMIN", number: "DEMO-ADMIN", name: "Administration Démo", status: "ACTIVE" },
 ];
 
 export const demoExpenseAccounts = [
-  { code: "DEMO-90001", label: "Matériaux Démo", status: "ACTIVE" },
-  { code: "DEMO-90002", label: "Carburant Démo", status: "ACTIVE" },
-  { code: "DEMO-90003", label: "Équipement Démo", status: "ACTIVE" },
-];
-
-export const demoTaxAccounts = [
-  { code: "DEMO-TPS", label: "TPS Démo", status: "ACTIVE" },
-  { code: "DEMO-TVQ", label: "TVQ Démo", status: "ACTIVE" },
+  { id: "DEMO-ACCOUNT-90001", number: "DEMO-90001", label: "Matériaux Démo", type: "EXPENSE", status: "ACTIVE" },
+  { id: "DEMO-ACCOUNT-90002", number: "DEMO-90002", label: "Carburant Démo", type: "EXPENSE", status: "ACTIVE" },
+  { id: "DEMO-ACCOUNT-90003", number: "DEMO-90003", label: "Équipement Démo", type: "EXPENSE", status: "ACTIVE" },
+  { id: "DEMO-ACCOUNT-TPS", number: "DEMO-TPS", label: "TPS Démo", type: "TAX", status: "ACTIVE" },
+  { id: "DEMO-ACCOUNT-TVQ", number: "DEMO-TVQ", label: "TVQ Démo", type: "TAX", status: "ACTIVE" },
 ];
 
 export const demoPeriods = [
@@ -36,27 +33,27 @@ export function businessFixture(firebaseUids) {
     { id: "DEMO-CARD-002", lastFour: "9002", holder: { id: "DEMO-USER-KIM" }, cardFunction: "Carte démo comptabilité", status: "ACTIVE", activeFrom: "2026-01-01" },
   ];
   const skuReferences = [
-    { merchant: "Quincaillerie Démo", sku: "DEMO-SKU-001", productLabel: "Bloc de démonstration", categoryLabel: "Matériaux Démo", expenseAccount: { code: "DEMO-90001" }, verificationStatus: "VALIDATED" },
-    { merchant: "Équipement Démo", sku: "DEMO-SKU-002", productLabel: "Outil de démonstration", categoryLabel: "Équipement Démo", expenseAccount: { code: "DEMO-90003" }, verificationStatus: "TO_CONFIRM" },
+    { merchant: "Quincaillerie Démo", sku: "DEMO-SKU-001", productLabel: "Bloc de démonstration", categoryLabel: "Matériaux Démo", expenseAccount: { id: "DEMO-ACCOUNT-90001" }, verificationStatus: "VALIDATED" },
+    { merchant: "Équipement Démo", sku: "DEMO-SKU-002", productLabel: "Outil de démonstration", categoryLabel: "Équipement Démo", expenseAccount: { id: "DEMO-ACCOUNT-90003" }, verificationStatus: "TO_CONFIRM" },
   ];
   const transactions = [
     {
-      id: "DEMO-TX-001", transactionDate: "2026-08-10", vendor: "Quincaillerie Démo", card: { id: "DEMO-CARD-001" }, statementPeriod: { id: "DEMO-2026-08" }, project: { id: "DEMO-PROJET-001" }, expenseAccount: { code: "DEMO-90001" }, categoryLabel: "Matériaux Démo", sku: "DEMO-SKU-001", amountBeforeTaxCents: "10000", tpsCents: "500", tvqCents: "998", totalCents: "11498", currency: "CAD", status: "NEEDS_REVIEW", processingStatus: "NEEDS_REVIEW", accountingStatus: "NOT_POSTED", reconciliationStatus: "UNMATCHED", classificationSource: "DEMO_SEED", classificationConfidence: 0.82, classificationNote: "Donnée fictive à valider.", invoiceNumber: "DEMO-FACT-001", issue: "Montant fictif à confirmer.",
+      id: "DEMO-TX-001", transactionDate: "2026-08-10", vendor: "Quincaillerie Démo", card: { id: "DEMO-CARD-001" }, statementPeriod: { id: "DEMO-2026-08" }, project: { id: "DEMO-PROJET-001" }, expenseAccount: { id: "DEMO-ACCOUNT-90001" }, categoryLabel: "Matériaux Démo", sku: "DEMO-SKU-001", amountBeforeTaxCents: "10000", tpsCents: "500", tvqCents: "998", totalCents: "11498", currency: "CAD", status: "NEEDS_REVIEW", processingStatus: "NEEDS_REVIEW", accountingStatus: "NOT_POSTED", reconciliationStatus: "UNMATCHED", classificationSource: "DEMO_SEED", classificationConfidence: 0.82, classificationNote: "Donnée fictive à valider.", invoiceNumber: "DEMO-FACT-001", issue: "Montant fictif à confirmer.",
     },
     {
-      id: "DEMO-TX-002", transactionDate: "2026-08-11", vendor: "Station Démo", card: { id: "DEMO-CARD-001" }, statementPeriod: { id: "DEMO-2026-08" }, project: { id: "DEMO-PROJET-002" }, expenseAccount: { code: "DEMO-90002" }, categoryLabel: "Carburant Démo", amountBeforeTaxCents: "8000", tpsCents: "400", tvqCents: "798", totalCents: "9198", currency: "CAD", status: "VALIDATED", processingStatus: "VALIDATED", accountingStatus: "POSTED", reconciliationStatus: "MATCHED", classificationSource: "DEMO_SEED", classificationConfidence: 1, classificationNote: "Transaction fictive validée.", invoiceNumber: "DEMO-FACT-002",
+      id: "DEMO-TX-002", transactionDate: "2026-08-11", vendor: "Station Démo", card: { id: "DEMO-CARD-001" }, statementPeriod: { id: "DEMO-2026-08" }, project: { id: "DEMO-PROJET-002" }, expenseAccount: { id: "DEMO-ACCOUNT-90002" }, categoryLabel: "Carburant Démo", amountBeforeTaxCents: "8000", tpsCents: "400", tvqCents: "798", totalCents: "9198", currency: "CAD", status: "VALIDATED", processingStatus: "VALIDATED", accountingStatus: "POSTED", reconciliationStatus: "MATCHED", classificationSource: "DEMO_SEED", classificationConfidence: 1, classificationNote: "Transaction fictive validée.", invoiceNumber: "DEMO-FACT-002",
     },
     {
-      id: "DEMO-TX-003", transactionDate: "2026-08-12", vendor: "Équipement Démo", card: { id: "DEMO-CARD-002" }, statementPeriod: { id: "DEMO-2026-08" }, project: { id: "DEMO-ADMIN" }, expenseAccount: { code: "DEMO-90003" }, categoryLabel: "Équipement Démo", sku: "DEMO-SKU-002", amountBeforeTaxCents: "20000", tpsCents: "1000", tvqCents: "1995", totalCents: "22995", currency: "CAD", status: "NEEDS_REVIEW", processingStatus: "NEEDS_REVIEW", accountingStatus: "NOT_POSTED", reconciliationStatus: "UNMATCHED", classificationSource: "DEMO_SEED", classificationConfidence: 0.7, classificationNote: "Référence fictive à confirmer.", invoiceNumber: "DEMO-FACT-003",
+      id: "DEMO-TX-003", transactionDate: "2026-08-12", vendor: "Équipement Démo", card: { id: "DEMO-CARD-002" }, statementPeriod: { id: "DEMO-2026-08" }, project: { id: "DEMO-ADMIN" }, expenseAccount: { id: "DEMO-ACCOUNT-90003" }, categoryLabel: "Équipement Démo", sku: "DEMO-SKU-002", amountBeforeTaxCents: "20000", tpsCents: "1000", tvqCents: "1995", totalCents: "22995", currency: "CAD", status: "NEEDS_REVIEW", processingStatus: "NEEDS_REVIEW", accountingStatus: "NOT_POSTED", reconciliationStatus: "UNMATCHED", classificationSource: "DEMO_SEED", classificationConfidence: 0.7, classificationNote: "Référence fictive à confirmer.", invoiceNumber: "DEMO-FACT-003",
     },
     {
-      id: "DEMO-TX-004", transactionDate: "2026-08-13", vendor: "Auto Démo", card: { id: "DEMO-CARD-001" }, statementPeriod: { id: "DEMO-2026-08" }, project: { id: "DEMO-PROJET-001" }, expenseAccount: { code: "DEMO-90001" }, categoryLabel: "Auto Démo", sku: "DEMO-SKU-001", amountBeforeTaxCents: "5000", tpsCents: "250", tvqCents: "499", totalCents: "5749", currency: "CAD", status: "AUTO_APPROVED", processingStatus: "AUTO_APPROVED", accountingStatus: "POSTED", reconciliationStatus: "UNMATCHED", classificationSource: "DEMO_SEED", classificationConfidence: 1, classificationNote: "Approbation automatique fictive.", invoiceNumber: "DEMO-FACT-004", issue: null,
+      id: "DEMO-TX-004", transactionDate: "2026-08-13", vendor: "Auto Démo", card: { id: "DEMO-CARD-001" }, statementPeriod: { id: "DEMO-2026-08" }, project: { id: "DEMO-PROJET-001" }, expenseAccount: { id: "DEMO-ACCOUNT-90001" }, categoryLabel: "Auto Démo", sku: "DEMO-SKU-001", amountBeforeTaxCents: "5000", tpsCents: "250", tvqCents: "499", totalCents: "5749", currency: "CAD", status: "AUTO_APPROVED", processingStatus: "AUTO_APPROVED", accountingStatus: "POSTED", reconciliationStatus: "UNMATCHED", classificationSource: "DEMO_SEED", classificationConfidence: 1, classificationNote: "Approbation automatique fictive.", invoiceNumber: "DEMO-FACT-004", issue: null,
     },
     {
-      id: "DEMO-TX-005", transactionDate: "2026-08-14", vendor: "Validation Démo", card: { id: "DEMO-CARD-002" }, statementPeriod: { id: "DEMO-2026-08" }, project: { id: "DEMO-ADMIN" }, expenseAccount: { code: "DEMO-90003" }, categoryLabel: "Validation Démo", sku: "DEMO-SKU-002", amountBeforeTaxCents: "6000", tpsCents: "300", tvqCents: "599", totalCents: "6899", currency: "CAD", status: "VALIDATED", processingStatus: "VALIDATED", accountingStatus: "NOT_POSTED", reconciliationStatus: "UNMATCHED", classificationSource: "DEMO_SEED", classificationConfidence: 1, classificationNote: "Validation humaine avant commit fictif.", invoiceNumber: "DEMO-FACT-005", issue: null,
+      id: "DEMO-TX-005", transactionDate: "2026-08-14", vendor: "Validation Démo", card: { id: "DEMO-CARD-002" }, statementPeriod: { id: "DEMO-2026-08" }, project: { id: "DEMO-ADMIN" }, expenseAccount: { id: "DEMO-ACCOUNT-90003" }, categoryLabel: "Validation Démo", sku: "DEMO-SKU-002", amountBeforeTaxCents: "6000", tpsCents: "300", tvqCents: "599", totalCents: "6899", currency: "CAD", status: "VALIDATED", processingStatus: "VALIDATED", accountingStatus: "NOT_POSTED", reconciliationStatus: "UNMATCHED", classificationSource: "DEMO_SEED", classificationConfidence: 1, classificationNote: "Validation humaine avant commit fictif.", invoiceNumber: "DEMO-FACT-005", issue: null,
     },
     {
-      id: "DEMO-TX-006", transactionDate: "2026-08-15", vendor: "Rapprochement Démo", card: { id: "DEMO-CARD-002" }, statementPeriod: { id: "DEMO-2026-08" }, project: { id: "DEMO-PROJET-002" }, expenseAccount: { code: "DEMO-90002" }, categoryLabel: "Rapprochement Démo", amountBeforeTaxCents: "7000", tpsCents: "350", tvqCents: "699", totalCents: "8049", currency: "CAD", status: "VALIDATED", processingStatus: "VALIDATED", accountingStatus: "POSTED", reconciliationStatus: "UNMATCHED", classificationSource: "DEMO_SEED", classificationConfidence: 1, classificationNote: "Écriture postée non rapprochée fictive.", invoiceNumber: "DEMO-FACT-006", issue: null,
+      id: "DEMO-TX-006", transactionDate: "2026-08-15", vendor: "Rapprochement Démo", card: { id: "DEMO-CARD-002" }, statementPeriod: { id: "DEMO-2026-08" }, project: { id: "DEMO-PROJET-002" }, expenseAccount: { id: "DEMO-ACCOUNT-90002" }, categoryLabel: "Rapprochement Démo", amountBeforeTaxCents: "7000", tpsCents: "350", tvqCents: "699", totalCents: "8049", currency: "CAD", status: "VALIDATED", processingStatus: "VALIDATED", accountingStatus: "POSTED", reconciliationStatus: "UNMATCHED", classificationSource: "DEMO_SEED", classificationConfidence: 1, classificationNote: "Écriture postée non rapprochée fictive.", invoiceNumber: "DEMO-FACT-006", issue: null,
     },
   ];
   const invoices = [

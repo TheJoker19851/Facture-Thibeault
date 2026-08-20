@@ -7,7 +7,6 @@ const QUERY_BY_TYPE = {
   CreditCard: "ListCreditCards",
   StatementPeriod: "ListCardStatementPeriods",
   ExpenseAccount: "ListExpenseAccounts",
-  TaxAccount: "ListTaxAccounts",
   Project: "ListProjects",
   SkuReference: "ListSkuReferences",
   ExpenseTransaction: "ListExpenseTransactions",
@@ -21,7 +20,7 @@ function rowsFromResult(result) {
 }
 
 function identifierFor(type, row) {
-  if (type === "ExpenseAccount" || type === "TaxAccount") return row.code;
+  if (type === "ExpenseAccount") return row.number;
   if (type === "SkuReference") return `${row.merchant ?? ""}::${row.sku ?? ""}`;
   if (type === "InvoiceIntake") return row.receiptId;
   if (type === "Invoice") return row.id;

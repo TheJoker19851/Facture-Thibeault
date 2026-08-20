@@ -44,18 +44,92 @@ mutation UpsertCreditCard(
 
 mutation UpsertProject(
   $id: String!
+  $number: String!
   $name: String!
   $status: String!
-) @auth(expr: "auth.token.role == 'ADMIN'") {
-  project_upsert(data: { id: $id name: $name status: $status })
+  $auditAction: String!
+  $auditEventId: String!
+  $auditDetails: String!
+) @auth(expr: "auth.token.role == 'ADMIN'") @transaction {
+  project_upsert(data: { id: $id number: $number name: $name status: $status })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid_expr: "auth.uid"
+    actorRole_expr: "auth.token.role"
+    action: $auditAction
+    entityType: "Project"
+    entityId: $id
+    details: $auditDetails
+  })
 }
 
 mutation UpsertExpenseAccount(
-  $code: String!
+  $id: String!
+  $number: String!
+  $type: String!
   $label: String!
   $status: String!
-) @auth(expr: "auth.token.role == 'ADMIN'") {
-  expenseAccount_upsert(data: { code: $code label: $label status: $status })
+  $auditAction: String!
+  $auditEventId: String!
+  $auditDetails: String!
+) @auth(expr: "auth.token.role == 'ADMIN'") @transaction {
+  expenseAccount_upsert(data: { id: $id number: $number label: $label type: $type status: $status })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid_expr: "auth.uid"
+    actorRole_expr: "auth.token.role"
+    action: $auditAction
+    entityType: "ExpenseAccount"
+    entityId: $id
+    details: $auditDetails
+  })
+}
+
+mutation DeleteProject(
+  $id: String!
+  $auditEventId: String!
+  $auditDetails: String!
+) @auth(expr: "auth.token.role == 'ADMIN'") @transaction {
+  query @redact @check(
+    expr: "response.query.expenseTransactions.size() == 0"
+    message: "Ce projet possède un historique et ne peut pas être supprimé. Il sera désactivé."
+  ) {
+    expenseTransactions(where: { project: { id: { eq: $id } } }, limit: 1) { id }
+  }
+  project_delete(key: { id: $id })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid_expr: "auth.uid"
+    actorRole_expr: "auth.token.role"
+    action: "PROJECT_DELETED"
+    entityType: "Project"
+    entityId: $id
+    details: $auditDetails
+  })
+}
+
+mutation DeleteExpenseAccount(
+  $id: String!
+  $auditEventId: String!
+  $auditDetails: String!
+) @auth(expr: "auth.token.role == 'ADMIN'") @transaction {
+  query @redact @check(
+    expr: "response.query.expenseTransactions.size() == 0 && response.query.skuReferences.size() == 0"
+    message: "Ce compte possède un historique et ne peut pas être supprimé. Il sera désactivé."
+  ) {
+    expenseTransactions(where: { expenseAccount: { id: { eq: $id } } }, limit: 1) { id }
+    skuReferences(where: { expenseAccount: { id: { eq: $id } } }, limit: 1) { merchant sku }
+  }
+  expenseAccount_delete(key: { id: $id })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid_expr: "auth.uid"
+    actorRole_expr: "auth.token.role"
+    action: "EXPENSE_ACCOUNT_DELETED"
+    entityType: "ExpenseAccount"
+    entityId: $id
+    details: $auditDetails
+  })
 }
 
 mutation UpsertCardStatementPeriod(
@@ -517,10 +591,10 @@ mutation MaterializeInvoiceIntakeV2(
   $currency: String!
   $sku: String
   $category: String!
-  $accountCode: String!
+  $accountId: String!
   $cardId: String!
   $statementPeriod: CardStatementPeriod_Key
-  $project: Project_Key
+  $project: Project_Key!
   $storageFolder: String!
   $classificationNote: String!
   $expectedProcessingStatus: String!
@@ -561,7 +635,7 @@ mutation MaterializeInvoiceIntakeV2(
     data: { accountingStatus: "POSTED" }
   )
   query @redact @check(
-    expr: "response.invoiceIntake_updateMany == 1 && ((vars.expectedProcessingStatus == 'AUTO_APPROVED' && vars.classificationSource == 'AUTO_DECISION' && vars.classificationStatus == 'RESOLVED' && vars.project != null && vars.statementPeriod != null) || (vars.expectedProcessingStatus == 'VALIDATED' && vars.classificationSource == 'KIM_COMMIT' && vars.classificationStatus == 'COMMITTED')) && response.query.invoiceIntakes[0].photoCount == vars.photoCount && vars.photoCount >= 1 && vars.photoCount <= 5 && vars.hasPhoto2 == (vars.photoCount >= 2) && vars.hasPhoto3 == (vars.photoCount >= 3) && vars.hasPhoto4 == (vars.photoCount >= 4) && vars.hasPhoto5 == (vars.photoCount >= 5) && vars.photo1StoragePath.startsWith(vars.storageFolder + '/') && vars.photo1ContentType in ['image/jpeg', 'image/png', 'image/webp'] && (!vars.hasPhoto2 || (vars.photo2StoragePath.startsWith(vars.storageFolder + '/') && vars.photo2ContentType in ['image/jpeg', 'image/png', 'image/webp'])) && (!vars.hasPhoto3 || (vars.photo3StoragePath.startsWith(vars.storageFolder + '/') && vars.photo3ContentType in ['image/jpeg', 'image/png', 'image/webp'])) && (!vars.hasPhoto4 || (vars.photo4StoragePath.startsWith(vars.storageFolder + '/') && vars.photo4ContentType in ['image/jpeg', 'image/png', 'image/webp'])) && (!vars.hasPhoto5 || (vars.photo5StoragePath.startsWith(vars.storageFolder + '/') && vars.photo5ContentType in ['image/jpeg', 'image/png', 'image/webp']))"
+    expr: "response.invoiceIntake_updateMany == 1 && ((vars.expectedProcessingStatus == 'AUTO_APPROVED' && vars.classificationSource == 'AUTO_DECISION' && vars.classificationStatus == 'RESOLVED' && vars.project != null && vars.statementPeriod != null) || (vars.expectedProcessingStatus == 'VALIDATED' && vars.classificationSource == 'KIM_COMMIT' && vars.classificationStatus == 'COMMITTED' && vars.project != null)) && response.query.invoiceIntakes[0].photoCount == vars.photoCount && vars.photoCount >= 1 && vars.photoCount <= 5 && vars.hasPhoto2 == (vars.photoCount >= 2) && vars.hasPhoto3 == (vars.photoCount >= 3) && vars.hasPhoto4 == (vars.photoCount >= 4) && vars.hasPhoto5 == (vars.photoCount >= 5) && vars.photo1StoragePath.startsWith(vars.storageFolder + '/') && vars.photo1ContentType in ['image/jpeg', 'image/png', 'image/webp'] && (!vars.hasPhoto2 || (vars.photo2StoragePath.startsWith(vars.storageFolder + '/') && vars.photo2ContentType in ['image/jpeg', 'image/png', 'image/webp'])) && (!vars.hasPhoto3 || (vars.photo3StoragePath.startsWith(vars.storageFolder + '/') && vars.photo3ContentType in ['image/jpeg', 'image/png', 'image/webp'])) && (!vars.hasPhoto4 || (vars.photo4StoragePath.startsWith(vars.storageFolder + '/') && vars.photo4ContentType in ['image/jpeg', 'image/png', 'image/webp'])) && (!vars.hasPhoto5 || (vars.photo5StoragePath.startsWith(vars.storageFolder + '/') && vars.photo5ContentType in ['image/jpeg', 'image/png', 'image/webp']))"
     message: "L’intake n’est pas commitable ou ses photos ne correspondent pas au dépôt Storage."
   ) {
     invoiceIntakes(where: { receiptId: { eq: $receiptId } }) {
@@ -576,7 +650,7 @@ mutation MaterializeInvoiceIntakeV2(
     card: { id: $cardId }
     statementPeriod: $statementPeriod
     project: $project
-    expenseAccount: { code: $accountCode }
+    expenseAccount: { id: $accountId }
     categoryLabel: $category
     sku: $sku
     amountBeforeTaxCents: $subtotalCents
@@ -685,7 +759,7 @@ mutation CommitInvoiceIntake(
   $currency: String!
   $sku: String
   $category: String!
-  $accountCode: String!
+  $accountId: String!
   $cardId: String!
   $statementPeriodId: String!
   $projectId: String!
@@ -710,7 +784,7 @@ mutation CommitInvoiceIntake(
     card: { id: $cardId }
     statementPeriod: { id: $statementPeriodId }
     project: { id: $projectId }
-    expenseAccount: { code: $accountCode }
+    expenseAccount: { id: $accountId }
     categoryLabel: $category
     sku: $sku
     amountBeforeTaxCents: $subtotalCents
@@ -771,7 +845,7 @@ mutation CommitInvoiceIntakeWithoutProject(
   $currency: String!
   $sku: String
   $category: String!
-  $accountCode: String!
+  $accountId: String!
   $cardId: String!
   $statementPeriodId: String!
   $storageFolder: String!
@@ -794,7 +868,7 @@ mutation CommitInvoiceIntakeWithoutProject(
     vendor: $vendor
     card: { id: $cardId }
     statementPeriod: { id: $statementPeriodId }
-    expenseAccount: { code: $accountCode }
+    expenseAccount: { id: $accountId }
     categoryLabel: $category
     sku: $sku
     amountBeforeTaxCents: $subtotalCents
@@ -855,7 +929,7 @@ mutation AutoCommitInvoiceIntake(
   $currency: String!
   $sku: String
   $category: String!
-  $accountCode: String!
+  $accountId: String!
   $cardId: String!
   $statementPeriodId: String!
   $projectId: String!
@@ -880,7 +954,7 @@ mutation AutoCommitInvoiceIntake(
     card: { id: $cardId }
     statementPeriod: { id: $statementPeriodId }
     project: { id: $projectId }
-    expenseAccount: { code: $accountCode }
+    expenseAccount: { id: $accountId }
     categoryLabel: $category
     sku: $sku
     amountBeforeTaxCents: $subtotalCents

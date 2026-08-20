@@ -2,7 +2,7 @@
 
 import { ChangeEvent, createContext, FormEvent, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getDownloadURL, ref } from "firebase/storage";
-import { accountingReadSource, commitInvoiceIntake, createFirebaseUser, loadAccountingSnapshot, mapAccountingSnapshot, removeDemoAccountingData, saveCreditCard, saveExpenseAccount, saveInvoiceIntakeReview, saveProject, saveStatementPeriod, saveUserProfile } from "../../firebase/accounting";
+import { accountingReadSource, commitInvoiceIntake, createFirebaseUser, deleteExpenseAccount, deleteProject, loadAccountingSnapshot, mapAccountingSnapshot, removeDemoAccountingData, saveCreditCard, saveExpenseAccount, saveInvoiceIntakeReview, saveProject, saveStatementPeriod, saveUserProfile } from "../../firebase/accounting";
 import { appCheckConfigured, firebaseConfigured, firebaseStorage } from "../../firebase/client";
 import { sqlConnectConfigured } from "../../firebase/data-connect";
 import { processInvoiceIntakeWithGemini } from "../../firebase/ai";
@@ -11,7 +11,7 @@ import { classifyInvoice } from "../../lib/invoice-processing.mjs";
 import { DecisionJsonError, parseDecisionExceptions, serializeDecisionChecks, serializeDecisionExceptions } from "../../lib/decision-json.mjs";
 import { filterTransactionsByStatus, transactionStatusFilterCounts, TRANSACTION_STATUS_FILTERS } from "../../lib/transaction-filters.mjs";
 import { INVOICE_CLIENT_VERSION } from "../../lib/invoice-client-version.mjs";
-import { auditDetails, parseAuditDetails } from "../../lib/audit-events.mjs";
+import { AUDIT_ACTIONS, auditDetails, parseAuditDetails } from "../../lib/audit-events.mjs";
 import { clearCaptureDraft, loadCaptureDraft, saveCaptureDraft } from "../../lib/capture-queue.mjs";
 import { useFirebaseIdentity, type AppRole } from "./FirebaseShell";
 
@@ -46,7 +46,16 @@ type Transaction = {
   card: string;
   periodId?: string;
   project: string;
+  projectId?: string;
+  projectNumber?: string;
+  projectName?: string;
+  accountId?: string;
+  accountNumber?: string;
+  accountLabel?: string;
   category: string;
+  subtotal: number;
+  tps: number;
+  tvq: number;
   total: number;
   status: "À vérifier" | "À valider" | "Validée";
   processingStatus?: string;
@@ -69,8 +78,12 @@ type PhotoItem = {
 };
 
 type AccountCategory = {
+  id: string;
+  number: string;
+  /** UI compatibility alias; relations and persistence use id, while number is the business key. */
   code: string;
   label: string;
+  type: string;
   status?: string;
 };
 
@@ -106,6 +119,7 @@ type CardPeriod = {
 
 type ProjectReference = {
   id: string;
+  number: string;
   name: string;
   status?: string;
 };
@@ -166,9 +180,11 @@ type AuditEventRecord = {
 };
 
 const accountCategories: AccountCategory[] = [
-  { code: "DEMO-90001", label: "Matériaux Démo" },
-  { code: "DEMO-90002", label: "Carburant Démo" },
-  { code: "DEMO-90003", label: "Équipement Démo" },
+  { id: "DEMO-ACCOUNT-90001", number: "DEMO-90001", code: "DEMO-90001", label: "Matériaux Démo", type: "EXPENSE", status: "ACTIVE" },
+  { id: "DEMO-ACCOUNT-90002", number: "DEMO-90002", code: "DEMO-90002", label: "Carburant Démo", type: "EXPENSE", status: "ACTIVE" },
+  { id: "DEMO-ACCOUNT-90003", number: "DEMO-90003", code: "DEMO-90003", label: "Équipement Démo", type: "EXPENSE", status: "ACTIVE" },
+  { id: "DEMO-ACCOUNT-TPS", number: "DEMO-TPS", code: "DEMO-TPS", label: "TPS Démo", type: "TAX", status: "ACTIVE" },
+  { id: "DEMO-ACCOUNT-TVQ", number: "DEMO-TVQ", code: "DEMO-TVQ", label: "TVQ Démo", type: "TAX", status: "ACTIVE" },
 ];
 
 const creditCards: CreditCard[] = [
@@ -200,9 +216,9 @@ const skuReferences: SkuReference[] = [
 ];
 
 const projectReferences: ProjectReference[] = [
-  { id: "DEMO-PROJET-001", name: "Chantier Démo A", status: "ACTIVE" },
-  { id: "DEMO-PROJET-002", name: "Chantier Démo B", status: "ACTIVE" },
-  { id: "DEMO-ADMIN", name: "Administration Démo", status: "ACTIVE" },
+  { id: "DEMO-PROJET-001", number: "DEMO-001", name: "Chantier Démo A", status: "ACTIVE" },
+  { id: "DEMO-PROJET-002", number: "DEMO-002", name: "Chantier Démo B", status: "ACTIVE" },
+  { id: "DEMO-ADMIN", number: "DEMO-ADMIN", name: "Administration Démo", status: "ACTIVE" },
 ];
 
 type AppData = {
@@ -241,6 +257,9 @@ const transactions: Transaction[] = [
     periodId: "DEMO-2026-08",
     project: "DEMO-PROJET-001 · Chantier Démo A",
     category: "Matériaux Démo",
+    subtotal: 100,
+    tps: 5,
+    tvq: 9.98,
     total: 114.98,
     status: "À vérifier",
     reconciliation: "Non rapprochée",
@@ -262,6 +281,9 @@ const transactions: Transaction[] = [
     periodId: "DEMO-2026-08",
     project: "DEMO-PROJET-002 · Chantier Démo B",
     category: "Carburant Démo",
+    subtotal: 80,
+    tps: 4,
+    tvq: 7.98,
     total: 91.98,
     status: "Validée",
     reconciliation: "Rapprochée",
@@ -279,6 +301,9 @@ const transactions: Transaction[] = [
     periodId: "DEMO-2026-08",
     project: "DEMO-ADMIN · Administration Démo",
     category: "Équipement Démo",
+    subtotal: 200,
+    tps: 10,
+    tvq: 19.95,
     total: 229.95,
     status: "À valider",
     reconciliation: "Non rapprochée",
@@ -1090,7 +1115,7 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
   const classificationCategory = draft.category || inferredClassification.category;
   const classificationSource = draft.accountCode ? "KIM_REVIEW" : inferredClassification.source;
   const classificationConfidence = draft.accountCode ? 1 : inferredClassification.confidence;
-  const isReadyForAccounting = Boolean(draft.vendor.trim() && draft.invoiceDate && draft.accountCode);
+  const isReadyForAccounting = Boolean(draft.vendor.trim() && draft.invoiceDate && draft.accountCode && draft.projectId);
   const messageState = commitState === "error" || commitState === "saved" ? commitState : saveState;
   const suggestedCard = cards.find((card) => card.id === commitCardId);
   const suggestedUploader = selectedIntake ? users.find((user) => user.firebaseUid === selectedIntake.uploaderUid) : undefined;
@@ -1119,7 +1144,10 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
     setSaveMessage("");
     const status = isReadyForAccounting ? "VALIDATED" : "NEEDS_REVIEW";
     const classificationStatus = isReadyForAccounting ? "RESOLVED" : inferredClassification.resolution;
-    const decisionExceptions = isReadyForAccounting ? [] : [{ code: "MISSING_ACCOUNT", fieldName: "accountCode", message: "Un compte comptable doit être confirmé.", aiValue: null, suggestedValue: inferredClassification.accountCode, status: "OPEN" }];
+    const decisionExceptions = isReadyForAccounting ? [] : [
+      ...(!draft.accountCode ? [{ code: "MISSING_ACCOUNT", fieldName: "accountCode", message: "Un compte comptable doit être confirmé.", aiValue: null, suggestedValue: inferredClassification.accountCode, status: "OPEN" }] : []),
+      ...(!draft.projectId ? [{ code: "UNKNOWN_PROJECT", fieldName: "projectId", message: "Projet introuvable — sélectionnez le chantier correspondant.", aiValue: null, suggestedValue: null, status: "OPEN" }] : []),
+    ];
     const previousValues = {
       vendor: selectedIntake.extractedVendor ?? null,
       invoiceNumber: selectedIntake.extractedInvoiceNumber ?? null,
@@ -1161,7 +1189,7 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
         currency: draft.currency.trim().toUpperCase() || "CAD",
         sku: draft.sku.trim() || null,
         category: draft.category.trim() || null,
-        projectId: draft.projectId || null,
+        projectId: draft.projectId,
         accountCode: draft.accountCode || null,
         classificationCategory: classificationCategory || null,
         classificationSource,
@@ -1222,9 +1250,9 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
     const tpsCents = dollarsToCents(draft.tps);
     const tvqCents = dollarsToCents(draft.tvq);
     const totalCents = dollarsToCents(draft.total);
-    if (!draft.vendor.trim() || !draft.invoiceDate || subtotalCents == null || tpsCents == null || tvqCents == null || totalCents == null || !draft.accountCode || !commitCardId) {
+    if (!draft.vendor.trim() || !draft.invoiceDate || subtotalCents == null || tpsCents == null || tvqCents == null || totalCents == null || !draft.accountCode || !draft.projectId || !commitCardId) {
       setCommitState("error");
-      setSaveMessage("Le fournisseur, la date, les montants, le compte et la carte sont requis. La période du relevé est facultative.");
+      setSaveMessage("Le fournisseur, la date, les montants, le compte, le projet et la carte sont requis. La période du relevé est facultative.");
       return;
     }
     setCommitState("saving");
@@ -1245,7 +1273,7 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
         accountCode: draft.accountCode,
         cardId: commitCardId,
         statementPeriodId: commitPeriodId || null,
-        projectId: draft.projectId || null,
+        projectId: draft.projectId,
         classificationNote: draft.notes.trim() || "Revue Kim confirmée.",
       });
       onSaved(selectedIntake.receiptId, {
@@ -1302,8 +1330,8 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
           <label className={`field wide ${needsCorrection("vendor") ? "needs-correction" : ""}`}><span>Fournisseur</span><input aria-invalid={needsCorrection("vendor")} value={draft.vendor} onChange={(event) => updateDraft("vendor", event.target.value)} /></label>
           <div className="field-grid"><label className={`field ${needsCorrection("invoiceNumber") ? "needs-correction" : ""}`}><span>No de facture</span><input aria-invalid={needsCorrection("invoiceNumber")} value={draft.invoiceNumber} onChange={(event) => updateDraft("invoiceNumber", event.target.value)} /></label><label className={`field ${needsCorrection("invoiceDate") ? "needs-correction" : ""}`}><span>Date</span><input aria-invalid={needsCorrection("invoiceDate")} type="date" value={draft.invoiceDate} onChange={(event) => updateDraft("invoiceDate", event.target.value)} /></label></div>
           <div className="field-grid"><label className={`field ${needsCorrection("subtotalCents") ? "needs-correction" : ""}`}><span>Sous-total</span><input aria-invalid={needsCorrection("subtotalCents")} inputMode="decimal" value={draft.subtotal} onChange={(event) => updateDraft("subtotal", event.target.value)} /></label><label className={`field ${needsCorrection("totalCents") ? "needs-correction" : ""}`}><span>Total</span><input aria-invalid={needsCorrection("totalCents")} inputMode="decimal" value={draft.total} onChange={(event) => updateDraft("total", event.target.value)} /></label><label className={`field ${needsCorrection("tpsCents") ? "needs-correction" : ""}`}><span>TPS</span><input aria-invalid={needsCorrection("tpsCents")} inputMode="decimal" value={draft.tps} onChange={(event) => updateDraft("tps", event.target.value)} /></label><label className={`field ${needsCorrection("tvqCents") ? "needs-correction" : ""}`}><span>TVQ</span><input aria-invalid={needsCorrection("tvqCents")} inputMode="decimal" value={draft.tvq} onChange={(event) => updateDraft("tvq", event.target.value)} /></label></div>
-          <label className={`field wide ${needsCorrection("accountCode") ? "needs-correction" : ""}`}><span>Compte comptable confirmé</span><select aria-invalid={needsCorrection("accountCode")} value={draft.accountCode} onChange={(event) => updateDraft("accountCode", event.target.value)}><option value="">Choisir le compte</option>{accounts.map((account) => <option key={account.code} value={account.code}>{account.code} · {account.label}</option>)}</select><small>{inferredClassification.accountCode ? `Suggestion automatique : ${inferredClassification.accountCode} · ${inferredClassification.category}` : "Aucune suggestion fiable; le choix de Kim est requis."}</small></label>
-          <label className={`field wide ${needsCorrection("projectId") ? "needs-correction" : ""}`}><span>Chantier / projet (facultatif pour cette revue)</span><select aria-invalid={needsCorrection("projectId")} value={draft.projectId} onChange={(event) => updateDraft("projectId", event.target.value)}><option value="">Aucun projet sélectionné</option>{projects.filter((project) => project.status !== "INACTIVE").map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
+           <label className={`field wide ${needsCorrection("accountCode") ? "needs-correction" : ""}`}><span>Compte comptable confirmé</span><select aria-invalid={needsCorrection("accountCode")} value={draft.accountCode} onChange={(event) => updateDraft("accountCode", event.target.value)}><option value="">Choisir le compte de dépense</option>{accounts.filter((account) => account.status !== "INACTIVE" && account.type === "EXPENSE").map((account) => <option key={account.id} value={account.number}>{account.number} · {account.label}</option>)}</select><small>{inferredClassification.accountCode ? `Suggestion automatique : ${inferredClassification.accountCode} · ${inferredClassification.category}` : "Aucune suggestion fiable; le choix de Kim est requis."}</small></label>
+           <label className={`field wide ${needsCorrection("projectId") ? "needs-correction" : ""}`}><span>Chantier / projet</span><select required aria-invalid={needsCorrection("projectId")} value={draft.projectId} onChange={(event) => updateDraft("projectId", event.target.value)}><option value="">Projet introuvable — sélectionnez le chantier correspondant</option>{projects.filter((project) => project.status !== "INACTIVE").map((project) => <option key={project.id} value={project.id}>{project.number} · {project.name}</option>)}</select><small>Un projet actif est obligatoire avant la création de l’écriture.</small></label>
           <label className="field wide"><span>Note de revue</span><textarea rows={3} value={draft.notes} onChange={(event) => updateDraft("notes", event.target.value)} /></label>
           <section className="intake-commit-card">
             <div><p className="eyebrow">Création comptable</p><h3>Références comptables</h3><p className="muted">La carte est requise pour créer l’écriture. La période du relevé est facultative et pourra être associée lors du rapprochement.</p></div>
@@ -1375,7 +1403,7 @@ function TransactionsPage({ items, query, setQuery, statusFilter, statusCounts, 
 
 function TransactionTable({ items, compact = false, onOpen }: { items: Transaction[]; compact?: boolean; onOpen?: (id: string) => void }) {
   const data = useAppData();
-  return <div className={`table-wrap ${compact ? "compact" : ""}`}><table><thead><tr><th>Transaction</th><th>Date</th><th>Fournisseur</th><th>Titulaire</th><th>Chantier</th><th>Montant</th><th>État</th><th /></tr></thead><tbody>{items.map((item) => { const classification = classifyTransaction(item, data); return <tr key={item.id} onClick={() => onOpen?.(item.id)}><td><div className="transaction-id"><span className="receipt-icon">▧</span><span><strong>{item.id}</strong><small>{item.invoiceNumber} · {item.imageCount} photo{item.imageCount > 1 ? "s" : ""}</small></span></div></td><td>{formatDate(item.date)}</td><td><strong>{item.vendor}</strong><small>{classification.code} · {classification.category}</small></td><td>{item.person}<small>Carte ···· {item.card}</small></td><td>{item.project}</td><td><strong>{formatCurrency(item.total)}</strong></td><td><span className={statusClass(item.status)}>{item.status}</span><small className="table-substatus">{item.reconciliation}</small></td><td><button className="row-menu" onClick={(event) => { event.stopPropagation(); onOpen?.(item.id); }} aria-label={`Ouvrir ${item.id}`}>→</button></td></tr>; })}</tbody></table>{items.length === 0 && <div className="empty-state"><span>⌕</span><strong>Aucune transaction trouvée</strong><p>Modifiez vos filtres pour élargir la recherche.</p></div>}</div>;
+  return <div className={`table-wrap ${compact ? "compact" : ""}`}><table><thead><tr><th>Transaction</th><th>Date</th><th>Fournisseur</th><th>Titulaire / carte</th><th>Projet</th><th>Compte</th><th>Sous-total</th><th>TPS</th><th>TVQ</th><th>Total</th><th>État / rapprochement</th><th /></tr></thead><tbody>{items.map((item) => { const classification = classifyTransaction(item, data); const accountNumber = item.accountNumber ?? classification.code; const accountLabel = item.accountLabel ?? classification.category; return <tr key={item.id} onClick={() => onOpen?.(item.id)}><td><div className="transaction-id"><span className="receipt-icon">▧</span><span><strong>{item.id}</strong><small>{item.invoiceNumber} · {item.imageCount} photo{item.imageCount > 1 ? "s" : ""}</small></span></div></td><td>{formatDate(item.date)}</td><td>{item.vendor}</td><td>{item.person}<small>•••• {item.card}</small></td><td><strong>{item.projectNumber ?? "—"}</strong><small>{item.projectName ?? item.project}</small></td><td><strong>{accountNumber}</strong><small>{accountLabel}</small></td><td>{formatCurrency(item.subtotal)}</td><td>{formatCurrency(item.tps)}</td><td>{formatCurrency(item.tvq)}</td><td><strong>{formatCurrency(item.total)}</strong></td><td><span className={statusClass(item.status)}>{item.status}</span><small className="table-substatus">{item.reconciliation}</small></td><td><button className="row-menu" onClick={(event) => { event.stopPropagation(); onOpen?.(item.id); }} aria-label={`Ouvrir ${item.id}`}>→</button></td></tr>; })}</tbody></table>{items.length === 0 && <div className="empty-state"><span>⌕</span><strong>Aucune transaction trouvée</strong><p>Modifiez vos filtres pour élargir la recherche.</p></div>}</div>;
 }
 
 function TransactionDetail({ transaction, onBack, onNotify }: { transaction: Transaction; onBack: () => void; onNotify: (message: string) => void }) {
@@ -1403,9 +1431,9 @@ function TransactionDetail({ transaction, onBack, onNotify }: { transaction: Tra
       </section>
       <aside className="detail-form">
         <div className="form-section"><div className="section-heading"><span>01</span><div><p className="eyebrow">Provenance</p><h2>Source de la transaction</h2></div></div><div className="provenance-card"><div className="avatar avatar-blue">K</div><div><strong>{transaction.submittedBy}</strong><span>Soumis le {formatDate(transaction.date)} · appareil mobile</span></div><span className="verified-mark">✓</span></div><div className="field-grid"><Field label="Personne associée" value={transaction.person} /><Field label="Carte détectée" value={`•••• ${transaction.card}`} hint="Concordance confirmée" tone="success" /><Field label="Dossier source" value="/dépôts/chantier" /><Field label="Réception" value={`${formatDate(transaction.date)} · 14:32`} /></div></div>
-        <div className="form-section"><div className="section-heading"><span>02</span><div><p className="eyebrow">Facture</p><h2>Données principales</h2></div></div><div className="field-grid"><Field label="Fournisseur" value={transaction.vendor} /><Field label="No facture" value={transaction.invoiceNumber} /><Field label="Date de facture" value={formatDate(transaction.date)} /><Field label="Chantier" value={transaction.project} /><Field label="Catégorie" value={draftCategory} /><Field label="Compte comptable" value={`${classification.code} · ${classification.category}`} invalid={transaction.correctionField === "account"} wide /></div>{transaction.correctionField === "account" && <label className="correction-editor correction-editor-danger"><span>Corriger la classification proposée par le SKU {transaction.sku}</span><select value={draftCategory} onChange={(event) => setDraftCategory(event.target.value)}>{data.accounts.map((account) => <option value={account.label} key={account.code}>{account.code} · {account.label}</option>)}</select></label>}</div>
+         <div className="form-section"><div className="section-heading"><span>02</span><div><p className="eyebrow">Facture</p><h2>Données principales</h2></div></div><div className="field-grid"><Field label="Fournisseur" value={transaction.vendor} /><Field label="No facture" value={transaction.invoiceNumber} /><Field label="Date de facture" value={formatDate(transaction.date)} /><Field label="Chantier" value={transaction.project} /><Field label="Catégorie" value={draftCategory} /><Field label="Compte comptable" value={`${classification.code} · ${classification.category}`} invalid={transaction.correctionField === "account"} wide /></div>{transaction.correctionField === "account" && <label className="correction-editor correction-editor-danger"><span>Corriger la classification proposée par le SKU {transaction.sku}</span><select value={draftCategory} onChange={(event) => setDraftCategory(event.target.value)}>{data.accounts.filter((account) => account.type === "EXPENSE").map((account) => <option value={account.label} key={account.id}>{account.number} · {account.label}</option>)}</select></label>}</div>
         {transaction.issue && <div className="detail-alert"><div className="detail-alert-icon">!</div><div><p className="eyebrow">Action requise avant validation</p><strong>{transaction.issue}</strong><span>{transaction.correction ?? "Correction humaine requise avant validation."}</span></div></div>}
-        <div className="form-section"><div className="section-heading"><span>03</span><div><p className="eyebrow">Montants</p><h2>Contrôle comptable</h2></div><span className="control-ok">✓ Contrôles 4/4</span></div><div className="amount-card"><div className={transaction.correctionField === "subtotal" ? "amount-invalid" : ""}><span>Sous-total</span>{transaction.correctionField === "subtotal" ? <input className="amount-input" type="number" step="0.01" value={draftSubtotal} onChange={(event) => setDraftSubtotal(event.target.value)} /> : <strong>160,35 $</strong>}</div><div><span>TPS</span><strong>8,02 $</strong></div><div><span>TVQ</span><strong>16,00 $</strong></div><div className="amount-total"><span>Total</span><strong>{formatCurrency(transaction.total)}</strong></div></div></div>
+         <div className="form-section"><div className="section-heading"><span>03</span><div><p className="eyebrow">Montants</p><h2>Contrôle comptable</h2></div><span className="control-ok">✓ Contrôles 4/4</span></div><div className="amount-card"><div className={transaction.correctionField === "subtotal" ? "amount-invalid" : ""}><span>Sous-total</span>{transaction.correctionField === "subtotal" ? <input className="amount-input" type="number" step="0.01" value={draftSubtotal} onChange={(event) => setDraftSubtotal(event.target.value)} /> : <strong>{formatCurrency(transaction.subtotal)}</strong>}</div><div><span>TPS</span><strong>{formatCurrency(transaction.tps)}</strong></div><div><span>TVQ</span><strong>{formatCurrency(transaction.tvq)}</strong></div><div className="amount-total"><span>Total</span><strong>{formatCurrency(transaction.total)}</strong></div></div></div>
         <div className="form-section"><div className="section-heading"><span>04</span><div><p className="eyebrow">Articles</p><h2>Lignes extraites</h2></div><button className="text-button">＋ Ajouter</button></div><div className="line-items"><div className="line-item"><span>01</span><div><strong>Matériaux / pièce</strong><small>Description originale conservée</small></div><strong>120,00 $</strong></div><div className="line-item warning-line"><span>02</span><div><strong>Article à confirmer</strong><small>Information absente de la page analysée</small></div><strong>—</strong></div></div><div className="field-note">{transaction.note}</div>{transaction.correctionField === "attachment" && <div className="correction-editor correction-editor-danger"><strong>Bon de livraison requis</strong><span>Cette correction doit être jointe à la facture avant la validation.</span><button className="secondary-button" onClick={() => setAttachmentAdded(true)}>{attachmentAdded ? "Pièce ajoutée ✓" : "Ajouter la pièce justificative"}</button></div>}</div>
         <div className="audit-footer">{saved ? "Dernière correction enregistrée à l’instant" : "Dernière analyse IA · il y a 8 min"}<button className="text-button">Voir l’audit →</button></div>
       </aside>
@@ -1465,35 +1493,43 @@ function KimAccountingReport({ period, onPeriodChange, embedded = false }: { per
   const data = useAppData();
   const { cards, transactions, accounts } = data;
   const [selectedPerson, setSelectedPerson] = useState("TOUS");
+  const [selectedProject, setSelectedProject] = useState("TOUS");
   const people = Array.from(new Set(cards.map((card) => card.holder)));
+  const projects = data.projects;
   const visibleTransactions = useMemo(() => transactions.filter((transaction) => {
     const matchesPerson = selectedPerson === "TOUS" || transaction.person === selectedPerson;
+    const matchesProject = selectedProject === "TOUS" || transaction.projectId === selectedProject || transaction.projectNumber === selectedProject;
     const matchesPeriod = isTransactionInPeriod(transaction, period);
     const isIncludedStatus = transaction.accountingStatus === "POSTED" &&
       (transaction.processingStatus === "AUTO_APPROVED" || transaction.processingStatus === "VALIDATED");
-    return matchesPerson && matchesPeriod && isIncludedStatus;
-  }), [period, selectedPerson, transactions]);
+    return matchesPerson && matchesProject && matchesPeriod && isIncludedStatus;
+  }), [period, selectedPerson, selectedProject, transactions]);
   const visibleTotals = useMemo(() => {
-    const totals = new Map<string, number>();
+    const totals = new Map<string, { subtotal: number; tps: number; tvq: number; total: number }>();
     visibleTransactions.forEach((transaction) => {
-      const accountCode = classifyTransaction(transaction, data).code;
-      totals.set(accountCode, (totals.get(accountCode) ?? 0) + transaction.total);
+      const accountNumber = transaction.accountNumber ?? classifyTransaction(transaction, data).code;
+      const current = totals.get(accountNumber) ?? { subtotal: 0, tps: 0, tvq: 0, total: 0 };
+      totals.set(accountNumber, { subtotal: current.subtotal + transaction.subtotal, tps: current.tps + transaction.tps, tvq: current.tvq + transaction.tvq, total: current.total + transaction.total });
     });
     return totals;
   }, [data, visibleTransactions]);
-  const visibleTotal = Array.from(visibleTotals.values()).reduce((sum, amount) => sum + amount, 0);
+  const visibleTotal = Array.from(visibleTotals.values()).reduce((sum, amount) => sum + amount.total, 0);
+  const visibleSubtotal = Array.from(visibleTotals.values()).reduce((sum, amount) => sum + amount.subtotal, 0);
+  const visibleTps = Array.from(visibleTotals.values()).reduce((sum, amount) => sum + amount.tps, 0);
+  const visibleTvq = Array.from(visibleTotals.values()).reduce((sum, amount) => sum + amount.tvq, 0);
   return <>
     {!embedded && <PageHeading eyebrow="Analyse" title="Rapports" description="Le tableau compact utilisé par Kim pour reporter les dépenses dans la comptabilité." action={<button className="primary-button"><span>⇩</span> Exporter en Excel</button>} />}
     <div className="kim-report-toolbar">
       {!embedded && <PeriodSelector period={period} onChange={onPeriodChange} />}
-      <label><span>Titulaire de carte</span><select aria-label="Filtrer par titulaire de carte" value={selectedPerson} onChange={(event) => setSelectedPerson(event.target.value)}><option value="TOUS">Tous les titulaires</option>{people.map((person) => <option value={person} key={person}>{person}</option>)}</select></label>
-      <div className="kim-report-context"><span className="status-dot" /><span>{period.label}</span><small>{visibleTransactions.length} transactions incluses</small></div>
+       <label><span>Titulaire de carte</span><select aria-label="Filtrer par titulaire de carte" value={selectedPerson} onChange={(event) => setSelectedPerson(event.target.value)}><option value="TOUS">Tous les titulaires</option>{people.map((person) => <option value={person} key={person}>{person}</option>)}</select></label>
+       <label><span>Projet</span><select aria-label="Filtrer par projet" value={selectedProject} onChange={(event) => setSelectedProject(event.target.value)}><option value="TOUS">Tous les projets</option>{projects.map((project) => <option value={project.id} key={project.id}>{project.number} — {project.name}</option>)}</select></label>
+       <div className="kim-report-context"><span className="status-dot" /><span>{period.label}</span><small>{visibleTransactions.length} transactions incluses</small></div>
     </div>
     <section className="panel kim-report-table">
       <div className="panel-header"><div><p className="eyebrow">Tableau de Kim</p><h2>Résumé par catégorie comptable</h2></div><span className="badge badge-neutral">Avant taxes</span></div>
-      <div className="kim-report-head"><span>Compte</span><span>Catégorie</span><span>Total avant taxes</span></div>
-      <div className="kim-report-rows">{accounts.map((account) => <div key={account.code}><span><b>{account.code}</b></span><span>{account.label}</span><strong>{formatCurrency(visibleTotals.get(account.code) ?? 0)}</strong></div>)}</div>
-      <div className="account-report-total"><strong>TOTAL CATÉGORIES</strong><strong>{formatCurrency(visibleTotal)}</strong></div>
+       <div className="kim-report-head"><span>Compte</span><span>Catégorie</span><span>Hors taxes</span><span>TPS</span><span>TVQ</span><span>Total</span></div>
+       <div className="kim-report-rows">{accounts.filter((account) => account.type === "EXPENSE").map((account) => { const totals = visibleTotals.get(account.number) ?? { subtotal: 0, tps: 0, tvq: 0, total: 0 }; return <div key={account.id}><span><b>{account.number}</b></span><span>{account.label}</span><strong>{formatCurrency(totals.subtotal)}</strong><strong>{formatCurrency(totals.tps)}</strong><strong>{formatCurrency(totals.tvq)}</strong><strong>{formatCurrency(totals.total)}</strong></div>; })}</div>
+       <div className="account-report-total"><strong>TOTAL</strong><span>{formatCurrency(visibleSubtotal)}</span><span>{formatCurrency(visibleTps)}</span><span>{formatCurrency(visibleTvq)}</span><strong>{formatCurrency(visibleTotal)}</strong></div>
     </section>
   </>;
 }
@@ -1573,10 +1609,14 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [directoryQuery, setDirectoryQuery] = useState("");
-  const [accountForm, setAccountForm] = useState({ code: "", label: "" });
-  const [projectForm, setProjectForm] = useState({ id: "", name: "" });
+  const [accountForm, setAccountForm] = useState({ id: "", number: "", label: "", type: "EXPENSE" });
+  const [projectForm, setProjectForm] = useState({ id: "", number: "", name: "" });
   const [periodForm, setPeriodForm] = useState({ id: "", label: "", startDate: "", endDate: "", statementLabel: "" });
   const canCreateUsers = role === "ADMIN";
+  const canEditReferences = role === "ADMIN";
+  const [accountStatusFilter, setAccountStatusFilter] = useState("ALL");
+  const [accountTypeFilter, setAccountTypeFilter] = useState("ALL");
+  const [projectStatusFilter, setProjectStatusFilter] = useState("ALL");
   const isPreviewMode = process.env.NEXT_PUBLIC_FIREBASE_PREVIEW_MODE === "true";
   const persistenceReady = !isPreviewMode && sqlConnectConfigured && accountingReadSource === "firebase-sql-connect";
 
@@ -1759,21 +1799,34 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
     event.preventDefault();
     setError("");
     setNotice("");
-    const code = accountForm.code.trim();
+    const number = accountForm.number.trim();
     const label = accountForm.label.trim();
     if (!ensureAdminPersistence()) return;
-    if (!code || !label) {
-      setError("Le code et le libellé du compte sont requis.");
+    if (!number || !label) {
+      setError("Le numéro et le libellé du compte sont requis.");
       return;
     }
-    setBusyKey(`account-${code}`);
+    if (!/^\d{1,20}$/.test(number)) {
+      setError("Le numéro de compte doit contenir uniquement des chiffres et conserver les zéros initiaux.");
+      return;
+    }
+    const id = accountForm.id || `ACCOUNT-${crypto.randomUUID().toUpperCase()}`;
+    const previous = accounts.find((account) => account.id === id);
+    if (accounts.some((account) => account.id !== id && account.number === number)) {
+      setError(`Le numéro de compte ${number} existe déjà.`);
+      return;
+    }
+    setBusyKey(`account-${id}`);
     try {
-      await saveExpenseAccount({ code, label, status: "ACTIVE" });
-      const nextAccounts = [...accounts.filter((account) => account.code !== code), { code, label, status: "ACTIVE" }];
+      const status = previous?.status ?? "ACTIVE";
+      const action = previous ? AUDIT_ACTIONS.ACCOUNT_UPDATED : AUDIT_ACTIONS.ACCOUNT_CREATED;
+      const nextAccount = { id, number, code: number, label, type: accountForm.type, status };
+      await saveExpenseAccount({ id, number, label, type: accountForm.type, status, auditAction: action, auditDetails: auditDetails({ before: previous ?? null, after: nextAccount }) });
+      const nextAccounts = [...accounts.filter((account) => account.id !== id), nextAccount];
       setAccounts(nextAccounts);
       onDataChange({ accounts: nextAccounts });
-      setAccountForm({ code: "", label: "" });
-      setNotice(`Compte ${code} enregistré.`);
+      setAccountForm({ id: "", number: "", label: "", type: "EXPENSE" });
+      setNotice(`Compte ${number} enregistré.`);
     } catch (reason) {
       showError(reason);
     } finally {
@@ -1784,17 +1837,48 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
   const toggleAccount = async (account: AccountCategory) => {
     if (!ensureAdminPersistence()) return;
     const status = account.status === "INACTIVE" ? "ACTIVE" : "INACTIVE";
-    setBusyKey(`account-toggle-${account.code}`);
+    setBusyKey(`account-toggle-${account.id}`);
     setError("");
     setNotice("");
     try {
-      await saveExpenseAccount({ code: account.code, label: account.label, status });
-      const nextAccounts = accounts.map((candidate) => candidate.code === account.code ? { ...candidate, status } : candidate);
+      await saveExpenseAccount({ id: account.id, number: account.number, label: account.label, type: account.type, status, auditAction: status === "ACTIVE" ? AUDIT_ACTIONS.ACCOUNT_ACTIVATED : AUDIT_ACTIONS.ACCOUNT_DEACTIVATED, auditDetails: auditDetails({ before: account, after: { ...account, status } }) });
+      const nextAccounts = accounts.map((candidate) => candidate.id === account.id ? { ...candidate, status } : candidate);
       setAccounts(nextAccounts);
       onDataChange({ accounts: nextAccounts });
-      setNotice(`Compte ${account.code} ${status === "ACTIVE" ? "réactivé" : "désactivé"}.`);
+      setNotice(`Compte ${account.number} ${status === "ACTIVE" ? "réactivé" : "désactivé"}.`);
     } catch (reason) {
       showError(reason);
+    } finally {
+      setBusyKey("");
+    }
+  };
+
+  const deleteAccount = async (account: AccountCategory) => {
+    if (!ensureAdminPersistence()) return;
+    const used = data.transactions.some((transaction) => transaction.accountId === account.id || transaction.accountNumber === account.number) || data.skuReferences.some((reference) => reference.accountCode === account.number);
+    if (used) {
+      if (account.status !== "INACTIVE") await toggleAccount(account);
+      setNotice("Ce compte possède un historique et ne peut pas être supprimé. Il sera désactivé.");
+      return;
+    }
+    if (!window.confirm(`Supprimer le compte ${account.number} — ${account.label} ?`)) return;
+    setBusyKey(`account-delete-${account.id}`);
+    setError("");
+    setNotice("");
+    try {
+      await deleteExpenseAccount({ id: account.id, auditDetails: auditDetails({ before: account }) });
+      const nextAccounts = accounts.filter((candidate) => candidate.id !== account.id);
+      setAccounts(nextAccounts);
+      onDataChange({ accounts: nextAccounts });
+      setNotice(`Compte ${account.number} supprimé.`);
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : "";
+      if (/historique|ne peut pas être supprimé/i.test(message)) {
+        await toggleAccount(account);
+        setNotice("Ce compte possède un historique et ne peut pas être supprimé. Il sera désactivé.");
+      } else {
+        showError(reason);
+      }
     } finally {
       setBusyKey("");
     }
@@ -1804,20 +1888,33 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
     event.preventDefault();
     setError("");
     setNotice("");
-    const id = projectForm.id.trim();
+    const id = projectForm.id || `PROJECT-${crypto.randomUUID().toUpperCase()}`;
+    const number = projectForm.number.trim();
     const name = projectForm.name.trim();
     if (!ensureAdminPersistence()) return;
-    if (!id || !name) {
-      setError("L’identifiant et le nom du projet sont requis.");
+    if (!number || !name) {
+      setError("Le numéro et le nom du projet sont requis.");
+      return;
+    }
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$/.test(number)) {
+      setError("Le numéro de projet contient des caractères non valides.");
+      return;
+    }
+    const previous = projects.find((project) => project.id === id);
+    if (projects.some((project) => project.id !== id && project.number === number)) {
+      setError(`Le numéro de projet ${number} existe déjà.`);
       return;
     }
     setBusyKey(`project-${id}`);
     try {
-      await saveProject({ id, name, status: "ACTIVE" });
-      const nextProjects = [...projects.filter((project) => project.id !== id), { id, name, status: "ACTIVE" }];
+      const status = previous?.status ?? "ACTIVE";
+      const action = previous ? AUDIT_ACTIONS.PROJECT_UPDATED : AUDIT_ACTIONS.PROJECT_CREATED;
+      const nextProject = { id, number, name, status };
+      await saveProject({ id, number, name, status, auditAction: action, auditDetails: auditDetails({ before: previous ?? null, after: nextProject }) });
+      const nextProjects = [...projects.filter((project) => project.id !== id), nextProject];
       setProjects(nextProjects);
       onDataChange({ projects: nextProjects });
-      setProjectForm({ id: "", name: "" });
+      setProjectForm({ id: "", number: "", name: "" });
       setNotice(`Projet ${name} enregistré.`);
     } catch (reason) {
       showError(reason);
@@ -1833,13 +1930,44 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
     setError("");
     setNotice("");
     try {
-      await saveProject({ id: project.id, name: project.name, status });
+      await saveProject({ id: project.id, number: project.number, name: project.name, status, auditAction: status === "ACTIVE" ? AUDIT_ACTIONS.PROJECT_ACTIVATED : AUDIT_ACTIONS.PROJECT_DEACTIVATED, auditDetails: auditDetails({ before: project, after: { ...project, status } }) });
       const nextProjects = projects.map((candidate) => candidate.id === project.id ? { ...candidate, status } : candidate);
       setProjects(nextProjects);
       onDataChange({ projects: nextProjects });
       setNotice(`Projet ${project.name} ${status === "ACTIVE" ? "réactivé" : "désactivé"}.`);
     } catch (reason) {
       showError(reason);
+    } finally {
+      setBusyKey("");
+    }
+  };
+
+  const deleteProjectReference = async (project: ProjectReference) => {
+    if (!ensureAdminPersistence()) return;
+    const used = data.transactions.some((transaction) => transaction.projectId === project.id || transaction.projectNumber === project.number);
+    if (used) {
+      if (project.status !== "INACTIVE") await toggleProject(project);
+      setNotice("Ce projet possède un historique et ne peut pas être supprimé. Il sera désactivé.");
+      return;
+    }
+    if (!window.confirm(`Supprimer le projet ${project.number} — ${project.name} ?`)) return;
+    setBusyKey(`project-delete-${project.id}`);
+    setError("");
+    setNotice("");
+    try {
+      await deleteProject({ id: project.id, auditDetails: auditDetails({ before: project }) });
+      const nextProjects = projects.filter((candidate) => candidate.id !== project.id);
+      setProjects(nextProjects);
+      onDataChange({ projects: nextProjects });
+      setNotice(`Projet ${project.number} supprimé.`);
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : "";
+      if (/historique|ne peut pas être supprimé/i.test(message)) {
+        await toggleProject(project);
+        setNotice("Ce projet possède un historique et ne peut pas être supprimé. Il sera désactivé.");
+      } else {
+        showError(reason);
+      }
     } finally {
       setBusyKey("");
     }
@@ -1900,8 +2028,8 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
   const matchesDirectoryQuery = (...values: Array<string | undefined | null>) => !normalizedDirectoryQuery || values.some((value) => value?.toLowerCase().includes(normalizedDirectoryQuery));
   const visibleUsers = users.filter((user) => matchesDirectoryQuery(user.displayName, user.email, user.jobTitle, user.role, user.status));
   const visibleCards = cards.filter((card) => matchesDirectoryQuery(card.lastFour, card.holder, card.function, card.status));
-  const visibleAccounts = accounts.filter((account) => matchesDirectoryQuery(account.code, account.label, account.status));
-  const visibleProjects = projects.filter((project) => matchesDirectoryQuery(project.id, project.name, project.status));
+  const visibleAccounts = accounts.filter((account) => matchesDirectoryQuery(account.number, account.label, account.type, account.status) && (accountStatusFilter === "ALL" || account.status === accountStatusFilter) && (accountTypeFilter === "ALL" || account.type === accountTypeFilter));
+  const visibleProjects = projects.filter((project) => matchesDirectoryQuery(project.number, project.name, project.status) && (projectStatusFilter === "ALL" || project.status === projectStatusFilter));
   const visiblePeriods = periods.filter((period) => matchesDirectoryQuery(period.id, period.label, period.start, period.end, period.statementLabel, period.status));
 
   return <>
@@ -1918,7 +2046,9 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
     </section>
     <section className="panel settings-editor compact-settings-editor">
       <div className="panel-header"><div><p className="eyebrow">Référentiel persistant</p><h2>{selectedSection === "users" ? "Utilisateurs et accès" : selectedSection === "cards" ? "Cartes et titulaires" : selectedSection === "accounts" ? "Comptes comptables" : selectedSection === "projects" ? "Projets et chantiers" : "Périodes de relevé"}</h2></div><span className="badge badge-neutral">{persistenceReady ? "Firebase" : "Aperçu local"}</span></div>
-      <label className="directory-search"><span>Rechercher dans ce référentiel</span><input value={directoryQuery} onChange={(event) => setDirectoryQuery(event.target.value)} placeholder="Nom, code, carte ou période" /></label>
+       <label className="directory-search"><span>Rechercher dans ce référentiel</span><input value={directoryQuery} onChange={(event) => setDirectoryQuery(event.target.value)} placeholder="Nom, numéro, carte ou période" /></label>
+       {selectedSection === "accounts" && <div className="field-grid"><label className="field"><span>Statut</span><select value={accountStatusFilter} onChange={(event) => setAccountStatusFilter(event.target.value)}><option value="ALL">Tous</option><option value="ACTIVE">Actifs</option><option value="INACTIVE">Inactifs</option></select></label><label className="field"><span>Type</span><select value={accountTypeFilter} onChange={(event) => setAccountTypeFilter(event.target.value)}><option value="ALL">Tous</option><option value="EXPENSE">Dépense</option><option value="TAX">Taxe</option></select></label></div>}
+       {selectedSection === "projects" && <label className="field"><span>Statut</span><select value={projectStatusFilter} onChange={(event) => setProjectStatusFilter(event.target.value)}><option value="ALL">Tous</option><option value="ACTIVE">Actifs</option><option value="INACTIVE">Inactifs</option></select></label>}
       {selectedSection === "users" && <>
         {canCreateUsers ? <form className="directory-form" onSubmit={createUser}>
           <div className="field-grid"><label className="field"><span>Nom complet</span><input required value={userForm.displayName} onChange={(event) => setUserForm((current) => ({ ...current, displayName: event.target.value }))} placeholder="Personne Démo" /></label><label className="field"><span>Courriel</span><input required type="email" value={userForm.email} onChange={(event) => setUserForm((current) => ({ ...current, email: event.target.value }))} placeholder="personne@example.test" /></label></div>
@@ -1932,13 +2062,13 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
         <form className="directory-form" onSubmit={addCard}><div className="field-grid"><label className="field"><span>Quatre derniers chiffres</span><input required inputMode="numeric" maxLength={4} value={cardForm.lastFour} onChange={(event) => setCardForm((current) => ({ ...current, lastFour: event.target.value.replace(/\D/g, "") }))} placeholder="9001" /></label><label className="field"><span>Titulaire</span><select required value={cardForm.holderId} onChange={(event) => setCardForm((current) => ({ ...current, holderId: event.target.value }))}><option value="">Sélectionner le profil</option>{users.filter((user) => user.status === "ACTIVE").map((user) => <option key={user.id} value={user.id}>{user.displayName} · {user.jobTitle ?? user.role}</option>)}</select></label></div><div className="field-grid"><label className="field"><span>Fonction de la carte</span><input value={cardForm.cardFunction} onChange={(event) => setCardForm((current) => ({ ...current, cardFunction: event.target.value }))} placeholder="Fonction démo" /></label><div className="directory-help">Seuls les quatre derniers chiffres sont conservés. Le numéro complet de la carte ne passe jamais dans l&apos;application.</div></div><button className="primary-button" type="submit" disabled={!persistenceReady || busyKey === "add-card"}>{busyKey === "add-card" ? "Enregistrement…" : "Ajouter et associer la carte"}</button></form>
         <div className="directory-list">{visibleCards.map((card) => <div className="directory-row card-directory-row" key={card.id}><div><strong>•••• {card.lastFour}</strong><small>{card.function} · {card.status} · {card.startDate || "date inconnue"}</small></div><select value={cardHolderDrafts[card.id] ?? card.holderId ?? ""} onChange={(event) => setCardHolderDrafts((current) => ({ ...current, [card.id]: event.target.value }))} aria-label={`Titulaire de la carte ${card.lastFour}`}><option value="">Titulaire à choisir</option>{users.map((user) => <option key={user.id} value={user.id}>{user.displayName}</option>)}</select><button className="secondary-button" type="button" disabled={!persistenceReady || busyKey === `card-${card.id}`} onClick={() => void saveCardAssignment(card)}>{busyKey === `card-${card.id}` ? "…" : "Enregistrer"}</button><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `toggle-card-${card.id}`} onClick={() => void toggleCard(card)}>{card.status === "Actif" ? "Désactiver" : "Réactiver"}</button></div>)}</div>
       </>}
-      {selectedSection === "accounts" && <>
-        <form className="directory-form" onSubmit={saveAccountReference}><div className="field-grid"><label className="field"><span>Code comptable</span><input required value={accountForm.code} onChange={(event) => setAccountForm((current) => ({ ...current, code: event.target.value }))} placeholder="6000" /></label><label className="field"><span>Libellé</span><input required value={accountForm.label} onChange={(event) => setAccountForm((current) => ({ ...current, label: event.target.value }))} placeholder="Matériaux" /></label></div><button className="primary-button" type="submit" disabled={!persistenceReady || busyKey.startsWith("account-")}>{busyKey.startsWith("account-") ? "Enregistrement…" : "Ajouter ou actualiser le compte"}</button></form>
-        <div className="directory-list">{visibleAccounts.map((account) => <div className="directory-row" key={account.code}><div><strong>{account.code}</strong><small>{account.label}</small></div><span className={`badge ${account.status === "INACTIVE" ? "badge-danger" : "badge-success"}`}>{account.status === "INACTIVE" ? "Désactivé" : "Actif"}</span><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `account-toggle-${account.code}`} onClick={() => void toggleAccount(account)}>{account.status === "INACTIVE" ? "Réactiver" : "Désactiver"}</button></div>)}</div>
-      </>}
-      {selectedSection === "projects" && <>
-        <form className="directory-form" onSubmit={saveProjectReference}><div className="field-grid"><label className="field"><span>Identifiant du projet</span><input required value={projectForm.id} onChange={(event) => setProjectForm((current) => ({ ...current, id: event.target.value }))} placeholder="PROJET-001" /></label><label className="field"><span>Nom du projet</span><input required value={projectForm.name} onChange={(event) => setProjectForm((current) => ({ ...current, name: event.target.value }))} placeholder="Chantier principal" /></label></div><button className="primary-button" type="submit" disabled={!persistenceReady || busyKey.startsWith("project-")}>{busyKey.startsWith("project-") ? "Enregistrement…" : "Ajouter ou actualiser le projet"}</button></form>
-        <div className="directory-list">{visibleProjects.map((project) => <div className="directory-row" key={project.id}><div><strong>{project.name}</strong><small>{project.id}</small></div><span className={`badge ${project.status === "INACTIVE" ? "badge-danger" : "badge-success"}`}>{project.status === "INACTIVE" ? "Désactivé" : "Actif"}</span><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `project-toggle-${project.id}`} onClick={() => void toggleProject(project)}>{project.status === "INACTIVE" ? "Réactiver" : "Désactiver"}</button></div>)}</div>
+       {selectedSection === "accounts" && <>
+         {canEditReferences ? <form className="directory-form" onSubmit={saveAccountReference}><div className="field-grid"><label className="field"><span>Numéro de compte</span><input required inputMode="numeric" value={accountForm.number} onChange={(event) => setAccountForm((current) => ({ ...current, number: event.target.value }))} placeholder="33544" /></label><label className="field"><span>Libellé / catégorie</span><input required value={accountForm.label} onChange={(event) => setAccountForm((current) => ({ ...current, label: event.target.value }))} placeholder="Matériaux divers" /></label></div><div className="field-grid"><label className="field"><span>Type</span><select value={accountForm.type} onChange={(event) => setAccountForm((current) => ({ ...current, type: event.target.value }))}><option value="EXPENSE">Dépense</option><option value="TAX">Taxe</option></select></label><div className="directory-help">Le numéro est stocké comme texte afin de préserver les zéros initiaux. L’identifiant interne ne change pas lors d’une correction.</div></div><button className="primary-button" type="submit" disabled={!persistenceReady || busyKey.startsWith("account-")}>{busyKey.startsWith("account-") ? "Enregistrement…" : accountForm.id ? "Enregistrer la modification" : "Ajouter le compte"}</button></form> : <div className="config-note"><span>i</span><p>Kim peut consulter et sélectionner les comptes. La gestion du référentiel est réservée à ADMIN.</p></div>}
+         <div className="directory-list">{visibleAccounts.map((account) => <div className="directory-row" key={account.id}><div><strong>{account.number} — {account.label}</strong><small>{account.type === "TAX" ? "Taxe" : "Dépense"}</small></div><span className={`badge ${account.status === "INACTIVE" ? "badge-danger" : "badge-success"}`}>{account.status === "INACTIVE" ? "Inactif" : "Actif"}</span>{canEditReferences && <><button className="text-button" type="button" onClick={() => setAccountForm({ id: account.id, number: account.number, label: account.label, type: account.type })}>Modifier</button><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `account-toggle-${account.id}`} onClick={() => void toggleAccount(account)}>{account.status === "INACTIVE" ? "Réactiver" : "Désactiver"}</button><button className="text-button danger-text" type="button" disabled={!persistenceReady || busyKey === `account-delete-${account.id}`} onClick={() => void deleteAccount(account)}>Supprimer</button></>}</div>)}</div>
+       </>}
+       {selectedSection === "projects" && <>
+         {canEditReferences ? <form className="directory-form" onSubmit={saveProjectReference}><div className="field-grid"><label className="field"><span>Numéro de projet</span><input required value={projectForm.number} onChange={(event) => setProjectForm((current) => ({ ...current, number: event.target.value }))} placeholder="26015" /></label><label className="field"><span>Nom du projet</span><input required value={projectForm.name} onChange={(event) => setProjectForm((current) => ({ ...current, name: event.target.value }))} placeholder="Réfection usine Bécancour" /></label></div><button className="primary-button" type="submit" disabled={!persistenceReady || busyKey.startsWith("project-")}>{busyKey.startsWith("project-") ? "Enregistrement…" : projectForm.id ? "Enregistrer la modification" : "Ajouter le projet"}</button></form> : <div className="config-note"><span>i</span><p>Kim peut consulter et sélectionner les projets. La gestion du référentiel est réservée à ADMIN.</p></div>}
+         <div className="directory-list">{visibleProjects.map((project) => <div className="directory-row" key={project.id}><div><strong>{project.number} — {project.name}</strong><small>ID interne conservé: {project.id}</small></div><span className={`badge ${project.status === "INACTIVE" ? "badge-danger" : "badge-success"}`}>{project.status === "INACTIVE" ? "Inactif" : "Actif"}</span>{canEditReferences && <><button className="text-button" type="button" onClick={() => setProjectForm({ id: project.id, number: project.number, name: project.name })}>Modifier</button><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `project-toggle-${project.id}`} onClick={() => void toggleProject(project)}>{project.status === "INACTIVE" ? "Réactiver" : "Désactiver"}</button><button className="text-button danger-text" type="button" disabled={!persistenceReady || busyKey === `project-delete-${project.id}`} onClick={() => void deleteProjectReference(project)}>Supprimer</button></>}</div>)}</div>
       </>}
       {selectedSection === "periods" && <>
         <form className="directory-form" onSubmit={savePeriodReference}><div className="field-grid"><label className="field"><span>Identifiant de période</span><input required value={periodForm.id} onChange={(event) => setPeriodForm((current) => ({ ...current, id: event.target.value }))} placeholder="2026-08" /></label><label className="field"><span>Libellé</span><input required value={periodForm.label} onChange={(event) => setPeriodForm((current) => ({ ...current, label: event.target.value }))} placeholder="Cycle du 10 août au 9 septembre" /></label></div><div className="field-grid"><label className="field"><span>Du</span><input required type="date" value={periodForm.startDate} onChange={(event) => setPeriodForm((current) => ({ ...current, startDate: event.target.value }))} /></label><label className="field"><span>Au</span><input required type="date" value={periodForm.endDate} onChange={(event) => setPeriodForm((current) => ({ ...current, endDate: event.target.value }))} /></label></div><label className="field"><span>Libellé du relevé (facultatif)</span><input value={periodForm.statementLabel} onChange={(event) => setPeriodForm((current) => ({ ...current, statementLabel: event.target.value }))} placeholder="Relevé Mastercard · cycle du 10 au 9" /></label><p className="directory-help">Le cycle par défaut est du 10 au 9. Kim peut toujours corriger une période directement sur une revue.</p><button className="primary-button" type="submit" disabled={!persistenceReady || busyKey.startsWith("period-")}>{busyKey.startsWith("period-") ? "Enregistrement…" : "Ajouter ou actualiser la période"}</button></form>
@@ -1989,7 +2119,7 @@ function SaferSettingsPage() {
         {editingCards && <form className="settings-add-row settings-add-card" onSubmit={(event) => { event.preventDefault(); addCard(); }}><input inputMode="numeric" maxLength={4} value={newCardLastFour} onChange={(event) => setNewCardLastFour(event.target.value)} placeholder="4 derniers chiffres" aria-label="Quatre derniers chiffres de la carte" /><input value={newCardHolder} onChange={(event) => setNewCardHolder(event.target.value)} placeholder="Titulaire" aria-label="Nouveau titulaire" /><button className="secondary-button" type="submit">＋ Ajouter la carte</button></form>}
       </div>}
       {selectedSection === "accounts" && <div className="settings-editor-list">{accounts.map((account) => <div className="settings-inline-row" key={account.code}><input value={account.code} onChange={(event) => setAccounts((current) => current.map((item) => item.code === account.code ? { ...item, code: event.target.value } : item))} aria-label="Code comptable" /><input value={account.label} onChange={(event) => setAccounts((current) => current.map((item) => item.code === account.code ? { ...item, label: event.target.value } : item))} aria-label="Catégorie comptable" /></div>)}</div>}
-      {selectedSection === "projects" && <div className="settings-editor-list">{projects.map((project, index) => <div className="settings-inline-row" key={project.id + "-" + index}><input value={project.name} onChange={(event) => setProjects((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} aria-label={"Projet " + (index + 1)} /></div>)}<form className="settings-add-row" onSubmit={(event) => { event.preventDefault(); if (!newProject.trim()) return; setProjects((current) => [...current, { id: "PROJECT-" + crypto.randomUUID().slice(0, 8), name: newProject.trim(), status: "ACTIVE" }]); setNewProject(""); }}><input value={newProject} onChange={(event) => setNewProject(event.target.value)} placeholder="Ajouter un projet" /><button className="secondary-button" type="submit">＋ Ajouter</button></form></div>}
+      {selectedSection === "projects" && <div className="settings-editor-list">{projects.map((project, index) => <div className="settings-inline-row" key={project.id + "-" + index}><input value={project.name} onChange={(event) => setProjects((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} aria-label={"Projet " + (index + 1)} /></div>)}<form className="settings-add-row" onSubmit={(event) => { event.preventDefault(); if (!newProject.trim()) return; setProjects((current) => [...current, { id: "PROJECT-" + crypto.randomUUID().slice(0, 8), number: "PROJECT-" + crypto.randomUUID().slice(0, 8), name: newProject.trim(), status: "ACTIVE" }]); setNewProject(""); }}><input value={newProject} onChange={(event) => setNewProject(event.target.value)} placeholder="Ajouter un projet" /><button className="secondary-button" type="submit">＋ Ajouter</button></form></div>}
       {selectedSection === "sku" && <div className="settings-editor-list">{data.skuReferences.map((reference) => <div className="sku-reference-row" key={reference.merchant + "-" + reference.sku}><div><strong>{reference.merchant} · SKU {reference.sku}</strong><span>{reference.label} · {reference.accountCode} · {reference.category}</span></div><span className="badge badge-warning">{reference.status}</span><small>Recherche externe à lancer lorsque la fiche est nécessaire.</small></div>)}</div>}
       {!["cards", "accounts", "projects", "sku"].includes(selectedSection) && <div className="settings-placeholder"><strong>Référentiel prêt à connecter</strong><p>Cette section est préparée pour les règles Firebase et les permissions administrateur.</p></div>}
     </section>
@@ -2032,7 +2162,7 @@ function CompactSettingsPage() {
       <div className="panel-header"><div><p className="eyebrow">Éditeur de référentiel</p><h2>{sections.find((section) => section.id === selectedSection)?.title}</h2></div><span className="badge badge-neutral">Mode local</span></div>
       {selectedSection === "cards" && <div className="settings-editor-list settings-card-list">{cards.map((card) => <div className="settings-card-row" key={card.id}><span><b>•••• {card.lastFour}</b><small>{card.status} · {card.function}</small></span><input value={card.holder} onChange={(event) => updateCardHolder(card.id, event.target.value)} aria-label="Titulaire de la carte" /><button className="icon-button" type="button" onClick={() => removeCard(card.id)} aria-label="Retirer cette carte">×</button></div>)}<form className="settings-add-row settings-add-card" onSubmit={(event) => { event.preventDefault(); addCard(); }}><input inputMode="numeric" maxLength={4} value={newCardLastFour} onChange={(event) => setNewCardLastFour(event.target.value)} placeholder="4 derniers chiffres" aria-label="Quatre derniers chiffres de la carte" /><input value={newCardHolder} onChange={(event) => setNewCardHolder(event.target.value)} placeholder="Titulaire" aria-label="Nouveau titulaire" /><button className="secondary-button" type="submit">＋ Ajouter la carte</button></form></div>}
       {selectedSection === "accounts" && <div className="settings-editor-list">{accounts.map((account) => <div className="settings-inline-row" key={account.code}><input value={account.code} onChange={(event) => setAccounts((current) => current.map((item) => item.code === account.code ? { ...item, code: event.target.value } : item))} aria-label="Code comptable" /><input value={account.label} onChange={(event) => setAccounts((current) => current.map((item) => item.code === account.code ? { ...item, label: event.target.value } : item))} aria-label="Catégorie comptable" /></div>)}</div>}
-      {selectedSection === "projects" && <div className="settings-editor-list">{projects.map((project, index) => <div className="settings-inline-row" key={project.id + "-" + index}><input value={project.name} onChange={(event) => setProjects((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} aria-label={"Projet " + (index + 1)} /></div>)}<form className="settings-add-row" onSubmit={(event) => { event.preventDefault(); if (!newProject.trim()) return; setProjects((current) => [...current, { id: "PROJECT-" + crypto.randomUUID().slice(0, 8), name: newProject.trim(), status: "ACTIVE" }]); setNewProject(""); }}><input value={newProject} onChange={(event) => setNewProject(event.target.value)} placeholder="Ajouter un projet" /><button className="secondary-button" type="submit">＋ Ajouter</button></form></div>}
+      {selectedSection === "projects" && <div className="settings-editor-list">{projects.map((project, index) => <div className="settings-inline-row" key={project.id + "-" + index}><input value={project.name} onChange={(event) => setProjects((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} aria-label={"Projet " + (index + 1)} /></div>)}<form className="settings-add-row" onSubmit={(event) => { event.preventDefault(); if (!newProject.trim()) return; setProjects((current) => [...current, { id: "PROJECT-" + crypto.randomUUID().slice(0, 8), number: "PROJECT-" + crypto.randomUUID().slice(0, 8), name: newProject.trim(), status: "ACTIVE" }]); setNewProject(""); }}><input value={newProject} onChange={(event) => setNewProject(event.target.value)} placeholder="Ajouter un projet" /><button className="secondary-button" type="submit">＋ Ajouter</button></form></div>}
       {selectedSection === "sku" && <div className="settings-editor-list">{skuReferences.map((reference) => <div className="sku-reference-row" key={reference.merchant + "-" + reference.sku}><div><strong>{reference.merchant} · SKU {reference.sku}</strong><span>{reference.label} · {reference.accountCode} · {reference.category}</span></div><span className="badge badge-warning">{reference.status}</span><small>Recherche externe à lancer lorsque la fiche est nécessaire.</small></div>)}</div>}
       {!["cards", "accounts", "projects", "sku"].includes(selectedSection) && <div className="settings-placeholder"><strong>Référentiel prêt à connecter</strong><p>Cette section est préparée pour les règles Firebase et les permissions administrateur.</p></div>}
     </section>
@@ -2076,5 +2206,5 @@ function SettingsPage() {
   void removeCard;
   void addCard;
 
-  return <><PageHeading eyebrow="Administration" title="Configuration" description="Les cartes, titulaires, comptes, projets et références SKU sont regroupés dans une source de vérité administrable." action={<button className="primary-button" onClick={() => setNotice("Les changements sont prêts à être persistés après l’approbation du schéma Firebase.")}>Enregistrer les changements</button>} /><section className="settings-list">{sections.map((section, index) => <button className={`settings-row ${selectedSection === section.id ? "selected" : ""}`} key={section.id} onClick={() => setSelectedSection(section.id)}><span className={`settings-number n${(index % 6) + 1}`}>0{index + 1}</span><span className="settings-copy"><strong>{section.title}</strong><span>{section.description}</span></span><span className="settings-meta">{section.meta}</span><span className="row-arrow">→</span></button>)}</section><section className="panel settings-editor"><div className="panel-header"><div><p className="eyebrow">Éditeur de référentiel</p><h2>{selectedTitle}</h2></div><span className="badge badge-neutral">Mode local</span></div>{selectedSection === "cards" && <div className="settings-editor-grid">{cards.map((card) => <label className="settings-input-card" key={card.id}><span>Carte ···· {card.lastFour} · {card.status}</span><input value={card.holder} onChange={(event) => updateCardHolder(card.id, event.target.value)} aria-label={`Titulaire de la carte ${card.lastFour}`} /><small>{card.function} · active depuis {formatDate(card.startDate)}</small></label>)}</div>}{selectedSection === "accounts" && <div className="settings-editor-list">{accounts.map((account) => <div className="settings-inline-row" key={account.code}><input value={account.code} onChange={(event) => updateAccount(account.code, "code", event.target.value)} aria-label="Code comptable" /><input value={account.label} onChange={(event) => updateAccount(account.code, "label", event.target.value)} aria-label="Catégorie comptable" /></div>)}</div>}{selectedSection === "projects" && <div className="settings-editor-list">{projects.map((project, index) => <div className="settings-inline-row" key={`${project.id}-${index}`}><input value={project.name} onChange={(event) => updateProject(index, event.target.value)} aria-label={`Projet ${index + 1}`} /></div>)}<form className="settings-add-row" onSubmit={(event) => { event.preventDefault(); if (!newProject.trim()) return; setProjects((current) => [...current, { id: "PROJECT-" + crypto.randomUUID().slice(0, 8), name: newProject.trim(), status: "ACTIVE" }]); setNewProject(""); }}><input value={newProject} onChange={(event) => setNewProject(event.target.value)} placeholder="Ajouter un projet" /><button className="secondary-button" type="submit">＋ Ajouter</button></form></div>}{selectedSection === "sku" && <div className="settings-editor-list">{skus.map((reference) => <div className="sku-reference-row" key={`${reference.merchant}-${reference.sku}`}><div><strong>{reference.merchant} · SKU {reference.sku}</strong><span>{reference.label} · {reference.accountCode} · {reference.category}</span></div><span className="badge badge-warning">{reference.status}</span><small>Recherche externe à lancer lorsque la fiche est nécessaire.</small></div>)}</div>}{!["cards", "accounts", "projects", "sku"].includes(selectedSection) && <div className="settings-placeholder"><strong>Référentiel prêt à connecter</strong><p>Cette section est préparée pour les règles Firebase et les permissions administrateur. Aucune mutation distante n’est envoyée dans cette étape.</p></div>}</section>{notice && <div className="config-note"><span>✓</span><p>{notice}</p></div>}<div className="config-note"><span>i</span><p><strong>Classification automatique.</strong> Les transactions sont classées par catégorie et code comptable; les SKU connus peuvent remplacer la catégorie locale. Les SKU inconnus restent « À confirmer » pour éviter une écriture comptable automatique non vérifiée.</p></div></>;
+      return <><PageHeading eyebrow="Administration" title="Configuration" description="Les cartes, titulaires, comptes, projets et références SKU sont regroupés dans une source de vérité administrable." action={<button className="primary-button" onClick={() => setNotice("Les changements sont prêts à être persistés après l’approbation du schéma Firebase.")}>Enregistrer les changements</button>} /><section className="settings-list">{sections.map((section, index) => <button className={`settings-row ${selectedSection === section.id ? "selected" : ""}`} key={section.id} onClick={() => setSelectedSection(section.id)}><span className={`settings-number n${(index % 6) + 1}`}>0{index + 1}</span><span className="settings-copy"><strong>{section.title}</strong><span>{section.description}</span></span><span className="settings-meta">{section.meta}</span><span className="row-arrow">→</span></button>)}</section><section className="panel settings-editor"><div className="panel-header"><div><p className="eyebrow">Éditeur de référentiel</p><h2>{selectedTitle}</h2></div><span className="badge badge-neutral">Mode local</span></div>{selectedSection === "cards" && <div className="settings-editor-grid">{cards.map((card) => <label className="settings-input-card" key={card.id}><span>Carte ···· {card.lastFour} · {card.status}</span><input value={card.holder} onChange={(event) => updateCardHolder(card.id, event.target.value)} aria-label={`Titulaire de la carte ${card.lastFour}`} /><small>{card.function} · active depuis {formatDate(card.startDate)}</small></label>)}</div>}{selectedSection === "accounts" && <div className="settings-editor-list">{accounts.map((account) => <div className="settings-inline-row" key={account.code}><input value={account.code} onChange={(event) => updateAccount(account.code, "code", event.target.value)} aria-label="Code comptable" /><input value={account.label} onChange={(event) => updateAccount(account.code, "label", event.target.value)} aria-label="Catégorie comptable" /></div>)}</div>}{selectedSection === "projects" && <div className="settings-editor-list">{projects.map((project, index) => <div className="settings-inline-row" key={`${project.id}-${index}`}><input value={project.name} onChange={(event) => updateProject(index, event.target.value)} aria-label={`Projet ${index + 1}`} /></div>)}<form className="settings-add-row" onSubmit={(event) => { event.preventDefault(); if (!newProject.trim()) return; setProjects((current) => [...current, { id: "PROJECT-" + crypto.randomUUID().slice(0, 8), number: "PROJECT-" + crypto.randomUUID().slice(0, 8), name: newProject.trim(), status: "ACTIVE" }]); setNewProject(""); }}><input value={newProject} onChange={(event) => setNewProject(event.target.value)} placeholder="Ajouter un projet" /><button className="secondary-button" type="submit">＋ Ajouter</button></form></div>}{selectedSection === "sku" && <div className="settings-editor-list">{skus.map((reference) => <div className="sku-reference-row" key={`${reference.merchant}-${reference.sku}`}><div><strong>{reference.merchant} · SKU {reference.sku}</strong><span>{reference.label} · {reference.accountCode} · {reference.category}</span></div><span className="badge badge-warning">{reference.status}</span><small>Recherche externe à lancer lorsque la fiche est nécessaire.</small></div>)}</div>}{!["cards", "accounts", "projects", "sku"].includes(selectedSection) && <div className="settings-placeholder"><strong>Référentiel prêt à connecter</strong><p>Cette section est préparée pour les règles Firebase et les permissions administrateur. Aucune mutation distante n’est envoyée dans cette étape.</p></div>}</section>{notice && <div className="config-note"><span>✓</span><p>{notice}</p></div>}<div className="config-note"><span>i</span><p><strong>Classification automatique.</strong> Les transactions sont classées par catégorie et code comptable; les SKU connus peuvent remplacer la catégorie locale. Les SKU inconnus restent « À confirmer » pour éviter une écriture comptable automatique non vérifiée.</p></div></>;
 }

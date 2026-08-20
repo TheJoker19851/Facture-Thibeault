@@ -16,7 +16,6 @@ This README will guide you through the process of using the generated JavaScript
   - [*ListCreditCards*](#listcreditcards)
   - [*ListCardStatementPeriods*](#listcardstatementperiods)
   - [*ListExpenseAccounts*](#listexpenseaccounts)
-  - [*ListTaxAccounts*](#listtaxaccounts)
   - [*ListProjects*](#listprojects)
   - [*ListSkuReferences*](#listskureferences)
   - [*ListExpenseTransactions*](#listexpensetransactions)
@@ -37,13 +36,14 @@ This README will guide you through the process of using the generated JavaScript
   - [*AdminDeleteSkuReference*](#admindeleteskureference)
   - [*AdminDeleteProject*](#admindeleteproject)
   - [*AdminDeleteExpenseAccount*](#admindeleteexpenseaccount)
-  - [*AdminDeleteTaxAccount*](#admindeletetaxaccount)
   - [*AdminDeleteCardStatementPeriod*](#admindeletecardstatementperiod)
   - [*AdminDeleteUserProfile*](#admindeleteuserprofile)
   - [*UpsertUserProfile*](#upsertuserprofile)
   - [*UpsertCreditCard*](#upsertcreditcard)
   - [*UpsertProject*](#upsertproject)
   - [*UpsertExpenseAccount*](#upsertexpenseaccount)
+  - [*DeleteProject*](#deleteproject)
+  - [*DeleteExpenseAccount*](#deleteexpenseaccount)
   - [*UpsertCardStatementPeriod*](#upsertcardstatementperiod)
   - [*CreateInvoiceIntake*](#createinvoiceintake)
   - [*CreateInvoiceIntakeV2*](#createinvoiceintakev2)
@@ -67,7 +67,7 @@ You can use this generated SDK by importing from the package `@factures-thibeaul
 
 You can also follow the instructions from the [Data Connect documentation](https://firebase.google.com/docs/data-connect/web-sdk#set-client).
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig } from '@factures-thibeault/data-connect-generated';
 
@@ -80,7 +80,7 @@ By default, the connector will connect to the production service.
 To connect to the emulator, you can use the following code.
 You can also follow the emulator instructions from the [Data Connect documentation](https://firebase.google.com/docs/data-connect/web-sdk#instrument-clients).
 
-```typescript
+```typescrip
 import { connectDataConnectEmulator, getDataConnect } from 'firebase/data-connect';
 import { connectorConfig } from '@factures-thibeault/data-connect-generated';
 
@@ -107,7 +107,7 @@ Below are examples of how to use the `accounting` connector's generated function
 
 ## AdminListInvoices
 You can execute the `AdminListInvoices` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 adminListInvoices(options?: ExecuteQueryOptions): QueryPromise<AdminListInvoicesData, undefined>;
 
 interface AdminListInvoicesRef {
@@ -118,7 +118,7 @@ interface AdminListInvoicesRef {
 export const adminListInvoicesRef: AdminListInvoicesRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
-```typescript
+```typescrip
 adminListInvoices(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<AdminListInvoicesData, undefined>;
 
 interface AdminListInvoicesRef {
@@ -129,7 +129,7 @@ export const adminListInvoicesRef: AdminListInvoicesRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminListInvoicesRef:
-```typescript
+```typescrip
 const name = adminListInvoicesRef.operationName;
 console.log(name);
 ```
@@ -140,7 +140,7 @@ The `AdminListInvoices` query has no variables.
 Recall that executing the `AdminListInvoices` query returns a `QueryPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `AdminListInvoicesData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface AdminListInvoicesData {
   invoices: ({
     id: string;
@@ -172,7 +172,7 @@ export interface AdminListInvoicesData {
 ```
 ### Using `AdminListInvoices`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, adminListInvoices } from '@factures-thibeault/data-connect-generated';
 
@@ -196,7 +196,7 @@ adminListInvoices().then((response) => {
 
 ### Using `AdminListInvoices`'s `QueryRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeQuery } from 'firebase/data-connect';
 import { connectorConfig, adminListInvoicesRef } from '@factures-thibeault/data-connect-generated';
 
@@ -223,7 +223,7 @@ executeQuery(ref).then((response) => {
 
 ## AdminListInvoicePhotos
 You can execute the `AdminListInvoicePhotos` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 adminListInvoicePhotos(options?: ExecuteQueryOptions): QueryPromise<AdminListInvoicePhotosData, undefined>;
 
 interface AdminListInvoicePhotosRef {
@@ -234,7 +234,7 @@ interface AdminListInvoicePhotosRef {
 export const adminListInvoicePhotosRef: AdminListInvoicePhotosRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
-```typescript
+```typescrip
 adminListInvoicePhotos(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<AdminListInvoicePhotosData, undefined>;
 
 interface AdminListInvoicePhotosRef {
@@ -245,7 +245,7 @@ export const adminListInvoicePhotosRef: AdminListInvoicePhotosRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminListInvoicePhotosRef:
-```typescript
+```typescrip
 const name = adminListInvoicePhotosRef.operationName;
 console.log(name);
 ```
@@ -256,7 +256,7 @@ The `AdminListInvoicePhotos` query has no variables.
 Recall that executing the `AdminListInvoicePhotos` query returns a `QueryPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `AdminListInvoicePhotosData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface AdminListInvoicePhotosData {
   invoicePhotos: ({
     id: string;
@@ -272,7 +272,7 @@ export interface AdminListInvoicePhotosData {
 ```
 ### Using `AdminListInvoicePhotos`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, adminListInvoicePhotos } from '@factures-thibeault/data-connect-generated';
 
@@ -296,7 +296,7 @@ adminListInvoicePhotos().then((response) => {
 
 ### Using `AdminListInvoicePhotos`'s `QueryRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeQuery } from 'firebase/data-connect';
 import { connectorConfig, adminListInvoicePhotosRef } from '@factures-thibeault/data-connect-generated';
 
@@ -323,7 +323,7 @@ executeQuery(ref).then((response) => {
 
 ## ListUserProfiles
 You can execute the `ListUserProfiles` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 listUserProfiles(options?: ExecuteQueryOptions): QueryPromise<ListUserProfilesData, undefined>;
 
 interface ListUserProfilesRef {
@@ -334,7 +334,7 @@ interface ListUserProfilesRef {
 export const listUserProfilesRef: ListUserProfilesRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
-```typescript
+```typescrip
 listUserProfiles(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListUserProfilesData, undefined>;
 
 interface ListUserProfilesRef {
@@ -345,7 +345,7 @@ export const listUserProfilesRef: ListUserProfilesRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listUserProfilesRef:
-```typescript
+```typescrip
 const name = listUserProfilesRef.operationName;
 console.log(name);
 ```
@@ -356,7 +356,7 @@ The `ListUserProfiles` query has no variables.
 Recall that executing the `ListUserProfiles` query returns a `QueryPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `ListUserProfilesData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface ListUserProfilesData {
   userProfiles: ({
     id: string;
@@ -371,7 +371,7 @@ export interface ListUserProfilesData {
 ```
 ### Using `ListUserProfiles`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, listUserProfiles } from '@factures-thibeault/data-connect-generated';
 
@@ -395,7 +395,7 @@ listUserProfiles().then((response) => {
 
 ### Using `ListUserProfiles`'s `QueryRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeQuery } from 'firebase/data-connect';
 import { connectorConfig, listUserProfilesRef } from '@factures-thibeault/data-connect-generated';
 
@@ -422,7 +422,7 @@ executeQuery(ref).then((response) => {
 
 ## ListCreditCards
 You can execute the `ListCreditCards` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 listCreditCards(options?: ExecuteQueryOptions): QueryPromise<ListCreditCardsData, undefined>;
 
 interface ListCreditCardsRef {
@@ -433,7 +433,7 @@ interface ListCreditCardsRef {
 export const listCreditCardsRef: ListCreditCardsRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
-```typescript
+```typescrip
 listCreditCards(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListCreditCardsData, undefined>;
 
 interface ListCreditCardsRef {
@@ -444,7 +444,7 @@ export const listCreditCardsRef: ListCreditCardsRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listCreditCardsRef:
-```typescript
+```typescrip
 const name = listCreditCardsRef.operationName;
 console.log(name);
 ```
@@ -455,7 +455,7 @@ The `ListCreditCards` query has no variables.
 Recall that executing the `ListCreditCards` query returns a `QueryPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `ListCreditCardsData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface ListCreditCardsData {
   creditCards: ({
     id: string;
@@ -475,7 +475,7 @@ export interface ListCreditCardsData {
 ```
 ### Using `ListCreditCards`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, listCreditCards } from '@factures-thibeault/data-connect-generated';
 
@@ -499,7 +499,7 @@ listCreditCards().then((response) => {
 
 ### Using `ListCreditCards`'s `QueryRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeQuery } from 'firebase/data-connect';
 import { connectorConfig, listCreditCardsRef } from '@factures-thibeault/data-connect-generated';
 
@@ -526,7 +526,7 @@ executeQuery(ref).then((response) => {
 
 ## ListCardStatementPeriods
 You can execute the `ListCardStatementPeriods` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 listCardStatementPeriods(options?: ExecuteQueryOptions): QueryPromise<ListCardStatementPeriodsData, undefined>;
 
 interface ListCardStatementPeriodsRef {
@@ -537,7 +537,7 @@ interface ListCardStatementPeriodsRef {
 export const listCardStatementPeriodsRef: ListCardStatementPeriodsRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
-```typescript
+```typescrip
 listCardStatementPeriods(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListCardStatementPeriodsData, undefined>;
 
 interface ListCardStatementPeriodsRef {
@@ -548,7 +548,7 @@ export const listCardStatementPeriodsRef: ListCardStatementPeriodsRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listCardStatementPeriodsRef:
-```typescript
+```typescrip
 const name = listCardStatementPeriodsRef.operationName;
 console.log(name);
 ```
@@ -559,7 +559,7 @@ The `ListCardStatementPeriods` query has no variables.
 Recall that executing the `ListCardStatementPeriods` query returns a `QueryPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `ListCardStatementPeriodsData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface ListCardStatementPeriodsData {
   cardStatementPeriods: ({
     id: string;
@@ -573,7 +573,7 @@ export interface ListCardStatementPeriodsData {
 ```
 ### Using `ListCardStatementPeriods`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, listCardStatementPeriods } from '@factures-thibeault/data-connect-generated';
 
@@ -597,7 +597,7 @@ listCardStatementPeriods().then((response) => {
 
 ### Using `ListCardStatementPeriods`'s `QueryRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeQuery } from 'firebase/data-connect';
 import { connectorConfig, listCardStatementPeriodsRef } from '@factures-thibeault/data-connect-generated';
 
@@ -624,7 +624,7 @@ executeQuery(ref).then((response) => {
 
 ## ListExpenseAccounts
 You can execute the `ListExpenseAccounts` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 listExpenseAccounts(options?: ExecuteQueryOptions): QueryPromise<ListExpenseAccountsData, undefined>;
 
 interface ListExpenseAccountsRef {
@@ -635,7 +635,7 @@ interface ListExpenseAccountsRef {
 export const listExpenseAccountsRef: ListExpenseAccountsRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
-```typescript
+```typescrip
 listExpenseAccounts(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListExpenseAccountsData, undefined>;
 
 interface ListExpenseAccountsRef {
@@ -646,7 +646,7 @@ export const listExpenseAccountsRef: ListExpenseAccountsRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listExpenseAccountsRef:
-```typescript
+```typescrip
 const name = listExpenseAccountsRef.operationName;
 console.log(name);
 ```
@@ -657,18 +657,20 @@ The `ListExpenseAccounts` query has no variables.
 Recall that executing the `ListExpenseAccounts` query returns a `QueryPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `ListExpenseAccountsData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface ListExpenseAccountsData {
   expenseAccounts: ({
-    code: string;
+    id: string;
+    number: string;
     label: string;
+    type: string;
     status: string;
   } & ExpenseAccount_Key)[];
 }
 ```
 ### Using `ListExpenseAccounts`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, listExpenseAccounts } from '@factures-thibeault/data-connect-generated';
 
@@ -692,7 +694,7 @@ listExpenseAccounts().then((response) => {
 
 ### Using `ListExpenseAccounts`'s `QueryRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeQuery } from 'firebase/data-connect';
 import { connectorConfig, listExpenseAccountsRef } from '@factures-thibeault/data-connect-generated';
 
@@ -717,104 +719,9 @@ executeQuery(ref).then((response) => {
 });
 ```
 
-## ListTaxAccounts
-You can execute the `ListTaxAccounts` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
-listTaxAccounts(options?: ExecuteQueryOptions): QueryPromise<ListTaxAccountsData, undefined>;
-
-interface ListTaxAccountsRef {
-  ...
-  /* Allow users to create refs without passing in DataConnect */
-  (): QueryRef<ListTaxAccountsData, undefined>;
-}
-export const listTaxAccountsRef: ListTaxAccountsRef;
-```
-You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
-```typescript
-listTaxAccounts(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListTaxAccountsData, undefined>;
-
-interface ListTaxAccountsRef {
-  ...
-  (dc: DataConnect): QueryRef<ListTaxAccountsData, undefined>;
-}
-export const listTaxAccountsRef: ListTaxAccountsRef;
-```
-
-If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listTaxAccountsRef:
-```typescript
-const name = listTaxAccountsRef.operationName;
-console.log(name);
-```
-
-### Variables
-The `ListTaxAccounts` query has no variables.
-### Return Type
-Recall that executing the `ListTaxAccounts` query returns a `QueryPromise` that resolves to an object with a `data` property.
-
-The `data` property is an object of type `ListTaxAccountsData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
-export interface ListTaxAccountsData {
-  taxAccounts: ({
-    code: string;
-    label: string;
-    status: string;
-  } & TaxAccount_Key)[];
-}
-```
-### Using `ListTaxAccounts`'s action shortcut function
-
-```typescript
-import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig, listTaxAccounts } from '@factures-thibeault/data-connect-generated';
-
-
-// Call the `listTaxAccounts()` function to execute the query.
-// You can use the `await` keyword to wait for the promise to resolve.
-const { data } = await listTaxAccounts();
-
-// You can also pass in a `DataConnect` instance to the action shortcut function.
-const dataConnect = getDataConnect(connectorConfig);
-const { data } = await listTaxAccounts(dataConnect);
-
-console.log(data.taxAccounts);
-
-// Or, you can use the `Promise` API.
-listTaxAccounts().then((response) => {
-  const data = response.data;
-  console.log(data.taxAccounts);
-});
-```
-
-### Using `ListTaxAccounts`'s `QueryRef` function
-
-```typescript
-import { getDataConnect, executeQuery } from 'firebase/data-connect';
-import { connectorConfig, listTaxAccountsRef } from '@factures-thibeault/data-connect-generated';
-
-
-// Call the `listTaxAccountsRef()` function to get a reference to the query.
-const ref = listTaxAccountsRef();
-
-// You can also pass in a `DataConnect` instance to the `QueryRef` function.
-const dataConnect = getDataConnect(connectorConfig);
-const ref = listTaxAccountsRef(dataConnect);
-
-// Call `executeQuery()` on the reference to execute the query.
-// You can use the `await` keyword to wait for the promise to resolve.
-const { data } = await executeQuery(ref);
-
-console.log(data.taxAccounts);
-
-// Or, you can use the `Promise` API.
-executeQuery(ref).then((response) => {
-  const data = response.data;
-  console.log(data.taxAccounts);
-});
-```
-
 ## ListProjects
 You can execute the `ListProjects` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 listProjects(options?: ExecuteQueryOptions): QueryPromise<ListProjectsData, undefined>;
 
 interface ListProjectsRef {
@@ -825,7 +732,7 @@ interface ListProjectsRef {
 export const listProjectsRef: ListProjectsRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
-```typescript
+```typescrip
 listProjects(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListProjectsData, undefined>;
 
 interface ListProjectsRef {
@@ -836,7 +743,7 @@ export const listProjectsRef: ListProjectsRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listProjectsRef:
-```typescript
+```typescrip
 const name = listProjectsRef.operationName;
 console.log(name);
 ```
@@ -847,10 +754,11 @@ The `ListProjects` query has no variables.
 Recall that executing the `ListProjects` query returns a `QueryPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `ListProjectsData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface ListProjectsData {
   projects: ({
     id: string;
+    number: string;
     name: string;
     status: string;
   } & Project_Key)[];
@@ -858,7 +766,7 @@ export interface ListProjectsData {
 ```
 ### Using `ListProjects`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, listProjects } from '@factures-thibeault/data-connect-generated';
 
@@ -882,7 +790,7 @@ listProjects().then((response) => {
 
 ### Using `ListProjects`'s `QueryRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeQuery } from 'firebase/data-connect';
 import { connectorConfig, listProjectsRef } from '@factures-thibeault/data-connect-generated';
 
@@ -909,7 +817,7 @@ executeQuery(ref).then((response) => {
 
 ## ListSkuReferences
 You can execute the `ListSkuReferences` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 listSkuReferences(options?: ExecuteQueryOptions): QueryPromise<ListSkuReferencesData, undefined>;
 
 interface ListSkuReferencesRef {
@@ -920,7 +828,7 @@ interface ListSkuReferencesRef {
 export const listSkuReferencesRef: ListSkuReferencesRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
-```typescript
+```typescrip
 listSkuReferences(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListSkuReferencesData, undefined>;
 
 interface ListSkuReferencesRef {
@@ -931,7 +839,7 @@ export const listSkuReferencesRef: ListSkuReferencesRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listSkuReferencesRef:
-```typescript
+```typescrip
 const name = listSkuReferencesRef.operationName;
 console.log(name);
 ```
@@ -942,7 +850,7 @@ The `ListSkuReferences` query has no variables.
 Recall that executing the `ListSkuReferences` query returns a `QueryPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `ListSkuReferencesData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface ListSkuReferencesData {
   skuReferences: ({
     merchant: string;
@@ -950,8 +858,10 @@ export interface ListSkuReferencesData {
     productLabel?: string | null;
     categoryLabel?: string | null;
     expenseAccount?: {
-      code: string;
+      id: string;
+      number: string;
       label: string;
+      type: string;
     } & ExpenseAccount_Key;
     sourceUrl?: string | null;
     verificationStatus: string;
@@ -961,7 +871,7 @@ export interface ListSkuReferencesData {
 ```
 ### Using `ListSkuReferences`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, listSkuReferences } from '@factures-thibeault/data-connect-generated';
 
@@ -985,7 +895,7 @@ listSkuReferences().then((response) => {
 
 ### Using `ListSkuReferences`'s `QueryRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeQuery } from 'firebase/data-connect';
 import { connectorConfig, listSkuReferencesRef } from '@factures-thibeault/data-connect-generated';
 
@@ -1012,7 +922,7 @@ executeQuery(ref).then((response) => {
 
 ## ListExpenseTransactions
 You can execute the `ListExpenseTransactions` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 listExpenseTransactions(options?: ExecuteQueryOptions): QueryPromise<ListExpenseTransactionsData, undefined>;
 
 interface ListExpenseTransactionsRef {
@@ -1023,7 +933,7 @@ interface ListExpenseTransactionsRef {
 export const listExpenseTransactionsRef: ListExpenseTransactionsRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
-```typescript
+```typescrip
 listExpenseTransactions(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListExpenseTransactionsData, undefined>;
 
 interface ListExpenseTransactionsRef {
@@ -1034,7 +944,7 @@ export const listExpenseTransactionsRef: ListExpenseTransactionsRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listExpenseTransactionsRef:
-```typescript
+```typescrip
 const name = listExpenseTransactionsRef.operationName;
 console.log(name);
 ```
@@ -1045,7 +955,7 @@ The `ListExpenseTransactions` query has no variables.
 Recall that executing the `ListExpenseTransactions` query returns a `QueryPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `ListExpenseTransactionsData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface ListExpenseTransactionsData {
   expenseTransactions: ({
     id: string;
@@ -1067,11 +977,14 @@ export interface ListExpenseTransactionsData {
     } & CardStatementPeriod_Key;
     project?: {
       id: string;
+      number: string;
       name: string;
     } & Project_Key;
     expenseAccount?: {
-      code: string;
+      id: string;
+      number: string;
       label: string;
+      type: string;
     } & ExpenseAccount_Key;
     categoryLabel?: string | null;
     sku?: string | null;
@@ -1094,7 +1007,7 @@ export interface ListExpenseTransactionsData {
 ```
 ### Using `ListExpenseTransactions`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, listExpenseTransactions } from '@factures-thibeault/data-connect-generated';
 
@@ -1118,7 +1031,7 @@ listExpenseTransactions().then((response) => {
 
 ### Using `ListExpenseTransactions`'s `QueryRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeQuery } from 'firebase/data-connect';
 import { connectorConfig, listExpenseTransactionsRef } from '@factures-thibeault/data-connect-generated';
 
@@ -1145,7 +1058,7 @@ executeQuery(ref).then((response) => {
 
 ## ListInvoicesToReview
 You can execute the `ListInvoicesToReview` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 listInvoicesToReview(options?: ExecuteQueryOptions): QueryPromise<ListInvoicesToReviewData, undefined>;
 
 interface ListInvoicesToReviewRef {
@@ -1156,7 +1069,7 @@ interface ListInvoicesToReviewRef {
 export const listInvoicesToReviewRef: ListInvoicesToReviewRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
-```typescript
+```typescrip
 listInvoicesToReview(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListInvoicesToReviewData, undefined>;
 
 interface ListInvoicesToReviewRef {
@@ -1167,7 +1080,7 @@ export const listInvoicesToReviewRef: ListInvoicesToReviewRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listInvoicesToReviewRef:
-```typescript
+```typescrip
 const name = listInvoicesToReviewRef.operationName;
 console.log(name);
 ```
@@ -1178,7 +1091,7 @@ The `ListInvoicesToReview` query has no variables.
 Recall that executing the `ListInvoicesToReview` query returns a `QueryPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `ListInvoicesToReviewData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface ListInvoicesToReviewData {
   invoices: ({
     id: string;
@@ -1209,7 +1122,7 @@ export interface ListInvoicesToReviewData {
 ```
 ### Using `ListInvoicesToReview`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, listInvoicesToReview } from '@factures-thibeault/data-connect-generated';
 
@@ -1233,7 +1146,7 @@ listInvoicesToReview().then((response) => {
 
 ### Using `ListInvoicesToReview`'s `QueryRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeQuery } from 'firebase/data-connect';
 import { connectorConfig, listInvoicesToReviewRef } from '@factures-thibeault/data-connect-generated';
 
@@ -1260,7 +1173,7 @@ executeQuery(ref).then((response) => {
 
 ## ListInvoiceIntakes
 You can execute the `ListInvoiceIntakes` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 listInvoiceIntakes(options?: ExecuteQueryOptions): QueryPromise<ListInvoiceIntakesData, undefined>;
 
 interface ListInvoiceIntakesRef {
@@ -1271,7 +1184,7 @@ interface ListInvoiceIntakesRef {
 export const listInvoiceIntakesRef: ListInvoiceIntakesRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
-```typescript
+```typescrip
 listInvoiceIntakes(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListInvoiceIntakesData, undefined>;
 
 interface ListInvoiceIntakesRef {
@@ -1282,7 +1195,7 @@ export const listInvoiceIntakesRef: ListInvoiceIntakesRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listInvoiceIntakesRef:
-```typescript
+```typescrip
 const name = listInvoiceIntakesRef.operationName;
 console.log(name);
 ```
@@ -1293,7 +1206,7 @@ The `ListInvoiceIntakes` query has no variables.
 Recall that executing the `ListInvoiceIntakes` query returns a `QueryPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `ListInvoiceIntakesData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface ListInvoiceIntakesData {
   invoiceIntakes: ({
     receiptId: string;
@@ -1333,7 +1246,7 @@ export interface ListInvoiceIntakesData {
 ```
 ### Using `ListInvoiceIntakes`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, listInvoiceIntakes } from '@factures-thibeault/data-connect-generated';
 
@@ -1357,7 +1270,7 @@ listInvoiceIntakes().then((response) => {
 
 ### Using `ListInvoiceIntakes`'s `QueryRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeQuery } from 'firebase/data-connect';
 import { connectorConfig, listInvoiceIntakesRef } from '@factures-thibeault/data-connect-generated';
 
@@ -1384,7 +1297,7 @@ executeQuery(ref).then((response) => {
 
 ## ListAuditEvents
 You can execute the `ListAuditEvents` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 listAuditEvents(vars: ListAuditEventsVariables, options?: ExecuteQueryOptions): QueryPromise<ListAuditEventsData, ListAuditEventsVariables>;
 
 interface ListAuditEventsRef {
@@ -1395,7 +1308,7 @@ interface ListAuditEventsRef {
 export const listAuditEventsRef: ListAuditEventsRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
-```typescript
+```typescrip
 listAuditEvents(dc: DataConnect, vars: ListAuditEventsVariables, options?: ExecuteQueryOptions): QueryPromise<ListAuditEventsData, ListAuditEventsVariables>;
 
 interface ListAuditEventsRef {
@@ -1406,7 +1319,7 @@ export const listAuditEventsRef: ListAuditEventsRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listAuditEventsRef:
-```typescript
+```typescrip
 const name = listAuditEventsRef.operationName;
 console.log(name);
 ```
@@ -1414,7 +1327,7 @@ console.log(name);
 ### Variables
 The `ListAuditEvents` query requires an argument of type `ListAuditEventsVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface ListAuditEventsVariables {
   entityType: string;
   entityId: string;
@@ -1424,7 +1337,7 @@ export interface ListAuditEventsVariables {
 Recall that executing the `ListAuditEvents` query returns a `QueryPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `ListAuditEventsData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface ListAuditEventsData {
   auditEvents: ({
     id: string;
@@ -1444,14 +1357,14 @@ export interface ListAuditEventsData {
 ```
 ### Using `ListAuditEvents`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, listAuditEvents, ListAuditEventsVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `ListAuditEvents` query requires an argument of type `ListAuditEventsVariables`:
 const listAuditEventsVars: ListAuditEventsVariables = {
-  entityType: ..., 
-  entityId: ..., 
+  entityType: ...,
+  entityId: ...,
 };
 
 // Call the `listAuditEvents()` function to execute the query.
@@ -1475,14 +1388,14 @@ listAuditEvents(listAuditEventsVars).then((response) => {
 
 ### Using `ListAuditEvents`'s `QueryRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeQuery } from 'firebase/data-connect';
 import { connectorConfig, listAuditEventsRef, ListAuditEventsVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `ListAuditEvents` query requires an argument of type `ListAuditEventsVariables`:
 const listAuditEventsVars: ListAuditEventsVariables = {
-  entityType: ..., 
-  entityId: ..., 
+  entityType: ...,
+  entityId: ...,
 };
 
 // Call the `listAuditEventsRef()` function to get a reference to the query.
@@ -1524,7 +1437,7 @@ Below are examples of how to use the `accounting` connector's generated function
 
 ## AdminSeedCreditCard
 You can execute the `AdminSeedCreditCard` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 adminSeedCreditCard(vars: AdminSeedCreditCardVariables): MutationPromise<AdminSeedCreditCardData, AdminSeedCreditCardVariables>;
 
 interface AdminSeedCreditCardRef {
@@ -1535,7 +1448,7 @@ interface AdminSeedCreditCardRef {
 export const adminSeedCreditCardRef: AdminSeedCreditCardRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 adminSeedCreditCard(dc: DataConnect, vars: AdminSeedCreditCardVariables): MutationPromise<AdminSeedCreditCardData, AdminSeedCreditCardVariables>;
 
 interface AdminSeedCreditCardRef {
@@ -1546,7 +1459,7 @@ export const adminSeedCreditCardRef: AdminSeedCreditCardRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminSeedCreditCardRef:
-```typescript
+```typescrip
 const name = adminSeedCreditCardRef.operationName;
 console.log(name);
 ```
@@ -1554,7 +1467,7 @@ console.log(name);
 ### Variables
 The `AdminSeedCreditCard` mutation requires an argument of type `AdminSeedCreditCardVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface AdminSeedCreditCardVariables {
   id: string;
   lastFour: string;
@@ -1568,24 +1481,24 @@ export interface AdminSeedCreditCardVariables {
 Recall that executing the `AdminSeedCreditCard` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `AdminSeedCreditCardData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface AdminSeedCreditCardData {
   creditCard_upsert: CreditCard_Key;
 }
 ```
 ### Using `AdminSeedCreditCard`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, adminSeedCreditCard, AdminSeedCreditCardVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminSeedCreditCard` mutation requires an argument of type `AdminSeedCreditCardVariables`:
 const adminSeedCreditCardVars: AdminSeedCreditCardVariables = {
-  id: ..., 
-  lastFour: ..., 
-  holderId: ..., 
+  id: ...,
+  lastFour: ...,
+  holderId: ...,
   cardFunction: ..., // optional
-  status: ..., 
+  status: ...,
   activeFrom: ..., // optional
 };
 
@@ -1610,17 +1523,17 @@ adminSeedCreditCard(adminSeedCreditCardVars).then((response) => {
 
 ### Using `AdminSeedCreditCard`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, adminSeedCreditCardRef, AdminSeedCreditCardVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminSeedCreditCard` mutation requires an argument of type `AdminSeedCreditCardVariables`:
 const adminSeedCreditCardVars: AdminSeedCreditCardVariables = {
-  id: ..., 
-  lastFour: ..., 
-  holderId: ..., 
+  id: ...,
+  lastFour: ...,
+  holderId: ...,
   cardFunction: ..., // optional
-  status: ..., 
+  status: ...,
   activeFrom: ..., // optional
 };
 
@@ -1648,7 +1561,7 @@ executeMutation(ref).then((response) => {
 
 ## AdminSeedSkuReference
 You can execute the `AdminSeedSkuReference` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 adminSeedSkuReference(vars: AdminSeedSkuReferenceVariables): MutationPromise<AdminSeedSkuReferenceData, AdminSeedSkuReferenceVariables>;
 
 interface AdminSeedSkuReferenceRef {
@@ -1659,7 +1572,7 @@ interface AdminSeedSkuReferenceRef {
 export const adminSeedSkuReferenceRef: AdminSeedSkuReferenceRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 adminSeedSkuReference(dc: DataConnect, vars: AdminSeedSkuReferenceVariables): MutationPromise<AdminSeedSkuReferenceData, AdminSeedSkuReferenceVariables>;
 
 interface AdminSeedSkuReferenceRef {
@@ -1670,7 +1583,7 @@ export const adminSeedSkuReferenceRef: AdminSeedSkuReferenceRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminSeedSkuReferenceRef:
-```typescript
+```typescrip
 const name = adminSeedSkuReferenceRef.operationName;
 console.log(name);
 ```
@@ -1678,13 +1591,13 @@ console.log(name);
 ### Variables
 The `AdminSeedSkuReference` mutation requires an argument of type `AdminSeedSkuReferenceVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface AdminSeedSkuReferenceVariables {
   merchant: string;
   sku: string;
   productLabel?: string | null;
   categoryLabel?: string | null;
-  accountCode: string;
+  accountId: string;
   verificationStatus: string;
 }
 ```
@@ -1692,32 +1605,32 @@ export interface AdminSeedSkuReferenceVariables {
 Recall that executing the `AdminSeedSkuReference` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `AdminSeedSkuReferenceData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface AdminSeedSkuReferenceData {
   skuReference_upsert: SkuReference_Key;
 }
 ```
 ### Using `AdminSeedSkuReference`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, adminSeedSkuReference, AdminSeedSkuReferenceVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminSeedSkuReference` mutation requires an argument of type `AdminSeedSkuReferenceVariables`:
 const adminSeedSkuReferenceVars: AdminSeedSkuReferenceVariables = {
-  merchant: ..., 
-  sku: ..., 
+  merchant: ...,
+  sku: ...,
   productLabel: ..., // optional
   categoryLabel: ..., // optional
-  accountCode: ..., 
-  verificationStatus: ..., 
+  accountId: ...,
+  verificationStatus: ...,
 };
 
 // Call the `adminSeedSkuReference()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await adminSeedSkuReference(adminSeedSkuReferenceVars);
 // Variables can be defined inline as well.
-const { data } = await adminSeedSkuReference({ merchant: ..., sku: ..., productLabel: ..., categoryLabel: ..., accountCode: ..., verificationStatus: ..., });
+const { data } = await adminSeedSkuReference({ merchant: ..., sku: ..., productLabel: ..., categoryLabel: ..., accountId: ..., verificationStatus: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -1734,24 +1647,24 @@ adminSeedSkuReference(adminSeedSkuReferenceVars).then((response) => {
 
 ### Using `AdminSeedSkuReference`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, adminSeedSkuReferenceRef, AdminSeedSkuReferenceVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminSeedSkuReference` mutation requires an argument of type `AdminSeedSkuReferenceVariables`:
 const adminSeedSkuReferenceVars: AdminSeedSkuReferenceVariables = {
-  merchant: ..., 
-  sku: ..., 
+  merchant: ...,
+  sku: ...,
   productLabel: ..., // optional
   categoryLabel: ..., // optional
-  accountCode: ..., 
-  verificationStatus: ..., 
+  accountId: ...,
+  verificationStatus: ...,
 };
 
 // Call the `adminSeedSkuReferenceRef()` function to get a reference to the mutation.
 const ref = adminSeedSkuReferenceRef(adminSeedSkuReferenceVars);
 // Variables can be defined inline as well.
-const ref = adminSeedSkuReferenceRef({ merchant: ..., sku: ..., productLabel: ..., categoryLabel: ..., accountCode: ..., verificationStatus: ..., });
+const ref = adminSeedSkuReferenceRef({ merchant: ..., sku: ..., productLabel: ..., categoryLabel: ..., accountId: ..., verificationStatus: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -1772,7 +1685,7 @@ executeMutation(ref).then((response) => {
 
 ## AdminSeedExpenseTransaction
 You can execute the `AdminSeedExpenseTransaction` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 adminSeedExpenseTransaction(vars: AdminSeedExpenseTransactionVariables): MutationPromise<AdminSeedExpenseTransactionData, AdminSeedExpenseTransactionVariables>;
 
 interface AdminSeedExpenseTransactionRef {
@@ -1783,7 +1696,7 @@ interface AdminSeedExpenseTransactionRef {
 export const adminSeedExpenseTransactionRef: AdminSeedExpenseTransactionRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 adminSeedExpenseTransaction(dc: DataConnect, vars: AdminSeedExpenseTransactionVariables): MutationPromise<AdminSeedExpenseTransactionData, AdminSeedExpenseTransactionVariables>;
 
 interface AdminSeedExpenseTransactionRef {
@@ -1794,7 +1707,7 @@ export const adminSeedExpenseTransactionRef: AdminSeedExpenseTransactionRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminSeedExpenseTransactionRef:
-```typescript
+```typescrip
 const name = adminSeedExpenseTransactionRef.operationName;
 console.log(name);
 ```
@@ -1802,7 +1715,7 @@ console.log(name);
 ### Variables
 The `AdminSeedExpenseTransaction` mutation requires an argument of type `AdminSeedExpenseTransactionVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface AdminSeedExpenseTransactionVariables {
   id: string;
   transactionDate: DateString;
@@ -1810,7 +1723,7 @@ export interface AdminSeedExpenseTransactionVariables {
   cardId: string;
   statementPeriodId: string;
   projectId: string;
-  accountCode: string;
+  accountId: string;
   categoryLabel?: string | null;
   sku?: string | null;
   amountBeforeTaxCents: Int64String;
@@ -1833,37 +1746,37 @@ export interface AdminSeedExpenseTransactionVariables {
 Recall that executing the `AdminSeedExpenseTransaction` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `AdminSeedExpenseTransactionData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface AdminSeedExpenseTransactionData {
   expenseTransaction_upsert: ExpenseTransaction_Key;
 }
 ```
 ### Using `AdminSeedExpenseTransaction`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, adminSeedExpenseTransaction, AdminSeedExpenseTransactionVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminSeedExpenseTransaction` mutation requires an argument of type `AdminSeedExpenseTransactionVariables`:
 const adminSeedExpenseTransactionVars: AdminSeedExpenseTransactionVariables = {
-  id: ..., 
-  transactionDate: ..., 
-  vendor: ..., 
-  cardId: ..., 
-  statementPeriodId: ..., 
-  projectId: ..., 
-  accountCode: ..., 
+  id: ...,
+  transactionDate: ...,
+  vendor: ...,
+  cardId: ...,
+  statementPeriodId: ...,
+  projectId: ...,
+  accountId: ...,
   categoryLabel: ..., // optional
   sku: ..., // optional
-  amountBeforeTaxCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  currency: ..., 
-  status: ..., 
+  amountBeforeTaxCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  currency: ...,
+  status: ...,
   processingStatus: ..., // optional
   accountingStatus: ..., // optional
-  reconciliationStatus: ..., 
+  reconciliationStatus: ...,
   classificationSource: ..., // optional
   classificationConfidence: ..., // optional
   classificationNote: ..., // optional
@@ -1875,7 +1788,7 @@ const adminSeedExpenseTransactionVars: AdminSeedExpenseTransactionVariables = {
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await adminSeedExpenseTransaction(adminSeedExpenseTransactionVars);
 // Variables can be defined inline as well.
-const { data } = await adminSeedExpenseTransaction({ id: ..., transactionDate: ..., vendor: ..., cardId: ..., statementPeriodId: ..., projectId: ..., accountCode: ..., categoryLabel: ..., sku: ..., amountBeforeTaxCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., status: ..., processingStatus: ..., accountingStatus: ..., reconciliationStatus: ..., classificationSource: ..., classificationConfidence: ..., classificationNote: ..., invoiceNumber: ..., issue: ..., });
+const { data } = await adminSeedExpenseTransaction({ id: ..., transactionDate: ..., vendor: ..., cardId: ..., statementPeriodId: ..., projectId: ..., accountId: ..., categoryLabel: ..., sku: ..., amountBeforeTaxCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., status: ..., processingStatus: ..., accountingStatus: ..., reconciliationStatus: ..., classificationSource: ..., classificationConfidence: ..., classificationNote: ..., invoiceNumber: ..., issue: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -1892,30 +1805,30 @@ adminSeedExpenseTransaction(adminSeedExpenseTransactionVars).then((response) => 
 
 ### Using `AdminSeedExpenseTransaction`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, adminSeedExpenseTransactionRef, AdminSeedExpenseTransactionVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminSeedExpenseTransaction` mutation requires an argument of type `AdminSeedExpenseTransactionVariables`:
 const adminSeedExpenseTransactionVars: AdminSeedExpenseTransactionVariables = {
-  id: ..., 
-  transactionDate: ..., 
-  vendor: ..., 
-  cardId: ..., 
-  statementPeriodId: ..., 
-  projectId: ..., 
-  accountCode: ..., 
+  id: ...,
+  transactionDate: ...,
+  vendor: ...,
+  cardId: ...,
+  statementPeriodId: ...,
+  projectId: ...,
+  accountId: ...,
   categoryLabel: ..., // optional
   sku: ..., // optional
-  amountBeforeTaxCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  currency: ..., 
-  status: ..., 
+  amountBeforeTaxCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  currency: ...,
+  status: ...,
   processingStatus: ..., // optional
   accountingStatus: ..., // optional
-  reconciliationStatus: ..., 
+  reconciliationStatus: ...,
   classificationSource: ..., // optional
   classificationConfidence: ..., // optional
   classificationNote: ..., // optional
@@ -1926,7 +1839,7 @@ const adminSeedExpenseTransactionVars: AdminSeedExpenseTransactionVariables = {
 // Call the `adminSeedExpenseTransactionRef()` function to get a reference to the mutation.
 const ref = adminSeedExpenseTransactionRef(adminSeedExpenseTransactionVars);
 // Variables can be defined inline as well.
-const ref = adminSeedExpenseTransactionRef({ id: ..., transactionDate: ..., vendor: ..., cardId: ..., statementPeriodId: ..., projectId: ..., accountCode: ..., categoryLabel: ..., sku: ..., amountBeforeTaxCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., status: ..., processingStatus: ..., accountingStatus: ..., reconciliationStatus: ..., classificationSource: ..., classificationConfidence: ..., classificationNote: ..., invoiceNumber: ..., issue: ..., });
+const ref = adminSeedExpenseTransactionRef({ id: ..., transactionDate: ..., vendor: ..., cardId: ..., statementPeriodId: ..., projectId: ..., accountId: ..., categoryLabel: ..., sku: ..., amountBeforeTaxCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., status: ..., processingStatus: ..., accountingStatus: ..., reconciliationStatus: ..., classificationSource: ..., classificationConfidence: ..., classificationNote: ..., invoiceNumber: ..., issue: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -1947,7 +1860,7 @@ executeMutation(ref).then((response) => {
 
 ## AdminSeedInvoice
 You can execute the `AdminSeedInvoice` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 adminSeedInvoice(vars: AdminSeedInvoiceVariables): MutationPromise<AdminSeedInvoiceData, AdminSeedInvoiceVariables>;
 
 interface AdminSeedInvoiceRef {
@@ -1958,7 +1871,7 @@ interface AdminSeedInvoiceRef {
 export const adminSeedInvoiceRef: AdminSeedInvoiceRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 adminSeedInvoice(dc: DataConnect, vars: AdminSeedInvoiceVariables): MutationPromise<AdminSeedInvoiceData, AdminSeedInvoiceVariables>;
 
 interface AdminSeedInvoiceRef {
@@ -1969,7 +1882,7 @@ export const adminSeedInvoiceRef: AdminSeedInvoiceRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminSeedInvoiceRef:
-```typescript
+```typescrip
 const name = adminSeedInvoiceRef.operationName;
 console.log(name);
 ```
@@ -1977,7 +1890,7 @@ console.log(name);
 ### Variables
 The `AdminSeedInvoice` mutation requires an argument of type `AdminSeedInvoiceVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface AdminSeedInvoiceVariables {
   id: string;
   transactionId: string;
@@ -1999,22 +1912,22 @@ export interface AdminSeedInvoiceVariables {
 Recall that executing the `AdminSeedInvoice` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `AdminSeedInvoiceData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface AdminSeedInvoiceData {
   invoice_upsert: Invoice_Key;
 }
 ```
 ### Using `AdminSeedInvoice`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, adminSeedInvoice, AdminSeedInvoiceVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminSeedInvoice` mutation requires an argument of type `AdminSeedInvoiceVariables`:
 const adminSeedInvoiceVars: AdminSeedInvoiceVariables = {
-  id: ..., 
-  transactionId: ..., 
-  vendor: ..., 
+  id: ...,
+  transactionId: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
   invoiceDate: ..., // optional
   subtotalCents: ..., // optional
@@ -2023,9 +1936,9 @@ const adminSeedInvoiceVars: AdminSeedInvoiceVariables = {
   totalCents: ..., // optional
   processingStatus: ..., // optional
   accountingStatus: ..., // optional
-  reviewStatus: ..., 
+  reviewStatus: ...,
   storageFolder: ..., // optional
-  createdById: ..., 
+  createdById: ...,
 };
 
 // Call the `adminSeedInvoice()` function to execute the mutation.
@@ -2049,15 +1962,15 @@ adminSeedInvoice(adminSeedInvoiceVars).then((response) => {
 
 ### Using `AdminSeedInvoice`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, adminSeedInvoiceRef, AdminSeedInvoiceVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminSeedInvoice` mutation requires an argument of type `AdminSeedInvoiceVariables`:
 const adminSeedInvoiceVars: AdminSeedInvoiceVariables = {
-  id: ..., 
-  transactionId: ..., 
-  vendor: ..., 
+  id: ...,
+  transactionId: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
   invoiceDate: ..., // optional
   subtotalCents: ..., // optional
@@ -2066,9 +1979,9 @@ const adminSeedInvoiceVars: AdminSeedInvoiceVariables = {
   totalCents: ..., // optional
   processingStatus: ..., // optional
   accountingStatus: ..., // optional
-  reviewStatus: ..., 
+  reviewStatus: ...,
   storageFolder: ..., // optional
-  createdById: ..., 
+  createdById: ...,
 };
 
 // Call the `adminSeedInvoiceRef()` function to get a reference to the mutation.
@@ -2095,7 +2008,7 @@ executeMutation(ref).then((response) => {
 
 ## AdminSeedInvoicePhoto
 You can execute the `AdminSeedInvoicePhoto` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 adminSeedInvoicePhoto(vars: AdminSeedInvoicePhotoVariables): MutationPromise<AdminSeedInvoicePhotoData, AdminSeedInvoicePhotoVariables>;
 
 interface AdminSeedInvoicePhotoRef {
@@ -2106,7 +2019,7 @@ interface AdminSeedInvoicePhotoRef {
 export const adminSeedInvoicePhotoRef: AdminSeedInvoicePhotoRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 adminSeedInvoicePhoto(dc: DataConnect, vars: AdminSeedInvoicePhotoVariables): MutationPromise<AdminSeedInvoicePhotoData, AdminSeedInvoicePhotoVariables>;
 
 interface AdminSeedInvoicePhotoRef {
@@ -2117,7 +2030,7 @@ export const adminSeedInvoicePhotoRef: AdminSeedInvoicePhotoRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminSeedInvoicePhotoRef:
-```typescript
+```typescrip
 const name = adminSeedInvoicePhotoRef.operationName;
 console.log(name);
 ```
@@ -2125,7 +2038,7 @@ console.log(name);
 ### Variables
 The `AdminSeedInvoicePhoto` mutation requires an argument of type `AdminSeedInvoicePhotoVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface AdminSeedInvoicePhotoVariables {
   id: string;
   invoiceId: string;
@@ -2138,24 +2051,24 @@ export interface AdminSeedInvoicePhotoVariables {
 Recall that executing the `AdminSeedInvoicePhoto` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `AdminSeedInvoicePhotoData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface AdminSeedInvoicePhotoData {
   invoicePhoto_upsert: InvoicePhoto_Key;
 }
 ```
 ### Using `AdminSeedInvoicePhoto`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, adminSeedInvoicePhoto, AdminSeedInvoicePhotoVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminSeedInvoicePhoto` mutation requires an argument of type `AdminSeedInvoicePhotoVariables`:
 const adminSeedInvoicePhotoVars: AdminSeedInvoicePhotoVariables = {
-  id: ..., 
-  invoiceId: ..., 
-  storagePath: ..., 
-  contentType: ..., 
-  sequence: ..., 
+  id: ...,
+  invoiceId: ...,
+  storagePath: ...,
+  contentType: ...,
+  sequence: ...,
 };
 
 // Call the `adminSeedInvoicePhoto()` function to execute the mutation.
@@ -2179,17 +2092,17 @@ adminSeedInvoicePhoto(adminSeedInvoicePhotoVars).then((response) => {
 
 ### Using `AdminSeedInvoicePhoto`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, adminSeedInvoicePhotoRef, AdminSeedInvoicePhotoVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminSeedInvoicePhoto` mutation requires an argument of type `AdminSeedInvoicePhotoVariables`:
 const adminSeedInvoicePhotoVars: AdminSeedInvoicePhotoVariables = {
-  id: ..., 
-  invoiceId: ..., 
-  storagePath: ..., 
-  contentType: ..., 
-  sequence: ..., 
+  id: ...,
+  invoiceId: ...,
+  storagePath: ...,
+  contentType: ...,
+  sequence: ...,
 };
 
 // Call the `adminSeedInvoicePhotoRef()` function to get a reference to the mutation.
@@ -2216,7 +2129,7 @@ executeMutation(ref).then((response) => {
 
 ## AdminDeleteInvoicePhoto
 You can execute the `AdminDeleteInvoicePhoto` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 adminDeleteInvoicePhoto(vars: AdminDeleteInvoicePhotoVariables): MutationPromise<AdminDeleteInvoicePhotoData, AdminDeleteInvoicePhotoVariables>;
 
 interface AdminDeleteInvoicePhotoRef {
@@ -2227,7 +2140,7 @@ interface AdminDeleteInvoicePhotoRef {
 export const adminDeleteInvoicePhotoRef: AdminDeleteInvoicePhotoRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 adminDeleteInvoicePhoto(dc: DataConnect, vars: AdminDeleteInvoicePhotoVariables): MutationPromise<AdminDeleteInvoicePhotoData, AdminDeleteInvoicePhotoVariables>;
 
 interface AdminDeleteInvoicePhotoRef {
@@ -2238,7 +2151,7 @@ export const adminDeleteInvoicePhotoRef: AdminDeleteInvoicePhotoRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminDeleteInvoicePhotoRef:
-```typescript
+```typescrip
 const name = adminDeleteInvoicePhotoRef.operationName;
 console.log(name);
 ```
@@ -2246,7 +2159,7 @@ console.log(name);
 ### Variables
 The `AdminDeleteInvoicePhoto` mutation requires an argument of type `AdminDeleteInvoicePhotoVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface AdminDeleteInvoicePhotoVariables {
   id: string;
 }
@@ -2255,20 +2168,20 @@ export interface AdminDeleteInvoicePhotoVariables {
 Recall that executing the `AdminDeleteInvoicePhoto` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `AdminDeleteInvoicePhotoData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface AdminDeleteInvoicePhotoData {
   invoicePhoto_delete?: InvoicePhoto_Key | null;
 }
 ```
 ### Using `AdminDeleteInvoicePhoto`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, adminDeleteInvoicePhoto, AdminDeleteInvoicePhotoVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminDeleteInvoicePhoto` mutation requires an argument of type `AdminDeleteInvoicePhotoVariables`:
 const adminDeleteInvoicePhotoVars: AdminDeleteInvoicePhotoVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteInvoicePhoto()` function to execute the mutation.
@@ -2292,13 +2205,13 @@ adminDeleteInvoicePhoto(adminDeleteInvoicePhotoVars).then((response) => {
 
 ### Using `AdminDeleteInvoicePhoto`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, adminDeleteInvoicePhotoRef, AdminDeleteInvoicePhotoVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminDeleteInvoicePhoto` mutation requires an argument of type `AdminDeleteInvoicePhotoVariables`:
 const adminDeleteInvoicePhotoVars: AdminDeleteInvoicePhotoVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteInvoicePhotoRef()` function to get a reference to the mutation.
@@ -2325,7 +2238,7 @@ executeMutation(ref).then((response) => {
 
 ## AdminDeleteInvoice
 You can execute the `AdminDeleteInvoice` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 adminDeleteInvoice(vars: AdminDeleteInvoiceVariables): MutationPromise<AdminDeleteInvoiceData, AdminDeleteInvoiceVariables>;
 
 interface AdminDeleteInvoiceRef {
@@ -2336,7 +2249,7 @@ interface AdminDeleteInvoiceRef {
 export const adminDeleteInvoiceRef: AdminDeleteInvoiceRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 adminDeleteInvoice(dc: DataConnect, vars: AdminDeleteInvoiceVariables): MutationPromise<AdminDeleteInvoiceData, AdminDeleteInvoiceVariables>;
 
 interface AdminDeleteInvoiceRef {
@@ -2347,7 +2260,7 @@ export const adminDeleteInvoiceRef: AdminDeleteInvoiceRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminDeleteInvoiceRef:
-```typescript
+```typescrip
 const name = adminDeleteInvoiceRef.operationName;
 console.log(name);
 ```
@@ -2355,7 +2268,7 @@ console.log(name);
 ### Variables
 The `AdminDeleteInvoice` mutation requires an argument of type `AdminDeleteInvoiceVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface AdminDeleteInvoiceVariables {
   id: string;
 }
@@ -2364,20 +2277,20 @@ export interface AdminDeleteInvoiceVariables {
 Recall that executing the `AdminDeleteInvoice` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `AdminDeleteInvoiceData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface AdminDeleteInvoiceData {
   invoice_delete?: Invoice_Key | null;
 }
 ```
 ### Using `AdminDeleteInvoice`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, adminDeleteInvoice, AdminDeleteInvoiceVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminDeleteInvoice` mutation requires an argument of type `AdminDeleteInvoiceVariables`:
 const adminDeleteInvoiceVars: AdminDeleteInvoiceVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteInvoice()` function to execute the mutation.
@@ -2401,13 +2314,13 @@ adminDeleteInvoice(adminDeleteInvoiceVars).then((response) => {
 
 ### Using `AdminDeleteInvoice`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, adminDeleteInvoiceRef, AdminDeleteInvoiceVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminDeleteInvoice` mutation requires an argument of type `AdminDeleteInvoiceVariables`:
 const adminDeleteInvoiceVars: AdminDeleteInvoiceVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteInvoiceRef()` function to get a reference to the mutation.
@@ -2434,7 +2347,7 @@ executeMutation(ref).then((response) => {
 
 ## AdminDeleteExpenseTransaction
 You can execute the `AdminDeleteExpenseTransaction` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 adminDeleteExpenseTransaction(vars: AdminDeleteExpenseTransactionVariables): MutationPromise<AdminDeleteExpenseTransactionData, AdminDeleteExpenseTransactionVariables>;
 
 interface AdminDeleteExpenseTransactionRef {
@@ -2445,7 +2358,7 @@ interface AdminDeleteExpenseTransactionRef {
 export const adminDeleteExpenseTransactionRef: AdminDeleteExpenseTransactionRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 adminDeleteExpenseTransaction(dc: DataConnect, vars: AdminDeleteExpenseTransactionVariables): MutationPromise<AdminDeleteExpenseTransactionData, AdminDeleteExpenseTransactionVariables>;
 
 interface AdminDeleteExpenseTransactionRef {
@@ -2456,7 +2369,7 @@ export const adminDeleteExpenseTransactionRef: AdminDeleteExpenseTransactionRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminDeleteExpenseTransactionRef:
-```typescript
+```typescrip
 const name = adminDeleteExpenseTransactionRef.operationName;
 console.log(name);
 ```
@@ -2464,7 +2377,7 @@ console.log(name);
 ### Variables
 The `AdminDeleteExpenseTransaction` mutation requires an argument of type `AdminDeleteExpenseTransactionVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface AdminDeleteExpenseTransactionVariables {
   id: string;
 }
@@ -2473,20 +2386,20 @@ export interface AdminDeleteExpenseTransactionVariables {
 Recall that executing the `AdminDeleteExpenseTransaction` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `AdminDeleteExpenseTransactionData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface AdminDeleteExpenseTransactionData {
   expenseTransaction_delete?: ExpenseTransaction_Key | null;
 }
 ```
 ### Using `AdminDeleteExpenseTransaction`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, adminDeleteExpenseTransaction, AdminDeleteExpenseTransactionVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminDeleteExpenseTransaction` mutation requires an argument of type `AdminDeleteExpenseTransactionVariables`:
 const adminDeleteExpenseTransactionVars: AdminDeleteExpenseTransactionVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteExpenseTransaction()` function to execute the mutation.
@@ -2510,13 +2423,13 @@ adminDeleteExpenseTransaction(adminDeleteExpenseTransactionVars).then((response)
 
 ### Using `AdminDeleteExpenseTransaction`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, adminDeleteExpenseTransactionRef, AdminDeleteExpenseTransactionVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminDeleteExpenseTransaction` mutation requires an argument of type `AdminDeleteExpenseTransactionVariables`:
 const adminDeleteExpenseTransactionVars: AdminDeleteExpenseTransactionVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteExpenseTransactionRef()` function to get a reference to the mutation.
@@ -2543,7 +2456,7 @@ executeMutation(ref).then((response) => {
 
 ## AdminDeleteInvoiceIntake
 You can execute the `AdminDeleteInvoiceIntake` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 adminDeleteInvoiceIntake(vars: AdminDeleteInvoiceIntakeVariables): MutationPromise<AdminDeleteInvoiceIntakeData, AdminDeleteInvoiceIntakeVariables>;
 
 interface AdminDeleteInvoiceIntakeRef {
@@ -2554,7 +2467,7 @@ interface AdminDeleteInvoiceIntakeRef {
 export const adminDeleteInvoiceIntakeRef: AdminDeleteInvoiceIntakeRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 adminDeleteInvoiceIntake(dc: DataConnect, vars: AdminDeleteInvoiceIntakeVariables): MutationPromise<AdminDeleteInvoiceIntakeData, AdminDeleteInvoiceIntakeVariables>;
 
 interface AdminDeleteInvoiceIntakeRef {
@@ -2565,7 +2478,7 @@ export const adminDeleteInvoiceIntakeRef: AdminDeleteInvoiceIntakeRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminDeleteInvoiceIntakeRef:
-```typescript
+```typescrip
 const name = adminDeleteInvoiceIntakeRef.operationName;
 console.log(name);
 ```
@@ -2573,7 +2486,7 @@ console.log(name);
 ### Variables
 The `AdminDeleteInvoiceIntake` mutation requires an argument of type `AdminDeleteInvoiceIntakeVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface AdminDeleteInvoiceIntakeVariables {
   receiptId: string;
 }
@@ -2582,20 +2495,20 @@ export interface AdminDeleteInvoiceIntakeVariables {
 Recall that executing the `AdminDeleteInvoiceIntake` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `AdminDeleteInvoiceIntakeData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface AdminDeleteInvoiceIntakeData {
   invoiceIntake_delete?: InvoiceIntake_Key | null;
 }
 ```
 ### Using `AdminDeleteInvoiceIntake`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, adminDeleteInvoiceIntake, AdminDeleteInvoiceIntakeVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminDeleteInvoiceIntake` mutation requires an argument of type `AdminDeleteInvoiceIntakeVariables`:
 const adminDeleteInvoiceIntakeVars: AdminDeleteInvoiceIntakeVariables = {
-  receiptId: ..., 
+  receiptId: ...,
 };
 
 // Call the `adminDeleteInvoiceIntake()` function to execute the mutation.
@@ -2619,13 +2532,13 @@ adminDeleteInvoiceIntake(adminDeleteInvoiceIntakeVars).then((response) => {
 
 ### Using `AdminDeleteInvoiceIntake`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, adminDeleteInvoiceIntakeRef, AdminDeleteInvoiceIntakeVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminDeleteInvoiceIntake` mutation requires an argument of type `AdminDeleteInvoiceIntakeVariables`:
 const adminDeleteInvoiceIntakeVars: AdminDeleteInvoiceIntakeVariables = {
-  receiptId: ..., 
+  receiptId: ...,
 };
 
 // Call the `adminDeleteInvoiceIntakeRef()` function to get a reference to the mutation.
@@ -2652,7 +2565,7 @@ executeMutation(ref).then((response) => {
 
 ## AdminDeleteCreditCard
 You can execute the `AdminDeleteCreditCard` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 adminDeleteCreditCard(vars: AdminDeleteCreditCardVariables): MutationPromise<AdminDeleteCreditCardData, AdminDeleteCreditCardVariables>;
 
 interface AdminDeleteCreditCardRef {
@@ -2663,7 +2576,7 @@ interface AdminDeleteCreditCardRef {
 export const adminDeleteCreditCardRef: AdminDeleteCreditCardRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 adminDeleteCreditCard(dc: DataConnect, vars: AdminDeleteCreditCardVariables): MutationPromise<AdminDeleteCreditCardData, AdminDeleteCreditCardVariables>;
 
 interface AdminDeleteCreditCardRef {
@@ -2674,7 +2587,7 @@ export const adminDeleteCreditCardRef: AdminDeleteCreditCardRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminDeleteCreditCardRef:
-```typescript
+```typescrip
 const name = adminDeleteCreditCardRef.operationName;
 console.log(name);
 ```
@@ -2682,7 +2595,7 @@ console.log(name);
 ### Variables
 The `AdminDeleteCreditCard` mutation requires an argument of type `AdminDeleteCreditCardVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface AdminDeleteCreditCardVariables {
   id: string;
 }
@@ -2691,20 +2604,20 @@ export interface AdminDeleteCreditCardVariables {
 Recall that executing the `AdminDeleteCreditCard` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `AdminDeleteCreditCardData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface AdminDeleteCreditCardData {
   creditCard_delete?: CreditCard_Key | null;
 }
 ```
 ### Using `AdminDeleteCreditCard`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, adminDeleteCreditCard, AdminDeleteCreditCardVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminDeleteCreditCard` mutation requires an argument of type `AdminDeleteCreditCardVariables`:
 const adminDeleteCreditCardVars: AdminDeleteCreditCardVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteCreditCard()` function to execute the mutation.
@@ -2728,13 +2641,13 @@ adminDeleteCreditCard(adminDeleteCreditCardVars).then((response) => {
 
 ### Using `AdminDeleteCreditCard`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, adminDeleteCreditCardRef, AdminDeleteCreditCardVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminDeleteCreditCard` mutation requires an argument of type `AdminDeleteCreditCardVariables`:
 const adminDeleteCreditCardVars: AdminDeleteCreditCardVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteCreditCardRef()` function to get a reference to the mutation.
@@ -2761,7 +2674,7 @@ executeMutation(ref).then((response) => {
 
 ## AdminDeleteSkuReference
 You can execute the `AdminDeleteSkuReference` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 adminDeleteSkuReference(vars: AdminDeleteSkuReferenceVariables): MutationPromise<AdminDeleteSkuReferenceData, AdminDeleteSkuReferenceVariables>;
 
 interface AdminDeleteSkuReferenceRef {
@@ -2772,7 +2685,7 @@ interface AdminDeleteSkuReferenceRef {
 export const adminDeleteSkuReferenceRef: AdminDeleteSkuReferenceRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 adminDeleteSkuReference(dc: DataConnect, vars: AdminDeleteSkuReferenceVariables): MutationPromise<AdminDeleteSkuReferenceData, AdminDeleteSkuReferenceVariables>;
 
 interface AdminDeleteSkuReferenceRef {
@@ -2783,7 +2696,7 @@ export const adminDeleteSkuReferenceRef: AdminDeleteSkuReferenceRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminDeleteSkuReferenceRef:
-```typescript
+```typescrip
 const name = adminDeleteSkuReferenceRef.operationName;
 console.log(name);
 ```
@@ -2791,7 +2704,7 @@ console.log(name);
 ### Variables
 The `AdminDeleteSkuReference` mutation requires an argument of type `AdminDeleteSkuReferenceVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface AdminDeleteSkuReferenceVariables {
   merchant: string;
   sku: string;
@@ -2801,21 +2714,21 @@ export interface AdminDeleteSkuReferenceVariables {
 Recall that executing the `AdminDeleteSkuReference` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `AdminDeleteSkuReferenceData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface AdminDeleteSkuReferenceData {
   skuReference_delete?: SkuReference_Key | null;
 }
 ```
 ### Using `AdminDeleteSkuReference`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, adminDeleteSkuReference, AdminDeleteSkuReferenceVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminDeleteSkuReference` mutation requires an argument of type `AdminDeleteSkuReferenceVariables`:
 const adminDeleteSkuReferenceVars: AdminDeleteSkuReferenceVariables = {
-  merchant: ..., 
-  sku: ..., 
+  merchant: ...,
+  sku: ...,
 };
 
 // Call the `adminDeleteSkuReference()` function to execute the mutation.
@@ -2839,14 +2752,14 @@ adminDeleteSkuReference(adminDeleteSkuReferenceVars).then((response) => {
 
 ### Using `AdminDeleteSkuReference`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, adminDeleteSkuReferenceRef, AdminDeleteSkuReferenceVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminDeleteSkuReference` mutation requires an argument of type `AdminDeleteSkuReferenceVariables`:
 const adminDeleteSkuReferenceVars: AdminDeleteSkuReferenceVariables = {
-  merchant: ..., 
-  sku: ..., 
+  merchant: ...,
+  sku: ...,
 };
 
 // Call the `adminDeleteSkuReferenceRef()` function to get a reference to the mutation.
@@ -2871,9 +2784,9 @@ executeMutation(ref).then((response) => {
 });
 ```
 
-## AdminDeleteProject
+## AdminDeleteProjec
 You can execute the `AdminDeleteProject` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 adminDeleteProject(vars: AdminDeleteProjectVariables): MutationPromise<AdminDeleteProjectData, AdminDeleteProjectVariables>;
 
 interface AdminDeleteProjectRef {
@@ -2884,7 +2797,7 @@ interface AdminDeleteProjectRef {
 export const adminDeleteProjectRef: AdminDeleteProjectRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 adminDeleteProject(dc: DataConnect, vars: AdminDeleteProjectVariables): MutationPromise<AdminDeleteProjectData, AdminDeleteProjectVariables>;
 
 interface AdminDeleteProjectRef {
@@ -2895,7 +2808,7 @@ export const adminDeleteProjectRef: AdminDeleteProjectRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminDeleteProjectRef:
-```typescript
+```typescrip
 const name = adminDeleteProjectRef.operationName;
 console.log(name);
 ```
@@ -2903,7 +2816,7 @@ console.log(name);
 ### Variables
 The `AdminDeleteProject` mutation requires an argument of type `AdminDeleteProjectVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface AdminDeleteProjectVariables {
   id: string;
 }
@@ -2912,20 +2825,20 @@ export interface AdminDeleteProjectVariables {
 Recall that executing the `AdminDeleteProject` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `AdminDeleteProjectData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface AdminDeleteProjectData {
   project_delete?: Project_Key | null;
 }
 ```
 ### Using `AdminDeleteProject`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, adminDeleteProject, AdminDeleteProjectVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminDeleteProject` mutation requires an argument of type `AdminDeleteProjectVariables`:
 const adminDeleteProjectVars: AdminDeleteProjectVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteProject()` function to execute the mutation.
@@ -2949,13 +2862,13 @@ adminDeleteProject(adminDeleteProjectVars).then((response) => {
 
 ### Using `AdminDeleteProject`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, adminDeleteProjectRef, AdminDeleteProjectVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminDeleteProject` mutation requires an argument of type `AdminDeleteProjectVariables`:
 const adminDeleteProjectVars: AdminDeleteProjectVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteProjectRef()` function to get a reference to the mutation.
@@ -2980,9 +2893,9 @@ executeMutation(ref).then((response) => {
 });
 ```
 
-## AdminDeleteExpenseAccount
+## AdminDeleteExpenseAccoun
 You can execute the `AdminDeleteExpenseAccount` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 adminDeleteExpenseAccount(vars: AdminDeleteExpenseAccountVariables): MutationPromise<AdminDeleteExpenseAccountData, AdminDeleteExpenseAccountVariables>;
 
 interface AdminDeleteExpenseAccountRef {
@@ -2993,7 +2906,7 @@ interface AdminDeleteExpenseAccountRef {
 export const adminDeleteExpenseAccountRef: AdminDeleteExpenseAccountRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 adminDeleteExpenseAccount(dc: DataConnect, vars: AdminDeleteExpenseAccountVariables): MutationPromise<AdminDeleteExpenseAccountData, AdminDeleteExpenseAccountVariables>;
 
 interface AdminDeleteExpenseAccountRef {
@@ -3004,7 +2917,7 @@ export const adminDeleteExpenseAccountRef: AdminDeleteExpenseAccountRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminDeleteExpenseAccountRef:
-```typescript
+```typescrip
 const name = adminDeleteExpenseAccountRef.operationName;
 console.log(name);
 ```
@@ -3012,36 +2925,36 @@ console.log(name);
 ### Variables
 The `AdminDeleteExpenseAccount` mutation requires an argument of type `AdminDeleteExpenseAccountVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface AdminDeleteExpenseAccountVariables {
-  code: string;
+  id: string;
 }
 ```
 ### Return Type
 Recall that executing the `AdminDeleteExpenseAccount` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `AdminDeleteExpenseAccountData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface AdminDeleteExpenseAccountData {
   expenseAccount_delete?: ExpenseAccount_Key | null;
 }
 ```
 ### Using `AdminDeleteExpenseAccount`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, adminDeleteExpenseAccount, AdminDeleteExpenseAccountVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminDeleteExpenseAccount` mutation requires an argument of type `AdminDeleteExpenseAccountVariables`:
 const adminDeleteExpenseAccountVars: AdminDeleteExpenseAccountVariables = {
-  code: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteExpenseAccount()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await adminDeleteExpenseAccount(adminDeleteExpenseAccountVars);
 // Variables can be defined inline as well.
-const { data } = await adminDeleteExpenseAccount({ code: ..., });
+const { data } = await adminDeleteExpenseAccount({ id: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -3058,19 +2971,19 @@ adminDeleteExpenseAccount(adminDeleteExpenseAccountVars).then((response) => {
 
 ### Using `AdminDeleteExpenseAccount`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, adminDeleteExpenseAccountRef, AdminDeleteExpenseAccountVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminDeleteExpenseAccount` mutation requires an argument of type `AdminDeleteExpenseAccountVariables`:
 const adminDeleteExpenseAccountVars: AdminDeleteExpenseAccountVariables = {
-  code: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteExpenseAccountRef()` function to get a reference to the mutation.
 const ref = adminDeleteExpenseAccountRef(adminDeleteExpenseAccountVars);
 // Variables can be defined inline as well.
-const ref = adminDeleteExpenseAccountRef({ code: ..., });
+const ref = adminDeleteExpenseAccountRef({ id: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -3089,118 +3002,9 @@ executeMutation(ref).then((response) => {
 });
 ```
 
-## AdminDeleteTaxAccount
-You can execute the `AdminDeleteTaxAccount` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
-adminDeleteTaxAccount(vars: AdminDeleteTaxAccountVariables): MutationPromise<AdminDeleteTaxAccountData, AdminDeleteTaxAccountVariables>;
-
-interface AdminDeleteTaxAccountRef {
-  ...
-  /* Allow users to create refs without passing in DataConnect */
-  (vars: AdminDeleteTaxAccountVariables): MutationRef<AdminDeleteTaxAccountData, AdminDeleteTaxAccountVariables>;
-}
-export const adminDeleteTaxAccountRef: AdminDeleteTaxAccountRef;
-```
-You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
-adminDeleteTaxAccount(dc: DataConnect, vars: AdminDeleteTaxAccountVariables): MutationPromise<AdminDeleteTaxAccountData, AdminDeleteTaxAccountVariables>;
-
-interface AdminDeleteTaxAccountRef {
-  ...
-  (dc: DataConnect, vars: AdminDeleteTaxAccountVariables): MutationRef<AdminDeleteTaxAccountData, AdminDeleteTaxAccountVariables>;
-}
-export const adminDeleteTaxAccountRef: AdminDeleteTaxAccountRef;
-```
-
-If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminDeleteTaxAccountRef:
-```typescript
-const name = adminDeleteTaxAccountRef.operationName;
-console.log(name);
-```
-
-### Variables
-The `AdminDeleteTaxAccount` mutation requires an argument of type `AdminDeleteTaxAccountVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-
-```typescript
-export interface AdminDeleteTaxAccountVariables {
-  code: string;
-}
-```
-### Return Type
-Recall that executing the `AdminDeleteTaxAccount` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
-
-The `data` property is an object of type `AdminDeleteTaxAccountData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
-export interface AdminDeleteTaxAccountData {
-  taxAccount_delete?: TaxAccount_Key | null;
-}
-```
-### Using `AdminDeleteTaxAccount`'s action shortcut function
-
-```typescript
-import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig, adminDeleteTaxAccount, AdminDeleteTaxAccountVariables } from '@factures-thibeault/data-connect-generated';
-
-// The `AdminDeleteTaxAccount` mutation requires an argument of type `AdminDeleteTaxAccountVariables`:
-const adminDeleteTaxAccountVars: AdminDeleteTaxAccountVariables = {
-  code: ..., 
-};
-
-// Call the `adminDeleteTaxAccount()` function to execute the mutation.
-// You can use the `await` keyword to wait for the promise to resolve.
-const { data } = await adminDeleteTaxAccount(adminDeleteTaxAccountVars);
-// Variables can be defined inline as well.
-const { data } = await adminDeleteTaxAccount({ code: ..., });
-
-// You can also pass in a `DataConnect` instance to the action shortcut function.
-const dataConnect = getDataConnect(connectorConfig);
-const { data } = await adminDeleteTaxAccount(dataConnect, adminDeleteTaxAccountVars);
-
-console.log(data.taxAccount_delete);
-
-// Or, you can use the `Promise` API.
-adminDeleteTaxAccount(adminDeleteTaxAccountVars).then((response) => {
-  const data = response.data;
-  console.log(data.taxAccount_delete);
-});
-```
-
-### Using `AdminDeleteTaxAccount`'s `MutationRef` function
-
-```typescript
-import { getDataConnect, executeMutation } from 'firebase/data-connect';
-import { connectorConfig, adminDeleteTaxAccountRef, AdminDeleteTaxAccountVariables } from '@factures-thibeault/data-connect-generated';
-
-// The `AdminDeleteTaxAccount` mutation requires an argument of type `AdminDeleteTaxAccountVariables`:
-const adminDeleteTaxAccountVars: AdminDeleteTaxAccountVariables = {
-  code: ..., 
-};
-
-// Call the `adminDeleteTaxAccountRef()` function to get a reference to the mutation.
-const ref = adminDeleteTaxAccountRef(adminDeleteTaxAccountVars);
-// Variables can be defined inline as well.
-const ref = adminDeleteTaxAccountRef({ code: ..., });
-
-// You can also pass in a `DataConnect` instance to the `MutationRef` function.
-const dataConnect = getDataConnect(connectorConfig);
-const ref = adminDeleteTaxAccountRef(dataConnect, adminDeleteTaxAccountVars);
-
-// Call `executeMutation()` on the reference to execute the mutation.
-// You can use the `await` keyword to wait for the promise to resolve.
-const { data } = await executeMutation(ref);
-
-console.log(data.taxAccount_delete);
-
-// Or, you can use the `Promise` API.
-executeMutation(ref).then((response) => {
-  const data = response.data;
-  console.log(data.taxAccount_delete);
-});
-```
-
 ## AdminDeleteCardStatementPeriod
 You can execute the `AdminDeleteCardStatementPeriod` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 adminDeleteCardStatementPeriod(vars: AdminDeleteCardStatementPeriodVariables): MutationPromise<AdminDeleteCardStatementPeriodData, AdminDeleteCardStatementPeriodVariables>;
 
 interface AdminDeleteCardStatementPeriodRef {
@@ -3211,7 +3015,7 @@ interface AdminDeleteCardStatementPeriodRef {
 export const adminDeleteCardStatementPeriodRef: AdminDeleteCardStatementPeriodRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 adminDeleteCardStatementPeriod(dc: DataConnect, vars: AdminDeleteCardStatementPeriodVariables): MutationPromise<AdminDeleteCardStatementPeriodData, AdminDeleteCardStatementPeriodVariables>;
 
 interface AdminDeleteCardStatementPeriodRef {
@@ -3222,7 +3026,7 @@ export const adminDeleteCardStatementPeriodRef: AdminDeleteCardStatementPeriodRe
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminDeleteCardStatementPeriodRef:
-```typescript
+```typescrip
 const name = adminDeleteCardStatementPeriodRef.operationName;
 console.log(name);
 ```
@@ -3230,7 +3034,7 @@ console.log(name);
 ### Variables
 The `AdminDeleteCardStatementPeriod` mutation requires an argument of type `AdminDeleteCardStatementPeriodVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface AdminDeleteCardStatementPeriodVariables {
   id: string;
 }
@@ -3239,20 +3043,20 @@ export interface AdminDeleteCardStatementPeriodVariables {
 Recall that executing the `AdminDeleteCardStatementPeriod` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `AdminDeleteCardStatementPeriodData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface AdminDeleteCardStatementPeriodData {
   cardStatementPeriod_delete?: CardStatementPeriod_Key | null;
 }
 ```
 ### Using `AdminDeleteCardStatementPeriod`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, adminDeleteCardStatementPeriod, AdminDeleteCardStatementPeriodVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminDeleteCardStatementPeriod` mutation requires an argument of type `AdminDeleteCardStatementPeriodVariables`:
 const adminDeleteCardStatementPeriodVars: AdminDeleteCardStatementPeriodVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteCardStatementPeriod()` function to execute the mutation.
@@ -3276,13 +3080,13 @@ adminDeleteCardStatementPeriod(adminDeleteCardStatementPeriodVars).then((respons
 
 ### Using `AdminDeleteCardStatementPeriod`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, adminDeleteCardStatementPeriodRef, AdminDeleteCardStatementPeriodVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminDeleteCardStatementPeriod` mutation requires an argument of type `AdminDeleteCardStatementPeriodVariables`:
 const adminDeleteCardStatementPeriodVars: AdminDeleteCardStatementPeriodVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteCardStatementPeriodRef()` function to get a reference to the mutation.
@@ -3309,7 +3113,7 @@ executeMutation(ref).then((response) => {
 
 ## AdminDeleteUserProfile
 You can execute the `AdminDeleteUserProfile` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 adminDeleteUserProfile(vars: AdminDeleteUserProfileVariables): MutationPromise<AdminDeleteUserProfileData, AdminDeleteUserProfileVariables>;
 
 interface AdminDeleteUserProfileRef {
@@ -3320,7 +3124,7 @@ interface AdminDeleteUserProfileRef {
 export const adminDeleteUserProfileRef: AdminDeleteUserProfileRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 adminDeleteUserProfile(dc: DataConnect, vars: AdminDeleteUserProfileVariables): MutationPromise<AdminDeleteUserProfileData, AdminDeleteUserProfileVariables>;
 
 interface AdminDeleteUserProfileRef {
@@ -3331,7 +3135,7 @@ export const adminDeleteUserProfileRef: AdminDeleteUserProfileRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminDeleteUserProfileRef:
-```typescript
+```typescrip
 const name = adminDeleteUserProfileRef.operationName;
 console.log(name);
 ```
@@ -3339,7 +3143,7 @@ console.log(name);
 ### Variables
 The `AdminDeleteUserProfile` mutation requires an argument of type `AdminDeleteUserProfileVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface AdminDeleteUserProfileVariables {
   id: string;
 }
@@ -3348,20 +3152,20 @@ export interface AdminDeleteUserProfileVariables {
 Recall that executing the `AdminDeleteUserProfile` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `AdminDeleteUserProfileData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface AdminDeleteUserProfileData {
   userProfile_delete?: UserProfile_Key | null;
 }
 ```
 ### Using `AdminDeleteUserProfile`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, adminDeleteUserProfile, AdminDeleteUserProfileVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminDeleteUserProfile` mutation requires an argument of type `AdminDeleteUserProfileVariables`:
 const adminDeleteUserProfileVars: AdminDeleteUserProfileVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteUserProfile()` function to execute the mutation.
@@ -3385,13 +3189,13 @@ adminDeleteUserProfile(adminDeleteUserProfileVars).then((response) => {
 
 ### Using `AdminDeleteUserProfile`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, adminDeleteUserProfileRef, AdminDeleteUserProfileVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AdminDeleteUserProfile` mutation requires an argument of type `AdminDeleteUserProfileVariables`:
 const adminDeleteUserProfileVars: AdminDeleteUserProfileVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteUserProfileRef()` function to get a reference to the mutation.
@@ -3418,7 +3222,7 @@ executeMutation(ref).then((response) => {
 
 ## UpsertUserProfile
 You can execute the `UpsertUserProfile` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 upsertUserProfile(vars: UpsertUserProfileVariables): MutationPromise<UpsertUserProfileData, UpsertUserProfileVariables>;
 
 interface UpsertUserProfileRef {
@@ -3429,7 +3233,7 @@ interface UpsertUserProfileRef {
 export const upsertUserProfileRef: UpsertUserProfileRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 upsertUserProfile(dc: DataConnect, vars: UpsertUserProfileVariables): MutationPromise<UpsertUserProfileData, UpsertUserProfileVariables>;
 
 interface UpsertUserProfileRef {
@@ -3440,7 +3244,7 @@ export const upsertUserProfileRef: UpsertUserProfileRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertUserProfileRef:
-```typescript
+```typescrip
 const name = upsertUserProfileRef.operationName;
 console.log(name);
 ```
@@ -3448,7 +3252,7 @@ console.log(name);
 ### Variables
 The `UpsertUserProfile` mutation requires an argument of type `UpsertUserProfileVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface UpsertUserProfileVariables {
   id: string;
   firebaseUid: string;
@@ -3463,26 +3267,26 @@ export interface UpsertUserProfileVariables {
 Recall that executing the `UpsertUserProfile` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `UpsertUserProfileData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface UpsertUserProfileData {
   userProfile_upsert: UserProfile_Key;
 }
 ```
 ### Using `UpsertUserProfile`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, upsertUserProfile, UpsertUserProfileVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `UpsertUserProfile` mutation requires an argument of type `UpsertUserProfileVariables`:
 const upsertUserProfileVars: UpsertUserProfileVariables = {
-  id: ..., 
-  firebaseUid: ..., 
-  displayName: ..., 
+  id: ...,
+  firebaseUid: ...,
+  displayName: ...,
   email: ..., // optional
   jobTitle: ..., // optional
-  role: ..., 
-  status: ..., 
+  role: ...,
+  status: ...,
 };
 
 // Call the `upsertUserProfile()` function to execute the mutation.
@@ -3506,19 +3310,19 @@ upsertUserProfile(upsertUserProfileVars).then((response) => {
 
 ### Using `UpsertUserProfile`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, upsertUserProfileRef, UpsertUserProfileVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `UpsertUserProfile` mutation requires an argument of type `UpsertUserProfileVariables`:
 const upsertUserProfileVars: UpsertUserProfileVariables = {
-  id: ..., 
-  firebaseUid: ..., 
-  displayName: ..., 
+  id: ...,
+  firebaseUid: ...,
+  displayName: ...,
   email: ..., // optional
   jobTitle: ..., // optional
-  role: ..., 
-  status: ..., 
+  role: ...,
+  status: ...,
 };
 
 // Call the `upsertUserProfileRef()` function to get a reference to the mutation.
@@ -3545,7 +3349,7 @@ executeMutation(ref).then((response) => {
 
 ## UpsertCreditCard
 You can execute the `UpsertCreditCard` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 upsertCreditCard(vars: UpsertCreditCardVariables): MutationPromise<UpsertCreditCardData, UpsertCreditCardVariables>;
 
 interface UpsertCreditCardRef {
@@ -3556,7 +3360,7 @@ interface UpsertCreditCardRef {
 export const upsertCreditCardRef: UpsertCreditCardRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 upsertCreditCard(dc: DataConnect, vars: UpsertCreditCardVariables): MutationPromise<UpsertCreditCardData, UpsertCreditCardVariables>;
 
 interface UpsertCreditCardRef {
@@ -3567,7 +3371,7 @@ export const upsertCreditCardRef: UpsertCreditCardRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertCreditCardRef:
-```typescript
+```typescrip
 const name = upsertCreditCardRef.operationName;
 console.log(name);
 ```
@@ -3575,7 +3379,7 @@ console.log(name);
 ### Variables
 The `UpsertCreditCard` mutation requires an argument of type `UpsertCreditCardVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface UpsertCreditCardVariables {
   id: string;
   lastFour: string;
@@ -3590,24 +3394,24 @@ export interface UpsertCreditCardVariables {
 Recall that executing the `UpsertCreditCard` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `UpsertCreditCardData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface UpsertCreditCardData {
   creditCard_upsert: CreditCard_Key;
 }
 ```
 ### Using `UpsertCreditCard`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, upsertCreditCard, UpsertCreditCardVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `UpsertCreditCard` mutation requires an argument of type `UpsertCreditCardVariables`:
 const upsertCreditCardVars: UpsertCreditCardVariables = {
-  id: ..., 
-  lastFour: ..., 
-  holderId: ..., 
+  id: ...,
+  lastFour: ...,
+  holderId: ...,
   cardFunction: ..., // optional
-  status: ..., 
+  status: ...,
   activeFrom: ..., // optional
   inactiveFrom: ..., // optional
 };
@@ -3633,17 +3437,17 @@ upsertCreditCard(upsertCreditCardVars).then((response) => {
 
 ### Using `UpsertCreditCard`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, upsertCreditCardRef, UpsertCreditCardVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `UpsertCreditCard` mutation requires an argument of type `UpsertCreditCardVariables`:
 const upsertCreditCardVars: UpsertCreditCardVariables = {
-  id: ..., 
-  lastFour: ..., 
-  holderId: ..., 
+  id: ...,
+  lastFour: ...,
+  holderId: ...,
   cardFunction: ..., // optional
-  status: ..., 
+  status: ...,
   activeFrom: ..., // optional
   inactiveFrom: ..., // optional
 };
@@ -3670,9 +3474,9 @@ executeMutation(ref).then((response) => {
 });
 ```
 
-## UpsertProject
+## UpsertProjec
 You can execute the `UpsertProject` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 upsertProject(vars: UpsertProjectVariables): MutationPromise<UpsertProjectData, UpsertProjectVariables>;
 
 interface UpsertProjectRef {
@@ -3683,7 +3487,7 @@ interface UpsertProjectRef {
 export const upsertProjectRef: UpsertProjectRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 upsertProject(dc: DataConnect, vars: UpsertProjectVariables): MutationPromise<UpsertProjectData, UpsertProjectVariables>;
 
 interface UpsertProjectRef {
@@ -3694,7 +3498,7 @@ export const upsertProjectRef: UpsertProjectRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertProjectRef:
-```typescript
+```typescrip
 const name = upsertProjectRef.operationName;
 console.log(name);
 ```
@@ -3702,71 +3506,86 @@ console.log(name);
 ### Variables
 The `UpsertProject` mutation requires an argument of type `UpsertProjectVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface UpsertProjectVariables {
   id: string;
+  number: string;
   name: string;
   status: string;
+  auditAction: string;
+  auditEventId: string;
+  auditDetails: string;
 }
 ```
 ### Return Type
 Recall that executing the `UpsertProject` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `UpsertProjectData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface UpsertProjectData {
   project_upsert: Project_Key;
+  auditEvent_upsert: AuditEvent_Key;
 }
 ```
 ### Using `UpsertProject`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, upsertProject, UpsertProjectVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `UpsertProject` mutation requires an argument of type `UpsertProjectVariables`:
 const upsertProjectVars: UpsertProjectVariables = {
-  id: ..., 
-  name: ..., 
-  status: ..., 
+  id: ...,
+  number: ...,
+  name: ...,
+  status: ...,
+  auditAction: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `upsertProject()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await upsertProject(upsertProjectVars);
 // Variables can be defined inline as well.
-const { data } = await upsertProject({ id: ..., name: ..., status: ..., });
+const { data } = await upsertProject({ id: ..., number: ..., name: ..., status: ..., auditAction: ..., auditEventId: ..., auditDetails: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
 const { data } = await upsertProject(dataConnect, upsertProjectVars);
 
 console.log(data.project_upsert);
+console.log(data.auditEvent_upsert);
 
 // Or, you can use the `Promise` API.
 upsertProject(upsertProjectVars).then((response) => {
   const data = response.data;
   console.log(data.project_upsert);
+  console.log(data.auditEvent_upsert);
 });
 ```
 
 ### Using `UpsertProject`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, upsertProjectRef, UpsertProjectVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `UpsertProject` mutation requires an argument of type `UpsertProjectVariables`:
 const upsertProjectVars: UpsertProjectVariables = {
-  id: ..., 
-  name: ..., 
-  status: ..., 
+  id: ...,
+  number: ...,
+  name: ...,
+  status: ...,
+  auditAction: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `upsertProjectRef()` function to get a reference to the mutation.
 const ref = upsertProjectRef(upsertProjectVars);
 // Variables can be defined inline as well.
-const ref = upsertProjectRef({ id: ..., name: ..., status: ..., });
+const ref = upsertProjectRef({ id: ..., number: ..., name: ..., status: ..., auditAction: ..., auditEventId: ..., auditDetails: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -3777,17 +3596,19 @@ const ref = upsertProjectRef(dataConnect, upsertProjectVars);
 const { data } = await executeMutation(ref);
 
 console.log(data.project_upsert);
+console.log(data.auditEvent_upsert);
 
 // Or, you can use the `Promise` API.
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.project_upsert);
+  console.log(data.auditEvent_upsert);
 });
 ```
 
-## UpsertExpenseAccount
+## UpsertExpenseAccoun
 You can execute the `UpsertExpenseAccount` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 upsertExpenseAccount(vars: UpsertExpenseAccountVariables): MutationPromise<UpsertExpenseAccountData, UpsertExpenseAccountVariables>;
 
 interface UpsertExpenseAccountRef {
@@ -3798,7 +3619,7 @@ interface UpsertExpenseAccountRef {
 export const upsertExpenseAccountRef: UpsertExpenseAccountRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 upsertExpenseAccount(dc: DataConnect, vars: UpsertExpenseAccountVariables): MutationPromise<UpsertExpenseAccountData, UpsertExpenseAccountVariables>;
 
 interface UpsertExpenseAccountRef {
@@ -3809,7 +3630,7 @@ export const upsertExpenseAccountRef: UpsertExpenseAccountRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertExpenseAccountRef:
-```typescript
+```typescrip
 const name = upsertExpenseAccountRef.operationName;
 console.log(name);
 ```
@@ -3817,71 +3638,89 @@ console.log(name);
 ### Variables
 The `UpsertExpenseAccount` mutation requires an argument of type `UpsertExpenseAccountVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface UpsertExpenseAccountVariables {
-  code: string;
+  id: string;
+  number: string;
+  type: string;
   label: string;
   status: string;
+  auditAction: string;
+  auditEventId: string;
+  auditDetails: string;
 }
 ```
 ### Return Type
 Recall that executing the `UpsertExpenseAccount` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `UpsertExpenseAccountData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface UpsertExpenseAccountData {
   expenseAccount_upsert: ExpenseAccount_Key;
+  auditEvent_upsert: AuditEvent_Key;
 }
 ```
 ### Using `UpsertExpenseAccount`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, upsertExpenseAccount, UpsertExpenseAccountVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `UpsertExpenseAccount` mutation requires an argument of type `UpsertExpenseAccountVariables`:
 const upsertExpenseAccountVars: UpsertExpenseAccountVariables = {
-  code: ..., 
-  label: ..., 
-  status: ..., 
+  id: ...,
+  number: ...,
+  type: ...,
+  label: ...,
+  status: ...,
+  auditAction: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `upsertExpenseAccount()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await upsertExpenseAccount(upsertExpenseAccountVars);
 // Variables can be defined inline as well.
-const { data } = await upsertExpenseAccount({ code: ..., label: ..., status: ..., });
+const { data } = await upsertExpenseAccount({ id: ..., number: ..., type: ..., label: ..., status: ..., auditAction: ..., auditEventId: ..., auditDetails: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
 const { data } = await upsertExpenseAccount(dataConnect, upsertExpenseAccountVars);
 
 console.log(data.expenseAccount_upsert);
+console.log(data.auditEvent_upsert);
 
 // Or, you can use the `Promise` API.
 upsertExpenseAccount(upsertExpenseAccountVars).then((response) => {
   const data = response.data;
   console.log(data.expenseAccount_upsert);
+  console.log(data.auditEvent_upsert);
 });
 ```
 
 ### Using `UpsertExpenseAccount`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, upsertExpenseAccountRef, UpsertExpenseAccountVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `UpsertExpenseAccount` mutation requires an argument of type `UpsertExpenseAccountVariables`:
 const upsertExpenseAccountVars: UpsertExpenseAccountVariables = {
-  code: ..., 
-  label: ..., 
-  status: ..., 
+  id: ...,
+  number: ...,
+  type: ...,
+  label: ...,
+  status: ...,
+  auditAction: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `upsertExpenseAccountRef()` function to get a reference to the mutation.
 const ref = upsertExpenseAccountRef(upsertExpenseAccountVars);
 // Variables can be defined inline as well.
-const ref = upsertExpenseAccountRef({ code: ..., label: ..., status: ..., });
+const ref = upsertExpenseAccountRef({ id: ..., number: ..., type: ..., label: ..., status: ..., auditAction: ..., auditEventId: ..., auditDetails: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -3892,17 +3731,259 @@ const ref = upsertExpenseAccountRef(dataConnect, upsertExpenseAccountVars);
 const { data } = await executeMutation(ref);
 
 console.log(data.expenseAccount_upsert);
+console.log(data.auditEvent_upsert);
 
 // Or, you can use the `Promise` API.
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.expenseAccount_upsert);
+  console.log(data.auditEvent_upsert);
+});
+```
+
+## DeleteProjec
+You can execute the `DeleteProject` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescrip
+deleteProject(vars: DeleteProjectVariables): MutationPromise<DeleteProjectData, DeleteProjectVariables>;
+
+interface DeleteProjectRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: DeleteProjectVariables): MutationRef<DeleteProjectData, DeleteProjectVariables>;
+}
+export const deleteProjectRef: DeleteProjectRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescrip
+deleteProject(dc: DataConnect, vars: DeleteProjectVariables): MutationPromise<DeleteProjectData, DeleteProjectVariables>;
+
+interface DeleteProjectRef {
+  ...
+  (dc: DataConnect, vars: DeleteProjectVariables): MutationRef<DeleteProjectData, DeleteProjectVariables>;
+}
+export const deleteProjectRef: DeleteProjectRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the deleteProjectRef:
+```typescrip
+const name = deleteProjectRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `DeleteProject` mutation requires an argument of type `DeleteProjectVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescrip
+export interface DeleteProjectVariables {
+  id: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that executing the `DeleteProject` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `DeleteProjectData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescrip
+export interface DeleteProjectData {
+  project_delete?: Project_Key | null;
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+### Using `DeleteProject`'s action shortcut function
+
+```typescrip
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, deleteProject, DeleteProjectVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `DeleteProject` mutation requires an argument of type `DeleteProjectVariables`:
+const deleteProjectVars: DeleteProjectVariables = {
+  id: ...,
+  auditEventId: ...,
+  auditDetails: ...,
+};
+
+// Call the `deleteProject()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await deleteProject(deleteProjectVars);
+// Variables can be defined inline as well.
+const { data } = await deleteProject({ id: ..., auditEventId: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await deleteProject(dataConnect, deleteProjectVars);
+
+console.log(data.project_delete);
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+deleteProject(deleteProjectVars).then((response) => {
+  const data = response.data;
+  console.log(data.project_delete);
+  console.log(data.auditEvent_upsert);
+});
+```
+
+### Using `DeleteProject`'s `MutationRef` function
+
+```typescrip
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, deleteProjectRef, DeleteProjectVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `DeleteProject` mutation requires an argument of type `DeleteProjectVariables`:
+const deleteProjectVars: DeleteProjectVariables = {
+  id: ...,
+  auditEventId: ...,
+  auditDetails: ...,
+};
+
+// Call the `deleteProjectRef()` function to get a reference to the mutation.
+const ref = deleteProjectRef(deleteProjectVars);
+// Variables can be defined inline as well.
+const ref = deleteProjectRef({ id: ..., auditEventId: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = deleteProjectRef(dataConnect, deleteProjectVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.project_delete);
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.project_delete);
+  console.log(data.auditEvent_upsert);
+});
+```
+
+## DeleteExpenseAccoun
+You can execute the `DeleteExpenseAccount` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescrip
+deleteExpenseAccount(vars: DeleteExpenseAccountVariables): MutationPromise<DeleteExpenseAccountData, DeleteExpenseAccountVariables>;
+
+interface DeleteExpenseAccountRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: DeleteExpenseAccountVariables): MutationRef<DeleteExpenseAccountData, DeleteExpenseAccountVariables>;
+}
+export const deleteExpenseAccountRef: DeleteExpenseAccountRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescrip
+deleteExpenseAccount(dc: DataConnect, vars: DeleteExpenseAccountVariables): MutationPromise<DeleteExpenseAccountData, DeleteExpenseAccountVariables>;
+
+interface DeleteExpenseAccountRef {
+  ...
+  (dc: DataConnect, vars: DeleteExpenseAccountVariables): MutationRef<DeleteExpenseAccountData, DeleteExpenseAccountVariables>;
+}
+export const deleteExpenseAccountRef: DeleteExpenseAccountRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the deleteExpenseAccountRef:
+```typescrip
+const name = deleteExpenseAccountRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `DeleteExpenseAccount` mutation requires an argument of type `DeleteExpenseAccountVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescrip
+export interface DeleteExpenseAccountVariables {
+  id: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that executing the `DeleteExpenseAccount` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `DeleteExpenseAccountData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescrip
+export interface DeleteExpenseAccountData {
+  expenseAccount_delete?: ExpenseAccount_Key | null;
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+### Using `DeleteExpenseAccount`'s action shortcut function
+
+```typescrip
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, deleteExpenseAccount, DeleteExpenseAccountVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `DeleteExpenseAccount` mutation requires an argument of type `DeleteExpenseAccountVariables`:
+const deleteExpenseAccountVars: DeleteExpenseAccountVariables = {
+  id: ...,
+  auditEventId: ...,
+  auditDetails: ...,
+};
+
+// Call the `deleteExpenseAccount()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await deleteExpenseAccount(deleteExpenseAccountVars);
+// Variables can be defined inline as well.
+const { data } = await deleteExpenseAccount({ id: ..., auditEventId: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await deleteExpenseAccount(dataConnect, deleteExpenseAccountVars);
+
+console.log(data.expenseAccount_delete);
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+deleteExpenseAccount(deleteExpenseAccountVars).then((response) => {
+  const data = response.data;
+  console.log(data.expenseAccount_delete);
+  console.log(data.auditEvent_upsert);
+});
+```
+
+### Using `DeleteExpenseAccount`'s `MutationRef` function
+
+```typescrip
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, deleteExpenseAccountRef, DeleteExpenseAccountVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `DeleteExpenseAccount` mutation requires an argument of type `DeleteExpenseAccountVariables`:
+const deleteExpenseAccountVars: DeleteExpenseAccountVariables = {
+  id: ...,
+  auditEventId: ...,
+  auditDetails: ...,
+};
+
+// Call the `deleteExpenseAccountRef()` function to get a reference to the mutation.
+const ref = deleteExpenseAccountRef(deleteExpenseAccountVars);
+// Variables can be defined inline as well.
+const ref = deleteExpenseAccountRef({ id: ..., auditEventId: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = deleteExpenseAccountRef(dataConnect, deleteExpenseAccountVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.expenseAccount_delete);
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.expenseAccount_delete);
+  console.log(data.auditEvent_upsert);
 });
 ```
 
 ## UpsertCardStatementPeriod
 You can execute the `UpsertCardStatementPeriod` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 upsertCardStatementPeriod(vars: UpsertCardStatementPeriodVariables): MutationPromise<UpsertCardStatementPeriodData, UpsertCardStatementPeriodVariables>;
 
 interface UpsertCardStatementPeriodRef {
@@ -3913,7 +3994,7 @@ interface UpsertCardStatementPeriodRef {
 export const upsertCardStatementPeriodRef: UpsertCardStatementPeriodRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 upsertCardStatementPeriod(dc: DataConnect, vars: UpsertCardStatementPeriodVariables): MutationPromise<UpsertCardStatementPeriodData, UpsertCardStatementPeriodVariables>;
 
 interface UpsertCardStatementPeriodRef {
@@ -3924,7 +4005,7 @@ export const upsertCardStatementPeriodRef: UpsertCardStatementPeriodRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertCardStatementPeriodRef:
-```typescript
+```typescrip
 const name = upsertCardStatementPeriodRef.operationName;
 console.log(name);
 ```
@@ -3932,7 +4013,7 @@ console.log(name);
 ### Variables
 The `UpsertCardStatementPeriod` mutation requires an argument of type `UpsertCardStatementPeriodVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface UpsertCardStatementPeriodVariables {
   id: string;
   label: string;
@@ -3946,25 +4027,25 @@ export interface UpsertCardStatementPeriodVariables {
 Recall that executing the `UpsertCardStatementPeriod` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `UpsertCardStatementPeriodData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface UpsertCardStatementPeriodData {
   cardStatementPeriod_upsert: CardStatementPeriod_Key;
 }
 ```
 ### Using `UpsertCardStatementPeriod`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, upsertCardStatementPeriod, UpsertCardStatementPeriodVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `UpsertCardStatementPeriod` mutation requires an argument of type `UpsertCardStatementPeriodVariables`:
 const upsertCardStatementPeriodVars: UpsertCardStatementPeriodVariables = {
-  id: ..., 
-  label: ..., 
-  startDate: ..., 
-  endDate: ..., 
+  id: ...,
+  label: ...,
+  startDate: ...,
+  endDate: ...,
   statementLabel: ..., // optional
-  status: ..., 
+  status: ...,
 };
 
 // Call the `upsertCardStatementPeriod()` function to execute the mutation.
@@ -3988,18 +4069,18 @@ upsertCardStatementPeriod(upsertCardStatementPeriodVars).then((response) => {
 
 ### Using `UpsertCardStatementPeriod`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, upsertCardStatementPeriodRef, UpsertCardStatementPeriodVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `UpsertCardStatementPeriod` mutation requires an argument of type `UpsertCardStatementPeriodVariables`:
 const upsertCardStatementPeriodVars: UpsertCardStatementPeriodVariables = {
-  id: ..., 
-  label: ..., 
-  startDate: ..., 
-  endDate: ..., 
+  id: ...,
+  label: ...,
+  startDate: ...,
+  endDate: ...,
   statementLabel: ..., // optional
-  status: ..., 
+  status: ...,
 };
 
 // Call the `upsertCardStatementPeriodRef()` function to get a reference to the mutation.
@@ -4026,7 +4107,7 @@ executeMutation(ref).then((response) => {
 
 ## CreateInvoiceIntake
 You can execute the `CreateInvoiceIntake` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 createInvoiceIntake(vars: CreateInvoiceIntakeVariables): MutationPromise<CreateInvoiceIntakeData, CreateInvoiceIntakeVariables>;
 
 interface CreateInvoiceIntakeRef {
@@ -4037,7 +4118,7 @@ interface CreateInvoiceIntakeRef {
 export const createInvoiceIntakeRef: CreateInvoiceIntakeRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 createInvoiceIntake(dc: DataConnect, vars: CreateInvoiceIntakeVariables): MutationPromise<CreateInvoiceIntakeData, CreateInvoiceIntakeVariables>;
 
 interface CreateInvoiceIntakeRef {
@@ -4048,7 +4129,7 @@ export const createInvoiceIntakeRef: CreateInvoiceIntakeRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the createInvoiceIntakeRef:
-```typescript
+```typescrip
 const name = createInvoiceIntakeRef.operationName;
 console.log(name);
 ```
@@ -4056,7 +4137,7 @@ console.log(name);
 ### Variables
 The `CreateInvoiceIntake` mutation requires an argument of type `CreateInvoiceIntakeVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface CreateInvoiceIntakeVariables {
   receiptId: string;
   storageFolder: string;
@@ -4067,22 +4148,22 @@ export interface CreateInvoiceIntakeVariables {
 Recall that executing the `CreateInvoiceIntake` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `CreateInvoiceIntakeData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface CreateInvoiceIntakeData {
   invoiceIntake_upsert: InvoiceIntake_Key;
 }
 ```
 ### Using `CreateInvoiceIntake`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, createInvoiceIntake, CreateInvoiceIntakeVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `CreateInvoiceIntake` mutation requires an argument of type `CreateInvoiceIntakeVariables`:
 const createInvoiceIntakeVars: CreateInvoiceIntakeVariables = {
-  receiptId: ..., 
-  storageFolder: ..., 
-  photoCount: ..., 
+  receiptId: ...,
+  storageFolder: ...,
+  photoCount: ...,
 };
 
 // Call the `createInvoiceIntake()` function to execute the mutation.
@@ -4106,15 +4187,15 @@ createInvoiceIntake(createInvoiceIntakeVars).then((response) => {
 
 ### Using `CreateInvoiceIntake`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, createInvoiceIntakeRef, CreateInvoiceIntakeVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `CreateInvoiceIntake` mutation requires an argument of type `CreateInvoiceIntakeVariables`:
 const createInvoiceIntakeVars: CreateInvoiceIntakeVariables = {
-  receiptId: ..., 
-  storageFolder: ..., 
-  photoCount: ..., 
+  receiptId: ...,
+  storageFolder: ...,
+  photoCount: ...,
 };
 
 // Call the `createInvoiceIntakeRef()` function to get a reference to the mutation.
@@ -4141,7 +4222,7 @@ executeMutation(ref).then((response) => {
 
 ## CreateInvoiceIntakeV2
 You can execute the `CreateInvoiceIntakeV2` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 createInvoiceIntakeV2(vars: CreateInvoiceIntakeV2Variables): MutationPromise<CreateInvoiceIntakeV2Data, CreateInvoiceIntakeV2Variables>;
 
 interface CreateInvoiceIntakeV2Ref {
@@ -4152,7 +4233,7 @@ interface CreateInvoiceIntakeV2Ref {
 export const createInvoiceIntakeV2Ref: CreateInvoiceIntakeV2Ref;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 createInvoiceIntakeV2(dc: DataConnect, vars: CreateInvoiceIntakeV2Variables): MutationPromise<CreateInvoiceIntakeV2Data, CreateInvoiceIntakeV2Variables>;
 
 interface CreateInvoiceIntakeV2Ref {
@@ -4163,7 +4244,7 @@ export const createInvoiceIntakeV2Ref: CreateInvoiceIntakeV2Ref;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the createInvoiceIntakeV2Ref:
-```typescript
+```typescrip
 const name = createInvoiceIntakeV2Ref.operationName;
 console.log(name);
 ```
@@ -4171,7 +4252,7 @@ console.log(name);
 ### Variables
 The `CreateInvoiceIntakeV2` mutation requires an argument of type `CreateInvoiceIntakeV2Variables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface CreateInvoiceIntakeV2Variables {
   receiptId: string;
   storageFolder: string;
@@ -4186,7 +4267,7 @@ export interface CreateInvoiceIntakeV2Variables {
 Recall that executing the `CreateInvoiceIntakeV2` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `CreateInvoiceIntakeV2Data`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface CreateInvoiceIntakeV2Data {
   invoiceIntake_upsert: InvoiceIntake_Key;
   auditEvent_upsert: AuditEvent_Key;
@@ -4194,16 +4275,16 @@ export interface CreateInvoiceIntakeV2Data {
 ```
 ### Using `CreateInvoiceIntakeV2`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, createInvoiceIntakeV2, CreateInvoiceIntakeV2Variables } from '@factures-thibeault/data-connect-generated';
 
 // The `CreateInvoiceIntakeV2` mutation requires an argument of type `CreateInvoiceIntakeV2Variables`:
 const createInvoiceIntakeV2Vars: CreateInvoiceIntakeV2Variables = {
-  receiptId: ..., 
-  storageFolder: ..., 
-  photoCount: ..., 
-  clientVersion: ..., 
+  receiptId: ...,
+  storageFolder: ...,
+  photoCount: ...,
+  clientVersion: ...,
   writeAudit: ..., // optional
   auditEventId: ..., // optional
   auditDetails: ..., // optional
@@ -4232,16 +4313,16 @@ createInvoiceIntakeV2(createInvoiceIntakeV2Vars).then((response) => {
 
 ### Using `CreateInvoiceIntakeV2`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, createInvoiceIntakeV2Ref, CreateInvoiceIntakeV2Variables } from '@factures-thibeault/data-connect-generated';
 
 // The `CreateInvoiceIntakeV2` mutation requires an argument of type `CreateInvoiceIntakeV2Variables`:
 const createInvoiceIntakeV2Vars: CreateInvoiceIntakeV2Variables = {
-  receiptId: ..., 
-  storageFolder: ..., 
-  photoCount: ..., 
-  clientVersion: ..., 
+  receiptId: ...,
+  storageFolder: ...,
+  photoCount: ...,
+  clientVersion: ...,
   writeAudit: ..., // optional
   auditEventId: ..., // optional
   auditDetails: ..., // optional
@@ -4271,9 +4352,9 @@ executeMutation(ref).then((response) => {
 });
 ```
 
-## UpdateInvoiceIntakeAiResult
+## UpdateInvoiceIntakeAiResul
 You can execute the `UpdateInvoiceIntakeAiResult` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 updateInvoiceIntakeAiResult(vars: UpdateInvoiceIntakeAiResultVariables): MutationPromise<UpdateInvoiceIntakeAiResultData, UpdateInvoiceIntakeAiResultVariables>;
 
 interface UpdateInvoiceIntakeAiResultRef {
@@ -4284,7 +4365,7 @@ interface UpdateInvoiceIntakeAiResultRef {
 export const updateInvoiceIntakeAiResultRef: UpdateInvoiceIntakeAiResultRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 updateInvoiceIntakeAiResult(dc: DataConnect, vars: UpdateInvoiceIntakeAiResultVariables): MutationPromise<UpdateInvoiceIntakeAiResultData, UpdateInvoiceIntakeAiResultVariables>;
 
 interface UpdateInvoiceIntakeAiResultRef {
@@ -4295,7 +4376,7 @@ export const updateInvoiceIntakeAiResultRef: UpdateInvoiceIntakeAiResultRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the updateInvoiceIntakeAiResultRef:
-```typescript
+```typescrip
 const name = updateInvoiceIntakeAiResultRef.operationName;
 console.log(name);
 ```
@@ -4303,7 +4384,7 @@ console.log(name);
 ### Variables
 The `UpdateInvoiceIntakeAiResult` mutation requires an argument of type `UpdateInvoiceIntakeAiResultVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface UpdateInvoiceIntakeAiResultVariables {
   receiptId: string;
   aiModel: string;
@@ -4339,7 +4420,7 @@ export interface UpdateInvoiceIntakeAiResultVariables {
 Recall that executing the `UpdateInvoiceIntakeAiResult` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `UpdateInvoiceIntakeAiResultData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface UpdateInvoiceIntakeAiResultData {
   invoiceIntake_updateMany: number;
   auditEvent_upsert: AuditEvent_Key;
@@ -4347,32 +4428,32 @@ export interface UpdateInvoiceIntakeAiResultData {
 ```
 ### Using `UpdateInvoiceIntakeAiResult`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, updateInvoiceIntakeAiResult, UpdateInvoiceIntakeAiResultVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `UpdateInvoiceIntakeAiResult` mutation requires an argument of type `UpdateInvoiceIntakeAiResultVariables`:
 const updateInvoiceIntakeAiResultVars: UpdateInvoiceIntakeAiResultVariables = {
-  receiptId: ..., 
-  aiModel: ..., 
-  aiConfidence: ..., 
-  extractedVendor: ..., 
+  receiptId: ...,
+  aiModel: ...,
+  aiConfidence: ...,
+  extractedVendor: ...,
   extractedInvoiceNumber: ..., // optional
   extractedInvoiceDate: ..., // optional
-  extractedSubtotalCents: ..., 
-  extractedTpsCents: ..., 
-  extractedTvqCents: ..., 
-  extractedTotalCents: ..., 
-  extractedCurrency: ..., 
+  extractedSubtotalCents: ...,
+  extractedTpsCents: ...,
+  extractedTvqCents: ...,
+  extractedTotalCents: ...,
+  extractedCurrency: ...,
   extractedSku: ..., // optional
   extractedCategory: ..., // optional
   extractedProjectId: ..., // optional
   classificationAccountCode: ..., // optional
   classificationCategory: ..., // optional
-  classificationSource: ..., 
-  classificationConfidence: ..., 
-  classificationStatus: ..., 
-  aiNotes: ..., 
+  classificationSource: ...,
+  classificationConfidence: ...,
+  classificationStatus: ...,
+  aiNotes: ...,
   processingStatus: ..., // optional
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
@@ -4406,32 +4487,32 @@ updateInvoiceIntakeAiResult(updateInvoiceIntakeAiResultVars).then((response) => 
 
 ### Using `UpdateInvoiceIntakeAiResult`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, updateInvoiceIntakeAiResultRef, UpdateInvoiceIntakeAiResultVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `UpdateInvoiceIntakeAiResult` mutation requires an argument of type `UpdateInvoiceIntakeAiResultVariables`:
 const updateInvoiceIntakeAiResultVars: UpdateInvoiceIntakeAiResultVariables = {
-  receiptId: ..., 
-  aiModel: ..., 
-  aiConfidence: ..., 
-  extractedVendor: ..., 
+  receiptId: ...,
+  aiModel: ...,
+  aiConfidence: ...,
+  extractedVendor: ...,
   extractedInvoiceNumber: ..., // optional
   extractedInvoiceDate: ..., // optional
-  extractedSubtotalCents: ..., 
-  extractedTpsCents: ..., 
-  extractedTvqCents: ..., 
-  extractedTotalCents: ..., 
-  extractedCurrency: ..., 
+  extractedSubtotalCents: ...,
+  extractedTpsCents: ...,
+  extractedTvqCents: ...,
+  extractedTotalCents: ...,
+  extractedCurrency: ...,
   extractedSku: ..., // optional
   extractedCategory: ..., // optional
   extractedProjectId: ..., // optional
   classificationAccountCode: ..., // optional
   classificationCategory: ..., // optional
-  classificationSource: ..., 
-  classificationConfidence: ..., 
-  classificationStatus: ..., 
-  aiNotes: ..., 
+  classificationSource: ...,
+  classificationConfidence: ...,
+  classificationStatus: ...,
+  aiNotes: ...,
   processingStatus: ..., // optional
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
@@ -4468,7 +4549,7 @@ executeMutation(ref).then((response) => {
 
 ## MarkInvoiceIntakeAiError
 You can execute the `MarkInvoiceIntakeAiError` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 markInvoiceIntakeAiError(vars: MarkInvoiceIntakeAiErrorVariables): MutationPromise<MarkInvoiceIntakeAiErrorData, MarkInvoiceIntakeAiErrorVariables>;
 
 interface MarkInvoiceIntakeAiErrorRef {
@@ -4479,7 +4560,7 @@ interface MarkInvoiceIntakeAiErrorRef {
 export const markInvoiceIntakeAiErrorRef: MarkInvoiceIntakeAiErrorRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 markInvoiceIntakeAiError(dc: DataConnect, vars: MarkInvoiceIntakeAiErrorVariables): MutationPromise<MarkInvoiceIntakeAiErrorData, MarkInvoiceIntakeAiErrorVariables>;
 
 interface MarkInvoiceIntakeAiErrorRef {
@@ -4490,7 +4571,7 @@ export const markInvoiceIntakeAiErrorRef: MarkInvoiceIntakeAiErrorRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the markInvoiceIntakeAiErrorRef:
-```typescript
+```typescrip
 const name = markInvoiceIntakeAiErrorRef.operationName;
 console.log(name);
 ```
@@ -4498,7 +4579,7 @@ console.log(name);
 ### Variables
 The `MarkInvoiceIntakeAiError` mutation requires an argument of type `MarkInvoiceIntakeAiErrorVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface MarkInvoiceIntakeAiErrorVariables {
   receiptId: string;
   error: string;
@@ -4517,7 +4598,7 @@ export interface MarkInvoiceIntakeAiErrorVariables {
 Recall that executing the `MarkInvoiceIntakeAiError` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `MarkInvoiceIntakeAiErrorData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface MarkInvoiceIntakeAiErrorData {
   invoiceIntake_updateMany: number;
   auditEvent_upsert: AuditEvent_Key;
@@ -4525,14 +4606,14 @@ export interface MarkInvoiceIntakeAiErrorData {
 ```
 ### Using `MarkInvoiceIntakeAiError`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, markInvoiceIntakeAiError, MarkInvoiceIntakeAiErrorVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `MarkInvoiceIntakeAiError` mutation requires an argument of type `MarkInvoiceIntakeAiErrorVariables`:
 const markInvoiceIntakeAiErrorVars: MarkInvoiceIntakeAiErrorVariables = {
-  receiptId: ..., 
-  error: ..., 
+  receiptId: ...,
+  error: ...,
   aiErrorCode: ..., // optional
   accountingStatus: ..., // optional
   decisionExceptions: ..., // optional
@@ -4567,14 +4648,14 @@ markInvoiceIntakeAiError(markInvoiceIntakeAiErrorVars).then((response) => {
 
 ### Using `MarkInvoiceIntakeAiError`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, markInvoiceIntakeAiErrorRef, MarkInvoiceIntakeAiErrorVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `MarkInvoiceIntakeAiError` mutation requires an argument of type `MarkInvoiceIntakeAiErrorVariables`:
 const markInvoiceIntakeAiErrorVars: MarkInvoiceIntakeAiErrorVariables = {
-  receiptId: ..., 
-  error: ..., 
+  receiptId: ...,
+  error: ...,
   aiErrorCode: ..., // optional
   accountingStatus: ..., // optional
   decisionExceptions: ..., // optional
@@ -4612,7 +4693,7 @@ executeMutation(ref).then((response) => {
 
 ## MarkInvoiceIntakeAutoPostingError
 You can execute the `MarkInvoiceIntakeAutoPostingError` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 markInvoiceIntakeAutoPostingError(vars: MarkInvoiceIntakeAutoPostingErrorVariables): MutationPromise<MarkInvoiceIntakeAutoPostingErrorData, MarkInvoiceIntakeAutoPostingErrorVariables>;
 
 interface MarkInvoiceIntakeAutoPostingErrorRef {
@@ -4623,7 +4704,7 @@ interface MarkInvoiceIntakeAutoPostingErrorRef {
 export const markInvoiceIntakeAutoPostingErrorRef: MarkInvoiceIntakeAutoPostingErrorRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 markInvoiceIntakeAutoPostingError(dc: DataConnect, vars: MarkInvoiceIntakeAutoPostingErrorVariables): MutationPromise<MarkInvoiceIntakeAutoPostingErrorData, MarkInvoiceIntakeAutoPostingErrorVariables>;
 
 interface MarkInvoiceIntakeAutoPostingErrorRef {
@@ -4634,7 +4715,7 @@ export const markInvoiceIntakeAutoPostingErrorRef: MarkInvoiceIntakeAutoPostingE
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the markInvoiceIntakeAutoPostingErrorRef:
-```typescript
+```typescrip
 const name = markInvoiceIntakeAutoPostingErrorRef.operationName;
 console.log(name);
 ```
@@ -4642,7 +4723,7 @@ console.log(name);
 ### Variables
 The `MarkInvoiceIntakeAutoPostingError` mutation requires an argument of type `MarkInvoiceIntakeAutoPostingErrorVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface MarkInvoiceIntakeAutoPostingErrorVariables {
   receiptId: string;
   error: string;
@@ -4659,7 +4740,7 @@ export interface MarkInvoiceIntakeAutoPostingErrorVariables {
 Recall that executing the `MarkInvoiceIntakeAutoPostingError` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `MarkInvoiceIntakeAutoPostingErrorData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface MarkInvoiceIntakeAutoPostingErrorData {
   invoiceIntake_updateMany: number;
   auditEvent_upsert: AuditEvent_Key;
@@ -4667,14 +4748,14 @@ export interface MarkInvoiceIntakeAutoPostingErrorData {
 ```
 ### Using `MarkInvoiceIntakeAutoPostingError`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, markInvoiceIntakeAutoPostingError, MarkInvoiceIntakeAutoPostingErrorVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `MarkInvoiceIntakeAutoPostingError` mutation requires an argument of type `MarkInvoiceIntakeAutoPostingErrorVariables`:
 const markInvoiceIntakeAutoPostingErrorVars: MarkInvoiceIntakeAutoPostingErrorVariables = {
-  receiptId: ..., 
-  error: ..., 
+  receiptId: ...,
+  error: ...,
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
   actorUid: ..., // optional
@@ -4707,14 +4788,14 @@ markInvoiceIntakeAutoPostingError(markInvoiceIntakeAutoPostingErrorVars).then((r
 
 ### Using `MarkInvoiceIntakeAutoPostingError`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, markInvoiceIntakeAutoPostingErrorRef, MarkInvoiceIntakeAutoPostingErrorVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `MarkInvoiceIntakeAutoPostingError` mutation requires an argument of type `MarkInvoiceIntakeAutoPostingErrorVariables`:
 const markInvoiceIntakeAutoPostingErrorVars: MarkInvoiceIntakeAutoPostingErrorVariables = {
-  receiptId: ..., 
-  error: ..., 
+  receiptId: ...,
+  error: ...,
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
   actorUid: ..., // optional
@@ -4750,7 +4831,7 @@ executeMutation(ref).then((response) => {
 
 ## UpdateInvoiceIntakeReview
 You can execute the `UpdateInvoiceIntakeReview` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 updateInvoiceIntakeReview(vars: UpdateInvoiceIntakeReviewVariables): MutationPromise<UpdateInvoiceIntakeReviewData, UpdateInvoiceIntakeReviewVariables>;
 
 interface UpdateInvoiceIntakeReviewRef {
@@ -4761,7 +4842,7 @@ interface UpdateInvoiceIntakeReviewRef {
 export const updateInvoiceIntakeReviewRef: UpdateInvoiceIntakeReviewRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 updateInvoiceIntakeReview(dc: DataConnect, vars: UpdateInvoiceIntakeReviewVariables): MutationPromise<UpdateInvoiceIntakeReviewData, UpdateInvoiceIntakeReviewVariables>;
 
 interface UpdateInvoiceIntakeReviewRef {
@@ -4772,7 +4853,7 @@ export const updateInvoiceIntakeReviewRef: UpdateInvoiceIntakeReviewRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the updateInvoiceIntakeReviewRef:
-```typescript
+```typescrip
 const name = updateInvoiceIntakeReviewRef.operationName;
 console.log(name);
 ```
@@ -4780,7 +4861,7 @@ console.log(name);
 ### Variables
 The `UpdateInvoiceIntakeReview` mutation requires an argument of type `UpdateInvoiceIntakeReviewVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface UpdateInvoiceIntakeReviewVariables {
   receiptId: string;
   status: string;
@@ -4812,7 +4893,7 @@ export interface UpdateInvoiceIntakeReviewVariables {
 Recall that executing the `UpdateInvoiceIntakeReview` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `UpdateInvoiceIntakeReviewData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface UpdateInvoiceIntakeReviewData {
   invoiceIntake_updateMany: number;
   auditEvent_upsert: AuditEvent_Key;
@@ -4820,31 +4901,31 @@ export interface UpdateInvoiceIntakeReviewData {
 ```
 ### Using `UpdateInvoiceIntakeReview`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, updateInvoiceIntakeReview, UpdateInvoiceIntakeReviewVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `UpdateInvoiceIntakeReview` mutation requires an argument of type `UpdateInvoiceIntakeReviewVariables`:
 const updateInvoiceIntakeReviewVars: UpdateInvoiceIntakeReviewVariables = {
-  receiptId: ..., 
-  status: ..., 
-  extractedVendor: ..., 
+  receiptId: ...,
+  status: ...,
+  extractedVendor: ...,
   extractedInvoiceNumber: ..., // optional
   extractedInvoiceDate: ..., // optional
-  extractedSubtotalCents: ..., 
-  extractedTpsCents: ..., 
-  extractedTvqCents: ..., 
-  extractedTotalCents: ..., 
-  extractedCurrency: ..., 
+  extractedSubtotalCents: ...,
+  extractedTpsCents: ...,
+  extractedTvqCents: ...,
+  extractedTotalCents: ...,
+  extractedCurrency: ...,
   extractedSku: ..., // optional
   extractedCategory: ..., // optional
   extractedProjectId: ..., // optional
   classificationAccountCode: ..., // optional
   classificationCategory: ..., // optional
-  classificationSource: ..., 
-  classificationConfidence: ..., 
-  classificationStatus: ..., 
-  aiNotes: ..., 
+  classificationSource: ...,
+  classificationConfidence: ...,
+  classificationStatus: ...,
+  aiNotes: ...,
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
   writeAudit: ..., // optional
@@ -4875,31 +4956,31 @@ updateInvoiceIntakeReview(updateInvoiceIntakeReviewVars).then((response) => {
 
 ### Using `UpdateInvoiceIntakeReview`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, updateInvoiceIntakeReviewRef, UpdateInvoiceIntakeReviewVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `UpdateInvoiceIntakeReview` mutation requires an argument of type `UpdateInvoiceIntakeReviewVariables`:
 const updateInvoiceIntakeReviewVars: UpdateInvoiceIntakeReviewVariables = {
-  receiptId: ..., 
-  status: ..., 
-  extractedVendor: ..., 
+  receiptId: ...,
+  status: ...,
+  extractedVendor: ...,
   extractedInvoiceNumber: ..., // optional
   extractedInvoiceDate: ..., // optional
-  extractedSubtotalCents: ..., 
-  extractedTpsCents: ..., 
-  extractedTvqCents: ..., 
-  extractedTotalCents: ..., 
-  extractedCurrency: ..., 
+  extractedSubtotalCents: ...,
+  extractedTpsCents: ...,
+  extractedTvqCents: ...,
+  extractedTotalCents: ...,
+  extractedCurrency: ...,
   extractedSku: ..., // optional
   extractedCategory: ..., // optional
   extractedProjectId: ..., // optional
   classificationAccountCode: ..., // optional
   classificationCategory: ..., // optional
-  classificationSource: ..., 
-  classificationConfidence: ..., 
-  classificationStatus: ..., 
-  aiNotes: ..., 
+  classificationSource: ...,
+  classificationConfidence: ...,
+  classificationStatus: ...,
+  aiNotes: ...,
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
   writeAudit: ..., // optional
@@ -4933,7 +5014,7 @@ executeMutation(ref).then((response) => {
 
 ## MarkInvoiceIntakePostingError
 You can execute the `MarkInvoiceIntakePostingError` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 markInvoiceIntakePostingError(vars: MarkInvoiceIntakePostingErrorVariables): MutationPromise<MarkInvoiceIntakePostingErrorData, MarkInvoiceIntakePostingErrorVariables>;
 
 interface MarkInvoiceIntakePostingErrorRef {
@@ -4944,7 +5025,7 @@ interface MarkInvoiceIntakePostingErrorRef {
 export const markInvoiceIntakePostingErrorRef: MarkInvoiceIntakePostingErrorRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 markInvoiceIntakePostingError(dc: DataConnect, vars: MarkInvoiceIntakePostingErrorVariables): MutationPromise<MarkInvoiceIntakePostingErrorData, MarkInvoiceIntakePostingErrorVariables>;
 
 interface MarkInvoiceIntakePostingErrorRef {
@@ -4955,7 +5036,7 @@ export const markInvoiceIntakePostingErrorRef: MarkInvoiceIntakePostingErrorRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the markInvoiceIntakePostingErrorRef:
-```typescript
+```typescrip
 const name = markInvoiceIntakePostingErrorRef.operationName;
 console.log(name);
 ```
@@ -4963,7 +5044,7 @@ console.log(name);
 ### Variables
 The `MarkInvoiceIntakePostingError` mutation requires an argument of type `MarkInvoiceIntakePostingErrorVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface MarkInvoiceIntakePostingErrorVariables {
   receiptId: string;
 }
@@ -4972,20 +5053,20 @@ export interface MarkInvoiceIntakePostingErrorVariables {
 Recall that executing the `MarkInvoiceIntakePostingError` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `MarkInvoiceIntakePostingErrorData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface MarkInvoiceIntakePostingErrorData {
   invoiceIntake_updateMany: number;
 }
 ```
 ### Using `MarkInvoiceIntakePostingError`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, markInvoiceIntakePostingError, MarkInvoiceIntakePostingErrorVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `MarkInvoiceIntakePostingError` mutation requires an argument of type `MarkInvoiceIntakePostingErrorVariables`:
 const markInvoiceIntakePostingErrorVars: MarkInvoiceIntakePostingErrorVariables = {
-  receiptId: ..., 
+  receiptId: ...,
 };
 
 // Call the `markInvoiceIntakePostingError()` function to execute the mutation.
@@ -5009,13 +5090,13 @@ markInvoiceIntakePostingError(markInvoiceIntakePostingErrorVars).then((response)
 
 ### Using `MarkInvoiceIntakePostingError`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, markInvoiceIntakePostingErrorRef, MarkInvoiceIntakePostingErrorVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `MarkInvoiceIntakePostingError` mutation requires an argument of type `MarkInvoiceIntakePostingErrorVariables`:
 const markInvoiceIntakePostingErrorVars: MarkInvoiceIntakePostingErrorVariables = {
-  receiptId: ..., 
+  receiptId: ...,
 };
 
 // Call the `markInvoiceIntakePostingErrorRef()` function to get a reference to the mutation.
@@ -5042,7 +5123,7 @@ executeMutation(ref).then((response) => {
 
 ## RetryInvoiceIntakeAi
 You can execute the `RetryInvoiceIntakeAi` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 retryInvoiceIntakeAi(vars: RetryInvoiceIntakeAiVariables): MutationPromise<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
 
 interface RetryInvoiceIntakeAiRef {
@@ -5053,7 +5134,7 @@ interface RetryInvoiceIntakeAiRef {
 export const retryInvoiceIntakeAiRef: RetryInvoiceIntakeAiRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 retryInvoiceIntakeAi(dc: DataConnect, vars: RetryInvoiceIntakeAiVariables): MutationPromise<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
 
 interface RetryInvoiceIntakeAiRef {
@@ -5064,7 +5145,7 @@ export const retryInvoiceIntakeAiRef: RetryInvoiceIntakeAiRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the retryInvoiceIntakeAiRef:
-```typescript
+```typescrip
 const name = retryInvoiceIntakeAiRef.operationName;
 console.log(name);
 ```
@@ -5072,7 +5153,7 @@ console.log(name);
 ### Variables
 The `RetryInvoiceIntakeAi` mutation requires an argument of type `RetryInvoiceIntakeAiVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface RetryInvoiceIntakeAiVariables {
   receiptId: string;
 }
@@ -5081,20 +5162,20 @@ export interface RetryInvoiceIntakeAiVariables {
 Recall that executing the `RetryInvoiceIntakeAi` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `RetryInvoiceIntakeAiData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface RetryInvoiceIntakeAiData {
   invoiceIntake_updateMany: number;
 }
 ```
 ### Using `RetryInvoiceIntakeAi`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, retryInvoiceIntakeAi, RetryInvoiceIntakeAiVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `RetryInvoiceIntakeAi` mutation requires an argument of type `RetryInvoiceIntakeAiVariables`:
 const retryInvoiceIntakeAiVars: RetryInvoiceIntakeAiVariables = {
-  receiptId: ..., 
+  receiptId: ...,
 };
 
 // Call the `retryInvoiceIntakeAi()` function to execute the mutation.
@@ -5118,13 +5199,13 @@ retryInvoiceIntakeAi(retryInvoiceIntakeAiVars).then((response) => {
 
 ### Using `RetryInvoiceIntakeAi`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, retryInvoiceIntakeAiRef, RetryInvoiceIntakeAiVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `RetryInvoiceIntakeAi` mutation requires an argument of type `RetryInvoiceIntakeAiVariables`:
 const retryInvoiceIntakeAiVars: RetryInvoiceIntakeAiVariables = {
-  receiptId: ..., 
+  receiptId: ...,
 };
 
 // Call the `retryInvoiceIntakeAiRef()` function to get a reference to the mutation.
@@ -5149,9 +5230,9 @@ executeMutation(ref).then((response) => {
 });
 ```
 
-## RetryInvoiceIntakeAiTransient
+## RetryInvoiceIntakeAiTransien
 You can execute the `RetryInvoiceIntakeAiTransient` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 retryInvoiceIntakeAiTransient(vars: RetryInvoiceIntakeAiTransientVariables): MutationPromise<RetryInvoiceIntakeAiTransientData, RetryInvoiceIntakeAiTransientVariables>;
 
 interface RetryInvoiceIntakeAiTransientRef {
@@ -5162,7 +5243,7 @@ interface RetryInvoiceIntakeAiTransientRef {
 export const retryInvoiceIntakeAiTransientRef: RetryInvoiceIntakeAiTransientRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 retryInvoiceIntakeAiTransient(dc: DataConnect, vars: RetryInvoiceIntakeAiTransientVariables): MutationPromise<RetryInvoiceIntakeAiTransientData, RetryInvoiceIntakeAiTransientVariables>;
 
 interface RetryInvoiceIntakeAiTransientRef {
@@ -5173,7 +5254,7 @@ export const retryInvoiceIntakeAiTransientRef: RetryInvoiceIntakeAiTransientRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the retryInvoiceIntakeAiTransientRef:
-```typescript
+```typescrip
 const name = retryInvoiceIntakeAiTransientRef.operationName;
 console.log(name);
 ```
@@ -5181,7 +5262,7 @@ console.log(name);
 ### Variables
 The `RetryInvoiceIntakeAiTransient` mutation requires an argument of type `RetryInvoiceIntakeAiTransientVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface RetryInvoiceIntakeAiTransientVariables {
   receiptId: string;
 }
@@ -5190,20 +5271,20 @@ export interface RetryInvoiceIntakeAiTransientVariables {
 Recall that executing the `RetryInvoiceIntakeAiTransient` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `RetryInvoiceIntakeAiTransientData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface RetryInvoiceIntakeAiTransientData {
   invoiceIntake_updateMany: number;
 }
 ```
 ### Using `RetryInvoiceIntakeAiTransient`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, retryInvoiceIntakeAiTransient, RetryInvoiceIntakeAiTransientVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `RetryInvoiceIntakeAiTransient` mutation requires an argument of type `RetryInvoiceIntakeAiTransientVariables`:
 const retryInvoiceIntakeAiTransientVars: RetryInvoiceIntakeAiTransientVariables = {
-  receiptId: ..., 
+  receiptId: ...,
 };
 
 // Call the `retryInvoiceIntakeAiTransient()` function to execute the mutation.
@@ -5227,13 +5308,13 @@ retryInvoiceIntakeAiTransient(retryInvoiceIntakeAiTransientVars).then((response)
 
 ### Using `RetryInvoiceIntakeAiTransient`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, retryInvoiceIntakeAiTransientRef, RetryInvoiceIntakeAiTransientVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `RetryInvoiceIntakeAiTransient` mutation requires an argument of type `RetryInvoiceIntakeAiTransientVariables`:
 const retryInvoiceIntakeAiTransientVars: RetryInvoiceIntakeAiTransientVariables = {
-  receiptId: ..., 
+  receiptId: ...,
 };
 
 // Call the `retryInvoiceIntakeAiTransientRef()` function to get a reference to the mutation.
@@ -5260,7 +5341,7 @@ executeMutation(ref).then((response) => {
 
 ## RetryInvoiceIntakeAiTransientV2
 You can execute the `RetryInvoiceIntakeAiTransientV2` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 retryInvoiceIntakeAiTransientV2(vars: RetryInvoiceIntakeAiTransientV2Variables): MutationPromise<RetryInvoiceIntakeAiTransientV2Data, RetryInvoiceIntakeAiTransientV2Variables>;
 
 interface RetryInvoiceIntakeAiTransientV2Ref {
@@ -5271,7 +5352,7 @@ interface RetryInvoiceIntakeAiTransientV2Ref {
 export const retryInvoiceIntakeAiTransientV2Ref: RetryInvoiceIntakeAiTransientV2Ref;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 retryInvoiceIntakeAiTransientV2(dc: DataConnect, vars: RetryInvoiceIntakeAiTransientV2Variables): MutationPromise<RetryInvoiceIntakeAiTransientV2Data, RetryInvoiceIntakeAiTransientV2Variables>;
 
 interface RetryInvoiceIntakeAiTransientV2Ref {
@@ -5282,7 +5363,7 @@ export const retryInvoiceIntakeAiTransientV2Ref: RetryInvoiceIntakeAiTransientV2
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the retryInvoiceIntakeAiTransientV2Ref:
-```typescript
+```typescrip
 const name = retryInvoiceIntakeAiTransientV2Ref.operationName;
 console.log(name);
 ```
@@ -5290,7 +5371,7 @@ console.log(name);
 ### Variables
 The `RetryInvoiceIntakeAiTransientV2` mutation requires an argument of type `RetryInvoiceIntakeAiTransientV2Variables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface RetryInvoiceIntakeAiTransientV2Variables {
   receiptId: string;
   invoiceId: string;
@@ -5301,22 +5382,22 @@ export interface RetryInvoiceIntakeAiTransientV2Variables {
 Recall that executing the `RetryInvoiceIntakeAiTransientV2` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `RetryInvoiceIntakeAiTransientV2Data`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface RetryInvoiceIntakeAiTransientV2Data {
   invoiceIntake_updateMany: number;
 }
 ```
 ### Using `RetryInvoiceIntakeAiTransientV2`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, retryInvoiceIntakeAiTransientV2, RetryInvoiceIntakeAiTransientV2Variables } from '@factures-thibeault/data-connect-generated';
 
 // The `RetryInvoiceIntakeAiTransientV2` mutation requires an argument of type `RetryInvoiceIntakeAiTransientV2Variables`:
 const retryInvoiceIntakeAiTransientV2Vars: RetryInvoiceIntakeAiTransientV2Variables = {
-  receiptId: ..., 
-  invoiceId: ..., 
-  storageFolder: ..., 
+  receiptId: ...,
+  invoiceId: ...,
+  storageFolder: ...,
 };
 
 // Call the `retryInvoiceIntakeAiTransientV2()` function to execute the mutation.
@@ -5340,15 +5421,15 @@ retryInvoiceIntakeAiTransientV2(retryInvoiceIntakeAiTransientV2Vars).then((respo
 
 ### Using `RetryInvoiceIntakeAiTransientV2`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, retryInvoiceIntakeAiTransientV2Ref, RetryInvoiceIntakeAiTransientV2Variables } from '@factures-thibeault/data-connect-generated';
 
 // The `RetryInvoiceIntakeAiTransientV2` mutation requires an argument of type `RetryInvoiceIntakeAiTransientV2Variables`:
 const retryInvoiceIntakeAiTransientV2Vars: RetryInvoiceIntakeAiTransientV2Variables = {
-  receiptId: ..., 
-  invoiceId: ..., 
-  storageFolder: ..., 
+  receiptId: ...,
+  invoiceId: ...,
+  storageFolder: ...,
 };
 
 // Call the `retryInvoiceIntakeAiTransientV2Ref()` function to get a reference to the mutation.
@@ -5375,7 +5456,7 @@ executeMutation(ref).then((response) => {
 
 ## MaterializeInvoiceIntakeV2
 You can execute the `MaterializeInvoiceIntakeV2` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 materializeInvoiceIntakeV2(vars: MaterializeInvoiceIntakeV2Variables): MutationPromise<MaterializeInvoiceIntakeV2Data, MaterializeInvoiceIntakeV2Variables>;
 
 interface MaterializeInvoiceIntakeV2Ref {
@@ -5386,7 +5467,7 @@ interface MaterializeInvoiceIntakeV2Ref {
 export const materializeInvoiceIntakeV2Ref: MaterializeInvoiceIntakeV2Ref;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 materializeInvoiceIntakeV2(dc: DataConnect, vars: MaterializeInvoiceIntakeV2Variables): MutationPromise<MaterializeInvoiceIntakeV2Data, MaterializeInvoiceIntakeV2Variables>;
 
 interface MaterializeInvoiceIntakeV2Ref {
@@ -5397,7 +5478,7 @@ export const materializeInvoiceIntakeV2Ref: MaterializeInvoiceIntakeV2Ref;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the materializeInvoiceIntakeV2Ref:
-```typescript
+```typescrip
 const name = materializeInvoiceIntakeV2Ref.operationName;
 console.log(name);
 ```
@@ -5405,7 +5486,7 @@ console.log(name);
 ### Variables
 The `MaterializeInvoiceIntakeV2` mutation requires an argument of type `MaterializeInvoiceIntakeV2Variables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface MaterializeInvoiceIntakeV2Variables {
   receiptId: string;
   transactionId: string;
@@ -5420,10 +5501,10 @@ export interface MaterializeInvoiceIntakeV2Variables {
   currency: string;
   sku?: string | null;
   category: string;
-  accountCode: string;
+  accountId: string;
   cardId: string;
   statementPeriod?: CardStatementPeriod_Key | null;
-  project?: Project_Key | null;
+  project: Project_Key;
   storageFolder: string;
   classificationNote: string;
   expectedProcessingStatus: string;
@@ -5460,7 +5541,7 @@ export interface MaterializeInvoiceIntakeV2Variables {
 Recall that executing the `MaterializeInvoiceIntakeV2` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `MaterializeInvoiceIntakeV2Data`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface MaterializeInvoiceIntakeV2Data {
   invoiceIntake_updateMany: number;
   expenseTransaction_upsert: ExpenseTransaction_Key;
@@ -5476,66 +5557,66 @@ export interface MaterializeInvoiceIntakeV2Data {
 ```
 ### Using `MaterializeInvoiceIntakeV2`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, materializeInvoiceIntakeV2, MaterializeInvoiceIntakeV2Variables } from '@factures-thibeault/data-connect-generated';
 
 // The `MaterializeInvoiceIntakeV2` mutation requires an argument of type `MaterializeInvoiceIntakeV2Variables`:
 const materializeInvoiceIntakeV2Vars: MaterializeInvoiceIntakeV2Variables = {
-  receiptId: ..., 
-  transactionId: ..., 
-  invoiceId: ..., 
-  vendor: ..., 
+  receiptId: ...,
+  transactionId: ...,
+  invoiceId: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
-  invoiceDate: ..., 
-  subtotalCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  currency: ..., 
+  invoiceDate: ...,
+  subtotalCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  currency: ...,
   sku: ..., // optional
-  category: ..., 
-  accountCode: ..., 
-  cardId: ..., 
+  category: ...,
+  accountId: ...,
+  cardId: ...,
   statementPeriod: ..., // optional
-  project: ..., // optional
-  storageFolder: ..., 
-  classificationNote: ..., 
-  expectedProcessingStatus: ..., 
-  classificationSource: ..., 
-  classificationStatus: ..., 
+  project: ...,
+  storageFolder: ...,
+  classificationNote: ...,
+  expectedProcessingStatus: ...,
+  classificationSource: ...,
+  classificationStatus: ...,
   actorUid: ..., // optional
   actorRole: ..., // optional
   writeAudit: ..., // optional
   auditEventId: ..., // optional
   auditDetails: ..., // optional
-  photoCount: ..., 
-  photo1Id: ..., 
-  photo1StoragePath: ..., 
-  photo1ContentType: ..., 
-  hasPhoto2: ..., 
-  photo2Id: ..., 
-  photo2StoragePath: ..., 
-  photo2ContentType: ..., 
-  hasPhoto3: ..., 
-  photo3Id: ..., 
-  photo3StoragePath: ..., 
-  photo3ContentType: ..., 
-  hasPhoto4: ..., 
-  photo4Id: ..., 
-  photo4StoragePath: ..., 
-  photo4ContentType: ..., 
-  hasPhoto5: ..., 
-  photo5Id: ..., 
-  photo5StoragePath: ..., 
-  photo5ContentType: ..., 
+  photoCount: ...,
+  photo1Id: ...,
+  photo1StoragePath: ...,
+  photo1ContentType: ...,
+  hasPhoto2: ...,
+  photo2Id: ...,
+  photo2StoragePath: ...,
+  photo2ContentType: ...,
+  hasPhoto3: ...,
+  photo3Id: ...,
+  photo3StoragePath: ...,
+  photo3ContentType: ...,
+  hasPhoto4: ...,
+  photo4Id: ...,
+  photo4StoragePath: ...,
+  photo4ContentType: ...,
+  hasPhoto5: ...,
+  photo5Id: ...,
+  photo5StoragePath: ...,
+  photo5ContentType: ...,
 };
 
 // Call the `materializeInvoiceIntakeV2()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await materializeInvoiceIntakeV2(materializeInvoiceIntakeV2Vars);
 // Variables can be defined inline as well.
-const { data } = await materializeInvoiceIntakeV2({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriod: ..., project: ..., storageFolder: ..., classificationNote: ..., expectedProcessingStatus: ..., classificationSource: ..., classificationStatus: ..., actorUid: ..., actorRole: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., photoCount: ..., photo1Id: ..., photo1StoragePath: ..., photo1ContentType: ..., hasPhoto2: ..., photo2Id: ..., photo2StoragePath: ..., photo2ContentType: ..., hasPhoto3: ..., photo3Id: ..., photo3StoragePath: ..., photo3ContentType: ..., hasPhoto4: ..., photo4Id: ..., photo4StoragePath: ..., photo4ContentType: ..., hasPhoto5: ..., photo5Id: ..., photo5StoragePath: ..., photo5ContentType: ..., });
+const { data } = await materializeInvoiceIntakeV2({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountId: ..., cardId: ..., statementPeriod: ..., project: ..., storageFolder: ..., classificationNote: ..., expectedProcessingStatus: ..., classificationSource: ..., classificationStatus: ..., actorUid: ..., actorRole: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., photoCount: ..., photo1Id: ..., photo1StoragePath: ..., photo1ContentType: ..., hasPhoto2: ..., photo2Id: ..., photo2StoragePath: ..., photo2ContentType: ..., hasPhoto3: ..., photo3Id: ..., photo3StoragePath: ..., photo3ContentType: ..., hasPhoto4: ..., photo4Id: ..., photo4StoragePath: ..., photo4ContentType: ..., hasPhoto5: ..., photo5Id: ..., photo5StoragePath: ..., photo5ContentType: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -5570,65 +5651,65 @@ materializeInvoiceIntakeV2(materializeInvoiceIntakeV2Vars).then((response) => {
 
 ### Using `MaterializeInvoiceIntakeV2`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, materializeInvoiceIntakeV2Ref, MaterializeInvoiceIntakeV2Variables } from '@factures-thibeault/data-connect-generated';
 
 // The `MaterializeInvoiceIntakeV2` mutation requires an argument of type `MaterializeInvoiceIntakeV2Variables`:
 const materializeInvoiceIntakeV2Vars: MaterializeInvoiceIntakeV2Variables = {
-  receiptId: ..., 
-  transactionId: ..., 
-  invoiceId: ..., 
-  vendor: ..., 
+  receiptId: ...,
+  transactionId: ...,
+  invoiceId: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
-  invoiceDate: ..., 
-  subtotalCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  currency: ..., 
+  invoiceDate: ...,
+  subtotalCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  currency: ...,
   sku: ..., // optional
-  category: ..., 
-  accountCode: ..., 
-  cardId: ..., 
+  category: ...,
+  accountId: ...,
+  cardId: ...,
   statementPeriod: ..., // optional
-  project: ..., // optional
-  storageFolder: ..., 
-  classificationNote: ..., 
-  expectedProcessingStatus: ..., 
-  classificationSource: ..., 
-  classificationStatus: ..., 
+  project: ...,
+  storageFolder: ...,
+  classificationNote: ...,
+  expectedProcessingStatus: ...,
+  classificationSource: ...,
+  classificationStatus: ...,
   actorUid: ..., // optional
   actorRole: ..., // optional
   writeAudit: ..., // optional
   auditEventId: ..., // optional
   auditDetails: ..., // optional
-  photoCount: ..., 
-  photo1Id: ..., 
-  photo1StoragePath: ..., 
-  photo1ContentType: ..., 
-  hasPhoto2: ..., 
-  photo2Id: ..., 
-  photo2StoragePath: ..., 
-  photo2ContentType: ..., 
-  hasPhoto3: ..., 
-  photo3Id: ..., 
-  photo3StoragePath: ..., 
-  photo3ContentType: ..., 
-  hasPhoto4: ..., 
-  photo4Id: ..., 
-  photo4StoragePath: ..., 
-  photo4ContentType: ..., 
-  hasPhoto5: ..., 
-  photo5Id: ..., 
-  photo5StoragePath: ..., 
-  photo5ContentType: ..., 
+  photoCount: ...,
+  photo1Id: ...,
+  photo1StoragePath: ...,
+  photo1ContentType: ...,
+  hasPhoto2: ...,
+  photo2Id: ...,
+  photo2StoragePath: ...,
+  photo2ContentType: ...,
+  hasPhoto3: ...,
+  photo3Id: ...,
+  photo3StoragePath: ...,
+  photo3ContentType: ...,
+  hasPhoto4: ...,
+  photo4Id: ...,
+  photo4StoragePath: ...,
+  photo4ContentType: ...,
+  hasPhoto5: ...,
+  photo5Id: ...,
+  photo5StoragePath: ...,
+  photo5ContentType: ...,
 };
 
 // Call the `materializeInvoiceIntakeV2Ref()` function to get a reference to the mutation.
 const ref = materializeInvoiceIntakeV2Ref(materializeInvoiceIntakeV2Vars);
 // Variables can be defined inline as well.
-const ref = materializeInvoiceIntakeV2Ref({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriod: ..., project: ..., storageFolder: ..., classificationNote: ..., expectedProcessingStatus: ..., classificationSource: ..., classificationStatus: ..., actorUid: ..., actorRole: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., photoCount: ..., photo1Id: ..., photo1StoragePath: ..., photo1ContentType: ..., hasPhoto2: ..., photo2Id: ..., photo2StoragePath: ..., photo2ContentType: ..., hasPhoto3: ..., photo3Id: ..., photo3StoragePath: ..., photo3ContentType: ..., hasPhoto4: ..., photo4Id: ..., photo4StoragePath: ..., photo4ContentType: ..., hasPhoto5: ..., photo5Id: ..., photo5StoragePath: ..., photo5ContentType: ..., });
+const ref = materializeInvoiceIntakeV2Ref({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountId: ..., cardId: ..., statementPeriod: ..., project: ..., storageFolder: ..., classificationNote: ..., expectedProcessingStatus: ..., classificationSource: ..., classificationStatus: ..., actorUid: ..., actorRole: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., photoCount: ..., photo1Id: ..., photo1StoragePath: ..., photo1ContentType: ..., hasPhoto2: ..., photo2Id: ..., photo2StoragePath: ..., photo2ContentType: ..., hasPhoto3: ..., photo3Id: ..., photo3StoragePath: ..., photo3ContentType: ..., hasPhoto4: ..., photo4Id: ..., photo4StoragePath: ..., photo4ContentType: ..., hasPhoto5: ..., photo5Id: ..., photo5StoragePath: ..., photo5ContentType: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -5667,7 +5748,7 @@ executeMutation(ref).then((response) => {
 
 ## CommitInvoiceIntake
 You can execute the `CommitInvoiceIntake` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 commitInvoiceIntake(vars: CommitInvoiceIntakeVariables): MutationPromise<CommitInvoiceIntakeData, CommitInvoiceIntakeVariables>;
 
 interface CommitInvoiceIntakeRef {
@@ -5678,7 +5759,7 @@ interface CommitInvoiceIntakeRef {
 export const commitInvoiceIntakeRef: CommitInvoiceIntakeRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 commitInvoiceIntake(dc: DataConnect, vars: CommitInvoiceIntakeVariables): MutationPromise<CommitInvoiceIntakeData, CommitInvoiceIntakeVariables>;
 
 interface CommitInvoiceIntakeRef {
@@ -5689,7 +5770,7 @@ export const commitInvoiceIntakeRef: CommitInvoiceIntakeRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the commitInvoiceIntakeRef:
-```typescript
+```typescrip
 const name = commitInvoiceIntakeRef.operationName;
 console.log(name);
 ```
@@ -5697,7 +5778,7 @@ console.log(name);
 ### Variables
 The `CommitInvoiceIntake` mutation requires an argument of type `CommitInvoiceIntakeVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface CommitInvoiceIntakeVariables {
   receiptId: string;
   transactionId: string;
@@ -5712,7 +5793,7 @@ export interface CommitInvoiceIntakeVariables {
   currency: string;
   sku?: string | null;
   category: string;
-  accountCode: string;
+  accountId: string;
   cardId: string;
   statementPeriodId: string;
   projectId: string;
@@ -5724,7 +5805,7 @@ export interface CommitInvoiceIntakeVariables {
 Recall that executing the `CommitInvoiceIntake` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `CommitInvoiceIntakeData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface CommitInvoiceIntakeData {
   invoiceIntake_updateMany: number;
   expenseTransaction_upsert: ExpenseTransaction_Key;
@@ -5734,38 +5815,38 @@ export interface CommitInvoiceIntakeData {
 ```
 ### Using `CommitInvoiceIntake`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, commitInvoiceIntake, CommitInvoiceIntakeVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `CommitInvoiceIntake` mutation requires an argument of type `CommitInvoiceIntakeVariables`:
 const commitInvoiceIntakeVars: CommitInvoiceIntakeVariables = {
-  receiptId: ..., 
-  transactionId: ..., 
-  invoiceId: ..., 
-  vendor: ..., 
+  receiptId: ...,
+  transactionId: ...,
+  invoiceId: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
-  invoiceDate: ..., 
-  subtotalCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  currency: ..., 
+  invoiceDate: ...,
+  subtotalCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  currency: ...,
   sku: ..., // optional
-  category: ..., 
-  accountCode: ..., 
-  cardId: ..., 
-  statementPeriodId: ..., 
-  projectId: ..., 
-  storageFolder: ..., 
-  classificationNote: ..., 
+  category: ...,
+  accountId: ...,
+  cardId: ...,
+  statementPeriodId: ...,
+  projectId: ...,
+  storageFolder: ...,
+  classificationNote: ...,
 };
 
 // Call the `commitInvoiceIntake()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await commitInvoiceIntake(commitInvoiceIntakeVars);
 // Variables can be defined inline as well.
-const { data } = await commitInvoiceIntake({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriodId: ..., projectId: ..., storageFolder: ..., classificationNote: ..., });
+const { data } = await commitInvoiceIntake({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountId: ..., cardId: ..., statementPeriodId: ..., projectId: ..., storageFolder: ..., classificationNote: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -5788,37 +5869,37 @@ commitInvoiceIntake(commitInvoiceIntakeVars).then((response) => {
 
 ### Using `CommitInvoiceIntake`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, commitInvoiceIntakeRef, CommitInvoiceIntakeVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `CommitInvoiceIntake` mutation requires an argument of type `CommitInvoiceIntakeVariables`:
 const commitInvoiceIntakeVars: CommitInvoiceIntakeVariables = {
-  receiptId: ..., 
-  transactionId: ..., 
-  invoiceId: ..., 
-  vendor: ..., 
+  receiptId: ...,
+  transactionId: ...,
+  invoiceId: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
-  invoiceDate: ..., 
-  subtotalCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  currency: ..., 
+  invoiceDate: ...,
+  subtotalCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  currency: ...,
   sku: ..., // optional
-  category: ..., 
-  accountCode: ..., 
-  cardId: ..., 
-  statementPeriodId: ..., 
-  projectId: ..., 
-  storageFolder: ..., 
-  classificationNote: ..., 
+  category: ...,
+  accountId: ...,
+  cardId: ...,
+  statementPeriodId: ...,
+  projectId: ...,
+  storageFolder: ...,
+  classificationNote: ...,
 };
 
 // Call the `commitInvoiceIntakeRef()` function to get a reference to the mutation.
 const ref = commitInvoiceIntakeRef(commitInvoiceIntakeVars);
 // Variables can be defined inline as well.
-const ref = commitInvoiceIntakeRef({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriodId: ..., projectId: ..., storageFolder: ..., classificationNote: ..., });
+const ref = commitInvoiceIntakeRef({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountId: ..., cardId: ..., statementPeriodId: ..., projectId: ..., storageFolder: ..., classificationNote: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -5843,9 +5924,9 @@ executeMutation(ref).then((response) => {
 });
 ```
 
-## CommitInvoiceIntakeWithoutProject
+## CommitInvoiceIntakeWithoutProjec
 You can execute the `CommitInvoiceIntakeWithoutProject` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 commitInvoiceIntakeWithoutProject(vars: CommitInvoiceIntakeWithoutProjectVariables): MutationPromise<CommitInvoiceIntakeWithoutProjectData, CommitInvoiceIntakeWithoutProjectVariables>;
 
 interface CommitInvoiceIntakeWithoutProjectRef {
@@ -5856,7 +5937,7 @@ interface CommitInvoiceIntakeWithoutProjectRef {
 export const commitInvoiceIntakeWithoutProjectRef: CommitInvoiceIntakeWithoutProjectRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 commitInvoiceIntakeWithoutProject(dc: DataConnect, vars: CommitInvoiceIntakeWithoutProjectVariables): MutationPromise<CommitInvoiceIntakeWithoutProjectData, CommitInvoiceIntakeWithoutProjectVariables>;
 
 interface CommitInvoiceIntakeWithoutProjectRef {
@@ -5867,7 +5948,7 @@ export const commitInvoiceIntakeWithoutProjectRef: CommitInvoiceIntakeWithoutPro
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the commitInvoiceIntakeWithoutProjectRef:
-```typescript
+```typescrip
 const name = commitInvoiceIntakeWithoutProjectRef.operationName;
 console.log(name);
 ```
@@ -5875,7 +5956,7 @@ console.log(name);
 ### Variables
 The `CommitInvoiceIntakeWithoutProject` mutation requires an argument of type `CommitInvoiceIntakeWithoutProjectVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface CommitInvoiceIntakeWithoutProjectVariables {
   receiptId: string;
   transactionId: string;
@@ -5890,7 +5971,7 @@ export interface CommitInvoiceIntakeWithoutProjectVariables {
   currency: string;
   sku?: string | null;
   category: string;
-  accountCode: string;
+  accountId: string;
   cardId: string;
   statementPeriodId: string;
   storageFolder: string;
@@ -5901,7 +5982,7 @@ export interface CommitInvoiceIntakeWithoutProjectVariables {
 Recall that executing the `CommitInvoiceIntakeWithoutProject` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `CommitInvoiceIntakeWithoutProjectData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface CommitInvoiceIntakeWithoutProjectData {
   invoiceIntake_updateMany: number;
   expenseTransaction_upsert: ExpenseTransaction_Key;
@@ -5911,37 +5992,37 @@ export interface CommitInvoiceIntakeWithoutProjectData {
 ```
 ### Using `CommitInvoiceIntakeWithoutProject`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, commitInvoiceIntakeWithoutProject, CommitInvoiceIntakeWithoutProjectVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `CommitInvoiceIntakeWithoutProject` mutation requires an argument of type `CommitInvoiceIntakeWithoutProjectVariables`:
 const commitInvoiceIntakeWithoutProjectVars: CommitInvoiceIntakeWithoutProjectVariables = {
-  receiptId: ..., 
-  transactionId: ..., 
-  invoiceId: ..., 
-  vendor: ..., 
+  receiptId: ...,
+  transactionId: ...,
+  invoiceId: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
-  invoiceDate: ..., 
-  subtotalCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  currency: ..., 
+  invoiceDate: ...,
+  subtotalCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  currency: ...,
   sku: ..., // optional
-  category: ..., 
-  accountCode: ..., 
-  cardId: ..., 
-  statementPeriodId: ..., 
-  storageFolder: ..., 
-  classificationNote: ..., 
+  category: ...,
+  accountId: ...,
+  cardId: ...,
+  statementPeriodId: ...,
+  storageFolder: ...,
+  classificationNote: ...,
 };
 
 // Call the `commitInvoiceIntakeWithoutProject()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await commitInvoiceIntakeWithoutProject(commitInvoiceIntakeWithoutProjectVars);
 // Variables can be defined inline as well.
-const { data } = await commitInvoiceIntakeWithoutProject({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriodId: ..., storageFolder: ..., classificationNote: ..., });
+const { data } = await commitInvoiceIntakeWithoutProject({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountId: ..., cardId: ..., statementPeriodId: ..., storageFolder: ..., classificationNote: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -5964,36 +6045,36 @@ commitInvoiceIntakeWithoutProject(commitInvoiceIntakeWithoutProjectVars).then((r
 
 ### Using `CommitInvoiceIntakeWithoutProject`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, commitInvoiceIntakeWithoutProjectRef, CommitInvoiceIntakeWithoutProjectVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `CommitInvoiceIntakeWithoutProject` mutation requires an argument of type `CommitInvoiceIntakeWithoutProjectVariables`:
 const commitInvoiceIntakeWithoutProjectVars: CommitInvoiceIntakeWithoutProjectVariables = {
-  receiptId: ..., 
-  transactionId: ..., 
-  invoiceId: ..., 
-  vendor: ..., 
+  receiptId: ...,
+  transactionId: ...,
+  invoiceId: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
-  invoiceDate: ..., 
-  subtotalCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  currency: ..., 
+  invoiceDate: ...,
+  subtotalCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  currency: ...,
   sku: ..., // optional
-  category: ..., 
-  accountCode: ..., 
-  cardId: ..., 
-  statementPeriodId: ..., 
-  storageFolder: ..., 
-  classificationNote: ..., 
+  category: ...,
+  accountId: ...,
+  cardId: ...,
+  statementPeriodId: ...,
+  storageFolder: ...,
+  classificationNote: ...,
 };
 
 // Call the `commitInvoiceIntakeWithoutProjectRef()` function to get a reference to the mutation.
 const ref = commitInvoiceIntakeWithoutProjectRef(commitInvoiceIntakeWithoutProjectVars);
 // Variables can be defined inline as well.
-const ref = commitInvoiceIntakeWithoutProjectRef({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriodId: ..., storageFolder: ..., classificationNote: ..., });
+const ref = commitInvoiceIntakeWithoutProjectRef({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountId: ..., cardId: ..., statementPeriodId: ..., storageFolder: ..., classificationNote: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -6020,7 +6101,7 @@ executeMutation(ref).then((response) => {
 
 ## AutoCommitInvoiceIntake
 You can execute the `AutoCommitInvoiceIntake` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
-```typescript
+```typescrip
 autoCommitInvoiceIntake(vars: AutoCommitInvoiceIntakeVariables): MutationPromise<AutoCommitInvoiceIntakeData, AutoCommitInvoiceIntakeVariables>;
 
 interface AutoCommitInvoiceIntakeRef {
@@ -6031,7 +6112,7 @@ interface AutoCommitInvoiceIntakeRef {
 export const autoCommitInvoiceIntakeRef: AutoCommitInvoiceIntakeRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
-```typescript
+```typescrip
 autoCommitInvoiceIntake(dc: DataConnect, vars: AutoCommitInvoiceIntakeVariables): MutationPromise<AutoCommitInvoiceIntakeData, AutoCommitInvoiceIntakeVariables>;
 
 interface AutoCommitInvoiceIntakeRef {
@@ -6042,7 +6123,7 @@ export const autoCommitInvoiceIntakeRef: AutoCommitInvoiceIntakeRef;
 ```
 
 If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the autoCommitInvoiceIntakeRef:
-```typescript
+```typescrip
 const name = autoCommitInvoiceIntakeRef.operationName;
 console.log(name);
 ```
@@ -6050,7 +6131,7 @@ console.log(name);
 ### Variables
 The `AutoCommitInvoiceIntake` mutation requires an argument of type `AutoCommitInvoiceIntakeVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 
-```typescript
+```typescrip
 export interface AutoCommitInvoiceIntakeVariables {
   receiptId: string;
   transactionId: string;
@@ -6065,7 +6146,7 @@ export interface AutoCommitInvoiceIntakeVariables {
   currency: string;
   sku?: string | null;
   category: string;
-  accountCode: string;
+  accountId: string;
   cardId: string;
   statementPeriodId: string;
   projectId: string;
@@ -6077,7 +6158,7 @@ export interface AutoCommitInvoiceIntakeVariables {
 Recall that executing the `AutoCommitInvoiceIntake` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
 The `data` property is an object of type `AutoCommitInvoiceIntakeData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
-```typescript
+```typescrip
 export interface AutoCommitInvoiceIntakeData {
   invoiceIntake_updateMany: number;
   expenseTransaction_upsert: ExpenseTransaction_Key;
@@ -6087,38 +6168,38 @@ export interface AutoCommitInvoiceIntakeData {
 ```
 ### Using `AutoCommitInvoiceIntake`'s action shortcut function
 
-```typescript
+```typescrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, autoCommitInvoiceIntake, AutoCommitInvoiceIntakeVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AutoCommitInvoiceIntake` mutation requires an argument of type `AutoCommitInvoiceIntakeVariables`:
 const autoCommitInvoiceIntakeVars: AutoCommitInvoiceIntakeVariables = {
-  receiptId: ..., 
-  transactionId: ..., 
-  invoiceId: ..., 
-  vendor: ..., 
+  receiptId: ...,
+  transactionId: ...,
+  invoiceId: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
-  invoiceDate: ..., 
-  subtotalCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  currency: ..., 
+  invoiceDate: ...,
+  subtotalCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  currency: ...,
   sku: ..., // optional
-  category: ..., 
-  accountCode: ..., 
-  cardId: ..., 
-  statementPeriodId: ..., 
-  projectId: ..., 
-  storageFolder: ..., 
-  classificationNote: ..., 
+  category: ...,
+  accountId: ...,
+  cardId: ...,
+  statementPeriodId: ...,
+  projectId: ...,
+  storageFolder: ...,
+  classificationNote: ...,
 };
 
 // Call the `autoCommitInvoiceIntake()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await autoCommitInvoiceIntake(autoCommitInvoiceIntakeVars);
 // Variables can be defined inline as well.
-const { data } = await autoCommitInvoiceIntake({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriodId: ..., projectId: ..., storageFolder: ..., classificationNote: ..., });
+const { data } = await autoCommitInvoiceIntake({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountId: ..., cardId: ..., statementPeriodId: ..., projectId: ..., storageFolder: ..., classificationNote: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -6141,37 +6222,37 @@ autoCommitInvoiceIntake(autoCommitInvoiceIntakeVars).then((response) => {
 
 ### Using `AutoCommitInvoiceIntake`'s `MutationRef` function
 
-```typescript
+```typescrip
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
 import { connectorConfig, autoCommitInvoiceIntakeRef, AutoCommitInvoiceIntakeVariables } from '@factures-thibeault/data-connect-generated';
 
 // The `AutoCommitInvoiceIntake` mutation requires an argument of type `AutoCommitInvoiceIntakeVariables`:
 const autoCommitInvoiceIntakeVars: AutoCommitInvoiceIntakeVariables = {
-  receiptId: ..., 
-  transactionId: ..., 
-  invoiceId: ..., 
-  vendor: ..., 
+  receiptId: ...,
+  transactionId: ...,
+  invoiceId: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
-  invoiceDate: ..., 
-  subtotalCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  currency: ..., 
+  invoiceDate: ...,
+  subtotalCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  currency: ...,
   sku: ..., // optional
-  category: ..., 
-  accountCode: ..., 
-  cardId: ..., 
-  statementPeriodId: ..., 
-  projectId: ..., 
-  storageFolder: ..., 
-  classificationNote: ..., 
+  category: ...,
+  accountId: ...,
+  cardId: ...,
+  statementPeriodId: ...,
+  projectId: ...,
+  storageFolder: ...,
+  classificationNote: ...,
 };
 
 // Call the `autoCommitInvoiceIntakeRef()` function to get a reference to the mutation.
 const ref = autoCommitInvoiceIntakeRef(autoCommitInvoiceIntakeVars);
 // Variables can be defined inline as well.
-const ref = autoCommitInvoiceIntakeRef({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriodId: ..., projectId: ..., storageFolder: ..., classificationNote: ..., });
+const ref = autoCommitInvoiceIntakeRef({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountId: ..., cardId: ..., statementPeriodId: ..., projectId: ..., storageFolder: ..., classificationNote: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);

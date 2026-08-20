@@ -23,7 +23,6 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*ListCreditCards*](#listcreditcards)
   - [*ListCardStatementPeriods*](#listcardstatementperiods)
   - [*ListExpenseAccounts*](#listexpenseaccounts)
-  - [*ListTaxAccounts*](#listtaxaccounts)
   - [*ListProjects*](#listprojects)
   - [*ListSkuReferences*](#listskureferences)
   - [*ListExpenseTransactions*](#listexpensetransactions)
@@ -44,13 +43,14 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*AdminDeleteSkuReference*](#admindeleteskureference)
   - [*AdminDeleteProject*](#admindeleteproject)
   - [*AdminDeleteExpenseAccount*](#admindeleteexpenseaccount)
-  - [*AdminDeleteTaxAccount*](#admindeletetaxaccount)
   - [*AdminDeleteCardStatementPeriod*](#admindeletecardstatementperiod)
   - [*AdminDeleteUserProfile*](#admindeleteuserprofile)
   - [*UpsertUserProfile*](#upsertuserprofile)
   - [*UpsertCreditCard*](#upsertcreditcard)
   - [*UpsertProject*](#upsertproject)
   - [*UpsertExpenseAccount*](#upsertexpenseaccount)
+  - [*DeleteProject*](#deleteproject)
+  - [*DeleteExpenseAccount*](#deleteexpenseaccount)
   - [*UpsertCardStatementPeriod*](#upsertcardstatementperiod)
   - [*CreateInvoiceIntake*](#createinvoiceintake)
   - [*CreateInvoiceIntakeV2*](#createinvoiceintakev2)
@@ -75,7 +75,7 @@ This SDK provides [React](https://react.dev/) hooks generated specific to your a
 ## Installing TanStack Query Firebase and TanStack React Query Packages
 In order to use the React generated SDK, you must install the `TanStack React Query` and `TanStack Query Firebase` packages.
 ```bash
-npm i --save @tanstack/react-query @tanstack-query-firebase/react
+npm i --save @tanstack/react-query @tanstack-query-firebase/reac
 ```
 ```bash
 npm i --save firebase@latest # Note: React has a peer dependency on ^11.3.0
@@ -86,7 +86,7 @@ You can also follow the installation instructions from the [Data Connect documen
 ## Configuring TanStack Query
 In order to use the React generated SDK in your application, you must wrap your application's component tree in a `QueryClientProvider` component from TanStack React Query. None of your generated React SDK hooks will work without this provider.
 
-```javascript
+```javascrip
 import { QueryClientProvider } from '@tanstack/react-query';
 
 // Create a TanStack Query client instance
@@ -109,7 +109,7 @@ A connector is a collection of Queries and Mutations. One SDK is generated for e
 
 You can find more information about connectors in the [Data Connect documentation](https://firebase.google.com/docs/data-connect#how-does).
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig } from '@factures-thibeault/data-connect-generated';
 
@@ -122,7 +122,7 @@ By default, the connector will connect to the production service.
 To connect to the emulator, you can use the following code.
 You can also follow the emulator instructions from the [Data Connect documentation](https://firebase.google.com/docs/data-connect/web-sdk#emulator-react-angular).
 
-```javascript
+```javascrip
 import { connectDataConnectEmulator, getDataConnect } from 'firebase/data-connect';
 import { connectorConfig } from '@factures-thibeault/data-connect-generated';
 
@@ -160,11 +160,11 @@ Below are examples of how to use the `accounting` connector's generated Query ho
 ## AdminListInvoices
 You can execute the `AdminListInvoices` Query using the following Query hook function, which is defined in [data-connect/react/index.d.ts](./index.d.ts):
 
-```javascript
+```javascrip
 useAdminListInvoices(dc: DataConnect, options?: useDataConnectQueryOptions<AdminListInvoicesData>): UseDataConnectQueryResult<AdminListInvoicesData, undefined>;
 ```
 You can also pass in a `DataConnect` instance to the Query hook function.
-```javascript
+```javascrip
 useAdminListInvoices(options?: useDataConnectQueryOptions<AdminListInvoicesData>): UseDataConnectQueryResult<AdminListInvoicesData, undefined>;
 ```
 
@@ -176,7 +176,7 @@ Recall that calling the `AdminListInvoices` Query hook function returns a `UseQu
 To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
 
 To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `AdminListInvoices` Query is of type `AdminListInvoicesData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface AdminListInvoicesData {
   invoices: ({
     id: string;
@@ -211,7 +211,7 @@ To learn more about the `UseQueryResult` object, see the [TanStack React Query d
 
 ### Using `AdminListInvoices`'s Query hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig } from '@factures-thibeault/data-connect-generated';
 import { useAdminListInvoices } from '@factures-thibeault/data-connect-generated/react'
@@ -254,11 +254,11 @@ export default function AdminListInvoicesComponent() {
 ## AdminListInvoicePhotos
 You can execute the `AdminListInvoicePhotos` Query using the following Query hook function, which is defined in [data-connect/react/index.d.ts](./index.d.ts):
 
-```javascript
+```javascrip
 useAdminListInvoicePhotos(dc: DataConnect, options?: useDataConnectQueryOptions<AdminListInvoicePhotosData>): UseDataConnectQueryResult<AdminListInvoicePhotosData, undefined>;
 ```
 You can also pass in a `DataConnect` instance to the Query hook function.
-```javascript
+```javascrip
 useAdminListInvoicePhotos(options?: useDataConnectQueryOptions<AdminListInvoicePhotosData>): UseDataConnectQueryResult<AdminListInvoicePhotosData, undefined>;
 ```
 
@@ -270,7 +270,7 @@ Recall that calling the `AdminListInvoicePhotos` Query hook function returns a `
 To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
 
 To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `AdminListInvoicePhotos` Query is of type `AdminListInvoicePhotosData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface AdminListInvoicePhotosData {
   invoicePhotos: ({
     id: string;
@@ -289,7 +289,7 @@ To learn more about the `UseQueryResult` object, see the [TanStack React Query d
 
 ### Using `AdminListInvoicePhotos`'s Query hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig } from '@factures-thibeault/data-connect-generated';
 import { useAdminListInvoicePhotos } from '@factures-thibeault/data-connect-generated/react'
@@ -332,11 +332,11 @@ export default function AdminListInvoicePhotosComponent() {
 ## ListUserProfiles
 You can execute the `ListUserProfiles` Query using the following Query hook function, which is defined in [data-connect/react/index.d.ts](./index.d.ts):
 
-```javascript
+```javascrip
 useListUserProfiles(dc: DataConnect, options?: useDataConnectQueryOptions<ListUserProfilesData>): UseDataConnectQueryResult<ListUserProfilesData, undefined>;
 ```
 You can also pass in a `DataConnect` instance to the Query hook function.
-```javascript
+```javascrip
 useListUserProfiles(options?: useDataConnectQueryOptions<ListUserProfilesData>): UseDataConnectQueryResult<ListUserProfilesData, undefined>;
 ```
 
@@ -348,7 +348,7 @@ Recall that calling the `ListUserProfiles` Query hook function returns a `UseQue
 To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
 
 To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListUserProfiles` Query is of type `ListUserProfilesData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface ListUserProfilesData {
   userProfiles: ({
     id: string;
@@ -366,7 +366,7 @@ To learn more about the `UseQueryResult` object, see the [TanStack React Query d
 
 ### Using `ListUserProfiles`'s Query hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig } from '@factures-thibeault/data-connect-generated';
 import { useListUserProfiles } from '@factures-thibeault/data-connect-generated/react'
@@ -409,11 +409,11 @@ export default function ListUserProfilesComponent() {
 ## ListCreditCards
 You can execute the `ListCreditCards` Query using the following Query hook function, which is defined in [data-connect/react/index.d.ts](./index.d.ts):
 
-```javascript
+```javascrip
 useListCreditCards(dc: DataConnect, options?: useDataConnectQueryOptions<ListCreditCardsData>): UseDataConnectQueryResult<ListCreditCardsData, undefined>;
 ```
 You can also pass in a `DataConnect` instance to the Query hook function.
-```javascript
+```javascrip
 useListCreditCards(options?: useDataConnectQueryOptions<ListCreditCardsData>): UseDataConnectQueryResult<ListCreditCardsData, undefined>;
 ```
 
@@ -425,7 +425,7 @@ Recall that calling the `ListCreditCards` Query hook function returns a `UseQuer
 To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
 
 To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListCreditCards` Query is of type `ListCreditCardsData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface ListCreditCardsData {
   creditCards: ({
     id: string;
@@ -448,7 +448,7 @@ To learn more about the `UseQueryResult` object, see the [TanStack React Query d
 
 ### Using `ListCreditCards`'s Query hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig } from '@factures-thibeault/data-connect-generated';
 import { useListCreditCards } from '@factures-thibeault/data-connect-generated/react'
@@ -491,11 +491,11 @@ export default function ListCreditCardsComponent() {
 ## ListCardStatementPeriods
 You can execute the `ListCardStatementPeriods` Query using the following Query hook function, which is defined in [data-connect/react/index.d.ts](./index.d.ts):
 
-```javascript
+```javascrip
 useListCardStatementPeriods(dc: DataConnect, options?: useDataConnectQueryOptions<ListCardStatementPeriodsData>): UseDataConnectQueryResult<ListCardStatementPeriodsData, undefined>;
 ```
 You can also pass in a `DataConnect` instance to the Query hook function.
-```javascript
+```javascrip
 useListCardStatementPeriods(options?: useDataConnectQueryOptions<ListCardStatementPeriodsData>): UseDataConnectQueryResult<ListCardStatementPeriodsData, undefined>;
 ```
 
@@ -507,7 +507,7 @@ Recall that calling the `ListCardStatementPeriods` Query hook function returns a
 To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
 
 To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListCardStatementPeriods` Query is of type `ListCardStatementPeriodsData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface ListCardStatementPeriodsData {
   cardStatementPeriods: ({
     id: string;
@@ -524,7 +524,7 @@ To learn more about the `UseQueryResult` object, see the [TanStack React Query d
 
 ### Using `ListCardStatementPeriods`'s Query hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig } from '@factures-thibeault/data-connect-generated';
 import { useListCardStatementPeriods } from '@factures-thibeault/data-connect-generated/react'
@@ -567,11 +567,11 @@ export default function ListCardStatementPeriodsComponent() {
 ## ListExpenseAccounts
 You can execute the `ListExpenseAccounts` Query using the following Query hook function, which is defined in [data-connect/react/index.d.ts](./index.d.ts):
 
-```javascript
+```javascrip
 useListExpenseAccounts(dc: DataConnect, options?: useDataConnectQueryOptions<ListExpenseAccountsData>): UseDataConnectQueryResult<ListExpenseAccountsData, undefined>;
 ```
 You can also pass in a `DataConnect` instance to the Query hook function.
-```javascript
+```javascrip
 useListExpenseAccounts(options?: useDataConnectQueryOptions<ListExpenseAccountsData>): UseDataConnectQueryResult<ListExpenseAccountsData, undefined>;
 ```
 
@@ -583,11 +583,13 @@ Recall that calling the `ListExpenseAccounts` Query hook function returns a `Use
 To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
 
 To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListExpenseAccounts` Query is of type `ListExpenseAccountsData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface ListExpenseAccountsData {
   expenseAccounts: ({
-    code: string;
+    id: string;
+    number: string;
     label: string;
+    type: string;
     status: string;
   } & ExpenseAccount_Key)[];
 }
@@ -597,7 +599,7 @@ To learn more about the `UseQueryResult` object, see the [TanStack React Query d
 
 ### Using `ListExpenseAccounts`'s Query hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig } from '@factures-thibeault/data-connect-generated';
 import { useListExpenseAccounts } from '@factures-thibeault/data-connect-generated/react'
@@ -637,87 +639,14 @@ export default function ListExpenseAccountsComponent() {
 }
 ```
 
-## ListTaxAccounts
-You can execute the `ListTaxAccounts` Query using the following Query hook function, which is defined in [data-connect/react/index.d.ts](./index.d.ts):
-
-```javascript
-useListTaxAccounts(dc: DataConnect, options?: useDataConnectQueryOptions<ListTaxAccountsData>): UseDataConnectQueryResult<ListTaxAccountsData, undefined>;
-```
-You can also pass in a `DataConnect` instance to the Query hook function.
-```javascript
-useListTaxAccounts(options?: useDataConnectQueryOptions<ListTaxAccountsData>): UseDataConnectQueryResult<ListTaxAccountsData, undefined>;
-```
-
-### Variables
-The `ListTaxAccounts` Query has no variables.
-### Return Type
-Recall that calling the `ListTaxAccounts` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
-
-To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
-
-To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListTaxAccounts` Query is of type `ListTaxAccountsData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
-export interface ListTaxAccountsData {
-  taxAccounts: ({
-    code: string;
-    label: string;
-    status: string;
-  } & TaxAccount_Key)[];
-}
-```
-
-To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
-
-### Using `ListTaxAccounts`'s Query hook function
-
-```javascript
-import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig } from '@factures-thibeault/data-connect-generated';
-import { useListTaxAccounts } from '@factures-thibeault/data-connect-generated/react'
-
-export default function ListTaxAccountsComponent() {
-  // You don't have to do anything to "execute" the Query.
-  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
-  const query = useListTaxAccounts();
-
-  // You can also pass in a `DataConnect` instance to the Query hook function.
-  const dataConnect = getDataConnect(connectorConfig);
-  const query = useListTaxAccounts(dataConnect);
-
-  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
-  const options = { staleTime: 5 * 1000 };
-  const query = useListTaxAccounts(options);
-
-  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
-  const dataConnect = getDataConnect(connectorConfig);
-  const options = { staleTime: 5 * 1000 };
-  const query = useListTaxAccounts(dataConnect, options);
-
-  // Then, you can render your component dynamically based on the status of the Query.
-  if (query.isPending) {
-    return <div>Loading...</div>;
-  }
-
-  if (query.isError) {
-    return <div>Error: {query.error.message}</div>;
-  }
-
-  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
-  if (query.isSuccess) {
-    console.log(query.data.taxAccounts);
-  }
-  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
-}
-```
-
 ## ListProjects
 You can execute the `ListProjects` Query using the following Query hook function, which is defined in [data-connect/react/index.d.ts](./index.d.ts):
 
-```javascript
+```javascrip
 useListProjects(dc: DataConnect, options?: useDataConnectQueryOptions<ListProjectsData>): UseDataConnectQueryResult<ListProjectsData, undefined>;
 ```
 You can also pass in a `DataConnect` instance to the Query hook function.
-```javascript
+```javascrip
 useListProjects(options?: useDataConnectQueryOptions<ListProjectsData>): UseDataConnectQueryResult<ListProjectsData, undefined>;
 ```
 
@@ -729,10 +658,11 @@ Recall that calling the `ListProjects` Query hook function returns a `UseQueryRe
 To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
 
 To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListProjects` Query is of type `ListProjectsData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface ListProjectsData {
   projects: ({
     id: string;
+    number: string;
     name: string;
     status: string;
   } & Project_Key)[];
@@ -743,7 +673,7 @@ To learn more about the `UseQueryResult` object, see the [TanStack React Query d
 
 ### Using `ListProjects`'s Query hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig } from '@factures-thibeault/data-connect-generated';
 import { useListProjects } from '@factures-thibeault/data-connect-generated/react'
@@ -786,11 +716,11 @@ export default function ListProjectsComponent() {
 ## ListSkuReferences
 You can execute the `ListSkuReferences` Query using the following Query hook function, which is defined in [data-connect/react/index.d.ts](./index.d.ts):
 
-```javascript
+```javascrip
 useListSkuReferences(dc: DataConnect, options?: useDataConnectQueryOptions<ListSkuReferencesData>): UseDataConnectQueryResult<ListSkuReferencesData, undefined>;
 ```
 You can also pass in a `DataConnect` instance to the Query hook function.
-```javascript
+```javascrip
 useListSkuReferences(options?: useDataConnectQueryOptions<ListSkuReferencesData>): UseDataConnectQueryResult<ListSkuReferencesData, undefined>;
 ```
 
@@ -802,7 +732,7 @@ Recall that calling the `ListSkuReferences` Query hook function returns a `UseQu
 To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
 
 To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListSkuReferences` Query is of type `ListSkuReferencesData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface ListSkuReferencesData {
   skuReferences: ({
     merchant: string;
@@ -810,8 +740,10 @@ export interface ListSkuReferencesData {
     productLabel?: string | null;
     categoryLabel?: string | null;
     expenseAccount?: {
-      code: string;
+      id: string;
+      number: string;
       label: string;
+      type: string;
     } & ExpenseAccount_Key;
     sourceUrl?: string | null;
     verificationStatus: string;
@@ -824,7 +756,7 @@ To learn more about the `UseQueryResult` object, see the [TanStack React Query d
 
 ### Using `ListSkuReferences`'s Query hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig } from '@factures-thibeault/data-connect-generated';
 import { useListSkuReferences } from '@factures-thibeault/data-connect-generated/react'
@@ -867,11 +799,11 @@ export default function ListSkuReferencesComponent() {
 ## ListExpenseTransactions
 You can execute the `ListExpenseTransactions` Query using the following Query hook function, which is defined in [data-connect/react/index.d.ts](./index.d.ts):
 
-```javascript
+```javascrip
 useListExpenseTransactions(dc: DataConnect, options?: useDataConnectQueryOptions<ListExpenseTransactionsData>): UseDataConnectQueryResult<ListExpenseTransactionsData, undefined>;
 ```
 You can also pass in a `DataConnect` instance to the Query hook function.
-```javascript
+```javascrip
 useListExpenseTransactions(options?: useDataConnectQueryOptions<ListExpenseTransactionsData>): UseDataConnectQueryResult<ListExpenseTransactionsData, undefined>;
 ```
 
@@ -883,7 +815,7 @@ Recall that calling the `ListExpenseTransactions` Query hook function returns a 
 To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
 
 To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListExpenseTransactions` Query is of type `ListExpenseTransactionsData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface ListExpenseTransactionsData {
   expenseTransactions: ({
     id: string;
@@ -905,11 +837,14 @@ export interface ListExpenseTransactionsData {
     } & CardStatementPeriod_Key;
     project?: {
       id: string;
+      number: string;
       name: string;
     } & Project_Key;
     expenseAccount?: {
-      code: string;
+      id: string;
+      number: string;
       label: string;
+      type: string;
     } & ExpenseAccount_Key;
     categoryLabel?: string | null;
     sku?: string | null;
@@ -935,7 +870,7 @@ To learn more about the `UseQueryResult` object, see the [TanStack React Query d
 
 ### Using `ListExpenseTransactions`'s Query hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig } from '@factures-thibeault/data-connect-generated';
 import { useListExpenseTransactions } from '@factures-thibeault/data-connect-generated/react'
@@ -978,11 +913,11 @@ export default function ListExpenseTransactionsComponent() {
 ## ListInvoicesToReview
 You can execute the `ListInvoicesToReview` Query using the following Query hook function, which is defined in [data-connect/react/index.d.ts](./index.d.ts):
 
-```javascript
+```javascrip
 useListInvoicesToReview(dc: DataConnect, options?: useDataConnectQueryOptions<ListInvoicesToReviewData>): UseDataConnectQueryResult<ListInvoicesToReviewData, undefined>;
 ```
 You can also pass in a `DataConnect` instance to the Query hook function.
-```javascript
+```javascrip
 useListInvoicesToReview(options?: useDataConnectQueryOptions<ListInvoicesToReviewData>): UseDataConnectQueryResult<ListInvoicesToReviewData, undefined>;
 ```
 
@@ -994,7 +929,7 @@ Recall that calling the `ListInvoicesToReview` Query hook function returns a `Us
 To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
 
 To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListInvoicesToReview` Query is of type `ListInvoicesToReviewData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface ListInvoicesToReviewData {
   invoices: ({
     id: string;
@@ -1028,7 +963,7 @@ To learn more about the `UseQueryResult` object, see the [TanStack React Query d
 
 ### Using `ListInvoicesToReview`'s Query hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig } from '@factures-thibeault/data-connect-generated';
 import { useListInvoicesToReview } from '@factures-thibeault/data-connect-generated/react'
@@ -1071,11 +1006,11 @@ export default function ListInvoicesToReviewComponent() {
 ## ListInvoiceIntakes
 You can execute the `ListInvoiceIntakes` Query using the following Query hook function, which is defined in [data-connect/react/index.d.ts](./index.d.ts):
 
-```javascript
+```javascrip
 useListInvoiceIntakes(dc: DataConnect, options?: useDataConnectQueryOptions<ListInvoiceIntakesData>): UseDataConnectQueryResult<ListInvoiceIntakesData, undefined>;
 ```
 You can also pass in a `DataConnect` instance to the Query hook function.
-```javascript
+```javascrip
 useListInvoiceIntakes(options?: useDataConnectQueryOptions<ListInvoiceIntakesData>): UseDataConnectQueryResult<ListInvoiceIntakesData, undefined>;
 ```
 
@@ -1087,7 +1022,7 @@ Recall that calling the `ListInvoiceIntakes` Query hook function returns a `UseQ
 To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
 
 To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListInvoiceIntakes` Query is of type `ListInvoiceIntakesData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface ListInvoiceIntakesData {
   invoiceIntakes: ({
     receiptId: string;
@@ -1130,7 +1065,7 @@ To learn more about the `UseQueryResult` object, see the [TanStack React Query d
 
 ### Using `ListInvoiceIntakes`'s Query hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig } from '@factures-thibeault/data-connect-generated';
 import { useListInvoiceIntakes } from '@factures-thibeault/data-connect-generated/react'
@@ -1173,18 +1108,18 @@ export default function ListInvoiceIntakesComponent() {
 ## ListAuditEvents
 You can execute the `ListAuditEvents` Query using the following Query hook function, which is defined in [data-connect/react/index.d.ts](./index.d.ts):
 
-```javascript
+```javascrip
 useListAuditEvents(dc: DataConnect, vars: ListAuditEventsVariables, options?: useDataConnectQueryOptions<ListAuditEventsData>): UseDataConnectQueryResult<ListAuditEventsData, ListAuditEventsVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Query hook function.
-```javascript
+```javascrip
 useListAuditEvents(vars: ListAuditEventsVariables, options?: useDataConnectQueryOptions<ListAuditEventsData>): UseDataConnectQueryResult<ListAuditEventsData, ListAuditEventsVariables>;
 ```
 
 ### Variables
 The `ListAuditEvents` Query requires an argument of type `ListAuditEventsVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface ListAuditEventsVariables {
   entityType: string;
   entityId: string;
@@ -1196,7 +1131,7 @@ Recall that calling the `ListAuditEvents` Query hook function returns a `UseQuer
 To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
 
 To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListAuditEvents` Query is of type `ListAuditEventsData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface ListAuditEventsData {
   auditEvents: ({
     id: string;
@@ -1219,7 +1154,7 @@ To learn more about the `UseQueryResult` object, see the [TanStack React Query d
 
 ### Using `ListAuditEvents`'s Query hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, ListAuditEventsVariables } from '@factures-thibeault/data-connect-generated';
 import { useListAuditEvents } from '@factures-thibeault/data-connect-generated/react'
@@ -1227,8 +1162,8 @@ import { useListAuditEvents } from '@factures-thibeault/data-connect-generated/r
 export default function ListAuditEventsComponent() {
   // The `useListAuditEvents` Query hook requires an argument of type `ListAuditEventsVariables`:
   const listAuditEventsVars: ListAuditEventsVariables = {
-    entityType: ..., 
-    entityId: ..., 
+    entityType: ...,
+    entityId: ...,
   };
 
   // You don't have to do anything to "execute" the Query.
@@ -1294,18 +1229,18 @@ Below are examples of how to use the `accounting` connector's generated Mutation
 
 ## AdminSeedCreditCard
 You can execute the `AdminSeedCreditCard` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useAdminSeedCreditCard(options?: useDataConnectMutationOptions<AdminSeedCreditCardData, FirebaseError, AdminSeedCreditCardVariables>): UseDataConnectMutationResult<AdminSeedCreditCardData, AdminSeedCreditCardVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useAdminSeedCreditCard(dc: DataConnect, options?: useDataConnectMutationOptions<AdminSeedCreditCardData, FirebaseError, AdminSeedCreditCardVariables>): UseDataConnectMutationResult<AdminSeedCreditCardData, AdminSeedCreditCardVariables>;
 ```
 
 ### Variables
 The `AdminSeedCreditCard` Mutation requires an argument of type `AdminSeedCreditCardVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface AdminSeedCreditCardVariables {
   id: string;
   lastFour: string;
@@ -1323,7 +1258,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminSeedCreditCard` Mutation is of type `AdminSeedCreditCardData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface AdminSeedCreditCardData {
   creditCard_upsert: CreditCard_Key;
 }
@@ -1333,7 +1268,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `AdminSeedCreditCard`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, AdminSeedCreditCardVariables } from '@factures-thibeault/data-connect-generated';
 import { useAdminSeedCreditCard } from '@factures-thibeault/data-connect-generated/react'
@@ -1362,11 +1297,11 @@ export default function AdminSeedCreditCardComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminSeedCreditCard` Mutation requires an argument of type `AdminSeedCreditCardVariables`:
   const adminSeedCreditCardVars: AdminSeedCreditCardVariables = {
-    id: ..., 
-    lastFour: ..., 
-    holderId: ..., 
+    id: ...,
+    lastFour: ...,
+    holderId: ...,
     cardFunction: ..., // optional
-    status: ..., 
+    status: ...,
     activeFrom: ..., // optional
   };
   mutation.mutate(adminSeedCreditCardVars);
@@ -1398,24 +1333,24 @@ export default function AdminSeedCreditCardComponent() {
 
 ## AdminSeedSkuReference
 You can execute the `AdminSeedSkuReference` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useAdminSeedSkuReference(options?: useDataConnectMutationOptions<AdminSeedSkuReferenceData, FirebaseError, AdminSeedSkuReferenceVariables>): UseDataConnectMutationResult<AdminSeedSkuReferenceData, AdminSeedSkuReferenceVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useAdminSeedSkuReference(dc: DataConnect, options?: useDataConnectMutationOptions<AdminSeedSkuReferenceData, FirebaseError, AdminSeedSkuReferenceVariables>): UseDataConnectMutationResult<AdminSeedSkuReferenceData, AdminSeedSkuReferenceVariables>;
 ```
 
 ### Variables
 The `AdminSeedSkuReference` Mutation requires an argument of type `AdminSeedSkuReferenceVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface AdminSeedSkuReferenceVariables {
   merchant: string;
   sku: string;
   productLabel?: string | null;
   categoryLabel?: string | null;
-  accountCode: string;
+  accountId: string;
   verificationStatus: string;
 }
 ```
@@ -1427,7 +1362,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminSeedSkuReference` Mutation is of type `AdminSeedSkuReferenceData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface AdminSeedSkuReferenceData {
   skuReference_upsert: SkuReference_Key;
 }
@@ -1437,7 +1372,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `AdminSeedSkuReference`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, AdminSeedSkuReferenceVariables } from '@factures-thibeault/data-connect-generated';
 import { useAdminSeedSkuReference } from '@factures-thibeault/data-connect-generated/react'
@@ -1466,16 +1401,16 @@ export default function AdminSeedSkuReferenceComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminSeedSkuReference` Mutation requires an argument of type `AdminSeedSkuReferenceVariables`:
   const adminSeedSkuReferenceVars: AdminSeedSkuReferenceVariables = {
-    merchant: ..., 
-    sku: ..., 
+    merchant: ...,
+    sku: ...,
     productLabel: ..., // optional
     categoryLabel: ..., // optional
-    accountCode: ..., 
-    verificationStatus: ..., 
+    accountId: ...,
+    verificationStatus: ...,
   };
   mutation.mutate(adminSeedSkuReferenceVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ merchant: ..., sku: ..., productLabel: ..., categoryLabel: ..., accountCode: ..., verificationStatus: ..., });
+  mutation.mutate({ merchant: ..., sku: ..., productLabel: ..., categoryLabel: ..., accountId: ..., verificationStatus: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -1502,18 +1437,18 @@ export default function AdminSeedSkuReferenceComponent() {
 
 ## AdminSeedExpenseTransaction
 You can execute the `AdminSeedExpenseTransaction` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useAdminSeedExpenseTransaction(options?: useDataConnectMutationOptions<AdminSeedExpenseTransactionData, FirebaseError, AdminSeedExpenseTransactionVariables>): UseDataConnectMutationResult<AdminSeedExpenseTransactionData, AdminSeedExpenseTransactionVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useAdminSeedExpenseTransaction(dc: DataConnect, options?: useDataConnectMutationOptions<AdminSeedExpenseTransactionData, FirebaseError, AdminSeedExpenseTransactionVariables>): UseDataConnectMutationResult<AdminSeedExpenseTransactionData, AdminSeedExpenseTransactionVariables>;
 ```
 
 ### Variables
 The `AdminSeedExpenseTransaction` Mutation requires an argument of type `AdminSeedExpenseTransactionVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface AdminSeedExpenseTransactionVariables {
   id: string;
   transactionDate: DateString;
@@ -1521,7 +1456,7 @@ export interface AdminSeedExpenseTransactionVariables {
   cardId: string;
   statementPeriodId: string;
   projectId: string;
-  accountCode: string;
+  accountId: string;
   categoryLabel?: string | null;
   sku?: string | null;
   amountBeforeTaxCents: Int64String;
@@ -1548,7 +1483,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminSeedExpenseTransaction` Mutation is of type `AdminSeedExpenseTransactionData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface AdminSeedExpenseTransactionData {
   expenseTransaction_upsert: ExpenseTransaction_Key;
 }
@@ -1558,7 +1493,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `AdminSeedExpenseTransaction`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, AdminSeedExpenseTransactionVariables } from '@factures-thibeault/data-connect-generated';
 import { useAdminSeedExpenseTransaction } from '@factures-thibeault/data-connect-generated/react'
@@ -1587,24 +1522,24 @@ export default function AdminSeedExpenseTransactionComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminSeedExpenseTransaction` Mutation requires an argument of type `AdminSeedExpenseTransactionVariables`:
   const adminSeedExpenseTransactionVars: AdminSeedExpenseTransactionVariables = {
-    id: ..., 
-    transactionDate: ..., 
-    vendor: ..., 
-    cardId: ..., 
-    statementPeriodId: ..., 
-    projectId: ..., 
-    accountCode: ..., 
+    id: ...,
+    transactionDate: ...,
+    vendor: ...,
+    cardId: ...,
+    statementPeriodId: ...,
+    projectId: ...,
+    accountId: ...,
     categoryLabel: ..., // optional
     sku: ..., // optional
-    amountBeforeTaxCents: ..., 
-    tpsCents: ..., 
-    tvqCents: ..., 
-    totalCents: ..., 
-    currency: ..., 
-    status: ..., 
+    amountBeforeTaxCents: ...,
+    tpsCents: ...,
+    tvqCents: ...,
+    totalCents: ...,
+    currency: ...,
+    status: ...,
     processingStatus: ..., // optional
     accountingStatus: ..., // optional
-    reconciliationStatus: ..., 
+    reconciliationStatus: ...,
     classificationSource: ..., // optional
     classificationConfidence: ..., // optional
     classificationNote: ..., // optional
@@ -1613,7 +1548,7 @@ export default function AdminSeedExpenseTransactionComponent() {
   };
   mutation.mutate(adminSeedExpenseTransactionVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ id: ..., transactionDate: ..., vendor: ..., cardId: ..., statementPeriodId: ..., projectId: ..., accountCode: ..., categoryLabel: ..., sku: ..., amountBeforeTaxCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., status: ..., processingStatus: ..., accountingStatus: ..., reconciliationStatus: ..., classificationSource: ..., classificationConfidence: ..., classificationNote: ..., invoiceNumber: ..., issue: ..., });
+  mutation.mutate({ id: ..., transactionDate: ..., vendor: ..., cardId: ..., statementPeriodId: ..., projectId: ..., accountId: ..., categoryLabel: ..., sku: ..., amountBeforeTaxCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., status: ..., processingStatus: ..., accountingStatus: ..., reconciliationStatus: ..., classificationSource: ..., classificationConfidence: ..., classificationNote: ..., invoiceNumber: ..., issue: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -1640,18 +1575,18 @@ export default function AdminSeedExpenseTransactionComponent() {
 
 ## AdminSeedInvoice
 You can execute the `AdminSeedInvoice` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useAdminSeedInvoice(options?: useDataConnectMutationOptions<AdminSeedInvoiceData, FirebaseError, AdminSeedInvoiceVariables>): UseDataConnectMutationResult<AdminSeedInvoiceData, AdminSeedInvoiceVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useAdminSeedInvoice(dc: DataConnect, options?: useDataConnectMutationOptions<AdminSeedInvoiceData, FirebaseError, AdminSeedInvoiceVariables>): UseDataConnectMutationResult<AdminSeedInvoiceData, AdminSeedInvoiceVariables>;
 ```
 
 ### Variables
 The `AdminSeedInvoice` Mutation requires an argument of type `AdminSeedInvoiceVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface AdminSeedInvoiceVariables {
   id: string;
   transactionId: string;
@@ -1677,7 +1612,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminSeedInvoice` Mutation is of type `AdminSeedInvoiceData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface AdminSeedInvoiceData {
   invoice_upsert: Invoice_Key;
 }
@@ -1687,7 +1622,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `AdminSeedInvoice`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, AdminSeedInvoiceVariables } from '@factures-thibeault/data-connect-generated';
 import { useAdminSeedInvoice } from '@factures-thibeault/data-connect-generated/react'
@@ -1716,9 +1651,9 @@ export default function AdminSeedInvoiceComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminSeedInvoice` Mutation requires an argument of type `AdminSeedInvoiceVariables`:
   const adminSeedInvoiceVars: AdminSeedInvoiceVariables = {
-    id: ..., 
-    transactionId: ..., 
-    vendor: ..., 
+    id: ...,
+    transactionId: ...,
+    vendor: ...,
     invoiceNumber: ..., // optional
     invoiceDate: ..., // optional
     subtotalCents: ..., // optional
@@ -1727,9 +1662,9 @@ export default function AdminSeedInvoiceComponent() {
     totalCents: ..., // optional
     processingStatus: ..., // optional
     accountingStatus: ..., // optional
-    reviewStatus: ..., 
+    reviewStatus: ...,
     storageFolder: ..., // optional
-    createdById: ..., 
+    createdById: ...,
   };
   mutation.mutate(adminSeedInvoiceVars);
   // Variables can be defined inline as well.
@@ -1760,18 +1695,18 @@ export default function AdminSeedInvoiceComponent() {
 
 ## AdminSeedInvoicePhoto
 You can execute the `AdminSeedInvoicePhoto` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useAdminSeedInvoicePhoto(options?: useDataConnectMutationOptions<AdminSeedInvoicePhotoData, FirebaseError, AdminSeedInvoicePhotoVariables>): UseDataConnectMutationResult<AdminSeedInvoicePhotoData, AdminSeedInvoicePhotoVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useAdminSeedInvoicePhoto(dc: DataConnect, options?: useDataConnectMutationOptions<AdminSeedInvoicePhotoData, FirebaseError, AdminSeedInvoicePhotoVariables>): UseDataConnectMutationResult<AdminSeedInvoicePhotoData, AdminSeedInvoicePhotoVariables>;
 ```
 
 ### Variables
 The `AdminSeedInvoicePhoto` Mutation requires an argument of type `AdminSeedInvoicePhotoVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface AdminSeedInvoicePhotoVariables {
   id: string;
   invoiceId: string;
@@ -1788,7 +1723,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminSeedInvoicePhoto` Mutation is of type `AdminSeedInvoicePhotoData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface AdminSeedInvoicePhotoData {
   invoicePhoto_upsert: InvoicePhoto_Key;
 }
@@ -1798,7 +1733,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `AdminSeedInvoicePhoto`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, AdminSeedInvoicePhotoVariables } from '@factures-thibeault/data-connect-generated';
 import { useAdminSeedInvoicePhoto } from '@factures-thibeault/data-connect-generated/react'
@@ -1827,11 +1762,11 @@ export default function AdminSeedInvoicePhotoComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminSeedInvoicePhoto` Mutation requires an argument of type `AdminSeedInvoicePhotoVariables`:
   const adminSeedInvoicePhotoVars: AdminSeedInvoicePhotoVariables = {
-    id: ..., 
-    invoiceId: ..., 
-    storagePath: ..., 
-    contentType: ..., 
-    sequence: ..., 
+    id: ...,
+    invoiceId: ...,
+    storagePath: ...,
+    contentType: ...,
+    sequence: ...,
   };
   mutation.mutate(adminSeedInvoicePhotoVars);
   // Variables can be defined inline as well.
@@ -1862,18 +1797,18 @@ export default function AdminSeedInvoicePhotoComponent() {
 
 ## AdminDeleteInvoicePhoto
 You can execute the `AdminDeleteInvoicePhoto` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useAdminDeleteInvoicePhoto(options?: useDataConnectMutationOptions<AdminDeleteInvoicePhotoData, FirebaseError, AdminDeleteInvoicePhotoVariables>): UseDataConnectMutationResult<AdminDeleteInvoicePhotoData, AdminDeleteInvoicePhotoVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useAdminDeleteInvoicePhoto(dc: DataConnect, options?: useDataConnectMutationOptions<AdminDeleteInvoicePhotoData, FirebaseError, AdminDeleteInvoicePhotoVariables>): UseDataConnectMutationResult<AdminDeleteInvoicePhotoData, AdminDeleteInvoicePhotoVariables>;
 ```
 
 ### Variables
 The `AdminDeleteInvoicePhoto` Mutation requires an argument of type `AdminDeleteInvoicePhotoVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface AdminDeleteInvoicePhotoVariables {
   id: string;
 }
@@ -1886,7 +1821,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminDeleteInvoicePhoto` Mutation is of type `AdminDeleteInvoicePhotoData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface AdminDeleteInvoicePhotoData {
   invoicePhoto_delete?: InvoicePhoto_Key | null;
 }
@@ -1896,7 +1831,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `AdminDeleteInvoicePhoto`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, AdminDeleteInvoicePhotoVariables } from '@factures-thibeault/data-connect-generated';
 import { useAdminDeleteInvoicePhoto } from '@factures-thibeault/data-connect-generated/react'
@@ -1925,7 +1860,7 @@ export default function AdminDeleteInvoicePhotoComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminDeleteInvoicePhoto` Mutation requires an argument of type `AdminDeleteInvoicePhotoVariables`:
   const adminDeleteInvoicePhotoVars: AdminDeleteInvoicePhotoVariables = {
-    id: ..., 
+    id: ...,
   };
   mutation.mutate(adminDeleteInvoicePhotoVars);
   // Variables can be defined inline as well.
@@ -1956,18 +1891,18 @@ export default function AdminDeleteInvoicePhotoComponent() {
 
 ## AdminDeleteInvoice
 You can execute the `AdminDeleteInvoice` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useAdminDeleteInvoice(options?: useDataConnectMutationOptions<AdminDeleteInvoiceData, FirebaseError, AdminDeleteInvoiceVariables>): UseDataConnectMutationResult<AdminDeleteInvoiceData, AdminDeleteInvoiceVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useAdminDeleteInvoice(dc: DataConnect, options?: useDataConnectMutationOptions<AdminDeleteInvoiceData, FirebaseError, AdminDeleteInvoiceVariables>): UseDataConnectMutationResult<AdminDeleteInvoiceData, AdminDeleteInvoiceVariables>;
 ```
 
 ### Variables
 The `AdminDeleteInvoice` Mutation requires an argument of type `AdminDeleteInvoiceVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface AdminDeleteInvoiceVariables {
   id: string;
 }
@@ -1980,7 +1915,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminDeleteInvoice` Mutation is of type `AdminDeleteInvoiceData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface AdminDeleteInvoiceData {
   invoice_delete?: Invoice_Key | null;
 }
@@ -1990,7 +1925,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `AdminDeleteInvoice`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, AdminDeleteInvoiceVariables } from '@factures-thibeault/data-connect-generated';
 import { useAdminDeleteInvoice } from '@factures-thibeault/data-connect-generated/react'
@@ -2019,7 +1954,7 @@ export default function AdminDeleteInvoiceComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminDeleteInvoice` Mutation requires an argument of type `AdminDeleteInvoiceVariables`:
   const adminDeleteInvoiceVars: AdminDeleteInvoiceVariables = {
-    id: ..., 
+    id: ...,
   };
   mutation.mutate(adminDeleteInvoiceVars);
   // Variables can be defined inline as well.
@@ -2050,18 +1985,18 @@ export default function AdminDeleteInvoiceComponent() {
 
 ## AdminDeleteExpenseTransaction
 You can execute the `AdminDeleteExpenseTransaction` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useAdminDeleteExpenseTransaction(options?: useDataConnectMutationOptions<AdminDeleteExpenseTransactionData, FirebaseError, AdminDeleteExpenseTransactionVariables>): UseDataConnectMutationResult<AdminDeleteExpenseTransactionData, AdminDeleteExpenseTransactionVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useAdminDeleteExpenseTransaction(dc: DataConnect, options?: useDataConnectMutationOptions<AdminDeleteExpenseTransactionData, FirebaseError, AdminDeleteExpenseTransactionVariables>): UseDataConnectMutationResult<AdminDeleteExpenseTransactionData, AdminDeleteExpenseTransactionVariables>;
 ```
 
 ### Variables
 The `AdminDeleteExpenseTransaction` Mutation requires an argument of type `AdminDeleteExpenseTransactionVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface AdminDeleteExpenseTransactionVariables {
   id: string;
 }
@@ -2074,7 +2009,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminDeleteExpenseTransaction` Mutation is of type `AdminDeleteExpenseTransactionData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface AdminDeleteExpenseTransactionData {
   expenseTransaction_delete?: ExpenseTransaction_Key | null;
 }
@@ -2084,7 +2019,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `AdminDeleteExpenseTransaction`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, AdminDeleteExpenseTransactionVariables } from '@factures-thibeault/data-connect-generated';
 import { useAdminDeleteExpenseTransaction } from '@factures-thibeault/data-connect-generated/react'
@@ -2113,7 +2048,7 @@ export default function AdminDeleteExpenseTransactionComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminDeleteExpenseTransaction` Mutation requires an argument of type `AdminDeleteExpenseTransactionVariables`:
   const adminDeleteExpenseTransactionVars: AdminDeleteExpenseTransactionVariables = {
-    id: ..., 
+    id: ...,
   };
   mutation.mutate(adminDeleteExpenseTransactionVars);
   // Variables can be defined inline as well.
@@ -2144,18 +2079,18 @@ export default function AdminDeleteExpenseTransactionComponent() {
 
 ## AdminDeleteInvoiceIntake
 You can execute the `AdminDeleteInvoiceIntake` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useAdminDeleteInvoiceIntake(options?: useDataConnectMutationOptions<AdminDeleteInvoiceIntakeData, FirebaseError, AdminDeleteInvoiceIntakeVariables>): UseDataConnectMutationResult<AdminDeleteInvoiceIntakeData, AdminDeleteInvoiceIntakeVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useAdminDeleteInvoiceIntake(dc: DataConnect, options?: useDataConnectMutationOptions<AdminDeleteInvoiceIntakeData, FirebaseError, AdminDeleteInvoiceIntakeVariables>): UseDataConnectMutationResult<AdminDeleteInvoiceIntakeData, AdminDeleteInvoiceIntakeVariables>;
 ```
 
 ### Variables
 The `AdminDeleteInvoiceIntake` Mutation requires an argument of type `AdminDeleteInvoiceIntakeVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface AdminDeleteInvoiceIntakeVariables {
   receiptId: string;
 }
@@ -2168,7 +2103,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminDeleteInvoiceIntake` Mutation is of type `AdminDeleteInvoiceIntakeData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface AdminDeleteInvoiceIntakeData {
   invoiceIntake_delete?: InvoiceIntake_Key | null;
 }
@@ -2178,7 +2113,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `AdminDeleteInvoiceIntake`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, AdminDeleteInvoiceIntakeVariables } from '@factures-thibeault/data-connect-generated';
 import { useAdminDeleteInvoiceIntake } from '@factures-thibeault/data-connect-generated/react'
@@ -2207,7 +2142,7 @@ export default function AdminDeleteInvoiceIntakeComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminDeleteInvoiceIntake` Mutation requires an argument of type `AdminDeleteInvoiceIntakeVariables`:
   const adminDeleteInvoiceIntakeVars: AdminDeleteInvoiceIntakeVariables = {
-    receiptId: ..., 
+    receiptId: ...,
   };
   mutation.mutate(adminDeleteInvoiceIntakeVars);
   // Variables can be defined inline as well.
@@ -2238,18 +2173,18 @@ export default function AdminDeleteInvoiceIntakeComponent() {
 
 ## AdminDeleteCreditCard
 You can execute the `AdminDeleteCreditCard` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useAdminDeleteCreditCard(options?: useDataConnectMutationOptions<AdminDeleteCreditCardData, FirebaseError, AdminDeleteCreditCardVariables>): UseDataConnectMutationResult<AdminDeleteCreditCardData, AdminDeleteCreditCardVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useAdminDeleteCreditCard(dc: DataConnect, options?: useDataConnectMutationOptions<AdminDeleteCreditCardData, FirebaseError, AdminDeleteCreditCardVariables>): UseDataConnectMutationResult<AdminDeleteCreditCardData, AdminDeleteCreditCardVariables>;
 ```
 
 ### Variables
 The `AdminDeleteCreditCard` Mutation requires an argument of type `AdminDeleteCreditCardVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface AdminDeleteCreditCardVariables {
   id: string;
 }
@@ -2262,7 +2197,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminDeleteCreditCard` Mutation is of type `AdminDeleteCreditCardData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface AdminDeleteCreditCardData {
   creditCard_delete?: CreditCard_Key | null;
 }
@@ -2272,7 +2207,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `AdminDeleteCreditCard`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, AdminDeleteCreditCardVariables } from '@factures-thibeault/data-connect-generated';
 import { useAdminDeleteCreditCard } from '@factures-thibeault/data-connect-generated/react'
@@ -2301,7 +2236,7 @@ export default function AdminDeleteCreditCardComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminDeleteCreditCard` Mutation requires an argument of type `AdminDeleteCreditCardVariables`:
   const adminDeleteCreditCardVars: AdminDeleteCreditCardVariables = {
-    id: ..., 
+    id: ...,
   };
   mutation.mutate(adminDeleteCreditCardVars);
   // Variables can be defined inline as well.
@@ -2332,18 +2267,18 @@ export default function AdminDeleteCreditCardComponent() {
 
 ## AdminDeleteSkuReference
 You can execute the `AdminDeleteSkuReference` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useAdminDeleteSkuReference(options?: useDataConnectMutationOptions<AdminDeleteSkuReferenceData, FirebaseError, AdminDeleteSkuReferenceVariables>): UseDataConnectMutationResult<AdminDeleteSkuReferenceData, AdminDeleteSkuReferenceVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useAdminDeleteSkuReference(dc: DataConnect, options?: useDataConnectMutationOptions<AdminDeleteSkuReferenceData, FirebaseError, AdminDeleteSkuReferenceVariables>): UseDataConnectMutationResult<AdminDeleteSkuReferenceData, AdminDeleteSkuReferenceVariables>;
 ```
 
 ### Variables
 The `AdminDeleteSkuReference` Mutation requires an argument of type `AdminDeleteSkuReferenceVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface AdminDeleteSkuReferenceVariables {
   merchant: string;
   sku: string;
@@ -2357,7 +2292,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminDeleteSkuReference` Mutation is of type `AdminDeleteSkuReferenceData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface AdminDeleteSkuReferenceData {
   skuReference_delete?: SkuReference_Key | null;
 }
@@ -2367,7 +2302,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `AdminDeleteSkuReference`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, AdminDeleteSkuReferenceVariables } from '@factures-thibeault/data-connect-generated';
 import { useAdminDeleteSkuReference } from '@factures-thibeault/data-connect-generated/react'
@@ -2396,8 +2331,8 @@ export default function AdminDeleteSkuReferenceComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminDeleteSkuReference` Mutation requires an argument of type `AdminDeleteSkuReferenceVariables`:
   const adminDeleteSkuReferenceVars: AdminDeleteSkuReferenceVariables = {
-    merchant: ..., 
-    sku: ..., 
+    merchant: ...,
+    sku: ...,
   };
   mutation.mutate(adminDeleteSkuReferenceVars);
   // Variables can be defined inline as well.
@@ -2426,20 +2361,20 @@ export default function AdminDeleteSkuReferenceComponent() {
 }
 ```
 
-## AdminDeleteProject
+## AdminDeleteProjec
 You can execute the `AdminDeleteProject` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useAdminDeleteProject(options?: useDataConnectMutationOptions<AdminDeleteProjectData, FirebaseError, AdminDeleteProjectVariables>): UseDataConnectMutationResult<AdminDeleteProjectData, AdminDeleteProjectVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useAdminDeleteProject(dc: DataConnect, options?: useDataConnectMutationOptions<AdminDeleteProjectData, FirebaseError, AdminDeleteProjectVariables>): UseDataConnectMutationResult<AdminDeleteProjectData, AdminDeleteProjectVariables>;
 ```
 
 ### Variables
 The `AdminDeleteProject` Mutation requires an argument of type `AdminDeleteProjectVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface AdminDeleteProjectVariables {
   id: string;
 }
@@ -2452,7 +2387,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminDeleteProject` Mutation is of type `AdminDeleteProjectData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface AdminDeleteProjectData {
   project_delete?: Project_Key | null;
 }
@@ -2462,7 +2397,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `AdminDeleteProject`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, AdminDeleteProjectVariables } from '@factures-thibeault/data-connect-generated';
 import { useAdminDeleteProject } from '@factures-thibeault/data-connect-generated/react'
@@ -2491,7 +2426,7 @@ export default function AdminDeleteProjectComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminDeleteProject` Mutation requires an argument of type `AdminDeleteProjectVariables`:
   const adminDeleteProjectVars: AdminDeleteProjectVariables = {
-    id: ..., 
+    id: ...,
   };
   mutation.mutate(adminDeleteProjectVars);
   // Variables can be defined inline as well.
@@ -2520,22 +2455,22 @@ export default function AdminDeleteProjectComponent() {
 }
 ```
 
-## AdminDeleteExpenseAccount
+## AdminDeleteExpenseAccoun
 You can execute the `AdminDeleteExpenseAccount` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useAdminDeleteExpenseAccount(options?: useDataConnectMutationOptions<AdminDeleteExpenseAccountData, FirebaseError, AdminDeleteExpenseAccountVariables>): UseDataConnectMutationResult<AdminDeleteExpenseAccountData, AdminDeleteExpenseAccountVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useAdminDeleteExpenseAccount(dc: DataConnect, options?: useDataConnectMutationOptions<AdminDeleteExpenseAccountData, FirebaseError, AdminDeleteExpenseAccountVariables>): UseDataConnectMutationResult<AdminDeleteExpenseAccountData, AdminDeleteExpenseAccountVariables>;
 ```
 
 ### Variables
 The `AdminDeleteExpenseAccount` Mutation requires an argument of type `AdminDeleteExpenseAccountVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface AdminDeleteExpenseAccountVariables {
-  code: string;
+  id: string;
 }
 ```
 ### Return Type
@@ -2546,7 +2481,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminDeleteExpenseAccount` Mutation is of type `AdminDeleteExpenseAccountData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface AdminDeleteExpenseAccountData {
   expenseAccount_delete?: ExpenseAccount_Key | null;
 }
@@ -2556,7 +2491,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `AdminDeleteExpenseAccount`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, AdminDeleteExpenseAccountVariables } from '@factures-thibeault/data-connect-generated';
 import { useAdminDeleteExpenseAccount } from '@factures-thibeault/data-connect-generated/react'
@@ -2585,11 +2520,11 @@ export default function AdminDeleteExpenseAccountComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminDeleteExpenseAccount` Mutation requires an argument of type `AdminDeleteExpenseAccountVariables`:
   const adminDeleteExpenseAccountVars: AdminDeleteExpenseAccountVariables = {
-    code: ..., 
+    id: ...,
   };
   mutation.mutate(adminDeleteExpenseAccountVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ code: ..., });
+  mutation.mutate({ id: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -2614,114 +2549,20 @@ export default function AdminDeleteExpenseAccountComponent() {
 }
 ```
 
-## AdminDeleteTaxAccount
-You can execute the `AdminDeleteTaxAccount` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
-useAdminDeleteTaxAccount(options?: useDataConnectMutationOptions<AdminDeleteTaxAccountData, FirebaseError, AdminDeleteTaxAccountVariables>): UseDataConnectMutationResult<AdminDeleteTaxAccountData, AdminDeleteTaxAccountVariables>;
-```
-You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
-useAdminDeleteTaxAccount(dc: DataConnect, options?: useDataConnectMutationOptions<AdminDeleteTaxAccountData, FirebaseError, AdminDeleteTaxAccountVariables>): UseDataConnectMutationResult<AdminDeleteTaxAccountData, AdminDeleteTaxAccountVariables>;
-```
-
-### Variables
-The `AdminDeleteTaxAccount` Mutation requires an argument of type `AdminDeleteTaxAccountVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-
-```javascript
-export interface AdminDeleteTaxAccountVariables {
-  code: string;
-}
-```
-### Return Type
-Recall that calling the `AdminDeleteTaxAccount` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
-
-To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
-
-To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
-
-To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminDeleteTaxAccount` Mutation is of type `AdminDeleteTaxAccountData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
-export interface AdminDeleteTaxAccountData {
-  taxAccount_delete?: TaxAccount_Key | null;
-}
-```
-
-To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
-
-### Using `AdminDeleteTaxAccount`'s Mutation hook function
-
-```javascript
-import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig, AdminDeleteTaxAccountVariables } from '@factures-thibeault/data-connect-generated';
-import { useAdminDeleteTaxAccount } from '@factures-thibeault/data-connect-generated/react'
-
-export default function AdminDeleteTaxAccountComponent() {
-  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
-  const mutation = useAdminDeleteTaxAccount();
-
-  // You can also pass in a `DataConnect` instance to the Mutation hook function.
-  const dataConnect = getDataConnect(connectorConfig);
-  const mutation = useAdminDeleteTaxAccount(dataConnect);
-
-  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
-  const options = {
-    onSuccess: () => { console.log('Mutation succeeded!'); }
-  };
-  const mutation = useAdminDeleteTaxAccount(options);
-
-  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
-  const dataConnect = getDataConnect(connectorConfig);
-  const options = {
-    onSuccess: () => { console.log('Mutation succeeded!'); }
-  };
-  const mutation = useAdminDeleteTaxAccount(dataConnect, options);
-
-  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
-  // The `useAdminDeleteTaxAccount` Mutation requires an argument of type `AdminDeleteTaxAccountVariables`:
-  const adminDeleteTaxAccountVars: AdminDeleteTaxAccountVariables = {
-    code: ..., 
-  };
-  mutation.mutate(adminDeleteTaxAccountVars);
-  // Variables can be defined inline as well.
-  mutation.mutate({ code: ..., });
-
-  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
-  const options = {
-    onSuccess: () => { console.log('Mutation succeeded!'); }
-  };
-  mutation.mutate(adminDeleteTaxAccountVars, options);
-
-  // Then, you can render your component dynamically based on the status of the Mutation.
-  if (mutation.isPending) {
-    return <div>Loading...</div>;
-  }
-
-  if (mutation.isError) {
-    return <div>Error: {mutation.error.message}</div>;
-  }
-
-  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
-  if (mutation.isSuccess) {
-    console.log(mutation.data.taxAccount_delete);
-  }
-  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
-}
-```
-
 ## AdminDeleteCardStatementPeriod
 You can execute the `AdminDeleteCardStatementPeriod` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useAdminDeleteCardStatementPeriod(options?: useDataConnectMutationOptions<AdminDeleteCardStatementPeriodData, FirebaseError, AdminDeleteCardStatementPeriodVariables>): UseDataConnectMutationResult<AdminDeleteCardStatementPeriodData, AdminDeleteCardStatementPeriodVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useAdminDeleteCardStatementPeriod(dc: DataConnect, options?: useDataConnectMutationOptions<AdminDeleteCardStatementPeriodData, FirebaseError, AdminDeleteCardStatementPeriodVariables>): UseDataConnectMutationResult<AdminDeleteCardStatementPeriodData, AdminDeleteCardStatementPeriodVariables>;
 ```
 
 ### Variables
 The `AdminDeleteCardStatementPeriod` Mutation requires an argument of type `AdminDeleteCardStatementPeriodVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface AdminDeleteCardStatementPeriodVariables {
   id: string;
 }
@@ -2734,7 +2575,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminDeleteCardStatementPeriod` Mutation is of type `AdminDeleteCardStatementPeriodData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface AdminDeleteCardStatementPeriodData {
   cardStatementPeriod_delete?: CardStatementPeriod_Key | null;
 }
@@ -2744,7 +2585,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `AdminDeleteCardStatementPeriod`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, AdminDeleteCardStatementPeriodVariables } from '@factures-thibeault/data-connect-generated';
 import { useAdminDeleteCardStatementPeriod } from '@factures-thibeault/data-connect-generated/react'
@@ -2773,7 +2614,7 @@ export default function AdminDeleteCardStatementPeriodComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminDeleteCardStatementPeriod` Mutation requires an argument of type `AdminDeleteCardStatementPeriodVariables`:
   const adminDeleteCardStatementPeriodVars: AdminDeleteCardStatementPeriodVariables = {
-    id: ..., 
+    id: ...,
   };
   mutation.mutate(adminDeleteCardStatementPeriodVars);
   // Variables can be defined inline as well.
@@ -2804,18 +2645,18 @@ export default function AdminDeleteCardStatementPeriodComponent() {
 
 ## AdminDeleteUserProfile
 You can execute the `AdminDeleteUserProfile` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useAdminDeleteUserProfile(options?: useDataConnectMutationOptions<AdminDeleteUserProfileData, FirebaseError, AdminDeleteUserProfileVariables>): UseDataConnectMutationResult<AdminDeleteUserProfileData, AdminDeleteUserProfileVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useAdminDeleteUserProfile(dc: DataConnect, options?: useDataConnectMutationOptions<AdminDeleteUserProfileData, FirebaseError, AdminDeleteUserProfileVariables>): UseDataConnectMutationResult<AdminDeleteUserProfileData, AdminDeleteUserProfileVariables>;
 ```
 
 ### Variables
 The `AdminDeleteUserProfile` Mutation requires an argument of type `AdminDeleteUserProfileVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface AdminDeleteUserProfileVariables {
   id: string;
 }
@@ -2828,7 +2669,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminDeleteUserProfile` Mutation is of type `AdminDeleteUserProfileData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface AdminDeleteUserProfileData {
   userProfile_delete?: UserProfile_Key | null;
 }
@@ -2838,7 +2679,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `AdminDeleteUserProfile`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, AdminDeleteUserProfileVariables } from '@factures-thibeault/data-connect-generated';
 import { useAdminDeleteUserProfile } from '@factures-thibeault/data-connect-generated/react'
@@ -2867,7 +2708,7 @@ export default function AdminDeleteUserProfileComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAdminDeleteUserProfile` Mutation requires an argument of type `AdminDeleteUserProfileVariables`:
   const adminDeleteUserProfileVars: AdminDeleteUserProfileVariables = {
-    id: ..., 
+    id: ...,
   };
   mutation.mutate(adminDeleteUserProfileVars);
   // Variables can be defined inline as well.
@@ -2898,18 +2739,18 @@ export default function AdminDeleteUserProfileComponent() {
 
 ## UpsertUserProfile
 You can execute the `UpsertUserProfile` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useUpsertUserProfile(options?: useDataConnectMutationOptions<UpsertUserProfileData, FirebaseError, UpsertUserProfileVariables>): UseDataConnectMutationResult<UpsertUserProfileData, UpsertUserProfileVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useUpsertUserProfile(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertUserProfileData, FirebaseError, UpsertUserProfileVariables>): UseDataConnectMutationResult<UpsertUserProfileData, UpsertUserProfileVariables>;
 ```
 
 ### Variables
 The `UpsertUserProfile` Mutation requires an argument of type `UpsertUserProfileVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface UpsertUserProfileVariables {
   id: string;
   firebaseUid: string;
@@ -2928,7 +2769,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpsertUserProfile` Mutation is of type `UpsertUserProfileData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface UpsertUserProfileData {
   userProfile_upsert: UserProfile_Key;
 }
@@ -2938,7 +2779,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `UpsertUserProfile`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, UpsertUserProfileVariables } from '@factures-thibeault/data-connect-generated';
 import { useUpsertUserProfile } from '@factures-thibeault/data-connect-generated/react'
@@ -2967,13 +2808,13 @@ export default function UpsertUserProfileComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useUpsertUserProfile` Mutation requires an argument of type `UpsertUserProfileVariables`:
   const upsertUserProfileVars: UpsertUserProfileVariables = {
-    id: ..., 
-    firebaseUid: ..., 
-    displayName: ..., 
+    id: ...,
+    firebaseUid: ...,
+    displayName: ...,
     email: ..., // optional
     jobTitle: ..., // optional
-    role: ..., 
-    status: ..., 
+    role: ...,
+    status: ...,
   };
   mutation.mutate(upsertUserProfileVars);
   // Variables can be defined inline as well.
@@ -3004,18 +2845,18 @@ export default function UpsertUserProfileComponent() {
 
 ## UpsertCreditCard
 You can execute the `UpsertCreditCard` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useUpsertCreditCard(options?: useDataConnectMutationOptions<UpsertCreditCardData, FirebaseError, UpsertCreditCardVariables>): UseDataConnectMutationResult<UpsertCreditCardData, UpsertCreditCardVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useUpsertCreditCard(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertCreditCardData, FirebaseError, UpsertCreditCardVariables>): UseDataConnectMutationResult<UpsertCreditCardData, UpsertCreditCardVariables>;
 ```
 
 ### Variables
 The `UpsertCreditCard` Mutation requires an argument of type `UpsertCreditCardVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface UpsertCreditCardVariables {
   id: string;
   lastFour: string;
@@ -3034,7 +2875,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpsertCreditCard` Mutation is of type `UpsertCreditCardData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface UpsertCreditCardData {
   creditCard_upsert: CreditCard_Key;
 }
@@ -3044,7 +2885,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `UpsertCreditCard`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, UpsertCreditCardVariables } from '@factures-thibeault/data-connect-generated';
 import { useUpsertCreditCard } from '@factures-thibeault/data-connect-generated/react'
@@ -3073,11 +2914,11 @@ export default function UpsertCreditCardComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useUpsertCreditCard` Mutation requires an argument of type `UpsertCreditCardVariables`:
   const upsertCreditCardVars: UpsertCreditCardVariables = {
-    id: ..., 
-    lastFour: ..., 
-    holderId: ..., 
+    id: ...,
+    lastFour: ...,
+    holderId: ...,
     cardFunction: ..., // optional
-    status: ..., 
+    status: ...,
     activeFrom: ..., // optional
     inactiveFrom: ..., // optional
   };
@@ -3108,24 +2949,28 @@ export default function UpsertCreditCardComponent() {
 }
 ```
 
-## UpsertProject
+## UpsertProjec
 You can execute the `UpsertProject` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useUpsertProject(options?: useDataConnectMutationOptions<UpsertProjectData, FirebaseError, UpsertProjectVariables>): UseDataConnectMutationResult<UpsertProjectData, UpsertProjectVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useUpsertProject(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertProjectData, FirebaseError, UpsertProjectVariables>): UseDataConnectMutationResult<UpsertProjectData, UpsertProjectVariables>;
 ```
 
 ### Variables
 The `UpsertProject` Mutation requires an argument of type `UpsertProjectVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface UpsertProjectVariables {
   id: string;
+  number: string;
   name: string;
   status: string;
+  auditAction: string;
+  auditEventId: string;
+  auditDetails: string;
 }
 ```
 ### Return Type
@@ -3136,9 +2981,10 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpsertProject` Mutation is of type `UpsertProjectData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface UpsertProjectData {
   project_upsert: Project_Key;
+  auditEvent_upsert: AuditEvent_Key;
 }
 ```
 
@@ -3146,7 +2992,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `UpsertProject`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, UpsertProjectVariables } from '@factures-thibeault/data-connect-generated';
 import { useUpsertProject } from '@factures-thibeault/data-connect-generated/react'
@@ -3175,13 +3021,17 @@ export default function UpsertProjectComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useUpsertProject` Mutation requires an argument of type `UpsertProjectVariables`:
   const upsertProjectVars: UpsertProjectVariables = {
-    id: ..., 
-    name: ..., 
-    status: ..., 
+    id: ...,
+    number: ...,
+    name: ...,
+    status: ...,
+    auditAction: ...,
+    auditEventId: ...,
+    auditDetails: ...,
   };
   mutation.mutate(upsertProjectVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ id: ..., name: ..., status: ..., });
+  mutation.mutate({ id: ..., number: ..., name: ..., status: ..., auditAction: ..., auditEventId: ..., auditDetails: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -3201,29 +3051,35 @@ export default function UpsertProjectComponent() {
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
     console.log(mutation.data.project_upsert);
+    console.log(mutation.data.auditEvent_upsert);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
 }
 ```
 
-## UpsertExpenseAccount
+## UpsertExpenseAccoun
 You can execute the `UpsertExpenseAccount` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useUpsertExpenseAccount(options?: useDataConnectMutationOptions<UpsertExpenseAccountData, FirebaseError, UpsertExpenseAccountVariables>): UseDataConnectMutationResult<UpsertExpenseAccountData, UpsertExpenseAccountVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useUpsertExpenseAccount(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertExpenseAccountData, FirebaseError, UpsertExpenseAccountVariables>): UseDataConnectMutationResult<UpsertExpenseAccountData, UpsertExpenseAccountVariables>;
 ```
 
 ### Variables
 The `UpsertExpenseAccount` Mutation requires an argument of type `UpsertExpenseAccountVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface UpsertExpenseAccountVariables {
-  code: string;
+  id: string;
+  number: string;
+  type: string;
   label: string;
   status: string;
+  auditAction: string;
+  auditEventId: string;
+  auditDetails: string;
 }
 ```
 ### Return Type
@@ -3234,9 +3090,10 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpsertExpenseAccount` Mutation is of type `UpsertExpenseAccountData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface UpsertExpenseAccountData {
   expenseAccount_upsert: ExpenseAccount_Key;
+  auditEvent_upsert: AuditEvent_Key;
 }
 ```
 
@@ -3244,7 +3101,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `UpsertExpenseAccount`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, UpsertExpenseAccountVariables } from '@factures-thibeault/data-connect-generated';
 import { useUpsertExpenseAccount } from '@factures-thibeault/data-connect-generated/react'
@@ -3273,13 +3130,18 @@ export default function UpsertExpenseAccountComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useUpsertExpenseAccount` Mutation requires an argument of type `UpsertExpenseAccountVariables`:
   const upsertExpenseAccountVars: UpsertExpenseAccountVariables = {
-    code: ..., 
-    label: ..., 
-    status: ..., 
+    id: ...,
+    number: ...,
+    type: ...,
+    label: ...,
+    status: ...,
+    auditAction: ...,
+    auditEventId: ...,
+    auditDetails: ...,
   };
   mutation.mutate(upsertExpenseAccountVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ code: ..., label: ..., status: ..., });
+  mutation.mutate({ id: ..., number: ..., type: ..., label: ..., status: ..., auditAction: ..., auditEventId: ..., auditDetails: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -3299,6 +3161,207 @@ export default function UpsertExpenseAccountComponent() {
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
     console.log(mutation.data.expenseAccount_upsert);
+    console.log(mutation.data.auditEvent_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## DeleteProjec
+You can execute the `DeleteProject` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascrip
+useDeleteProject(options?: useDataConnectMutationOptions<DeleteProjectData, FirebaseError, DeleteProjectVariables>): UseDataConnectMutationResult<DeleteProjectData, DeleteProjectVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascrip
+useDeleteProject(dc: DataConnect, options?: useDataConnectMutationOptions<DeleteProjectData, FirebaseError, DeleteProjectVariables>): UseDataConnectMutationResult<DeleteProjectData, DeleteProjectVariables>;
+```
+
+### Variables
+The `DeleteProject` Mutation requires an argument of type `DeleteProjectVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascrip
+export interface DeleteProjectVariables {
+  id: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that calling the `DeleteProject` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `DeleteProject` Mutation is of type `DeleteProjectData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascrip
+export interface DeleteProjectData {
+  project_delete?: Project_Key | null;
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `DeleteProject`'s Mutation hook function
+
+```javascrip
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, DeleteProjectVariables } from '@factures-thibeault/data-connect-generated';
+import { useDeleteProject } from '@factures-thibeault/data-connect-generated/react'
+
+export default function DeleteProjectComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useDeleteProject();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useDeleteProject(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useDeleteProject(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useDeleteProject(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useDeleteProject` Mutation requires an argument of type `DeleteProjectVariables`:
+  const deleteProjectVars: DeleteProjectVariables = {
+    id: ...,
+    auditEventId: ...,
+    auditDetails: ...,
+  };
+  mutation.mutate(deleteProjectVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., auditEventId: ..., auditDetails: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(deleteProjectVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.project_delete);
+    console.log(mutation.data.auditEvent_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## DeleteExpenseAccoun
+You can execute the `DeleteExpenseAccount` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascrip
+useDeleteExpenseAccount(options?: useDataConnectMutationOptions<DeleteExpenseAccountData, FirebaseError, DeleteExpenseAccountVariables>): UseDataConnectMutationResult<DeleteExpenseAccountData, DeleteExpenseAccountVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascrip
+useDeleteExpenseAccount(dc: DataConnect, options?: useDataConnectMutationOptions<DeleteExpenseAccountData, FirebaseError, DeleteExpenseAccountVariables>): UseDataConnectMutationResult<DeleteExpenseAccountData, DeleteExpenseAccountVariables>;
+```
+
+### Variables
+The `DeleteExpenseAccount` Mutation requires an argument of type `DeleteExpenseAccountVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascrip
+export interface DeleteExpenseAccountVariables {
+  id: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that calling the `DeleteExpenseAccount` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `DeleteExpenseAccount` Mutation is of type `DeleteExpenseAccountData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascrip
+export interface DeleteExpenseAccountData {
+  expenseAccount_delete?: ExpenseAccount_Key | null;
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `DeleteExpenseAccount`'s Mutation hook function
+
+```javascrip
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, DeleteExpenseAccountVariables } from '@factures-thibeault/data-connect-generated';
+import { useDeleteExpenseAccount } from '@factures-thibeault/data-connect-generated/react'
+
+export default function DeleteExpenseAccountComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useDeleteExpenseAccount();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useDeleteExpenseAccount(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useDeleteExpenseAccount(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useDeleteExpenseAccount(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useDeleteExpenseAccount` Mutation requires an argument of type `DeleteExpenseAccountVariables`:
+  const deleteExpenseAccountVars: DeleteExpenseAccountVariables = {
+    id: ...,
+    auditEventId: ...,
+    auditDetails: ...,
+  };
+  mutation.mutate(deleteExpenseAccountVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., auditEventId: ..., auditDetails: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(deleteExpenseAccountVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.expenseAccount_delete);
+    console.log(mutation.data.auditEvent_upsert);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
 }
@@ -3306,18 +3369,18 @@ export default function UpsertExpenseAccountComponent() {
 
 ## UpsertCardStatementPeriod
 You can execute the `UpsertCardStatementPeriod` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useUpsertCardStatementPeriod(options?: useDataConnectMutationOptions<UpsertCardStatementPeriodData, FirebaseError, UpsertCardStatementPeriodVariables>): UseDataConnectMutationResult<UpsertCardStatementPeriodData, UpsertCardStatementPeriodVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useUpsertCardStatementPeriod(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertCardStatementPeriodData, FirebaseError, UpsertCardStatementPeriodVariables>): UseDataConnectMutationResult<UpsertCardStatementPeriodData, UpsertCardStatementPeriodVariables>;
 ```
 
 ### Variables
 The `UpsertCardStatementPeriod` Mutation requires an argument of type `UpsertCardStatementPeriodVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface UpsertCardStatementPeriodVariables {
   id: string;
   label: string;
@@ -3335,7 +3398,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpsertCardStatementPeriod` Mutation is of type `UpsertCardStatementPeriodData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface UpsertCardStatementPeriodData {
   cardStatementPeriod_upsert: CardStatementPeriod_Key;
 }
@@ -3345,7 +3408,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `UpsertCardStatementPeriod`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, UpsertCardStatementPeriodVariables } from '@factures-thibeault/data-connect-generated';
 import { useUpsertCardStatementPeriod } from '@factures-thibeault/data-connect-generated/react'
@@ -3374,12 +3437,12 @@ export default function UpsertCardStatementPeriodComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useUpsertCardStatementPeriod` Mutation requires an argument of type `UpsertCardStatementPeriodVariables`:
   const upsertCardStatementPeriodVars: UpsertCardStatementPeriodVariables = {
-    id: ..., 
-    label: ..., 
-    startDate: ..., 
-    endDate: ..., 
+    id: ...,
+    label: ...,
+    startDate: ...,
+    endDate: ...,
     statementLabel: ..., // optional
-    status: ..., 
+    status: ...,
   };
   mutation.mutate(upsertCardStatementPeriodVars);
   // Variables can be defined inline as well.
@@ -3410,18 +3473,18 @@ export default function UpsertCardStatementPeriodComponent() {
 
 ## CreateInvoiceIntake
 You can execute the `CreateInvoiceIntake` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useCreateInvoiceIntake(options?: useDataConnectMutationOptions<CreateInvoiceIntakeData, FirebaseError, CreateInvoiceIntakeVariables>): UseDataConnectMutationResult<CreateInvoiceIntakeData, CreateInvoiceIntakeVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useCreateInvoiceIntake(dc: DataConnect, options?: useDataConnectMutationOptions<CreateInvoiceIntakeData, FirebaseError, CreateInvoiceIntakeVariables>): UseDataConnectMutationResult<CreateInvoiceIntakeData, CreateInvoiceIntakeVariables>;
 ```
 
 ### Variables
 The `CreateInvoiceIntake` Mutation requires an argument of type `CreateInvoiceIntakeVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface CreateInvoiceIntakeVariables {
   receiptId: string;
   storageFolder: string;
@@ -3436,7 +3499,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `CreateInvoiceIntake` Mutation is of type `CreateInvoiceIntakeData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface CreateInvoiceIntakeData {
   invoiceIntake_upsert: InvoiceIntake_Key;
 }
@@ -3446,7 +3509,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `CreateInvoiceIntake`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, CreateInvoiceIntakeVariables } from '@factures-thibeault/data-connect-generated';
 import { useCreateInvoiceIntake } from '@factures-thibeault/data-connect-generated/react'
@@ -3475,9 +3538,9 @@ export default function CreateInvoiceIntakeComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useCreateInvoiceIntake` Mutation requires an argument of type `CreateInvoiceIntakeVariables`:
   const createInvoiceIntakeVars: CreateInvoiceIntakeVariables = {
-    receiptId: ..., 
-    storageFolder: ..., 
-    photoCount: ..., 
+    receiptId: ...,
+    storageFolder: ...,
+    photoCount: ...,
   };
   mutation.mutate(createInvoiceIntakeVars);
   // Variables can be defined inline as well.
@@ -3508,18 +3571,18 @@ export default function CreateInvoiceIntakeComponent() {
 
 ## CreateInvoiceIntakeV2
 You can execute the `CreateInvoiceIntakeV2` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useCreateInvoiceIntakeV2(options?: useDataConnectMutationOptions<CreateInvoiceIntakeV2Data, FirebaseError, CreateInvoiceIntakeV2Variables>): UseDataConnectMutationResult<CreateInvoiceIntakeV2Data, CreateInvoiceIntakeV2Variables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useCreateInvoiceIntakeV2(dc: DataConnect, options?: useDataConnectMutationOptions<CreateInvoiceIntakeV2Data, FirebaseError, CreateInvoiceIntakeV2Variables>): UseDataConnectMutationResult<CreateInvoiceIntakeV2Data, CreateInvoiceIntakeV2Variables>;
 ```
 
 ### Variables
 The `CreateInvoiceIntakeV2` Mutation requires an argument of type `CreateInvoiceIntakeV2Variables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface CreateInvoiceIntakeV2Variables {
   receiptId: string;
   storageFolder: string;
@@ -3538,7 +3601,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `CreateInvoiceIntakeV2` Mutation is of type `CreateInvoiceIntakeV2Data`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface CreateInvoiceIntakeV2Data {
   invoiceIntake_upsert: InvoiceIntake_Key;
   auditEvent_upsert: AuditEvent_Key;
@@ -3549,7 +3612,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `CreateInvoiceIntakeV2`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, CreateInvoiceIntakeV2Variables } from '@factures-thibeault/data-connect-generated';
 import { useCreateInvoiceIntakeV2 } from '@factures-thibeault/data-connect-generated/react'
@@ -3578,10 +3641,10 @@ export default function CreateInvoiceIntakeV2Component() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useCreateInvoiceIntakeV2` Mutation requires an argument of type `CreateInvoiceIntakeV2Variables`:
   const createInvoiceIntakeV2Vars: CreateInvoiceIntakeV2Variables = {
-    receiptId: ..., 
-    storageFolder: ..., 
-    photoCount: ..., 
-    clientVersion: ..., 
+    receiptId: ...,
+    storageFolder: ...,
+    photoCount: ...,
+    clientVersion: ...,
     writeAudit: ..., // optional
     auditEventId: ..., // optional
     auditDetails: ..., // optional
@@ -3614,20 +3677,20 @@ export default function CreateInvoiceIntakeV2Component() {
 }
 ```
 
-## UpdateInvoiceIntakeAiResult
+## UpdateInvoiceIntakeAiResul
 You can execute the `UpdateInvoiceIntakeAiResult` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useUpdateInvoiceIntakeAiResult(options?: useDataConnectMutationOptions<UpdateInvoiceIntakeAiResultData, FirebaseError, UpdateInvoiceIntakeAiResultVariables>): UseDataConnectMutationResult<UpdateInvoiceIntakeAiResultData, UpdateInvoiceIntakeAiResultVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useUpdateInvoiceIntakeAiResult(dc: DataConnect, options?: useDataConnectMutationOptions<UpdateInvoiceIntakeAiResultData, FirebaseError, UpdateInvoiceIntakeAiResultVariables>): UseDataConnectMutationResult<UpdateInvoiceIntakeAiResultData, UpdateInvoiceIntakeAiResultVariables>;
 ```
 
 ### Variables
 The `UpdateInvoiceIntakeAiResult` Mutation requires an argument of type `UpdateInvoiceIntakeAiResultVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface UpdateInvoiceIntakeAiResultVariables {
   receiptId: string;
   aiModel: string;
@@ -3667,7 +3730,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpdateInvoiceIntakeAiResult` Mutation is of type `UpdateInvoiceIntakeAiResultData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface UpdateInvoiceIntakeAiResultData {
   invoiceIntake_updateMany: number;
   auditEvent_upsert: AuditEvent_Key;
@@ -3678,7 +3741,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `UpdateInvoiceIntakeAiResult`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, UpdateInvoiceIntakeAiResultVariables } from '@factures-thibeault/data-connect-generated';
 import { useUpdateInvoiceIntakeAiResult } from '@factures-thibeault/data-connect-generated/react'
@@ -3707,26 +3770,26 @@ export default function UpdateInvoiceIntakeAiResultComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useUpdateInvoiceIntakeAiResult` Mutation requires an argument of type `UpdateInvoiceIntakeAiResultVariables`:
   const updateInvoiceIntakeAiResultVars: UpdateInvoiceIntakeAiResultVariables = {
-    receiptId: ..., 
-    aiModel: ..., 
-    aiConfidence: ..., 
-    extractedVendor: ..., 
+    receiptId: ...,
+    aiModel: ...,
+    aiConfidence: ...,
+    extractedVendor: ...,
     extractedInvoiceNumber: ..., // optional
     extractedInvoiceDate: ..., // optional
-    extractedSubtotalCents: ..., 
-    extractedTpsCents: ..., 
-    extractedTvqCents: ..., 
-    extractedTotalCents: ..., 
-    extractedCurrency: ..., 
+    extractedSubtotalCents: ...,
+    extractedTpsCents: ...,
+    extractedTvqCents: ...,
+    extractedTotalCents: ...,
+    extractedCurrency: ...,
     extractedSku: ..., // optional
     extractedCategory: ..., // optional
     extractedProjectId: ..., // optional
     classificationAccountCode: ..., // optional
     classificationCategory: ..., // optional
-    classificationSource: ..., 
-    classificationConfidence: ..., 
-    classificationStatus: ..., 
-    aiNotes: ..., 
+    classificationSource: ...,
+    classificationConfidence: ...,
+    classificationStatus: ...,
+    aiNotes: ...,
     processingStatus: ..., // optional
     decisionExceptions: ..., // optional
     decisionChecks: ..., // optional
@@ -3766,18 +3829,18 @@ export default function UpdateInvoiceIntakeAiResultComponent() {
 
 ## MarkInvoiceIntakeAiError
 You can execute the `MarkInvoiceIntakeAiError` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useMarkInvoiceIntakeAiError(options?: useDataConnectMutationOptions<MarkInvoiceIntakeAiErrorData, FirebaseError, MarkInvoiceIntakeAiErrorVariables>): UseDataConnectMutationResult<MarkInvoiceIntakeAiErrorData, MarkInvoiceIntakeAiErrorVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useMarkInvoiceIntakeAiError(dc: DataConnect, options?: useDataConnectMutationOptions<MarkInvoiceIntakeAiErrorData, FirebaseError, MarkInvoiceIntakeAiErrorVariables>): UseDataConnectMutationResult<MarkInvoiceIntakeAiErrorData, MarkInvoiceIntakeAiErrorVariables>;
 ```
 
 ### Variables
 The `MarkInvoiceIntakeAiError` Mutation requires an argument of type `MarkInvoiceIntakeAiErrorVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface MarkInvoiceIntakeAiErrorVariables {
   receiptId: string;
   error: string;
@@ -3800,7 +3863,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `MarkInvoiceIntakeAiError` Mutation is of type `MarkInvoiceIntakeAiErrorData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface MarkInvoiceIntakeAiErrorData {
   invoiceIntake_updateMany: number;
   auditEvent_upsert: AuditEvent_Key;
@@ -3811,7 +3874,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `MarkInvoiceIntakeAiError`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, MarkInvoiceIntakeAiErrorVariables } from '@factures-thibeault/data-connect-generated';
 import { useMarkInvoiceIntakeAiError } from '@factures-thibeault/data-connect-generated/react'
@@ -3840,8 +3903,8 @@ export default function MarkInvoiceIntakeAiErrorComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useMarkInvoiceIntakeAiError` Mutation requires an argument of type `MarkInvoiceIntakeAiErrorVariables`:
   const markInvoiceIntakeAiErrorVars: MarkInvoiceIntakeAiErrorVariables = {
-    receiptId: ..., 
-    error: ..., 
+    receiptId: ...,
+    error: ...,
     aiErrorCode: ..., // optional
     accountingStatus: ..., // optional
     decisionExceptions: ..., // optional
@@ -3882,18 +3945,18 @@ export default function MarkInvoiceIntakeAiErrorComponent() {
 
 ## MarkInvoiceIntakeAutoPostingError
 You can execute the `MarkInvoiceIntakeAutoPostingError` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useMarkInvoiceIntakeAutoPostingError(options?: useDataConnectMutationOptions<MarkInvoiceIntakeAutoPostingErrorData, FirebaseError, MarkInvoiceIntakeAutoPostingErrorVariables>): UseDataConnectMutationResult<MarkInvoiceIntakeAutoPostingErrorData, MarkInvoiceIntakeAutoPostingErrorVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useMarkInvoiceIntakeAutoPostingError(dc: DataConnect, options?: useDataConnectMutationOptions<MarkInvoiceIntakeAutoPostingErrorData, FirebaseError, MarkInvoiceIntakeAutoPostingErrorVariables>): UseDataConnectMutationResult<MarkInvoiceIntakeAutoPostingErrorData, MarkInvoiceIntakeAutoPostingErrorVariables>;
 ```
 
 ### Variables
 The `MarkInvoiceIntakeAutoPostingError` Mutation requires an argument of type `MarkInvoiceIntakeAutoPostingErrorVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface MarkInvoiceIntakeAutoPostingErrorVariables {
   receiptId: string;
   error: string;
@@ -3914,7 +3977,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `MarkInvoiceIntakeAutoPostingError` Mutation is of type `MarkInvoiceIntakeAutoPostingErrorData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface MarkInvoiceIntakeAutoPostingErrorData {
   invoiceIntake_updateMany: number;
   auditEvent_upsert: AuditEvent_Key;
@@ -3925,7 +3988,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `MarkInvoiceIntakeAutoPostingError`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, MarkInvoiceIntakeAutoPostingErrorVariables } from '@factures-thibeault/data-connect-generated';
 import { useMarkInvoiceIntakeAutoPostingError } from '@factures-thibeault/data-connect-generated/react'
@@ -3954,8 +4017,8 @@ export default function MarkInvoiceIntakeAutoPostingErrorComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useMarkInvoiceIntakeAutoPostingError` Mutation requires an argument of type `MarkInvoiceIntakeAutoPostingErrorVariables`:
   const markInvoiceIntakeAutoPostingErrorVars: MarkInvoiceIntakeAutoPostingErrorVariables = {
-    receiptId: ..., 
-    error: ..., 
+    receiptId: ...,
+    error: ...,
     decisionExceptions: ..., // optional
     decisionChecks: ..., // optional
     actorUid: ..., // optional
@@ -3994,18 +4057,18 @@ export default function MarkInvoiceIntakeAutoPostingErrorComponent() {
 
 ## UpdateInvoiceIntakeReview
 You can execute the `UpdateInvoiceIntakeReview` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useUpdateInvoiceIntakeReview(options?: useDataConnectMutationOptions<UpdateInvoiceIntakeReviewData, FirebaseError, UpdateInvoiceIntakeReviewVariables>): UseDataConnectMutationResult<UpdateInvoiceIntakeReviewData, UpdateInvoiceIntakeReviewVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useUpdateInvoiceIntakeReview(dc: DataConnect, options?: useDataConnectMutationOptions<UpdateInvoiceIntakeReviewData, FirebaseError, UpdateInvoiceIntakeReviewVariables>): UseDataConnectMutationResult<UpdateInvoiceIntakeReviewData, UpdateInvoiceIntakeReviewVariables>;
 ```
 
 ### Variables
 The `UpdateInvoiceIntakeReview` Mutation requires an argument of type `UpdateInvoiceIntakeReviewVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface UpdateInvoiceIntakeReviewVariables {
   receiptId: string;
   status: string;
@@ -4041,7 +4104,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpdateInvoiceIntakeReview` Mutation is of type `UpdateInvoiceIntakeReviewData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface UpdateInvoiceIntakeReviewData {
   invoiceIntake_updateMany: number;
   auditEvent_upsert: AuditEvent_Key;
@@ -4052,7 +4115,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `UpdateInvoiceIntakeReview`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, UpdateInvoiceIntakeReviewVariables } from '@factures-thibeault/data-connect-generated';
 import { useUpdateInvoiceIntakeReview } from '@factures-thibeault/data-connect-generated/react'
@@ -4081,25 +4144,25 @@ export default function UpdateInvoiceIntakeReviewComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useUpdateInvoiceIntakeReview` Mutation requires an argument of type `UpdateInvoiceIntakeReviewVariables`:
   const updateInvoiceIntakeReviewVars: UpdateInvoiceIntakeReviewVariables = {
-    receiptId: ..., 
-    status: ..., 
-    extractedVendor: ..., 
+    receiptId: ...,
+    status: ...,
+    extractedVendor: ...,
     extractedInvoiceNumber: ..., // optional
     extractedInvoiceDate: ..., // optional
-    extractedSubtotalCents: ..., 
-    extractedTpsCents: ..., 
-    extractedTvqCents: ..., 
-    extractedTotalCents: ..., 
-    extractedCurrency: ..., 
+    extractedSubtotalCents: ...,
+    extractedTpsCents: ...,
+    extractedTvqCents: ...,
+    extractedTotalCents: ...,
+    extractedCurrency: ...,
     extractedSku: ..., // optional
     extractedCategory: ..., // optional
     extractedProjectId: ..., // optional
     classificationAccountCode: ..., // optional
     classificationCategory: ..., // optional
-    classificationSource: ..., 
-    classificationConfidence: ..., 
-    classificationStatus: ..., 
-    aiNotes: ..., 
+    classificationSource: ...,
+    classificationConfidence: ...,
+    classificationStatus: ...,
+    aiNotes: ...,
     decisionExceptions: ..., // optional
     decisionChecks: ..., // optional
     writeAudit: ..., // optional
@@ -4136,18 +4199,18 @@ export default function UpdateInvoiceIntakeReviewComponent() {
 
 ## MarkInvoiceIntakePostingError
 You can execute the `MarkInvoiceIntakePostingError` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useMarkInvoiceIntakePostingError(options?: useDataConnectMutationOptions<MarkInvoiceIntakePostingErrorData, FirebaseError, MarkInvoiceIntakePostingErrorVariables>): UseDataConnectMutationResult<MarkInvoiceIntakePostingErrorData, MarkInvoiceIntakePostingErrorVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useMarkInvoiceIntakePostingError(dc: DataConnect, options?: useDataConnectMutationOptions<MarkInvoiceIntakePostingErrorData, FirebaseError, MarkInvoiceIntakePostingErrorVariables>): UseDataConnectMutationResult<MarkInvoiceIntakePostingErrorData, MarkInvoiceIntakePostingErrorVariables>;
 ```
 
 ### Variables
 The `MarkInvoiceIntakePostingError` Mutation requires an argument of type `MarkInvoiceIntakePostingErrorVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface MarkInvoiceIntakePostingErrorVariables {
   receiptId: string;
 }
@@ -4160,7 +4223,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `MarkInvoiceIntakePostingError` Mutation is of type `MarkInvoiceIntakePostingErrorData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface MarkInvoiceIntakePostingErrorData {
   invoiceIntake_updateMany: number;
 }
@@ -4170,7 +4233,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `MarkInvoiceIntakePostingError`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, MarkInvoiceIntakePostingErrorVariables } from '@factures-thibeault/data-connect-generated';
 import { useMarkInvoiceIntakePostingError } from '@factures-thibeault/data-connect-generated/react'
@@ -4199,7 +4262,7 @@ export default function MarkInvoiceIntakePostingErrorComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useMarkInvoiceIntakePostingError` Mutation requires an argument of type `MarkInvoiceIntakePostingErrorVariables`:
   const markInvoiceIntakePostingErrorVars: MarkInvoiceIntakePostingErrorVariables = {
-    receiptId: ..., 
+    receiptId: ...,
   };
   mutation.mutate(markInvoiceIntakePostingErrorVars);
   // Variables can be defined inline as well.
@@ -4230,18 +4293,18 @@ export default function MarkInvoiceIntakePostingErrorComponent() {
 
 ## RetryInvoiceIntakeAi
 You can execute the `RetryInvoiceIntakeAi` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useRetryInvoiceIntakeAi(options?: useDataConnectMutationOptions<RetryInvoiceIntakeAiData, FirebaseError, RetryInvoiceIntakeAiVariables>): UseDataConnectMutationResult<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useRetryInvoiceIntakeAi(dc: DataConnect, options?: useDataConnectMutationOptions<RetryInvoiceIntakeAiData, FirebaseError, RetryInvoiceIntakeAiVariables>): UseDataConnectMutationResult<RetryInvoiceIntakeAiData, RetryInvoiceIntakeAiVariables>;
 ```
 
 ### Variables
 The `RetryInvoiceIntakeAi` Mutation requires an argument of type `RetryInvoiceIntakeAiVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface RetryInvoiceIntakeAiVariables {
   receiptId: string;
 }
@@ -4254,7 +4317,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `RetryInvoiceIntakeAi` Mutation is of type `RetryInvoiceIntakeAiData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface RetryInvoiceIntakeAiData {
   invoiceIntake_updateMany: number;
 }
@@ -4264,7 +4327,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `RetryInvoiceIntakeAi`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, RetryInvoiceIntakeAiVariables } from '@factures-thibeault/data-connect-generated';
 import { useRetryInvoiceIntakeAi } from '@factures-thibeault/data-connect-generated/react'
@@ -4293,7 +4356,7 @@ export default function RetryInvoiceIntakeAiComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useRetryInvoiceIntakeAi` Mutation requires an argument of type `RetryInvoiceIntakeAiVariables`:
   const retryInvoiceIntakeAiVars: RetryInvoiceIntakeAiVariables = {
-    receiptId: ..., 
+    receiptId: ...,
   };
   mutation.mutate(retryInvoiceIntakeAiVars);
   // Variables can be defined inline as well.
@@ -4322,20 +4385,20 @@ export default function RetryInvoiceIntakeAiComponent() {
 }
 ```
 
-## RetryInvoiceIntakeAiTransient
+## RetryInvoiceIntakeAiTransien
 You can execute the `RetryInvoiceIntakeAiTransient` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useRetryInvoiceIntakeAiTransient(options?: useDataConnectMutationOptions<RetryInvoiceIntakeAiTransientData, FirebaseError, RetryInvoiceIntakeAiTransientVariables>): UseDataConnectMutationResult<RetryInvoiceIntakeAiTransientData, RetryInvoiceIntakeAiTransientVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useRetryInvoiceIntakeAiTransient(dc: DataConnect, options?: useDataConnectMutationOptions<RetryInvoiceIntakeAiTransientData, FirebaseError, RetryInvoiceIntakeAiTransientVariables>): UseDataConnectMutationResult<RetryInvoiceIntakeAiTransientData, RetryInvoiceIntakeAiTransientVariables>;
 ```
 
 ### Variables
 The `RetryInvoiceIntakeAiTransient` Mutation requires an argument of type `RetryInvoiceIntakeAiTransientVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface RetryInvoiceIntakeAiTransientVariables {
   receiptId: string;
 }
@@ -4348,7 +4411,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `RetryInvoiceIntakeAiTransient` Mutation is of type `RetryInvoiceIntakeAiTransientData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface RetryInvoiceIntakeAiTransientData {
   invoiceIntake_updateMany: number;
 }
@@ -4358,7 +4421,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `RetryInvoiceIntakeAiTransient`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, RetryInvoiceIntakeAiTransientVariables } from '@factures-thibeault/data-connect-generated';
 import { useRetryInvoiceIntakeAiTransient } from '@factures-thibeault/data-connect-generated/react'
@@ -4387,7 +4450,7 @@ export default function RetryInvoiceIntakeAiTransientComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useRetryInvoiceIntakeAiTransient` Mutation requires an argument of type `RetryInvoiceIntakeAiTransientVariables`:
   const retryInvoiceIntakeAiTransientVars: RetryInvoiceIntakeAiTransientVariables = {
-    receiptId: ..., 
+    receiptId: ...,
   };
   mutation.mutate(retryInvoiceIntakeAiTransientVars);
   // Variables can be defined inline as well.
@@ -4418,18 +4481,18 @@ export default function RetryInvoiceIntakeAiTransientComponent() {
 
 ## RetryInvoiceIntakeAiTransientV2
 You can execute the `RetryInvoiceIntakeAiTransientV2` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useRetryInvoiceIntakeAiTransientV2(options?: useDataConnectMutationOptions<RetryInvoiceIntakeAiTransientV2Data, FirebaseError, RetryInvoiceIntakeAiTransientV2Variables>): UseDataConnectMutationResult<RetryInvoiceIntakeAiTransientV2Data, RetryInvoiceIntakeAiTransientV2Variables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useRetryInvoiceIntakeAiTransientV2(dc: DataConnect, options?: useDataConnectMutationOptions<RetryInvoiceIntakeAiTransientV2Data, FirebaseError, RetryInvoiceIntakeAiTransientV2Variables>): UseDataConnectMutationResult<RetryInvoiceIntakeAiTransientV2Data, RetryInvoiceIntakeAiTransientV2Variables>;
 ```
 
 ### Variables
 The `RetryInvoiceIntakeAiTransientV2` Mutation requires an argument of type `RetryInvoiceIntakeAiTransientV2Variables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface RetryInvoiceIntakeAiTransientV2Variables {
   receiptId: string;
   invoiceId: string;
@@ -4444,7 +4507,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `RetryInvoiceIntakeAiTransientV2` Mutation is of type `RetryInvoiceIntakeAiTransientV2Data`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface RetryInvoiceIntakeAiTransientV2Data {
   invoiceIntake_updateMany: number;
 }
@@ -4454,7 +4517,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `RetryInvoiceIntakeAiTransientV2`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, RetryInvoiceIntakeAiTransientV2Variables } from '@factures-thibeault/data-connect-generated';
 import { useRetryInvoiceIntakeAiTransientV2 } from '@factures-thibeault/data-connect-generated/react'
@@ -4483,9 +4546,9 @@ export default function RetryInvoiceIntakeAiTransientV2Component() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useRetryInvoiceIntakeAiTransientV2` Mutation requires an argument of type `RetryInvoiceIntakeAiTransientV2Variables`:
   const retryInvoiceIntakeAiTransientV2Vars: RetryInvoiceIntakeAiTransientV2Variables = {
-    receiptId: ..., 
-    invoiceId: ..., 
-    storageFolder: ..., 
+    receiptId: ...,
+    invoiceId: ...,
+    storageFolder: ...,
   };
   mutation.mutate(retryInvoiceIntakeAiTransientV2Vars);
   // Variables can be defined inline as well.
@@ -4516,18 +4579,18 @@ export default function RetryInvoiceIntakeAiTransientV2Component() {
 
 ## MaterializeInvoiceIntakeV2
 You can execute the `MaterializeInvoiceIntakeV2` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useMaterializeInvoiceIntakeV2(options?: useDataConnectMutationOptions<MaterializeInvoiceIntakeV2Data, FirebaseError, MaterializeInvoiceIntakeV2Variables>): UseDataConnectMutationResult<MaterializeInvoiceIntakeV2Data, MaterializeInvoiceIntakeV2Variables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useMaterializeInvoiceIntakeV2(dc: DataConnect, options?: useDataConnectMutationOptions<MaterializeInvoiceIntakeV2Data, FirebaseError, MaterializeInvoiceIntakeV2Variables>): UseDataConnectMutationResult<MaterializeInvoiceIntakeV2Data, MaterializeInvoiceIntakeV2Variables>;
 ```
 
 ### Variables
 The `MaterializeInvoiceIntakeV2` Mutation requires an argument of type `MaterializeInvoiceIntakeV2Variables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface MaterializeInvoiceIntakeV2Variables {
   receiptId: string;
   transactionId: string;
@@ -4542,10 +4605,10 @@ export interface MaterializeInvoiceIntakeV2Variables {
   currency: string;
   sku?: string | null;
   category: string;
-  accountCode: string;
+  accountId: string;
   cardId: string;
   statementPeriod?: CardStatementPeriod_Key | null;
-  project?: Project_Key | null;
+  project: Project_Key;
   storageFolder: string;
   classificationNote: string;
   expectedProcessingStatus: string;
@@ -4586,7 +4649,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `MaterializeInvoiceIntakeV2` Mutation is of type `MaterializeInvoiceIntakeV2Data`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface MaterializeInvoiceIntakeV2Data {
   invoiceIntake_updateMany: number;
   expenseTransaction_upsert: ExpenseTransaction_Key;
@@ -4605,7 +4668,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `MaterializeInvoiceIntakeV2`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, MaterializeInvoiceIntakeV2Variables } from '@factures-thibeault/data-connect-generated';
 import { useMaterializeInvoiceIntakeV2 } from '@factures-thibeault/data-connect-generated/react'
@@ -4634,57 +4697,57 @@ export default function MaterializeInvoiceIntakeV2Component() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useMaterializeInvoiceIntakeV2` Mutation requires an argument of type `MaterializeInvoiceIntakeV2Variables`:
   const materializeInvoiceIntakeV2Vars: MaterializeInvoiceIntakeV2Variables = {
-    receiptId: ..., 
-    transactionId: ..., 
-    invoiceId: ..., 
-    vendor: ..., 
+    receiptId: ...,
+    transactionId: ...,
+    invoiceId: ...,
+    vendor: ...,
     invoiceNumber: ..., // optional
-    invoiceDate: ..., 
-    subtotalCents: ..., 
-    tpsCents: ..., 
-    tvqCents: ..., 
-    totalCents: ..., 
-    currency: ..., 
+    invoiceDate: ...,
+    subtotalCents: ...,
+    tpsCents: ...,
+    tvqCents: ...,
+    totalCents: ...,
+    currency: ...,
     sku: ..., // optional
-    category: ..., 
-    accountCode: ..., 
-    cardId: ..., 
+    category: ...,
+    accountId: ...,
+    cardId: ...,
     statementPeriod: ..., // optional
-    project: ..., // optional
-    storageFolder: ..., 
-    classificationNote: ..., 
-    expectedProcessingStatus: ..., 
-    classificationSource: ..., 
-    classificationStatus: ..., 
+    project: ...,
+    storageFolder: ...,
+    classificationNote: ...,
+    expectedProcessingStatus: ...,
+    classificationSource: ...,
+    classificationStatus: ...,
     actorUid: ..., // optional
     actorRole: ..., // optional
     writeAudit: ..., // optional
     auditEventId: ..., // optional
     auditDetails: ..., // optional
-    photoCount: ..., 
-    photo1Id: ..., 
-    photo1StoragePath: ..., 
-    photo1ContentType: ..., 
-    hasPhoto2: ..., 
-    photo2Id: ..., 
-    photo2StoragePath: ..., 
-    photo2ContentType: ..., 
-    hasPhoto3: ..., 
-    photo3Id: ..., 
-    photo3StoragePath: ..., 
-    photo3ContentType: ..., 
-    hasPhoto4: ..., 
-    photo4Id: ..., 
-    photo4StoragePath: ..., 
-    photo4ContentType: ..., 
-    hasPhoto5: ..., 
-    photo5Id: ..., 
-    photo5StoragePath: ..., 
-    photo5ContentType: ..., 
+    photoCount: ...,
+    photo1Id: ...,
+    photo1StoragePath: ...,
+    photo1ContentType: ...,
+    hasPhoto2: ...,
+    photo2Id: ...,
+    photo2StoragePath: ...,
+    photo2ContentType: ...,
+    hasPhoto3: ...,
+    photo3Id: ...,
+    photo3StoragePath: ...,
+    photo3ContentType: ...,
+    hasPhoto4: ...,
+    photo4Id: ...,
+    photo4StoragePath: ...,
+    photo4ContentType: ...,
+    hasPhoto5: ...,
+    photo5Id: ...,
+    photo5StoragePath: ...,
+    photo5ContentType: ...,
   };
   mutation.mutate(materializeInvoiceIntakeV2Vars);
   // Variables can be defined inline as well.
-  mutation.mutate({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriod: ..., project: ..., storageFolder: ..., classificationNote: ..., expectedProcessingStatus: ..., classificationSource: ..., classificationStatus: ..., actorUid: ..., actorRole: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., photoCount: ..., photo1Id: ..., photo1StoragePath: ..., photo1ContentType: ..., hasPhoto2: ..., photo2Id: ..., photo2StoragePath: ..., photo2ContentType: ..., hasPhoto3: ..., photo3Id: ..., photo3StoragePath: ..., photo3ContentType: ..., hasPhoto4: ..., photo4Id: ..., photo4StoragePath: ..., photo4ContentType: ..., hasPhoto5: ..., photo5Id: ..., photo5StoragePath: ..., photo5ContentType: ..., });
+  mutation.mutate({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountId: ..., cardId: ..., statementPeriod: ..., project: ..., storageFolder: ..., classificationNote: ..., expectedProcessingStatus: ..., classificationSource: ..., classificationStatus: ..., actorUid: ..., actorRole: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., photoCount: ..., photo1Id: ..., photo1StoragePath: ..., photo1ContentType: ..., hasPhoto2: ..., photo2Id: ..., photo2StoragePath: ..., photo2ContentType: ..., hasPhoto3: ..., photo3Id: ..., photo3StoragePath: ..., photo3ContentType: ..., hasPhoto4: ..., photo4Id: ..., photo4StoragePath: ..., photo4ContentType: ..., hasPhoto5: ..., photo5Id: ..., photo5StoragePath: ..., photo5ContentType: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -4720,18 +4783,18 @@ export default function MaterializeInvoiceIntakeV2Component() {
 
 ## CommitInvoiceIntake
 You can execute the `CommitInvoiceIntake` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useCommitInvoiceIntake(options?: useDataConnectMutationOptions<CommitInvoiceIntakeData, FirebaseError, CommitInvoiceIntakeVariables>): UseDataConnectMutationResult<CommitInvoiceIntakeData, CommitInvoiceIntakeVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useCommitInvoiceIntake(dc: DataConnect, options?: useDataConnectMutationOptions<CommitInvoiceIntakeData, FirebaseError, CommitInvoiceIntakeVariables>): UseDataConnectMutationResult<CommitInvoiceIntakeData, CommitInvoiceIntakeVariables>;
 ```
 
 ### Variables
 The `CommitInvoiceIntake` Mutation requires an argument of type `CommitInvoiceIntakeVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface CommitInvoiceIntakeVariables {
   receiptId: string;
   transactionId: string;
@@ -4746,7 +4809,7 @@ export interface CommitInvoiceIntakeVariables {
   currency: string;
   sku?: string | null;
   category: string;
-  accountCode: string;
+  accountId: string;
   cardId: string;
   statementPeriodId: string;
   projectId: string;
@@ -4762,7 +4825,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `CommitInvoiceIntake` Mutation is of type `CommitInvoiceIntakeData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface CommitInvoiceIntakeData {
   invoiceIntake_updateMany: number;
   expenseTransaction_upsert: ExpenseTransaction_Key;
@@ -4775,7 +4838,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `CommitInvoiceIntake`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, CommitInvoiceIntakeVariables } from '@factures-thibeault/data-connect-generated';
 import { useCommitInvoiceIntake } from '@factures-thibeault/data-connect-generated/react'
@@ -4804,29 +4867,29 @@ export default function CommitInvoiceIntakeComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useCommitInvoiceIntake` Mutation requires an argument of type `CommitInvoiceIntakeVariables`:
   const commitInvoiceIntakeVars: CommitInvoiceIntakeVariables = {
-    receiptId: ..., 
-    transactionId: ..., 
-    invoiceId: ..., 
-    vendor: ..., 
+    receiptId: ...,
+    transactionId: ...,
+    invoiceId: ...,
+    vendor: ...,
     invoiceNumber: ..., // optional
-    invoiceDate: ..., 
-    subtotalCents: ..., 
-    tpsCents: ..., 
-    tvqCents: ..., 
-    totalCents: ..., 
-    currency: ..., 
+    invoiceDate: ...,
+    subtotalCents: ...,
+    tpsCents: ...,
+    tvqCents: ...,
+    totalCents: ...,
+    currency: ...,
     sku: ..., // optional
-    category: ..., 
-    accountCode: ..., 
-    cardId: ..., 
-    statementPeriodId: ..., 
-    projectId: ..., 
-    storageFolder: ..., 
-    classificationNote: ..., 
+    category: ...,
+    accountId: ...,
+    cardId: ...,
+    statementPeriodId: ...,
+    projectId: ...,
+    storageFolder: ...,
+    classificationNote: ...,
   };
   mutation.mutate(commitInvoiceIntakeVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriodId: ..., projectId: ..., storageFolder: ..., classificationNote: ..., });
+  mutation.mutate({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountId: ..., cardId: ..., statementPeriodId: ..., projectId: ..., storageFolder: ..., classificationNote: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -4854,20 +4917,20 @@ export default function CommitInvoiceIntakeComponent() {
 }
 ```
 
-## CommitInvoiceIntakeWithoutProject
+## CommitInvoiceIntakeWithoutProjec
 You can execute the `CommitInvoiceIntakeWithoutProject` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useCommitInvoiceIntakeWithoutProject(options?: useDataConnectMutationOptions<CommitInvoiceIntakeWithoutProjectData, FirebaseError, CommitInvoiceIntakeWithoutProjectVariables>): UseDataConnectMutationResult<CommitInvoiceIntakeWithoutProjectData, CommitInvoiceIntakeWithoutProjectVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useCommitInvoiceIntakeWithoutProject(dc: DataConnect, options?: useDataConnectMutationOptions<CommitInvoiceIntakeWithoutProjectData, FirebaseError, CommitInvoiceIntakeWithoutProjectVariables>): UseDataConnectMutationResult<CommitInvoiceIntakeWithoutProjectData, CommitInvoiceIntakeWithoutProjectVariables>;
 ```
 
 ### Variables
 The `CommitInvoiceIntakeWithoutProject` Mutation requires an argument of type `CommitInvoiceIntakeWithoutProjectVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface CommitInvoiceIntakeWithoutProjectVariables {
   receiptId: string;
   transactionId: string;
@@ -4882,7 +4945,7 @@ export interface CommitInvoiceIntakeWithoutProjectVariables {
   currency: string;
   sku?: string | null;
   category: string;
-  accountCode: string;
+  accountId: string;
   cardId: string;
   statementPeriodId: string;
   storageFolder: string;
@@ -4897,7 +4960,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `CommitInvoiceIntakeWithoutProject` Mutation is of type `CommitInvoiceIntakeWithoutProjectData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface CommitInvoiceIntakeWithoutProjectData {
   invoiceIntake_updateMany: number;
   expenseTransaction_upsert: ExpenseTransaction_Key;
@@ -4910,7 +4973,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `CommitInvoiceIntakeWithoutProject`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, CommitInvoiceIntakeWithoutProjectVariables } from '@factures-thibeault/data-connect-generated';
 import { useCommitInvoiceIntakeWithoutProject } from '@factures-thibeault/data-connect-generated/react'
@@ -4939,28 +5002,28 @@ export default function CommitInvoiceIntakeWithoutProjectComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useCommitInvoiceIntakeWithoutProject` Mutation requires an argument of type `CommitInvoiceIntakeWithoutProjectVariables`:
   const commitInvoiceIntakeWithoutProjectVars: CommitInvoiceIntakeWithoutProjectVariables = {
-    receiptId: ..., 
-    transactionId: ..., 
-    invoiceId: ..., 
-    vendor: ..., 
+    receiptId: ...,
+    transactionId: ...,
+    invoiceId: ...,
+    vendor: ...,
     invoiceNumber: ..., // optional
-    invoiceDate: ..., 
-    subtotalCents: ..., 
-    tpsCents: ..., 
-    tvqCents: ..., 
-    totalCents: ..., 
-    currency: ..., 
+    invoiceDate: ...,
+    subtotalCents: ...,
+    tpsCents: ...,
+    tvqCents: ...,
+    totalCents: ...,
+    currency: ...,
     sku: ..., // optional
-    category: ..., 
-    accountCode: ..., 
-    cardId: ..., 
-    statementPeriodId: ..., 
-    storageFolder: ..., 
-    classificationNote: ..., 
+    category: ...,
+    accountId: ...,
+    cardId: ...,
+    statementPeriodId: ...,
+    storageFolder: ...,
+    classificationNote: ...,
   };
   mutation.mutate(commitInvoiceIntakeWithoutProjectVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriodId: ..., storageFolder: ..., classificationNote: ..., });
+  mutation.mutate({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountId: ..., cardId: ..., statementPeriodId: ..., storageFolder: ..., classificationNote: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -4990,18 +5053,18 @@ export default function CommitInvoiceIntakeWithoutProjectComponent() {
 
 ## AutoCommitInvoiceIntake
 You can execute the `AutoCommitInvoiceIntake` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
+```javascrip
 useAutoCommitInvoiceIntake(options?: useDataConnectMutationOptions<AutoCommitInvoiceIntakeData, FirebaseError, AutoCommitInvoiceIntakeVariables>): UseDataConnectMutationResult<AutoCommitInvoiceIntakeData, AutoCommitInvoiceIntakeVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
+```javascrip
 useAutoCommitInvoiceIntake(dc: DataConnect, options?: useDataConnectMutationOptions<AutoCommitInvoiceIntakeData, FirebaseError, AutoCommitInvoiceIntakeVariables>): UseDataConnectMutationResult<AutoCommitInvoiceIntakeData, AutoCommitInvoiceIntakeVariables>;
 ```
 
 ### Variables
 The `AutoCommitInvoiceIntake` Mutation requires an argument of type `AutoCommitInvoiceIntakeVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
-```javascript
+```javascrip
 export interface AutoCommitInvoiceIntakeVariables {
   receiptId: string;
   transactionId: string;
@@ -5016,7 +5079,7 @@ export interface AutoCommitInvoiceIntakeVariables {
   currency: string;
   sku?: string | null;
   category: string;
-  accountCode: string;
+  accountId: string;
   cardId: string;
   statementPeriodId: string;
   projectId: string;
@@ -5032,7 +5095,7 @@ To check the status of a Mutation, use the `UseMutationResult.status` field. You
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
 To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AutoCommitInvoiceIntake` Mutation is of type `AutoCommitInvoiceIntakeData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
+```javascrip
 export interface AutoCommitInvoiceIntakeData {
   invoiceIntake_updateMany: number;
   expenseTransaction_upsert: ExpenseTransaction_Key;
@@ -5045,7 +5108,7 @@ To learn more about the `UseMutationResult` object, see the [TanStack React Quer
 
 ### Using `AutoCommitInvoiceIntake`'s Mutation hook function
 
-```javascript
+```javascrip
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig, AutoCommitInvoiceIntakeVariables } from '@factures-thibeault/data-connect-generated';
 import { useAutoCommitInvoiceIntake } from '@factures-thibeault/data-connect-generated/react'
@@ -5074,29 +5137,29 @@ export default function AutoCommitInvoiceIntakeComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAutoCommitInvoiceIntake` Mutation requires an argument of type `AutoCommitInvoiceIntakeVariables`:
   const autoCommitInvoiceIntakeVars: AutoCommitInvoiceIntakeVariables = {
-    receiptId: ..., 
-    transactionId: ..., 
-    invoiceId: ..., 
-    vendor: ..., 
+    receiptId: ...,
+    transactionId: ...,
+    invoiceId: ...,
+    vendor: ...,
     invoiceNumber: ..., // optional
-    invoiceDate: ..., 
-    subtotalCents: ..., 
-    tpsCents: ..., 
-    tvqCents: ..., 
-    totalCents: ..., 
-    currency: ..., 
+    invoiceDate: ...,
+    subtotalCents: ...,
+    tpsCents: ...,
+    tvqCents: ...,
+    totalCents: ...,
+    currency: ...,
     sku: ..., // optional
-    category: ..., 
-    accountCode: ..., 
-    cardId: ..., 
-    statementPeriodId: ..., 
-    projectId: ..., 
-    storageFolder: ..., 
-    classificationNote: ..., 
+    category: ...,
+    accountId: ...,
+    cardId: ...,
+    statementPeriodId: ...,
+    projectId: ...,
+    storageFolder: ...,
+    classificationNote: ...,
   };
   mutation.mutate(autoCommitInvoiceIntakeVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountCode: ..., cardId: ..., statementPeriodId: ..., projectId: ..., storageFolder: ..., classificationNote: ..., });
+  mutation.mutate({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., currency: ..., sku: ..., category: ..., accountId: ..., cardId: ..., statementPeriodId: ..., projectId: ..., storageFolder: ..., classificationNote: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {

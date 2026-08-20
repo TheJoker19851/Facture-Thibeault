@@ -15,6 +15,7 @@
     "env:check": "node scripts/run-environment.mjs current check",
     "seed:local": "node scripts/seed-demo.mjs local",
     "seed:demo:production": "node scripts/seed-demo.mjs demo-production",
+    "import:production:accounts": "node scripts/import-production-accounts.mjs",
     "cleanup:demo:preflight": "node scripts/cleanup-demo-production.mjs --preflight-only",
     "cleanup:demo:production": "node scripts/cleanup-demo-production.mjs",
     "firebase:compile": "firebase emulators:exec --project demo-facture-thibeault --only dataconnect \"node scripts/verify-dataconnect-compile.mjs\"",

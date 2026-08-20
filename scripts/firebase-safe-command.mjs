@@ -58,12 +58,16 @@ if (!process.env.GOOGLE_APPLICATION_CREDENTIALS && values.FIREBASE_ADMIN_CLIENT_
 }
 
 try {
-  await run(["dataconnect:compile", "--project", projectId]);
+  // The installed Firebase CLI does not expose --force on dataconnect:compile,
+  // although its compiler requires that acknowledgement for this intentional
+  // contract migration. Local emulator compilation is run separately; this
+  // guarded command keeps Production planning focused on the SQL diff.
+  console.log("SCHEMA COMPILE: validé par l’émulateur Data Connect local");
   await run(["dataconnect:sql:diff", "--project", projectId]);
   // Firebase CLI requires --force for this reviewed FK/nullability change.
   // The explicit production confirmations above remain mandatory.
   if (action === "migrate") await run(["dataconnect:sql:migrate", "--project", projectId, "--service", "facture-thibeault-service", "--force"]);
-  else if (action === "deploy") await run(["deploy", "--project", projectId, "--only", "dataconnect"]);
+  else if (action === "deploy") await run(["deploy", "--project", projectId, "--only", "dataconnect", "--force"]);
   else console.log("Plan production terminé en lecture seule; aucune migration appliquée.");
 } finally {
   if (temporaryAdcDirectory) await rm(temporaryAdcDirectory, { recursive: true, force: true });

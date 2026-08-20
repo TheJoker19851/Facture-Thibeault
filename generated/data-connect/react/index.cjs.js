@@ -1,4 +1,4 @@
-const { adminSeedCreditCardRef, adminSeedSkuReferenceRef, adminSeedExpenseTransactionRef, adminSeedInvoiceRef, adminSeedInvoicePhotoRef, adminDeleteInvoicePhotoRef, adminDeleteInvoiceRef, adminDeleteExpenseTransactionRef, adminDeleteInvoiceIntakeRef, adminDeleteCreditCardRef, adminDeleteSkuReferenceRef, adminDeleteProjectRef, adminDeleteExpenseAccountRef, adminDeleteTaxAccountRef, adminDeleteCardStatementPeriodRef, adminDeleteUserProfileRef, adminListInvoicesRef, adminListInvoicePhotosRef, upsertUserProfileRef, upsertCreditCardRef, upsertProjectRef, upsertExpenseAccountRef, upsertCardStatementPeriodRef, createInvoiceIntakeRef, createInvoiceIntakeV2Ref, updateInvoiceIntakeAiResultRef, markInvoiceIntakeAiErrorRef, markInvoiceIntakeAutoPostingErrorRef, updateInvoiceIntakeReviewRef, markInvoiceIntakePostingErrorRef, retryInvoiceIntakeAiRef, retryInvoiceIntakeAiTransientRef, retryInvoiceIntakeAiTransientV2Ref, materializeInvoiceIntakeV2Ref, commitInvoiceIntakeRef, commitInvoiceIntakeWithoutProjectRef, autoCommitInvoiceIntakeRef, listUserProfilesRef, listCreditCardsRef, listCardStatementPeriodsRef, listExpenseAccountsRef, listTaxAccountsRef, listProjectsRef, listSkuReferencesRef, listExpenseTransactionsRef, listInvoicesToReviewRef, listInvoiceIntakesRef, listAuditEventsRef, connectorConfig } = require('../index.cjs.js');
+const { adminSeedCreditCardRef, adminSeedSkuReferenceRef, adminSeedExpenseTransactionRef, adminSeedInvoiceRef, adminSeedInvoicePhotoRef, adminDeleteInvoicePhotoRef, adminDeleteInvoiceRef, adminDeleteExpenseTransactionRef, adminDeleteInvoiceIntakeRef, adminDeleteCreditCardRef, adminDeleteSkuReferenceRef, adminDeleteProjectRef, adminDeleteExpenseAccountRef, adminDeleteCardStatementPeriodRef, adminDeleteUserProfileRef, adminListInvoicesRef, adminListInvoicePhotosRef, upsertUserProfileRef, upsertCreditCardRef, upsertProjectRef, upsertExpenseAccountRef, deleteProjectRef, deleteExpenseAccountRef, upsertCardStatementPeriodRef, createInvoiceIntakeRef, createInvoiceIntakeV2Ref, updateInvoiceIntakeAiResultRef, markInvoiceIntakeAiErrorRef, markInvoiceIntakeAutoPostingErrorRef, updateInvoiceIntakeReviewRef, markInvoiceIntakePostingErrorRef, retryInvoiceIntakeAiRef, retryInvoiceIntakeAiTransientRef, retryInvoiceIntakeAiTransientV2Ref, materializeInvoiceIntakeV2Ref, commitInvoiceIntakeRef, commitInvoiceIntakeWithoutProjectRef, autoCommitInvoiceIntakeRef, listUserProfilesRef, listCreditCardsRef, listCardStatementPeriodsRef, listExpenseAccountsRef, listProjectsRef, listSkuReferencesRef, listExpenseTransactionsRef, listInvoicesToReviewRef, listInvoiceIntakesRef, listAuditEventsRef, connectorConfig } = require('../index.cjs.js');
 const { validateArgs, CallerSdkTypeEnum } = require('firebase/data-connect');
 const { useDataConnectQuery, useDataConnectMutation, validateReactArgs } = require('@tanstack-query-firebase/react/data-connect');
 
@@ -106,14 +106,6 @@ exports.useAdminDeleteExpenseAccount = function useAdminDeleteExpenseAccount(dcO
   return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
 
-exports.useAdminDeleteTaxAccount = function useAdminDeleteTaxAccount(dcOrOptions, options) {
-  const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
-  function refFactory(vars) {
-    return adminDeleteTaxAccountRef(dcInstance, vars);
-  }
-  return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
-}
-
 exports.useAdminDeleteCardStatementPeriod = function useAdminDeleteCardStatementPeriod(dcOrOptions, options) {
   const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
   function refFactory(vars) {
@@ -170,6 +162,22 @@ exports.useUpsertExpenseAccount = function useUpsertExpenseAccount(dcOrOptions, 
   const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
   function refFactory(vars) {
     return upsertExpenseAccountRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+
+exports.useDeleteProject = function useDeleteProject(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
+  function refFactory(vars) {
+    return deleteProjectRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+
+exports.useDeleteExpenseAccount = function useDeleteExpenseAccount(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
+  function refFactory(vars) {
+    return deleteExpenseAccountRef(dcInstance, vars);
   }
   return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
@@ -316,12 +324,6 @@ exports.useListCardStatementPeriods = function useListCardStatementPeriods(dcOrO
 exports.useListExpenseAccounts = function useListExpenseAccounts(dcOrOptions, options) {
   const { dc: dcInstance, options: inputOpts } = validateReactArgs(connectorConfig, dcOrOptions, options);
   const ref = listExpenseAccountsRef(dcInstance);
-  return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
-}
-
-exports.useListTaxAccounts = function useListTaxAccounts(dcOrOptions, options) {
-  const { dc: dcInstance, options: inputOpts } = validateReactArgs(connectorConfig, dcOrOptions, options);
-  const ref = listTaxAccountsRef(dcInstance);
   return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
 

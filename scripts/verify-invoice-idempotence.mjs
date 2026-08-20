@@ -113,7 +113,7 @@ function postingVariables(receiptId) {
     currency: "CAD",
     sku: "DEMO-SKU-001",
     category: "Matériaux Démo",
-    accountCode: "DEMO-90001",
+    accountId: "DEMO-ACCOUNT-90001",
     cardId: "DEMO-CARD-001",
     statementPeriodId: "DEMO-2026-08",
     storageFolder: `receipts/demo/${receiptId}`,
@@ -393,8 +393,8 @@ export async function verifyInvoiceIdempotence() {
     await createIntake(dataConnect, workerClaims, humanWithoutProjectId);
     assert.equal((await dataConnect.executeMutation("UpdateInvoiceIntakeAiResult", aiVariables(humanWithoutProjectId, "NEEDS_REVIEW"))).data.invoiceIntake_updateMany, 1);
     assert.equal((await dataConnect.executeMutation("UpdateInvoiceIntakeReview", { ...reviewVariables(humanWithoutProjectId), extractedProjectId: null }, { impersonate: { authClaims: kimClaims } })).data.invoiceIntake_updateMany, 1);
-    await dataConnect.executeMutation("MaterializeInvoiceIntakeV2", humanPostingVariables(humanWithoutProjectId, 1, null));
-    assert.equal((await readIntake(dataConnect, humanWithoutProjectId)).accountingStatus, "POSTED");
+    await assert.rejects(() => dataConnect.executeMutation("MaterializeInvoiceIntakeV2", humanPostingVariables(humanWithoutProjectId, 1, null)));
+    assert.equal((await readIntake(dataConnect, humanWithoutProjectId)).accountingStatus, "NOT_POSTED");
 
     const humanVsAutoId = "IDEMP-HUMAN-VS-AUTO-001";
     await createIntake(dataConnect, workerClaims, humanVsAutoId);
@@ -413,7 +413,7 @@ export async function verifyInvoiceIdempotence() {
     const errorId = "IDEMP-ERROR-001";
     await createIntake(dataConnect, workerClaims, errorId);
     assert.equal((await dataConnect.executeMutation("UpdateInvoiceIntakeAiResult", aiVariables(errorId, "AUTO_APPROVED"))).data.invoiceIntake_updateMany, 1);
-    await assert.rejects(() => dataConnect.executeMutation("MaterializeInvoiceIntakeV2", { ...autoPostingVariables(errorId), accountCode: "DOES-NOT-EXIST" }));
+    await assert.rejects(() => dataConnect.executeMutation("MaterializeInvoiceIntakeV2", { ...autoPostingVariables(errorId), accountId: "DOES-NOT-EXIST" }));
     await dataConnect.executeMutation("MarkInvoiceIntakeAutoPostingError", {
       receiptId: errorId,
       error: "Échec de posting simulé.",

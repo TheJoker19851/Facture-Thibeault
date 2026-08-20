@@ -68,7 +68,7 @@ type ReferenceData = {
     sku: string;
     categoryLabel?: string | null;
     verificationStatus: string;
-    expenseAccount?: { code: string } | null;
+    expenseAccount?: { number: string } | null;
   }>;
 };
 
@@ -86,7 +86,7 @@ type UserData = {
 };
 
 type ProjectData = {
-  projects: Array<{ id: string; name: string; status: string }>;
+  projects: Array<{ id: string; number: string; name: string; status: string }>;
 };
 
 type PeriodData = {
@@ -105,7 +105,7 @@ type TransactionData = {
 };
 
 type AccountData = {
-  expenseAccounts: Array<{ code: string; label: string }>;
+  expenseAccounts: Array<{ id: string; number: string; label: string; type: string; status: string }>;
 };
 
 type NormalizedExtraction = {
@@ -325,7 +325,7 @@ export async function POST(request: Request) {
       merchant: reference.merchant,
       sku: reference.sku,
       category: reference.categoryLabel ?? undefined,
-      accountCode: reference.expenseAccount?.code,
+      accountCode: reference.expenseAccount?.number,
       status: reference.verificationStatus,
     })), accountResponse.data.expenseAccounts);
 
@@ -437,6 +437,10 @@ export async function POST(request: Request) {
       if (!accountCode || !cardId || !statementPeriodId || !projectId || !normalized.invoiceDate) {
         throw new Error("La décision automatique ne contient pas toutes les références comptables requises.");
       }
+      const account = accountResponse.data.expenseAccounts.find((candidate) =>
+        candidate.number === accountCode && candidate.type === "EXPENSE" && candidate.status === "ACTIVE",
+      );
+      if (!account) throw new Error("Le compte comptable résolu n'existe plus ou est inactif.");
       autoCommitAttempted = true;
       try {
         await materializeInvoiceIntake(dataConnect, intake, storedPhotos, {
@@ -450,7 +454,7 @@ export async function POST(request: Request) {
           currency: normalized.currency,
           sku: normalized.sku,
           category: classification.category,
-          accountCode,
+          accountId: account.id,
           cardId,
           statementPeriodId,
           projectId,

@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { assertSafeDemoProductionTarget } from "../lib/environment.mjs";
-import { businessFixture, demoExpenseAccounts, demoPeriods, demoProjects, demoTaxAccounts, demoUsers } from "./fixtures/demo-data.mjs";
+import { businessFixture, demoExpenseAccounts, demoPeriods, demoProjects, demoUsers } from "./fixtures/demo-data.mjs";
 import {
   buildDeletionPlan,
   buildFixtureIndex,
@@ -18,7 +18,6 @@ const QUERY_BY_TYPE = {
   CreditCard: "ListCreditCards",
   StatementPeriod: "ListCardStatementPeriods",
   ExpenseAccount: "ListExpenseAccounts",
-  TaxAccount: "ListTaxAccounts",
   Project: "ListProjects",
   SkuReference: "ListSkuReferences",
   ExpenseTransaction: "ListExpenseTransactions",
@@ -114,7 +113,7 @@ async function createProductionContext(values, app) {
 }
 
 function createReport(context, fixture) {
-  const fixtureIndex = buildFixtureIndex({ demoUsers, demoProjects, demoPeriods, demoExpenseAccounts, demoTaxAccounts, fixture });
+  const fixtureIndex = buildFixtureIndex({ demoUsers, demoProjects, demoPeriods, demoExpenseAccounts, fixture });
   return buildPreflightReport({ ...context, fixtureIndex });
 }
 
@@ -139,8 +138,7 @@ async function executeDeletion(context, plan) {
   for (const entry of plan.CreditCard) await remove(dataConnect, "AdminDeleteCreditCard", { id: entry.row.id });
   for (const entry of plan.SkuReference) await remove(dataConnect, "AdminDeleteSkuReference", { merchant: entry.row.merchant, sku: entry.row.sku });
   for (const entry of plan.Project) await remove(dataConnect, "AdminDeleteProject", { id: entry.row.id });
-  for (const entry of plan.ExpenseAccount) await remove(dataConnect, "AdminDeleteExpenseAccount", { code: entry.row.code });
-  for (const entry of plan.TaxAccount) await remove(dataConnect, "AdminDeleteTaxAccount", { code: entry.row.code });
+  for (const entry of plan.ExpenseAccount) await remove(dataConnect, "AdminDeleteExpenseAccount", { id: entry.row.id });
   for (const entry of plan.StatementPeriod) await remove(dataConnect, "AdminDeleteCardStatementPeriod", { id: entry.row.id });
   for (const entry of plan.UserProfile) await remove(dataConnect, "AdminDeleteUserProfile", { id: entry.row.id });
   for (const entry of plan.FirebaseAuth) await auth.deleteUser(entry.row.uid);

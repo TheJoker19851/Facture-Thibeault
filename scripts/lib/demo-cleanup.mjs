@@ -10,7 +10,6 @@ export const DEMO_CLEANUP_DELETION_ORDER = [
   "SkuReference",
   "Project",
   "ExpenseAccount",
-  "TaxAccount",
   "StatementPeriod",
   "UserProfile",
   "FirebaseAuth",
@@ -22,7 +21,6 @@ const DATA_CONNECT_RESOURCE_TYPES = [
   "CreditCard",
   "StatementPeriod",
   "ExpenseAccount",
-  "TaxAccount",
   "Project",
   "SkuReference",
   "ExpenseTransaction",
@@ -34,8 +32,7 @@ const RESOURCE_KEYS = {
   UserProfile: "id",
   CreditCard: "id",
   StatementPeriod: "id",
-  ExpenseAccount: "code",
-  TaxAccount: "code",
+  ExpenseAccount: "id",
   Project: "id",
   ExpenseTransaction: "id",
   InvoiceIntake: "receiptId",
@@ -64,13 +61,12 @@ function setFor(rows, mapper = (row) => row) {
   return new Set(rows.map(mapper).filter(Boolean).map(asString));
 }
 
-export function buildFixtureIndex({ demoUsers, demoProjects, demoPeriods, demoExpenseAccounts, demoTaxAccounts, fixture }) {
+export function buildFixtureIndex({ demoUsers, demoProjects, demoPeriods, demoExpenseAccounts, fixture }) {
   return {
     UserProfile: setFor(demoUsers, (row) => row.id),
     CreditCard: setFor(fixture.cards, (row) => row.id),
     StatementPeriod: setFor(demoPeriods, (row) => row.id),
-    ExpenseAccount: setFor(demoExpenseAccounts, (row) => row.code),
-    TaxAccount: setFor(demoTaxAccounts, (row) => row.code),
+    ExpenseAccount: setFor(demoExpenseAccounts, (row) => row.id),
     Project: setFor(demoProjects, (row) => row.id),
     SkuReference: setFor(fixture.skuReferences, (row) => `${row.merchant}::${row.sku}`),
     ExpenseTransaction: setFor(fixture.transactions, (row) => row.id),
@@ -94,7 +90,7 @@ export function classifyDataConnectResource(type, row, fixtureIndex) {
   const evidenceValues = rowEvidenceValues(type, row);
   if (!identifier) return classification("AMBIGUOUS", identifier, "Identifiant absent; impossible de prouver l’appartenance DEMO.");
   if (fixtureIndex[type]?.has(identifier)) {
-    const relations = [row.holder?.id, row.statementPeriod?.id, row.project?.id, row.expenseAccount?.code, row.transaction?.id, row.createdBy?.id].filter(Boolean);
+    const relations = [row.holder?.id, row.statementPeriod?.id, row.project?.id, row.expenseAccount?.id, row.transaction?.id, row.createdBy?.id].filter(Boolean);
     return classification("SAFE_DEMO", identifier, "Identifiant présent dans les fixtures DEMO connues.", relations);
   }
   if (type === "InvoiceIntake" && isKnownE2EInvoiceIntake(row)) {
@@ -256,7 +252,6 @@ export function buildDeletionPlan(report) {
     SkuReference: safe(report.resources.SkuReference),
     Project: safe(report.resources.Project),
     ExpenseAccount: safe(report.resources.ExpenseAccount),
-    TaxAccount: safe(report.resources.TaxAccount),
     StatementPeriod: safe(report.resources.StatementPeriod),
     UserProfile: safe(report.resources.UserProfile),
     FirebaseAuth: safe(report.auth),

@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   assertSafeDemoProductionSeedExecution, assertSafeDemoProductionTarget, assertSafeSeedTarget, inferApplicationEnvironment,
-  LOCAL_FIREBASE_PROJECT_ID, PRODUCTION_FIREBASE_PROJECT_ID, PRODUCTION_CARD_ROSTER_CONFIRMATION, validateFirebaseEnvironment,
-  assertSafeProductionCardRoster,
+  LOCAL_FIREBASE_PROJECT_ID, PRODUCTION_FIREBASE_PROJECT_ID, PRODUCTION_CARD_ROSTER_CONFIRMATION, PRODUCTION_ACCOUNT_IMPORT_CONFIRMATION, validateFirebaseEnvironment,
+  assertSafeProductionCardRoster, assertSafeProductionAccountImport,
 } from "../lib/environment.mjs";
 import { configurationFrom, localEmulatorEnvironment } from "../scripts/lib/env-files.mjs";
 
@@ -55,6 +55,12 @@ test("real production card roster requires a dedicated confirmation", () => {
   const args = { projectId: PRODUCTION_FIREBASE_PROJECT_ID, adminProjectId: PRODUCTION_FIREBASE_PROJECT_ID, appEnvironment: "production", publicAppEnvironment: "production", useEmulators: "false", confirmation: PRODUCTION_CARD_ROSTER_CONFIRMATION };
   assert.throws(() => assertSafeProductionCardRoster({ ...args, confirmation: "wrong" }), /registre de cartes|confirmation/i);
   assert.doesNotThrow(() => assertSafeProductionCardRoster(args));
+});
+
+test("real production account import requires a dedicated confirmation", () => {
+  const args = { projectId: PRODUCTION_FIREBASE_PROJECT_ID, adminProjectId: PRODUCTION_FIREBASE_PROJECT_ID, appEnvironment: "production", publicAppEnvironment: "production", useEmulators: "false", confirmation: PRODUCTION_ACCOUNT_IMPORT_CONFIRMATION };
+  assert.throws(() => assertSafeProductionAccountImport({ ...args, confirmation: "wrong" }), /comptes réels|confirmation/i);
+  assert.doesNotThrow(() => assertSafeProductionAccountImport(args));
 });
 
 test("production configuration requires live credentials", () => {

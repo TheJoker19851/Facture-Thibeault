@@ -21,7 +21,7 @@ const commitSchema = z.object({
   accountCode: z.string().trim().min(1),
   cardId: z.string().trim().min(1),
   statementPeriodId: z.string().trim().min(1).nullable(),
-  projectId: z.string().trim().min(1).nullable(),
+  projectId: z.string().trim().min(1),
   classificationNote: z.string().trim().min(1),
 });
 
@@ -34,6 +34,10 @@ type IntakeData = {
     processingStatus?: string | null;
     accountingStatus?: string | null;
   }>;
+};
+
+type AccountData = {
+  expenseAccounts: Array<{ id: string; number: string; type: string; status: string }>;
 };
 
 async function privilegedIdentity(request: Request) {
@@ -74,11 +78,19 @@ export async function POST(request: Request) {
   if (intake.processingStatus !== "VALIDATED" || intake.accountingStatus !== "NOT_POSTED") {
     return Response.json({ error: "L'intake n'est pas validée ou est déjà en cours de comptabilisation." }, { status: 409 });
   }
+  const accountResponse = await dataConnect.executeQuery<AccountData>("ListExpenseAccounts");
+  const account = accountResponse.data.expenseAccounts.find((candidate) =>
+    candidate.number === parsed.data.accountCode && candidate.type === "EXPENSE" && candidate.status === "ACTIVE",
+  );
+  if (!account) {
+    return Response.json({ error: "Le compte comptable sélectionné n'existe pas ou est inactif." }, { status: 422 });
+  }
 
   try {
     const photos = await readInvoiceIntakeStoragePhotos(intake);
     await materializeInvoiceIntake(dataConnect, intake, photos, {
       ...parsed.data,
+      accountId: account.id,
       actorUid: identity.uid,
       actorRole: identity.role,
     }, "HUMAN");

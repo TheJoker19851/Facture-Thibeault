@@ -10,6 +10,8 @@ import {
   listProjects,
   listSkuReferences,
   listUserProfiles,
+  deleteExpenseAccount as deleteExpenseAccountMutation,
+  deleteProject as deleteProjectMutation,
   upsertCardStatementPeriod,
   upsertCreditCard,
   upsertExpenseAccount,
@@ -44,7 +46,7 @@ export type AppAccountingData = {
     role: string;
     status: string;
   }>;
-  accounts: Array<{ code: string; label: string; status?: string }>;
+  accounts: Array<{ id: string; number: string; code: string; label: string; type: string; status?: string }>;
   cards: Array<{
     id: string;
     lastFour: string;
@@ -63,7 +65,7 @@ export type AppAccountingData = {
     statementLabel: string;
     status?: string;
   }>;
-  projects: Array<{ id: string; name: string; status?: string }>;
+  projects: Array<{ id: string; number: string; name: string; status?: string }>;
   skuReferences: Array<{
     merchant: string;
     sku: string;
@@ -80,7 +82,16 @@ export type AppAccountingData = {
     person: string;
     card: string;
     project: string;
+    projectId?: string;
+    projectNumber?: string;
+    projectName?: string;
     category: string;
+    accountId?: string;
+    accountNumber?: string;
+    accountLabel?: string;
+    subtotal: number;
+    tps: number;
+    tvq: number;
     total: number;
     status: "À vérifier" | "À valider" | "Validée";
     processingStatus?: string;
@@ -190,7 +201,7 @@ export type InvoiceIntakeCommitInput = {
   accountCode: string;
   cardId: string;
   statementPeriodId: string | null;
-  projectId: string | null;
+  projectId: string;
   classificationNote: string;
 };
 
@@ -214,8 +225,8 @@ export type CreditCardInput = {
   inactiveFrom: string | null;
 };
 
-export type ProjectInput = { id: string; name: string; status: string };
-export type ExpenseAccountInput = { code: string; label: string; status: string };
+export type ProjectInput = { id: string; number: string; name: string; status: string; auditAction?: string; auditDetails?: string };
+export type ExpenseAccountInput = { id: string; number: string; label: string; type: string; status: string; auditAction?: string; auditDetails?: string };
 export type StatementPeriodInput = { id: string; label: string; startDate: string; endDate: string; statementLabel: string | null; status: string };
 
 export async function saveUserProfile(input: UserProfileInput) {
@@ -234,12 +245,40 @@ export async function saveCreditCard(input: CreditCardInput) {
 
 export async function saveProject(input: ProjectInput) {
   if (!firebaseDataConnect || !sqlConnectConfigured) throw new Error("SQL Connect est requis pour enregistrer le projet.");
-  await upsertProject(firebaseDataConnect, input);
+  await upsertProject(firebaseDataConnect, {
+    ...input,
+    auditAction: input.auditAction ?? AUDIT_ACTIONS.PROJECT_UPDATED,
+    auditEventId: auditEventId(input.id, input.auditAction ?? AUDIT_ACTIONS.PROJECT_UPDATED, crypto.randomUUID()),
+    auditDetails: input.auditDetails ?? auditDetails({ number: input.number, name: input.name, status: input.status }),
+  });
 }
 
 export async function saveExpenseAccount(input: ExpenseAccountInput) {
   if (!firebaseDataConnect || !sqlConnectConfigured) throw new Error("SQL Connect est requis pour enregistrer le compte.");
-  await upsertExpenseAccount(firebaseDataConnect, input);
+  await upsertExpenseAccount(firebaseDataConnect, {
+    ...input,
+    auditAction: input.auditAction ?? AUDIT_ACTIONS.ACCOUNT_UPDATED,
+    auditEventId: auditEventId(input.id, input.auditAction ?? AUDIT_ACTIONS.ACCOUNT_UPDATED, crypto.randomUUID()),
+    auditDetails: input.auditDetails ?? auditDetails({ number: input.number, label: input.label, type: input.type, status: input.status }),
+  });
+}
+
+export async function deleteProject(input: { id: string; auditDetails?: string }) {
+  if (!firebaseDataConnect || !sqlConnectConfigured) throw new Error("SQL Connect est requis pour supprimer le projet.");
+  await deleteProjectMutation(firebaseDataConnect, {
+    id: input.id,
+    auditEventId: auditEventId(input.id, AUDIT_ACTIONS.PROJECT_DELETED, crypto.randomUUID()),
+    auditDetails: input.auditDetails ?? auditDetails({ action: AUDIT_ACTIONS.PROJECT_DELETED }),
+  });
+}
+
+export async function deleteExpenseAccount(input: { id: string; auditDetails?: string }) {
+  if (!firebaseDataConnect || !sqlConnectConfigured) throw new Error("SQL Connect est requis pour supprimer le compte.");
+  await deleteExpenseAccountMutation(firebaseDataConnect, {
+    id: input.id,
+    auditEventId: auditEventId(input.id, AUDIT_ACTIONS.EXPENSE_ACCOUNT_DELETED, crypto.randomUUID()),
+    auditDetails: input.auditDetails ?? auditDetails({ action: AUDIT_ACTIONS.EXPENSE_ACCOUNT_DELETED }),
+  });
 }
 
 export async function saveStatementPeriod(input: StatementPeriodInput) {
@@ -401,7 +440,7 @@ export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccounti
       role: user.role,
       status: user.status,
     })),
-    accounts: snapshot.accounts.map((account) => ({ code: account.code, label: account.label, status: account.status })),
+    accounts: snapshot.accounts.map((account) => ({ id: account.id, number: account.number, code: account.number, label: account.label, type: account.type, status: account.status })),
     cards: snapshot.cards.map((card) => ({
       id: card.id,
       lastFour: card.lastFour,
@@ -420,13 +459,13 @@ export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccounti
       statementLabel: period.statementLabel ?? "Relevé Mastercard",
       status: period.status,
     })),
-    projects: snapshot.projects.map((project) => ({ id: project.id, name: project.name, status: project.status })),
+    projects: snapshot.projects.map((project) => ({ id: project.id, number: project.number, name: project.name, status: project.status })),
     skuReferences: snapshot.skuReferences.map((reference) => ({
       merchant: reference.merchant,
       sku: reference.sku,
       label: reference.productLabel ?? "Article à confirmer",
       category: reference.categoryLabel ?? "Divers",
-      accountCode: reference.expenseAccount?.code ?? "—",
+      accountCode: reference.expenseAccount?.number ?? "—",
       status: reference.verificationStatus === "VALIDATED" ? "Validé" : "À confirmer",
     })),
     transactions: snapshot.transactions.map((transaction) => ({
@@ -437,8 +476,13 @@ export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccounti
       person: transaction.card.holder.displayName,
       card: transaction.card.lastFour,
       ...(transaction.statementPeriod?.id ? { periodId: transaction.statementPeriod.id } : {}),
-      project: transaction.project ? `${transaction.project.id} · ${transaction.project.name}` : "—",
+      ...(transaction.project ? { projectId: transaction.project.id, projectNumber: transaction.project.number, projectName: transaction.project.name } : {}),
+      project: transaction.project ? `${transaction.project.number} · ${transaction.project.name}` : "—",
       category: transaction.expenseAccount?.label ?? transaction.categoryLabel ?? "Divers",
+      ...(transaction.expenseAccount ? { accountId: transaction.expenseAccount.id, accountNumber: transaction.expenseAccount.number, accountLabel: transaction.expenseAccount.label } : {}),
+      subtotal: centsToCad(transaction.amountBeforeTaxCents),
+      tps: centsToCad(transaction.tpsCents),
+      tvq: centsToCad(transaction.tvqCents),
       total: centsToCad(transaction.totalCents),
       status: transactionStatus(transaction.processingStatus),
       processingStatus: transaction.processingStatus,
@@ -495,7 +539,7 @@ export function removeDemoAccountingData(data: AppAccountingData): AppAccounting
   return {
     ...data,
     users: data.users.filter((user) => !isDemoIdentifier(user.id) && !isDemoIdentifier(user.firebaseUid) && !user.email?.endsWith("@example.test")),
-    accounts: data.accounts.filter((account) => !isDemoIdentifier(account.code)),
+    accounts: data.accounts.filter((account) => !isDemoIdentifier(account.number)),
     cards: data.cards.filter((card) => !isDemoIdentifier(card.id)),
     periods: data.periods.filter((period) => !isDemoIdentifier(period.id)),
     projects: data.projects.filter((project) => !isDemoIdentifier(project.id)),

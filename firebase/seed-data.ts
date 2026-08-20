@@ -19,11 +19,6 @@ export const initialExpenseAccounts = [
   ["DEMO-90003", "Équipement Démo"],
 ] as const;
 
-export const initialTaxAccounts = [
-  ["DEMO-TPS", "TPS Démo"],
-  ["DEMO-TVQ", "TVQ Démo"],
-] as const;
-
 export const initialProjects = [
   ["DEMO-PROJET-001", "Chantier Démo A"],
   ["DEMO-PROJET-002", "Chantier Démo B"],

@@ -25,7 +25,7 @@ mutation AdminSeedSkuReference(
   $sku: String!
   $productLabel: String
   $categoryLabel: String
-  $accountCode: String!
+  $accountId: String!
   $verificationStatus: String!
 ) @auth(level: NO_ACCESS) {
   skuReference_upsert(data: {
@@ -33,7 +33,7 @@ mutation AdminSeedSkuReference(
     sku: $sku
     productLabel: $productLabel
     categoryLabel: $categoryLabel
-    expenseAccount: { code: $accountCode }
+    expenseAccount: { id: $accountId }
     verificationStatus: $verificationStatus
   })
 }
@@ -45,7 +45,7 @@ mutation AdminSeedExpenseTransaction(
   $cardId: String!
   $statementPeriodId: String!
   $projectId: String!
-  $accountCode: String!
+  $accountId: String!
   $categoryLabel: String
   $sku: String
   $amountBeforeTaxCents: Int64!
@@ -70,7 +70,7 @@ mutation AdminSeedExpenseTransaction(
     card: { id: $cardId }
     statementPeriod: { id: $statementPeriodId }
     project: { id: $projectId }
-    expenseAccount: { code: $accountCode }
+    expenseAccount: { id: $accountId }
     categoryLabel: $categoryLabel
     sku: $sku
     amountBeforeTaxCents: $amountBeforeTaxCents
@@ -170,12 +170,8 @@ mutation AdminDeleteProject($id: String!) @auth(level: NO_ACCESS) {
   project_delete(key: { id: $id })
 }
 
-mutation AdminDeleteExpenseAccount($code: String!) @auth(level: NO_ACCESS) {
-  expenseAccount_delete(key: { code: $code })
-}
-
-mutation AdminDeleteTaxAccount($code: String!) @auth(level: NO_ACCESS) {
-  taxAccount_delete(key: { code: $code })
+mutation AdminDeleteExpenseAccount($id: String!) @auth(level: NO_ACCESS) {
+  expenseAccount_delete(key: { id: $id })
 }
 
 mutation AdminDeleteCardStatementPeriod($id: String!) @auth(level: NO_ACCESS) {

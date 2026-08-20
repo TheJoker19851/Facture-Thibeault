@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { businessFixture, demoExpenseAccounts, demoPeriods, demoProjects, demoTaxAccounts, demoUsers } from "../scripts/fixtures/demo-data.mjs";
+import { businessFixture, demoExpenseAccounts, demoPeriods, demoProjects, demoUsers } from "../scripts/fixtures/demo-data.mjs";
 import {
   assertPostCleanupClean,
   buildDeletionPlan,
@@ -14,7 +14,7 @@ import { isKnownE2EInvoiceIntake } from "../lib/demo-data-policy.mjs";
 
 const firebaseUids = { WORKER: "demo-worker-uid", KIM: "demo-kim-uid", ADMIN: "demo-admin-uid" };
 const fixture = businessFixture(firebaseUids);
-const fixtureIndex = buildFixtureIndex({ demoUsers, demoProjects, demoPeriods, demoExpenseAccounts, demoTaxAccounts, fixture });
+const fixtureIndex = buildFixtureIndex({ demoUsers, demoProjects, demoPeriods, demoExpenseAccounts, fixture });
 
 function report(overrides = {}) {
   return buildPreflightReport({

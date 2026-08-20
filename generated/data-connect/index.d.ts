@@ -31,7 +31,7 @@ export interface AdminDeleteExpenseAccountData {
 }
 
 export interface AdminDeleteExpenseAccountVariables {
-  code: string;
+  id: string;
 }
 
 export interface AdminDeleteExpenseTransactionData {
@@ -81,14 +81,6 @@ export interface AdminDeleteSkuReferenceData {
 export interface AdminDeleteSkuReferenceVariables {
   merchant: string;
   sku: string;
-}
-
-export interface AdminDeleteTaxAccountData {
-  taxAccount_delete?: TaxAccount_Key | null;
-}
-
-export interface AdminDeleteTaxAccountVariables {
-  code: string;
 }
 
 export interface AdminDeleteUserProfileData {
@@ -165,7 +157,7 @@ export interface AdminSeedExpenseTransactionVariables {
   cardId: string;
   statementPeriodId: string;
   projectId: string;
-  accountCode: string;
+  accountId: string;
   categoryLabel?: string | null;
   sku?: string | null;
   amountBeforeTaxCents: Int64String;
@@ -226,7 +218,7 @@ export interface AdminSeedSkuReferenceVariables {
   sku: string;
   productLabel?: string | null;
   categoryLabel?: string | null;
-  accountCode: string;
+  accountId: string;
   verificationStatus: string;
 }
 
@@ -256,7 +248,7 @@ export interface AutoCommitInvoiceIntakeVariables {
   currency: string;
   sku?: string | null;
   category: string;
-  accountCode: string;
+  accountId: string;
   cardId: string;
   statementPeriodId: string;
   projectId: string;
@@ -290,7 +282,7 @@ export interface CommitInvoiceIntakeVariables {
   currency: string;
   sku?: string | null;
   category: string;
-  accountCode: string;
+  accountId: string;
   cardId: string;
   statementPeriodId: string;
   projectId: string;
@@ -319,7 +311,7 @@ export interface CommitInvoiceIntakeWithoutProjectVariables {
   currency: string;
   sku?: string | null;
   category: string;
-  accountCode: string;
+  accountId: string;
   cardId: string;
   statementPeriodId: string;
   storageFolder: string;
@@ -356,8 +348,30 @@ export interface CreditCard_Key {
   __typename?: 'CreditCard_Key';
 }
 
+export interface DeleteExpenseAccountData {
+  expenseAccount_delete?: ExpenseAccount_Key | null;
+  auditEvent_upsert: AuditEvent_Key;
+}
+
+export interface DeleteExpenseAccountVariables {
+  id: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+
+export interface DeleteProjectData {
+  project_delete?: Project_Key | null;
+  auditEvent_upsert: AuditEvent_Key;
+}
+
+export interface DeleteProjectVariables {
+  id: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+
 export interface ExpenseAccount_Key {
-  code: string;
+  id: string;
   __typename?: 'ExpenseAccount_Key';
 }
 
@@ -433,8 +447,10 @@ export interface ListCreditCardsData {
 
 export interface ListExpenseAccountsData {
   expenseAccounts: ({
-    code: string;
+    id: string;
+    number: string;
     label: string;
+    type: string;
     status: string;
   } & ExpenseAccount_Key)[];
 }
@@ -460,11 +476,14 @@ export interface ListExpenseTransactionsData {
     } & CardStatementPeriod_Key;
     project?: {
       id: string;
+      number: string;
       name: string;
     } & Project_Key;
     expenseAccount?: {
-      code: string;
+      id: string;
+      number: string;
       label: string;
+      type: string;
     } & ExpenseAccount_Key;
     categoryLabel?: string | null;
     sku?: string | null;
@@ -553,6 +572,7 @@ export interface ListInvoicesToReviewData {
 export interface ListProjectsData {
   projects: ({
     id: string;
+    number: string;
     name: string;
     status: string;
   } & Project_Key)[];
@@ -565,21 +585,15 @@ export interface ListSkuReferencesData {
     productLabel?: string | null;
     categoryLabel?: string | null;
     expenseAccount?: {
-      code: string;
+      id: string;
+      number: string;
       label: string;
+      type: string;
     } & ExpenseAccount_Key;
     sourceUrl?: string | null;
     verificationStatus: string;
     verifiedAt?: TimestampString | null;
   } & SkuReference_Key)[];
-}
-
-export interface ListTaxAccountsData {
-  taxAccounts: ({
-    code: string;
-    label: string;
-    status: string;
-  } & TaxAccount_Key)[];
 }
 
 export interface ListUserProfilesData {
@@ -665,10 +679,10 @@ export interface MaterializeInvoiceIntakeV2Variables {
   currency: string;
   sku?: string | null;
   category: string;
-  accountCode: string;
+  accountId: string;
   cardId: string;
   statementPeriod?: CardStatementPeriod_Key | null;
-  project?: Project_Key | null;
+  project: Project_Key;
   storageFolder: string;
   classificationNote: string;
   expectedProcessingStatus: string;
@@ -736,11 +750,6 @@ export interface SkuReference_Key {
   merchant: string;
   sku: string;
   __typename?: 'SkuReference_Key';
-}
-
-export interface TaxAccount_Key {
-  code: string;
-  __typename?: 'TaxAccount_Key';
 }
 
 export interface TransactionCorrection_Key {
@@ -845,22 +854,33 @@ export interface UpsertCreditCardVariables {
 
 export interface UpsertExpenseAccountData {
   expenseAccount_upsert: ExpenseAccount_Key;
+  auditEvent_upsert: AuditEvent_Key;
 }
 
 export interface UpsertExpenseAccountVariables {
-  code: string;
+  id: string;
+  number: string;
+  type: string;
   label: string;
   status: string;
+  auditAction: string;
+  auditEventId: string;
+  auditDetails: string;
 }
 
 export interface UpsertProjectData {
   project_upsert: Project_Key;
+  auditEvent_upsert: AuditEvent_Key;
 }
 
 export interface UpsertProjectVariables {
   id: string;
+  number: string;
   name: string;
   status: string;
+  auditAction: string;
+  auditEventId: string;
+  auditDetails: string;
 }
 
 export interface UpsertUserProfileData {
@@ -1038,18 +1058,6 @@ export const adminDeleteExpenseAccountRef: AdminDeleteExpenseAccountRef;
 export function adminDeleteExpenseAccount(vars: AdminDeleteExpenseAccountVariables): MutationPromise<AdminDeleteExpenseAccountData, AdminDeleteExpenseAccountVariables>;
 export function adminDeleteExpenseAccount(dc: DataConnect, vars: AdminDeleteExpenseAccountVariables): MutationPromise<AdminDeleteExpenseAccountData, AdminDeleteExpenseAccountVariables>;
 
-interface AdminDeleteTaxAccountRef {
-  /* Allow users to create refs without passing in DataConnect */
-  (vars: AdminDeleteTaxAccountVariables): MutationRef<AdminDeleteTaxAccountData, AdminDeleteTaxAccountVariables>;
-  /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: AdminDeleteTaxAccountVariables): MutationRef<AdminDeleteTaxAccountData, AdminDeleteTaxAccountVariables>;
-  operationName: string;
-}
-export const adminDeleteTaxAccountRef: AdminDeleteTaxAccountRef;
-
-export function adminDeleteTaxAccount(vars: AdminDeleteTaxAccountVariables): MutationPromise<AdminDeleteTaxAccountData, AdminDeleteTaxAccountVariables>;
-export function adminDeleteTaxAccount(dc: DataConnect, vars: AdminDeleteTaxAccountVariables): MutationPromise<AdminDeleteTaxAccountData, AdminDeleteTaxAccountVariables>;
-
 interface AdminDeleteCardStatementPeriodRef {
   /* Allow users to create refs without passing in DataConnect */
   (vars: AdminDeleteCardStatementPeriodVariables): MutationRef<AdminDeleteCardStatementPeriodData, AdminDeleteCardStatementPeriodVariables>;
@@ -1145,6 +1153,30 @@ export const upsertExpenseAccountRef: UpsertExpenseAccountRef;
 
 export function upsertExpenseAccount(vars: UpsertExpenseAccountVariables): MutationPromise<UpsertExpenseAccountData, UpsertExpenseAccountVariables>;
 export function upsertExpenseAccount(dc: DataConnect, vars: UpsertExpenseAccountVariables): MutationPromise<UpsertExpenseAccountData, UpsertExpenseAccountVariables>;
+
+interface DeleteProjectRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: DeleteProjectVariables): MutationRef<DeleteProjectData, DeleteProjectVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: DeleteProjectVariables): MutationRef<DeleteProjectData, DeleteProjectVariables>;
+  operationName: string;
+}
+export const deleteProjectRef: DeleteProjectRef;
+
+export function deleteProject(vars: DeleteProjectVariables): MutationPromise<DeleteProjectData, DeleteProjectVariables>;
+export function deleteProject(dc: DataConnect, vars: DeleteProjectVariables): MutationPromise<DeleteProjectData, DeleteProjectVariables>;
+
+interface DeleteExpenseAccountRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: DeleteExpenseAccountVariables): MutationRef<DeleteExpenseAccountData, DeleteExpenseAccountVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: DeleteExpenseAccountVariables): MutationRef<DeleteExpenseAccountData, DeleteExpenseAccountVariables>;
+  operationName: string;
+}
+export const deleteExpenseAccountRef: DeleteExpenseAccountRef;
+
+export function deleteExpenseAccount(vars: DeleteExpenseAccountVariables): MutationPromise<DeleteExpenseAccountData, DeleteExpenseAccountVariables>;
+export function deleteExpenseAccount(dc: DataConnect, vars: DeleteExpenseAccountVariables): MutationPromise<DeleteExpenseAccountData, DeleteExpenseAccountVariables>;
 
 interface UpsertCardStatementPeriodRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -1373,18 +1405,6 @@ export const listExpenseAccountsRef: ListExpenseAccountsRef;
 
 export function listExpenseAccounts(options?: ExecuteQueryOptions): QueryPromise<ListExpenseAccountsData, undefined>;
 export function listExpenseAccounts(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListExpenseAccountsData, undefined>;
-
-interface ListTaxAccountsRef {
-  /* Allow users to create refs without passing in DataConnect */
-  (): QueryRef<ListTaxAccountsData, undefined>;
-  /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect): QueryRef<ListTaxAccountsData, undefined>;
-  operationName: string;
-}
-export const listTaxAccountsRef: ListTaxAccountsRef;
-
-export function listTaxAccounts(options?: ExecuteQueryOptions): QueryPromise<ListTaxAccountsData, undefined>;
-export function listTaxAccounts(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListTaxAccountsData, undefined>;
 
 interface ListProjectsRef {
   /* Allow users to create refs without passing in DataConnect */

@@ -21,10 +21,10 @@ export type InvoiceCommitValues = {
   currency: string;
   sku: string | null;
   category: string;
-  accountCode: string;
+  accountId: string;
   cardId: string;
   statementPeriodId: string | null;
-  projectId: string | null;
+  projectId: string;
   classificationNote: string;
   actorUid?: string;
   actorRole?: string;
@@ -60,10 +60,10 @@ export async function materializeInvoiceIntake(
     currency: values.currency,
     sku: values.sku,
     category: values.category,
-    accountCode: values.accountCode,
+    accountId: values.accountId,
     cardId: values.cardId,
     statementPeriod: values.statementPeriodId ? { id: values.statementPeriodId } : null,
-    project: values.projectId ? { id: values.projectId } : null,
+    project: { id: values.projectId },
     storageFolder: intake.storageFolder,
     classificationNote: values.classificationNote,
     expectedProcessingStatus,

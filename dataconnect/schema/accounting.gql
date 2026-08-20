@@ -18,23 +18,18 @@ type UserProfile @table(name: "user_profiles", key: "id") {
 
 type Project @table(name: "projects", key: "id") {
   id: String!
+  number: String! @unique
   name: String!
   status: String! @default(value: "ACTIVE")
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }
 
-type ExpenseAccount @table(name: "expense_accounts", key: "code") {
-  code: String!
+type ExpenseAccount @table(name: "expense_accounts", key: "id") {
+  id: String!
+  number: String! @unique
   label: String!
-  status: String! @default(value: "ACTIVE")
-  createdAt: Timestamp! @default(expr: "request.time")
-  updatedAt: Timestamp! @default(expr: "request.time")
-}
-
-type TaxAccount @table(name: "tax_accounts", key: "code") {
-  code: String!
-  label: String!
+  type: String! @default(value: "EXPENSE")
   status: String! @default(value: "ACTIVE")
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")

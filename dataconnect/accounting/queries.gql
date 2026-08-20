@@ -44,16 +44,10 @@ query ListCardStatementPeriods @auth(expr: "auth.token.role == 'KIM' || auth.tok
 
 query ListExpenseAccounts @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   expenseAccounts {
-    code
+    id
+    number
     label
-    status
-  }
-}
-
-query ListTaxAccounts @auth(level: NO_ACCESS) {
-  taxAccounts {
-    code
-    label
+    type
     status
   }
 }
@@ -61,6 +55,7 @@ query ListTaxAccounts @auth(level: NO_ACCESS) {
 query ListProjects @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   projects {
     id
+    number
     name
     status
   }
@@ -73,8 +68,10 @@ query ListSkuReferences @auth(expr: "auth.token.role == 'KIM' || auth.token.role
     productLabel
     categoryLabel
     expenseAccount {
-      code
+      id
+      number
       label
+      type
     }
     sourceUrl
     verificationStatus
@@ -103,11 +100,14 @@ query ListExpenseTransactions @auth(expr: "auth.token.role == 'KIM' || auth.toke
     }
     project {
       id
+      number
       name
     }
     expenseAccount {
-      code
+      id
+      number
       label
+      type
     }
     categoryLabel
     sku
