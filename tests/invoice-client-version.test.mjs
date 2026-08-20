@@ -18,7 +18,7 @@ test("keeps the PWA, Storage and upload gates on the same release version", asyn
   ]);
 
   assert.match(serviceWorker, new RegExp(INVOICE_CLIENT_VERSION));
-  assert.match(serviceWorker, /client\.navigate\(client\.url\)/);
+  assert.doesNotMatch(serviceWorker, /client\.navigate\(client\.url\)/);
   assert.match(storageRules, new RegExp(`invoiceClientVersion == '${INVOICE_CLIENT_VERSION}'`));
   assert.match(uploads, /invoiceClientVersion: INVOICE_CLIENT_VERSION/);
   assert.match(component, /CLIENT_VERSION|ClientVersionGate/);
