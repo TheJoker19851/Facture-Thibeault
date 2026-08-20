@@ -117,8 +117,8 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 - `npm run seed:local`: reset/load the fictitious local demo fixture
 - `npm run seed:demo:production`: load only the explicitly confirmed `DEMO-*`
   production fixture
-- `npm run cleanup:demo:production`: remove only verified DEMO resources after
-  two explicit confirmations
+- `npm run cleanup:demo:production`: remove only verified DEMO/E2E resources after
+  two explicit confirmations; operational non-DEMO data is preserved
 - `npm run test:emulator`: verify Auth, Storage and Data Connect permissions
 - `npm run build`: verify the vinext build output
 - `npm test`: build the application and verify the rendered PWA shell

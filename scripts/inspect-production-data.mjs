@@ -1,4 +1,5 @@
 import { PRODUCTION_FIREBASE_PROJECT_ID, validateFirebaseEnvironment } from "../lib/environment.mjs";
+import { isDemoIdentifier, isKnownE2EInvoiceIntake } from "../lib/demo-data-policy.mjs";
 import { readEnvFile } from "./lib/env-files.mjs";
 
 const QUERY_BY_TYPE = {
@@ -19,10 +20,6 @@ function rowsFromResult(result) {
   return rows ?? [];
 }
 
-function isDemoIdentifier(value) {
-  return typeof value === "string" && value.startsWith("DEMO-");
-}
-
 function identifierFor(type, row) {
   if (type === "ExpenseAccount" || type === "TaxAccount") return row.code;
   if (type === "SkuReference") return `${row.merchant ?? ""}::${row.sku ?? ""}`;
@@ -33,6 +30,7 @@ function identifierFor(type, row) {
 
 function demoClassification(type, row) {
   const identifier = identifierFor(type, row);
+  if (type === "InvoiceIntake" && isKnownE2EInvoiceIntake(row)) return true;
   if (type === "SkuReference") return isDemoIdentifier(row.sku) || String(row.merchant ?? "").includes("Démo");
   return isDemoIdentifier(identifier);
 }

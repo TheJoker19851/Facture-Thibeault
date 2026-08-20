@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { isDemoIdentifier, isKnownE2EInvoiceIntake } from "../../lib/demo-data-policy.mjs";
 
 export const DEMO_CLEANUP_DELETION_ORDER = [
   "InvoicePhoto",
@@ -43,10 +44,6 @@ const RESOURCE_KEYS = {
 
 function asString(value) {
   return value == null ? "" : String(value);
-}
-
-function startsWithDemo(value) {
-  return asString(value).startsWith("DEMO-");
 }
 
 function unique(values) {
@@ -100,7 +97,10 @@ export function classifyDataConnectResource(type, row, fixtureIndex) {
     const relations = [row.holder?.id, row.statementPeriod?.id, row.project?.id, row.expenseAccount?.code, row.transaction?.id, row.createdBy?.id].filter(Boolean);
     return classification("SAFE_DEMO", identifier, "Identifiant présent dans les fixtures DEMO connues.", relations);
   }
-  if (evidenceValues.some(startsWithDemo)) {
+  if (type === "InvoiceIntake" && isKnownE2EInvoiceIntake(row)) {
+    return classification("SAFE_DEMO", identifier, "Intake E2E prouvée par le numéro DEMO-E2E, le fournisseur, le compte et la note E2E.", [row.uploaderUid, row.storageFolder]);
+  }
+  if (evidenceValues.some(isDemoIdentifier)) {
     return classification("AMBIGUOUS", identifier, "Ressource marquée DEMO mais absente des fixtures connues.");
   }
   return classification("NON_DEMO", identifier, "Aucune preuve DEMO; cette ressource doit être conservée.");
@@ -114,9 +114,9 @@ export function classifyInvoicePhoto(row, fixtureIndex) {
   const knownInvoice = fixtureIndex.invoiceIds.has(invoiceId);
   const knownStoragePath = fixtureIndex.storagePaths.has(storagePath);
   const knownInvoiceFolder = fixtureIndex.invoiceFolders.some((folder) => folder && (storagePath === folder || storagePath.startsWith(`${folder}/`)));
-  const demoId = startsWithDemo(identifier);
-  const demoInvoiceId = startsWithDemo(invoiceId);
-  const demoPath = startsWithDemo(storagePath) || storagePath.includes("/DEMO-") || storagePath.includes("DEMO/");
+  const demoId = isDemoIdentifier(identifier);
+  const demoInvoiceId = isDemoIdentifier(invoiceId);
+  const demoPath = isDemoIdentifier(storagePath) || storagePath.includes("/DEMO-") || storagePath.includes("DEMO/");
 
   if ((knownPhotoId || knownInvoice || knownStoragePath || knownInvoiceFolder) && (!invoiceId || knownInvoice || knownPhotoId)) {
     const evidence = [
@@ -146,12 +146,20 @@ function knownStorageFolder(storagePath, fixtureIndex) {
   return [...fixtureIndex.invoiceFolders, ...fixtureIndex.intakeFolders].some((folder) => folder && (storagePath === folder || storagePath.startsWith(`${folder}/`)));
 }
 
+function knownSafeStorageFolder(storagePath, fixtureIndex) {
+  return [...(fixtureIndex.safeStorageFolders ?? [])].some((folder) => folder && (storagePath === folder || storagePath.startsWith(`${folder}/`)));
+}
+
 export function classifyStorageFile(file, fixtureIndex) {
   const path = asString(file.name ?? file.path);
   const hasDemoMetadata = storageMetadataDemo(file);
   const hasKnownLink = fixtureIndex.storagePaths.has(path) || knownStorageFolder(path, fixtureIndex);
+  const hasSafeIntakeLink = knownSafeStorageFolder(path, fixtureIndex);
   const pathLooksDemo = path.includes("DEMO-") || path.includes("/DEMO/");
 
+  if (hasSafeIntakeLink) {
+    return classification("SAFE_DEMO", path, "Fichier Storage lié au dossier d’une intake E2E déjà prouvée.");
+  }
   if (hasDemoMetadata && hasKnownLink) {
     return classification("SAFE_DEMO", path, "metadata.demo=true et lien Storage cohérent avec une fixture DEMO.");
   }
@@ -199,8 +207,13 @@ export function buildPreflightReport({ rowsByType, invoicePhotos, authRecords, s
   const userProfiles = resources.UserProfile;
   const auth = (authRecords ?? []).map((record) => classifyAuthRecord(record, fixtureIndex, userProfiles));
   const photos = (invoicePhotos ?? []).map((row) => ({ type: "InvoicePhoto", row, ...classifyInvoicePhoto(row, fixtureIndex) }));
-  const storage = (storageFiles ?? []).map((file) => ({ type: "Storage", row: file, ...classifyStorageFile(file, fixtureIndex) }));
-  return { resources, invoicePhotos: photos, auth, storage, fixtureIndex, queryErrors };
+  const safeStorageFolders = resources.InvoiceIntake
+    .filter((entry) => entry.classification === "SAFE_DEMO")
+    .map((entry) => entry.row.storageFolder)
+    .filter(Boolean);
+  const reportFixtureIndex = { ...fixtureIndex, safeStorageFolders };
+  const storage = (storageFiles ?? []).map((file) => ({ type: "Storage", row: file, ...classifyStorageFile(file, reportFixtureIndex) }));
+  return { resources, invoicePhotos: photos, auth, storage, fixtureIndex: reportFixtureIndex, queryErrors };
 }
 
 export function preflightBlockingReasons(report) {
@@ -208,11 +221,11 @@ export function preflightBlockingReasons(report) {
   for (const error of report.queryErrors ?? []) reasons.push(`Lecture ${error.type || error.operation} indisponible: ${error.message}`);
   for (const entries of Object.values(report.resources)) {
     for (const entry of entries) {
-      if (entry.classification !== "SAFE_DEMO") reasons.push(`${entry.type} ${entry.identifier || "(sans ID)"}: ${entry.classification} — ${entry.reason}`);
+      if (entry.classification === "AMBIGUOUS") reasons.push(`${entry.type} ${entry.identifier || "(sans ID)"}: AMBIGUOUS — ${entry.reason}`);
     }
   }
   for (const entry of report.invoicePhotos) {
-    if (entry.classification !== "SAFE_DEMO") reasons.push(`${entry.type} ${entry.identifier || "(sans ID)"}: ${entry.classification} — ${entry.reason}`);
+    if (entry.classification === "AMBIGUOUS") reasons.push(`${entry.type} ${entry.identifier || "(sans ID)"}: AMBIGUOUS — ${entry.reason}`);
   }
   for (const entry of report.storage) {
     if (entry.classification === "AMBIGUOUS") reasons.push(`${entry.type} ${entry.identifier || "(sans chemin)"}: AMBIGUOUS — ${entry.reason}`);
@@ -255,9 +268,9 @@ export function postCleanupBlockingReasons(report, expectedNonDemoAuthCount = 1)
   const reasons = [];
   for (const error of report.queryErrors ?? []) reasons.push(`Validation ${error.type || error.operation} indisponible: ${error.message}`);
   for (const [type, entries] of Object.entries(report.resources)) {
-    if (entries.length) reasons.push(`${type}: ${entries.length} ressource(s) SQL reste(nt) présente(s).`);
+    if (entries.some((entry) => entry.classification !== "NON_DEMO")) reasons.push(`${type}: une ressource DEMO ou ambiguë reste présente.`);
   }
-  if (report.invoicePhotos.length) reasons.push(`InvoicePhoto: ${report.invoicePhotos.length} photo(s) reste(nt) présente(s).`);
+  if (report.invoicePhotos.some((entry) => entry.classification !== "NON_DEMO")) reasons.push("InvoicePhoto: une photo DEMO ou ambiguë reste présente.");
   if (report.storage.some((entry) => entry.classification !== "NON_DEMO")) reasons.push("Storage: un fichier DEMO ou ambigu reste présent.");
   if (report.auth.filter((entry) => entry.classification === "SAFE_DEMO").length) reasons.push("Firebase Auth: un compte DEMO reste présent.");
   if (report.auth.filter((entry) => entry.classification === "NON_DEMO").length !== expectedNonDemoAuthCount) reasons.push("Firebase Auth: le compte non-DEMO attendu n’est pas conservé exactement.");

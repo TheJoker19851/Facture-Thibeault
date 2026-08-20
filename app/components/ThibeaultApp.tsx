@@ -9,12 +9,16 @@ import { processInvoiceIntakeWithGemini } from "../../firebase/ai";
 import { invoicePhotoFileError, uploadInvoicePhotos } from "../../firebase/uploads";
 import { classifyInvoice } from "../../lib/invoice-processing.mjs";
 import { DecisionJsonError, parseDecisionExceptions, serializeDecisionChecks, serializeDecisionExceptions } from "../../lib/decision-json.mjs";
+import { filterTransactionsByStatus, transactionStatusFilterCounts, TRANSACTION_STATUS_FILTERS } from "../../lib/transaction-filters.mjs";
 import { INVOICE_CLIENT_VERSION } from "../../lib/invoice-client-version.mjs";
 import { useFirebaseIdentity, type AppRole } from "./FirebaseShell";
 
 type Role = AppRole;
 type View = "dashboard" | "transactions" | "reconciliation" | "reports" | "archives" | "settings" | "intakes" | "debug" | "capture" | "transaction";
 type ClientVersionState = "checking" | "current" | "obsolete" | "unavailable";
+type TransactionStatusFilter = "Toutes" | "À vérifier" | "À valider" | "Validées" | "Non rapprochées";
+type TransactionStatusCounts = Record<TransactionStatusFilter, number>;
+const transactionStatusFilters = TRANSACTION_STATUS_FILTERS as TransactionStatusFilter[];
 
 type Transaction = {
   id: string;
@@ -414,7 +418,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
   const [view, setView] = useState<View>(accountRole === "WORKER" || initialRole === "WORKER" ? "capture" : "dashboard");
   const [selectedId, setSelectedId] = useState<string>(appData.transactions[0]?.id ?? "");
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("Toutes");
+  const [statusFilter, setStatusFilter] = useState<TransactionStatusFilter>("Toutes");
   const [selectedPeriod, setSelectedPeriod] = useState<CardPeriod>(appData.periods[0]);
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [draftReceiptId, setDraftReceiptId] = useState<string | null>(null);
@@ -511,14 +515,22 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
   }, [isProductionDataSource]);
 
   const selected = appData.transactions.find((transaction) => transaction.id === selectedId) ?? appData.transactions[0] ?? null;
-  const filteredTransactions = useMemo(() => {
+  const searchableTransactions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return appData.transactions.filter((transaction) => {
       const matchesQuery = !normalizedQuery || [transaction.vendor, transaction.person, transaction.project, transaction.category, transaction.id].join(" ").toLowerCase().includes(normalizedQuery);
-      const matchesStatus = statusFilter === "Toutes" || transaction.status === statusFilter;
-      return matchesQuery && matchesStatus;
+      return matchesQuery;
     });
-  }, [appData.transactions, query, statusFilter]);
+  }, [appData.transactions, query]);
+
+  const transactionStatusCounts = useMemo(
+    () => transactionStatusFilterCounts(searchableTransactions) as TransactionStatusCounts,
+    [searchableTransactions],
+  );
+  const filteredTransactions = useMemo(
+    () => filterTransactionsByStatus(searchableTransactions, statusFilter),
+    [searchableTransactions, statusFilter],
+  );
 
   const dataSourceLabel = dataSourceState === "ready"
     ? "Firebase SQL Connect"
@@ -686,7 +698,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
         <header className="topbar"><div className="breadcrumbs"><span>Maçonnerie Thibeault</span><span>/</span><strong>{navItems.find((item) => item.id === view)?.label ?? "Tableau de bord"}</strong></div><div className="topbar-actions"><span className="demo-note">{dataSourceLabel}</span><button className="icon-button" aria-label="Notifications">♧<span className="notification-dot" /></button><button className="avatar avatar-gold small" onClick={() => goTo("capture")} aria-label="Ouvrir le mode dépôt">{accountRole === "ADMIN" ? "A" : "K"}</button></div></header>
         <div className="page-content">
           {view === "dashboard" && <Dashboard onNavigate={goTo} onOpenTransactions={(person) => { setQuery(person ?? ""); setStatusFilter("Toutes"); goTo("transactions"); }} period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
-          {view === "transactions" && <TransactionsPage items={filteredTransactions} query={query} setQuery={setQuery} statusFilter={statusFilter} setStatusFilter={setStatusFilter} onOpen={(id) => { setSelectedId(id); setView("transaction" as View); }} />}
+          {view === "transactions" && <TransactionsPage items={filteredTransactions} query={query} setQuery={setQuery} statusFilter={statusFilter} statusCounts={transactionStatusCounts} setStatusFilter={setStatusFilter} onOpen={(id) => { setSelectedId(id); setView("transaction" as View); }} />}
           {view === "reconciliation" && <ReconciliationPage period={selectedPeriod} onPeriodChange={setSelectedPeriod} isProductionDataSource={isProductionDataSource} />}
           {view === "reports" && <ReportsPage period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
           {view === "archives" && <ArchivesPage onNotify={notify} isProductionDataSource={isProductionDataSource} />}
@@ -1155,8 +1167,8 @@ function DashboardHoldersTab({ rows, onChoose }: { rows: HolderRow[]; onChoose: 
   </section>;
 }
 
-function TransactionsPage({ items, query, setQuery, statusFilter, setStatusFilter, onOpen }: { items: Transaction[]; query: string; setQuery: (value: string) => void; statusFilter: string; setStatusFilter: (value: string) => void; onOpen: (id: string) => void }) {
-  return <><PageHeading eyebrow="Registre principal" title="Transactions" description="Toutes les dépenses, avec leur provenance et leur état de contrôle." action={<button className="primary-button"><span>⇩</span> Exporter</button>} /><div className="filter-panel"><div className="search-box"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un fournisseur, une personne, un chantier…" /></div><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option>Toutes</option><option>À vérifier</option><option>À valider</option><option>Validée</option></select><button className="filter-select">Période <b>⌄</b></button><button className="filter-select">Plus de filtres <b>＋</b></button></div><div className="quick-filters"><button className="quick-filter active" onClick={() => setStatusFilter("Toutes")}>Toutes <span>18</span></button><button className="quick-filter" onClick={() => setStatusFilter("À vérifier")}>À vérifier <span>3</span></button><button className="quick-filter" onClick={() => setStatusFilter("À valider")}>À valider <span>2</span></button><button className="quick-filter">Validées <span>13</span></button><button className="quick-filter">Non rapprochées <span>4</span></button></div><section className="panel transaction-panel"><div className="table-meta"><span><strong>{items.length}</strong> transactions affichées</span><span className="muted">Dernière synchronisation · il y a 2 min</span></div><TransactionTable items={items} onOpen={onOpen} /></section></>;
+function TransactionsPage({ items, query, setQuery, statusFilter, statusCounts, setStatusFilter, onOpen }: { items: Transaction[]; query: string; setQuery: (value: string) => void; statusFilter: TransactionStatusFilter; statusCounts: TransactionStatusCounts; setStatusFilter: (value: TransactionStatusFilter) => void; onOpen: (id: string) => void }) {
+  return <><PageHeading eyebrow="Registre principal" title="Transactions" description="Toutes les dépenses, avec leur provenance et leur état de contrôle." action={<button className="primary-button" type="button"><span>⇩</span> Exporter</button>} /><div className="filter-panel"><div className="search-box"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un fournisseur, une personne, un chantier…" /></div><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as TransactionStatusFilter)} aria-label="Filtrer les transactions par statut">{transactionStatusFilters.slice(0, 4).map((filter) => <option key={filter} value={filter}>{filter}</option>)}</select><button className="filter-select" type="button">Période <b>⌄</b></button><button className="filter-select" type="button">Plus de filtres <b>＋</b></button></div><div className="quick-filters" aria-label="Filtres rapides de statut">{transactionStatusFilters.map((filter) => <button className={`quick-filter ${statusFilter === filter ? "active" : ""}`} type="button" key={filter} onClick={() => setStatusFilter(filter)} aria-pressed={statusFilter === filter}>{filter} <span>{statusCounts[filter]}</span></button>)}</div><section className="panel transaction-panel"><div className="table-meta"><span><strong>{items.length}</strong> transactions affichées</span><span className="muted">Dernière synchronisation · il y a 2 min</span></div><TransactionTable items={items} onOpen={onOpen} /></section></>;
 }
 
 function TransactionTable({ items, compact = false, onOpen }: { items: Transaction[]; compact?: boolean; onOpen?: (id: string) => void }) {

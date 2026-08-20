@@ -10,6 +10,7 @@ import {
   classifyStorageFile,
   preflightBlockingReasons,
 } from "../scripts/lib/demo-cleanup.mjs";
+import { isKnownE2EInvoiceIntake } from "../lib/demo-data-policy.mjs";
 
 const firebaseUids = { WORKER: "demo-worker-uid", KIM: "demo-kim-uid", ADMIN: "demo-admin-uid" };
 const fixture = businessFixture(firebaseUids);
@@ -49,7 +50,35 @@ test("une InvoicePhoto non-DEMO n'est jamais sélectionnée", () => {
   const photo = { id: "PHOTO-REAL-001", invoice: { id: "INV-REAL-001" }, storagePath: "receipts/real/invoice.png" };
   const result = classifyInvoicePhoto(photo, fixtureIndex);
   assert.equal(result.classification, "NON_DEMO");
-  assert.throws(() => buildDeletionPlan(report({ invoicePhotos: [photo] })), /PRE-FLIGHT BLOQUÉ/);
+  assert.equal(buildDeletionPlan(report({ invoicePhotos: [photo] })).InvoicePhoto.length, 0);
+});
+
+test("l'intake E2E à UUID aléatoire est sélectionnée seulement avec les quatre marqueurs concordants", () => {
+  const intake = {
+    receiptId: "798a289b-f105-4dfe-90e3-bb5d43c7cf6c",
+    uploaderUid: "demo-worker-uid",
+    storageFolder: "receipts/2026/08/798a289b-f105-4dfe-90e3-bb5d43c7cf6c",
+    extractedVendor: "Quincaillerie Démo",
+    extractedInvoiceNumber: "DEMO-E2E-001",
+    classificationAccountCode: "DEMO-90001",
+    aiNotes: "Facture de démonstration E2E extraite avec succès.",
+  };
+  assert.equal(isKnownE2EInvoiceIntake(intake), true);
+  const current = report({
+    rowsByType: { InvoiceIntake: [intake] },
+    storageFiles: [{ name: `${intake.storageFolder}/original-01.png`, metadata: { metadata: {} } }],
+  });
+  assert.equal(current.resources.InvoiceIntake[0].classification, "SAFE_DEMO");
+  assert.equal(current.storage[0].classification, "SAFE_DEMO");
+  const plan = buildDeletionPlan(current);
+  assert.equal(plan.InvoiceIntake.length, 1);
+  assert.equal(plan.Storage.length, 1);
+});
+
+test("un intake avec un seul marqueur DEMO reste conservé comme ambigu", () => {
+  const current = report({ rowsByType: { InvoiceIntake: [{ receiptId: "real-intake", extractedInvoiceNumber: "DEMO-E2E-001" }] } });
+  assert.equal(current.resources.InvoiceIntake[0].classification, "NON_DEMO");
+  assert.equal(buildDeletionPlan(current).InvoiceIntake.length, 0);
 });
 
 test("un fichier Storage sans preuve DEMO suffisante est ambigu et non sélectionné", () => {
@@ -84,6 +113,13 @@ test("les fixtures ne produisent plus les anciens statuts", () => {
 
 test("la validation post-cleanup accepte zéro DEMO et un compte non-DEMO", () => {
   assert.doesNotThrow(() => assertPostCleanupClean(report({ rowsByType: {}, authRecords: [{ uid: "real-user-uid", email: "real.user@example.com", customClaims: { demo: false } }] })));
+});
+
+test("la validation post-cleanup conserve les ressources opérationnelles non-DEMO", () => {
+  assert.doesNotThrow(() => assertPostCleanupClean(report({
+    rowsByType: { UserProfile: [{ id: "REAL-USER", firebaseUid: "real-user-uid" }] },
+    authRecords: [{ uid: "real-user-uid", email: "real.user@example.com", customClaims: { demo: false } }],
+  })));
 });
 
 test("une lecture post-cleanup incomplète bloque la certification", () => {

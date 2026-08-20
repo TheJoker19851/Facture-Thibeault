@@ -18,7 +18,7 @@ Facture Thibeault ne crée pas de projet Firebase séparé pour le moment.
 - Les credentials Admin et Gemini restent dans `.env.local`/Vercel, jamais dans Git.
 - La commande générale `seed:local` ne peut pas viser la production.
 - La seule écriture de données prévue avant l’import réel est `npm run seed:demo:production`, qui exige `CONFIRM_DEMO_PRODUCTION=facture-thibeault`, crée uniquement des comptes et données `DEMO-*`, et refuse tout compte Auth existant non marqué `demo=true`.
-- `npm run cleanup:demo:production` exige deux confirmations et ne supprime que les IDs `DEMO-*` vérifiés, les comptes Auth DEMO et les fichiers Storage avec le metadata `demo=true`.
+- `npm run cleanup:demo:production` exige deux confirmations et ne supprime que les fixtures `DEMO-*` vérifiées, l’intake E2E reconnue par ses marqueurs exacts, les comptes Auth DEMO et les fichiers Storage reliés à ces fixtures; les ressources non-DEMO sont conservées.
 
 ## Schéma Data Connect
 

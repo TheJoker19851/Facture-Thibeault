@@ -28,6 +28,7 @@ import type {
 import { firebaseAuth } from "./client";
 import { firebaseDataConnect, sqlConnectConfigured } from "./data-connect";
 import { INVOICE_CLIENT_VERSION } from "../lib/invoice-client-version.mjs";
+import { isDemoIdentifier, isDemoOrE2EInvoiceIntake } from "../lib/demo-data-policy.mjs";
 
 export type AppAccountingData = {
   users: Array<{
@@ -456,10 +457,6 @@ export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccounti
   };
 }
 
-function isDemoValue(value: string | null | undefined) {
-  return typeof value === "string" && value.startsWith("DEMO-");
-}
-
 /**
  * Production must never render the controlled DEMO seed beside operational data.
  * The seed remains available in Firebase for validation, but the live UI only
@@ -468,13 +465,13 @@ function isDemoValue(value: string | null | undefined) {
 export function removeDemoAccountingData(data: AppAccountingData): AppAccountingData {
   return {
     ...data,
-    users: data.users.filter((user) => !isDemoValue(user.id) && !isDemoValue(user.firebaseUid) && !user.email?.endsWith("@example.test")),
-    accounts: data.accounts.filter((account) => !isDemoValue(account.code)),
-    cards: data.cards.filter((card) => !isDemoValue(card.id)),
-    periods: data.periods.filter((period) => !isDemoValue(period.id)),
-    projects: data.projects.filter((project) => !isDemoValue(project.split(" · ", 1)[0])),
-    skuReferences: data.skuReferences.filter((reference) => !isDemoValue(reference.sku) && !reference.merchant.includes("Démo")),
-    transactions: data.transactions.filter((transaction) => !isDemoValue(transaction.id)),
-    intakes: data.intakes.filter((intake) => !isDemoValue(intake.receiptId)),
+    users: data.users.filter((user) => !isDemoIdentifier(user.id) && !isDemoIdentifier(user.firebaseUid) && !user.email?.endsWith("@example.test")),
+    accounts: data.accounts.filter((account) => !isDemoIdentifier(account.code)),
+    cards: data.cards.filter((card) => !isDemoIdentifier(card.id)),
+    periods: data.periods.filter((period) => !isDemoIdentifier(period.id)),
+    projects: data.projects.filter((project) => !isDemoIdentifier(project.split(" · ", 1)[0])),
+    skuReferences: data.skuReferences.filter((reference) => !isDemoIdentifier(reference.sku) && !reference.merchant.includes("Démo")),
+    transactions: data.transactions.filter((transaction) => !isDemoIdentifier(transaction.id)),
+    intakes: data.intakes.filter((intake) => !isDemoOrE2EInvoiceIntake(intake)),
   };
 }
