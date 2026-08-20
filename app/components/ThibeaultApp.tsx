@@ -221,6 +221,45 @@ const projectReferences: ProjectReference[] = [
   { id: "DEMO-ADMIN", number: "DEMO-ADMIN", name: "Administration Démo", status: "ACTIVE" },
 ];
 
+const demoIntakes: InvoiceIntake[] = [
+  {
+    receiptId: "DEMO-INTAKE-REVIEW-001",
+    uploaderUid: "DEMO-USER-WORKER",
+    storageFolder: "receipts/demo/DEMO-INTAKE-REVIEW-001",
+    photoCount: 0,
+    status: "NEEDS_REVIEW",
+    processingStatus: "NEEDS_REVIEW",
+    accountingStatus: "NOT_POSTED",
+    aiModel: "demo-mock",
+    aiConfidence: 0.62,
+    extractedVendor: "Matériaux Démo",
+    extractedInvoiceNumber: "DEMO-FACT-006",
+    extractedInvoiceDate: "2026-08-20",
+    extractedSubtotalCents: "12700",
+    extractedTpsCents: "635",
+    extractedTvqCents: "1263",
+    extractedTotalCents: "14698",
+    extractedCurrency: "CAD",
+    extractedSku: "DEMO-SKU-INCONNU",
+    extractedCategory: "Matériaux divers",
+    extractedProjectId: "DEMO-PROJET-INCONNU",
+    classificationCategory: "Matériaux divers",
+    classificationSource: "DEMO_MOCK",
+    classificationConfidence: 0.62,
+    classificationStatus: "UNRESOLVED",
+    decisionExceptions: serializeDecisionExceptions([
+      { code: "MISSING_ACCOUNT", fieldName: "accountCode", message: "Un compte comptable doit être confirmé.", aiValue: null, suggestedValue: null, status: "OPEN" },
+      { code: "UNKNOWN_PROJECT", fieldName: "projectId", message: "Projet introuvable — sélectionnez le chantier correspondant.", aiValue: "DEMO-PROJET-INCONNU", suggestedValue: null, status: "OPEN" },
+      { code: "TAX_MISMATCH", fieldName: "totalCents", message: "Le total ne correspond pas au sous-total et aux taxes extraites.", aiValue: "146,98 $", suggestedValue: "145,98 $", status: "OPEN" },
+      { code: "LOW_CONFIDENCE", fieldName: "confidence", message: "La confiance du résultat démo est inférieure au seuil.", aiValue: "0.62", suggestedValue: "Vérification manuelle", status: "OPEN" },
+    ]),
+    decisionChecks: serializeDecisionChecks([{ code: "AI_CONFIDENCE", passed: false, message: "Scénario démo volontairement incomplet pour la revue Kim." }]),
+    aiNotes: "Donnée entièrement fictive : corriger le compte, le projet et confirmer les taxes avant toute écriture.",
+    createdAt: "2026-08-20T13:30:00.000Z",
+    updatedAt: "2026-08-20T13:30:00.000Z",
+  },
+];
+
 type AppData = {
   users: UserProfile[];
   accounts: AccountCategory[];
@@ -325,7 +364,7 @@ const demoAppData: AppData = {
   projects: projectReferences,
   skuReferences,
   transactions,
-  intakes: [],
+  intakes: demoIntakes,
 };
 
 function useAppData() {
