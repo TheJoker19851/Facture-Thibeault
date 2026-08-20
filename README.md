@@ -127,6 +127,7 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 - `npm test`: build the application and verify the rendered PWA shell
 - `pnpm exec tsc --noEmit`: run the TypeScript check
 - `npm run firebase:plan:production`: compile and inspect the production SQL diff
+- `npm run firebase:migrate:production`: apply the reviewed production SQL migration with the documented guard
 - `npm run firebase:deploy:production`: deploy only with the documented guard
 - See `docs/Firebase-connection.md` for environment separation, connector
   generation, Vercel scopes and deployment gates

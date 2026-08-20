@@ -7,7 +7,7 @@ import { readEnvFile } from "./lib/env-files.mjs";
 
 const target = process.argv[2];
 const action = process.argv[3];
-if (target !== "production" || !["plan", "deploy"].includes(action)) throw new Error("Usage : node scripts/firebase-safe-command.mjs production <plan|deploy>.");
+if (target !== "production" || !["plan", "migrate", "deploy"].includes(action)) throw new Error("Usage : node scripts/firebase-safe-command.mjs production <plan|migrate|deploy>.");
 const { values: fileValues } = await readEnvFile(".env.local");
 const runtimeKeys = [
   "APP_ENV", "NEXT_PUBLIC_APP_ENV", "CONFIRM_PRODUCTION_DEPLOY", "CONFIRM_PRODUCTION_SCHEMA_MIGRATION",
@@ -27,13 +27,13 @@ const validation = validateFirebaseEnvironment({
   previewMode: values.NEXT_PUBLIC_FIREBASE_PREVIEW_MODE, requireExplicit: true,
 });
 if (!validation.ok) throw new Error(validation.issues.join(" "));
-if (action === "deploy" && (values.CONFIRM_PRODUCTION_DEPLOY !== "DEPLOY_FACTURE_THIBEAULT_PRODUCTION" || values.CONFIRM_PRODUCTION_SCHEMA_MIGRATION !== "REVIEWED_PRODUCTION_SQL_DIFF")) {
+if (["migrate", "deploy"].includes(action) && (values.CONFIRM_PRODUCTION_DEPLOY !== "DEPLOY_FACTURE_THIBEAULT_PRODUCTION" || values.CONFIRM_PRODUCTION_SCHEMA_MIGRATION !== "REVIEWED_PRODUCTION_SQL_DIFF")) {
   throw new Error("Le déploiement production exige les deux confirmations explicites documentées.");
 }
 
 console.log("TARGET PROJECT: facture-thibeault");
 console.log("ENVIRONMENT: PRODUCTION");
-console.log(`DATA MODE: ${action === "plan" ? "SCHEMA PLAN ONLY" : "SCHEMA DEPLOY ONLY"}`);
+console.log(`DATA MODE: ${action === "plan" ? "SCHEMA PLAN ONLY" : action === "migrate" ? "SCHEMA MIGRATION ONLY" : "SCHEMA DEPLOY ONLY"}`);
 const firebaseCli = resolve("node_modules/firebase-tools/lib/bin/firebase.js");
 async function run(args) {
   await new Promise((resolvePromise, reject) => {
@@ -60,7 +60,10 @@ if (!process.env.GOOGLE_APPLICATION_CREDENTIALS && values.FIREBASE_ADMIN_CLIENT_
 try {
   await run(["dataconnect:compile", "--project", projectId]);
   await run(["dataconnect:sql:diff", "--project", projectId]);
-  if (action === "deploy") await run(["deploy", "--project", projectId, "--only", "storage,dataconnect"]);
+  // Firebase CLI requires --force for this reviewed FK/nullability change.
+  // The explicit production confirmations above remain mandatory.
+  if (action === "migrate") await run(["dataconnect:sql:migrate", "--project", projectId, "--service", "facture-thibeault-service", "--force"]);
+  else if (action === "deploy") await run(["deploy", "--project", projectId, "--only", "dataconnect"]);
   else console.log("Plan production terminé en lecture seule; aucune migration appliquée.");
 } finally {
   if (temporaryAdcDirectory) await rm(temporaryAdcDirectory, { recursive: true, force: true });

@@ -19,6 +19,7 @@
     "cleanup:demo:production": "node scripts/cleanup-demo-production.mjs",
     "firebase:compile": "firebase emulators:exec --project demo-facture-thibeault --only dataconnect \"node scripts/verify-dataconnect-compile.mjs\"",
     "firebase:plan:production": "node scripts/firebase-safe-command.mjs production plan",
+    "firebase:migrate:production": "node scripts/firebase-safe-command.mjs production migrate",
     "firebase:deploy:production": "node scripts/firebase-safe-command.mjs production deploy",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern .vercel",
     "db:generate": "drizzle-kit generate"

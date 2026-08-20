@@ -23,7 +23,7 @@ Facture Thibeault ne crée pas de projet Firebase séparé pour le moment.
 
 ## Schéma Data Connect
 
-Générez toujours un plan avant une migration : `npm run firebase:plan:production`. Vérifiez que la sortie cible uniquement `facture-thibeault`. Aucun déploiement de schéma n’est exécuté dans la validation locale actuelle; `firebase:deploy:production` exige des confirmations distinctes.
+Générez toujours un plan avant une migration : `npm run firebase:plan:production`. Vérifiez que la sortie cible uniquement `facture-thibeault`, puis exécutez la migration explicitement avec `npm run firebase:migrate:production` et enfin le déploiement du schéma avec `npm run firebase:deploy:production`. Les deux commandes d’écriture exigent `CONFIRM_PRODUCTION_DEPLOY=DEPLOY_FACTURE_THIBEAULT_PRODUCTION` et `CONFIRM_PRODUCTION_SCHEMA_MIGRATION=REVIEWED_PRODUCTION_SQL_DIFF`.
 
 ## Vercel
 
