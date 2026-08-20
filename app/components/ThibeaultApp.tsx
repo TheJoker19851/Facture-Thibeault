@@ -150,6 +150,14 @@ const cardPeriods: CardPeriod[] = [
   { id: "DEMO-2026-07", label: "Période Démo · 10 juillet → 9 août 2026", start: "2026-07-10", end: "2026-08-09", statementLabel: "Relevé Démo · cycle du 10 au 9" },
 ];
 
+const emptyProductionPeriod: CardPeriod = {
+  id: "custom",
+  label: "Période personnalisée",
+  start: "2026-08-10",
+  end: "2026-09-09",
+  statementLabel: "Relevé · période personnalisée",
+};
+
 const skuReferences: SkuReference[] = [
   { merchant: "Quincaillerie Démo", sku: "DEMO-SKU-001", label: "Bloc de démonstration", category: "Matériaux Démo", accountCode: "DEMO-90001", status: "Validé" },
 ];
@@ -419,7 +427,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
   const [selectedId, setSelectedId] = useState<string>(appData.transactions[0]?.id ?? "");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<TransactionStatusFilter>("Toutes");
-  const [selectedPeriod, setSelectedPeriod] = useState<CardPeriod>(appData.periods[0]);
+  const [selectedPeriod, setSelectedPeriod] = useState<CardPeriod>(isProductionDataSource ? emptyProductionPeriod : appData.periods[0]);
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [draftReceiptId, setDraftReceiptId] = useState<string | null>(null);
   const [queueState, setQueueState] = useState<"idle" | "uploading" | "sent">("idle");
