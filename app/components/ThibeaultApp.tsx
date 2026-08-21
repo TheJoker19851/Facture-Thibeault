@@ -13,6 +13,7 @@ import { filterTransactionsByStatus, transactionStatusFilterCounts, TRANSACTION_
 import { INVOICE_CLIENT_VERSION } from "../../lib/invoice-client-version.mjs";
 import { AUDIT_ACTIONS, auditDetails, parseAuditDetails } from "../../lib/audit-events.mjs";
 import { clearCaptureDraft, loadCaptureDraft, saveCaptureDraft } from "../../lib/capture-queue.mjs";
+import { buildProjectImportPlan, parseProjectImportJson, PROJECT_IMPORT_MAX_BYTES } from "../../lib/project-import.mjs";
 import { useFirebaseIdentity, type AppRole } from "./FirebaseShell";
 
 type Role = AppRole;
@@ -1632,6 +1633,16 @@ function ArchivesPage({ onNotify, isProductionDataSource }: { onNotify: (message
 
 type DirectoryDataPatch = { users?: UserProfile[]; cards?: CreditCard[]; accounts?: AccountCategory[]; projects?: ProjectReference[]; periods?: CardPeriod[] };
 
+type ProjectImportChange = { before: ProjectReference; after: ProjectReference };
+type ProjectImportPlan = {
+  rows: ProjectReference[];
+  additions: ProjectReference[];
+  updates: ProjectImportChange[];
+  unchanged: ProjectReference[];
+  conflicts: string[];
+  errors: string[];
+};
+
 function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: DirectoryDataPatch) => void; role: Role }) {
   const data = useAppData();
   const identity = useFirebaseIdentity();
@@ -1650,6 +1661,9 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
   const [directoryQuery, setDirectoryQuery] = useState("");
   const [accountForm, setAccountForm] = useState({ id: "", number: "", label: "", type: "EXPENSE" });
   const [projectForm, setProjectForm] = useState({ id: "", number: "", name: "" });
+  const projectImportInputRef = useRef<HTMLInputElement | null>(null);
+  const [projectImportFileName, setProjectImportFileName] = useState("");
+  const [projectImportPlan, setProjectImportPlan] = useState<ProjectImportPlan | null>(null);
   const [periodForm, setPeriodForm] = useState({ id: "", label: "", startDate: "", endDate: "", statementLabel: "" });
   const canCreateUsers = role === "ADMIN";
   const canEditReferences = role === "ADMIN";
@@ -1962,6 +1976,76 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
     }
   };
 
+  const previewProjectImport = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setError("");
+    setNotice("");
+    setProjectImportPlan(null);
+    setProjectImportFileName(file.name);
+    if (!ensureAdminPersistence()) return;
+    if (file.size > PROJECT_IMPORT_MAX_BYTES) {
+      setError(`Le fichier dépasse la limite de ${Math.round(PROJECT_IMPORT_MAX_BYTES / 1_000_000)} Mo.`);
+      return;
+    }
+    try {
+      const parsed = parseProjectImportJson(await file.text());
+      const plan = buildProjectImportPlan(projects, parsed as { rows: ProjectReference[]; errors: string[] }) as ProjectImportPlan;
+      setProjectImportPlan(plan);
+      if (plan.errors.length || plan.conflicts.length) {
+        setError("L’aperçu contient des erreurs ou des conflits. Aucun projet ne sera écrit tant qu’ils ne sont pas corrigés.");
+      } else {
+        setNotice(`${plan.rows.length} projet(s) analysé(s). Vérifiez l’aperçu avant d’appliquer l’import.`);
+      }
+    } catch (reason) {
+      showError(reason);
+    }
+  };
+
+  const applyProjectImport = async () => {
+    if (!ensureAdminPersistence() || !projectImportPlan) return;
+    if (projectImportPlan.errors.length || projectImportPlan.conflicts.length) {
+      setError("Corrigez les erreurs et conflits avant d’appliquer l’import.");
+      return;
+    }
+    setBusyKey("project-import");
+    setError("");
+    setNotice("");
+    const workingProjects = new Map(projects.map((project) => [project.id, project]));
+    let appliedCount = 0;
+    try {
+      for (const project of projectImportPlan.rows) {
+        const previous = projects.find((candidate) => candidate.id === project.id || candidate.number === project.number);
+        await saveProject({
+          id: project.id,
+          number: project.number,
+          name: project.name,
+          status: project.status ?? "ACTIVE",
+          auditAction: AUDIT_ACTIONS.PROJECT_IMPORTED,
+          auditDetails: auditDetails({ source: "JSON_IMPORT", fileName: projectImportFileName, before: previous ?? null, after: project }),
+        });
+        workingProjects.set(project.id, project);
+        appliedCount += 1;
+      }
+      const nextProjects = Array.from(workingProjects.values());
+      setProjects(nextProjects);
+      onDataChange({ projects: nextProjects });
+      setProjectImportPlan(null);
+      setProjectImportFileName("");
+      setNotice(`Import terminé : ${projectImportPlan.additions.length} ajout(s), ${projectImportPlan.updates.length} mise(s) à jour, ${projectImportPlan.unchanged.length} inchangé(s). Aucun projet supprimé.`);
+    } catch (reason) {
+      const nextProjects = Array.from(workingProjects.values());
+      if (appliedCount > 0) {
+        setProjects(nextProjects);
+        onDataChange({ projects: nextProjects });
+      }
+      showError(new Error(`Import interrompu après ${appliedCount} projet(s) : ${reason instanceof Error ? reason.message : "erreur inconnue"}.`));
+    } finally {
+      setBusyKey("");
+    }
+  };
+
   const toggleProject = async (project: ProjectReference) => {
     if (!ensureAdminPersistence()) return;
     const status = project.status === "INACTIVE" ? "ACTIVE" : "INACTIVE";
@@ -2106,7 +2190,21 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
          <div className="directory-list">{visibleAccounts.map((account) => <div className="directory-row" key={account.id}><div><strong>{account.number} — {account.label}</strong><small>{account.type === "TAX" ? "Taxe" : "Dépense"}</small></div><span className={`badge ${account.status === "INACTIVE" ? "badge-danger" : "badge-success"}`}>{account.status === "INACTIVE" ? "Inactif" : "Actif"}</span>{canEditReferences && <><button className="text-button" type="button" onClick={() => setAccountForm({ id: account.id, number: account.number, label: account.label, type: account.type })}>Modifier</button><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `account-toggle-${account.id}`} onClick={() => void toggleAccount(account)}>{account.status === "INACTIVE" ? "Réactiver" : "Désactiver"}</button><button className="text-button danger-text" type="button" disabled={!persistenceReady || busyKey === `account-delete-${account.id}`} onClick={() => void deleteAccount(account)}>Supprimer</button></>}</div>)}</div>
        </>}
        {selectedSection === "projects" && <>
-         {canEditReferences ? <form className="directory-form" onSubmit={saveProjectReference}><div className="field-grid"><label className="field"><span>Numéro de projet</span><input required value={projectForm.number} onChange={(event) => setProjectForm((current) => ({ ...current, number: event.target.value }))} placeholder="26015" /></label><label className="field"><span>Nom du projet</span><input required value={projectForm.name} onChange={(event) => setProjectForm((current) => ({ ...current, name: event.target.value }))} placeholder="Réfection usine Bécancour" /></label></div><button className="primary-button" type="submit" disabled={!persistenceReady || busyKey.startsWith("project-")}>{busyKey.startsWith("project-") ? "Enregistrement…" : projectForm.id ? "Enregistrer la modification" : "Ajouter le projet"}</button></form> : <div className="config-note"><span>i</span><p>Kim peut consulter et sélectionner les projets. La gestion du référentiel est réservée à ADMIN.</p></div>}
+         {canEditReferences ? <>
+           <form className="directory-form" onSubmit={saveProjectReference}><div className="field-grid"><label className="field"><span>Numéro de projet</span><input required value={projectForm.number} onChange={(event) => setProjectForm((current) => ({ ...current, number: event.target.value }))} placeholder="26015" /></label><label className="field"><span>Nom du projet</span><input required value={projectForm.name} onChange={(event) => setProjectForm((current) => ({ ...current, name: event.target.value }))} placeholder="Réfection usine Bécancour" /></label></div><button className="primary-button" type="submit" disabled={!persistenceReady || busyKey.startsWith("project-")}>{busyKey.startsWith("project-") ? "Enregistrement…" : projectForm.id ? "Enregistrer la modification" : "Ajouter le projet"}</button></form>
+           <div className="project-import-panel">
+             <div><p className="eyebrow">Mise à jour en lot · ADMIN</p><h3>Importer la liste des projets</h3><p className="muted">Sélectionnez un fichier JSON pour obtenir un aperçu avant toute écriture.</p></div>
+             <label className="project-import-file"><span>Fichier JSON</span><input ref={projectImportInputRef} type="file" accept=".json,application/json" disabled={!persistenceReady || busyKey === "project-import"} onChange={(event) => void previewProjectImport(event)} /></label>
+             <div className="directory-help">Format attendu : <code>{'{ "projects": [{ "number": "26015", "name": "Nom du chantier", "status": "ACTIVE" }] }'}</code>. Un numéro existant est mis à jour; un numéro absent est ajouté. Les projets absents du fichier ne sont jamais supprimés.</div>
+             {projectImportFileName && <p className="project-import-file-name">Fichier sélectionné : <strong>{projectImportFileName}</strong></p>}
+             {projectImportPlan && <div className="project-import-preview" aria-live="polite">
+               <div className="project-import-summary"><span><strong>{projectImportPlan.rows.length}</strong> analysés</span><span><strong>{projectImportPlan.additions.length}</strong> ajouts</span><span><strong>{projectImportPlan.updates.length}</strong> mises à jour</span><span><strong>{projectImportPlan.unchanged.length}</strong> inchangés</span></div>
+               {projectImportPlan.errors.length > 0 && <div className="project-import-errors"><strong>Erreurs de validation</strong><ul>{projectImportPlan.errors.slice(0, 6).map((message) => <li key={message}>{message}</li>)}</ul>{projectImportPlan.errors.length > 6 && <small>… et {projectImportPlan.errors.length - 6} autre(s).</small>}</div>}
+               {projectImportPlan.conflicts.length > 0 && <div className="project-import-errors"><strong>Conflits</strong><ul>{projectImportPlan.conflicts.slice(0, 6).map((message) => <li key={message}>{message}</li>)}</ul>{projectImportPlan.conflicts.length > 6 && <small>… et {projectImportPlan.conflicts.length - 6} autre(s).</small>}</div>}
+               {projectImportPlan.errors.length === 0 && projectImportPlan.conflicts.length === 0 && <button className="primary-button" type="button" disabled={!persistenceReady || busyKey === "project-import"} onClick={() => void applyProjectImport()}>{busyKey === "project-import" ? "Import en cours…" : "Appliquer l’import"}</button>}
+             </div>}
+           </div>
+         </> : <div className="config-note"><span>i</span><p>Kim peut consulter et sélectionner les projets. L’import JSON et la gestion du référentiel sont réservés à ADMIN.</p></div>}
          <div className="directory-list">{visibleProjects.map((project) => <div className="directory-row" key={project.id}><div><strong>{project.number} — {project.name}</strong><small>ID interne conservé: {project.id}</small></div><span className={`badge ${project.status === "INACTIVE" ? "badge-danger" : "badge-success"}`}>{project.status === "INACTIVE" ? "Inactif" : "Actif"}</span>{canEditReferences && <><button className="text-button" type="button" onClick={() => setProjectForm({ id: project.id, number: project.number, name: project.name })}>Modifier</button><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `project-toggle-${project.id}`} onClick={() => void toggleProject(project)}>{project.status === "INACTIVE" ? "Réactiver" : "Désactiver"}</button><button className="text-button danger-text" type="button" disabled={!persistenceReady || busyKey === `project-delete-${project.id}`} onClick={() => void deleteProjectReference(project)}>Supprimer</button></>}</div>)}</div>
       </>}
       {selectedSection === "periods" && <>
