@@ -52,6 +52,20 @@ query ListExpenseAccounts @auth(expr: "auth.token.role == 'KIM' || auth.token.ro
   }
 }
 
+query ListCreditCardHolderHistories @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  creditCardHolderHistories(limit: 1000) {
+    id
+    card { id lastFour }
+    holder { id displayName role status }
+    validFrom
+    validTo
+    isCurrent
+    status
+    createdAt
+    updatedAt
+  }
+}
+
 query ListCreditCardStatements @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   creditCardStatements(limit: 250) {
     id
@@ -93,6 +107,59 @@ query ListCreditCardStatementLines($statementId: String!) @auth(expr: "auth.toke
     externalReference
     status
     rawData
+    createdAt
+    updatedAt
+  }
+}
+
+query ListAllCreditCardStatementLines @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  creditCardStatementLines(limit: 10000) {
+    id
+    statement { id }
+    sequence
+    transactionDate
+    postedDate
+    merchantRaw
+    merchantNormalized
+    amountCents
+    externalReference
+    status
+    rawData
+    createdAt
+    updatedAt
+  }
+}
+
+query ListMerchantAliases @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  merchantAliases(limit: 5000) {
+    id
+    merchantRawKey
+    merchantNormalized
+    merchantCanonical
+    active
+    status
+    source
+    confidence
+    method
+    createdBy { id displayName role }
+    createdAt
+    updatedAt
+  }
+}
+
+query ListReconciliationMatches @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  reconciliationMatches(limit: 10000) {
+    id
+    statementLine { id statement { id } sequence }
+    expenseTransaction { id }
+    invoice { id }
+    matchScore
+    matchMethod
+    status
+    confirmedBy { id displayName role }
+    confirmedAt
+    reason
+    details
     createdAt
     updatedAt
   }
@@ -239,6 +306,20 @@ query ListInvoiceIntakes @auth(expr: "auth.token.role == 'KIM' || auth.token.rol
   }
 }
 
+query ListInvoicesForReconciliation @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  invoices(limit: 1000) {
+    id
+    vendor
+    invoiceNumber
+    invoiceDate
+    totalCents
+    processingStatus
+    accountingStatus
+    reviewStatus
+    transaction { id }
+  }
+}
+
 query ListAuditEvents($entityType: String!, $entityId: String!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   auditEvents(
     where: {
@@ -256,5 +337,20 @@ query ListAuditEvents($entityType: String!, $entityId: String!) @auth(expr: "aut
     entityId
     details
     createdAt
+  }
+}
+
+query ListReconciliationOutsideControls @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  reconciliationOutsideControls(limit: 10000) {
+    id
+    statement { id }
+    expenseTransaction { id transactionDate vendor totalCents card { id } }
+    status
+    reason
+    resolvedBy { id displayName role }
+    resolvedAt
+    resolutionNote
+    createdAt
+    updatedAt
   }
 }

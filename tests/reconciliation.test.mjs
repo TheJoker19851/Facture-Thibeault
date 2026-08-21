@@ -11,6 +11,7 @@ import {
   setLineReconciliationStatus,
   sha256Hex,
 } from "../lib/reconciliation.mjs";
+import { buildLargeReconciliationFixture } from "../lib/reconciliation-integration-fixtures.mjs";
 
 function statement(overrides = {}) {
   return {
@@ -102,4 +103,17 @@ test("les actions manuelles sont contrôlées et auditées", () => {
   const ignored = setLineReconciliationStatus(manual, "LINE-1", RECONCILIATION_STATUSES.IGNORED, { uid: "KIM-1" });
   assert.equal(ignored.lineResults[0].status, RECONCILIATION_STATUSES.IGNORED);
   assert.equal(ignored.audit.entityId, "LINE-1");
+});
+
+test("la fixture de volume conserve 125 séquences et distingue les exceptions", () => {
+  const fixture = buildLargeReconciliationFixture();
+  const result = reconcileStatement(fixture.statement, fixture.transactions);
+  const counts = Object.fromEntries(Object.values(RECONCILIATION_STATUSES).map((status) => [status, 0]));
+  for (const lineResult of result.lineResults) counts[lineResult.status] += 1;
+  assert.equal(result.lineResults.length, fixture.expected.lines);
+  assert.deepEqual(result.lineResults.map((lineResult) => lineResult.line.sequence), Array.from({ length: 125 }, (_, index) => index + 1));
+  assert.equal(counts[RECONCILIATION_STATUSES.MATCHED], fixture.expected.matched);
+  assert.equal(counts[RECONCILIATION_STATUSES.REVIEW], fixture.expected.review);
+  assert.equal(counts[RECONCILIATION_STATUSES.MISSING_INVOICE], fixture.expected.missingInvoice);
+  assert.equal(result.outsideTransactions.length, fixture.expected.outside);
 });

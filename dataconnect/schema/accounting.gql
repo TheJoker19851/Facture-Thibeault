@@ -205,7 +205,8 @@ type AuditEvent @table(name: "audit_events", key: "id") {
 
 # A statement is immutable source evidence. The period dates and holder values
 # are snapshots so later card assignments cannot rewrite history.
-type CreditCardStatement @table(name: "credit_card_statements", key: "id") {
+type CreditCardStatement @table(name: "credit_card_statements", key: "id")
+  @index(fields: ["cardId", "periodStart", "periodEnd"]) {
   id: String!
   card: CreditCard!
   holderIdSnapshot: String!
@@ -220,6 +221,23 @@ type CreditCardStatement @table(name: "credit_card_statements", key: "id") {
   status: String! @default(value: "IMPORTED")
   lineCount: Int! @default(value: 0)
   totalAmountCents: Int64! @default(value: 0)
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# Effective-dated history prevents a future card reassignment from rewriting
+# the holder snapshot of an older statement or transaction.
+type CreditCardHolderHistory @table(name: "credit_card_holder_history", key: "id")
+  @unique(fields: ["card", "validFrom"])
+  @index(fields: ["cardId", "validFrom"])
+  @index(fields: ["holderId", "validFrom"]) {
+  id: String!
+  card: CreditCard!
+  holder: UserProfile!
+  validFrom: Date!
+  validTo: Date
+  isCurrent: Boolean! @default(value: false)
+  status: String! @default(value: "ACTIVE")
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }
@@ -256,12 +274,30 @@ type ReconciliationMatch @table(name: "reconciliation_matches", key: "id") {
   updatedAt: Timestamp! @default(expr: "request.time")
 }
 
+type ReconciliationOutsideControl @table(name: "reconciliation_outside_controls", key: "id")
+  @unique(fields: ["statement", "expenseTransaction"]) {
+  id: String!
+  statement: CreditCardStatement!
+  expenseTransaction: ExpenseTransaction!
+  status: String! @default(value: "OUTSIDE_STATEMENT")
+  reason: String!
+  resolvedBy: UserProfile
+  resolvedAt: Timestamp
+  resolutionNote: String
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
 type MerchantAlias @table(name: "merchant_aliases", key: "id") @unique(fields: ["merchantRawKey"]) {
   id: String!
   merchantRawKey: String!
   merchantNormalized: String!
+  merchantCanonical: String
+  active: Boolean! @default(value: true)
   status: String! @default(value: "ACTIVE")
   source: String! @default(value: "MANUAL")
+  confidence: Float
+  method: String
   createdBy: UserProfile
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")

@@ -43,20 +43,87 @@ async function seedDataConnect(dataConnect, firebaseUids) {
     status: "ACTIVE",
   }));
   const fixture = businessFixture(firebaseUids);
-  const batches = [
-    ["UserProfile", profiles],
-    ["Project", demoProjects],
-    ["ExpenseAccount", demoExpenseAccounts],
-    ["CardStatementPeriod", demoPeriods],
-    ["InvoiceIntake", fixture.invoiceIntakes],
-  ];
-
-  for (const [table, rows] of batches) await dataConnect.upsertMany(table, rows);
+  // Use explicit NO_ACCESS fixture operations rather than the Admin SDK bulk
+  // helpers. The SQL Connect emulator can reset its PostgreSQL stream during
+  // bulk startup; these operations remain idempotent and deterministic.
+  for (const profile of profiles) await dataConnect.executeMutation("AdminSeedUserProfile", profile);
+  for (const project of demoProjects) await dataConnect.executeMutation("AdminSeedProject", project);
+  for (const account of demoExpenseAccounts) await dataConnect.executeMutation("AdminSeedExpenseAccount", account);
+  for (const period of demoPeriods) await dataConnect.executeMutation("AdminSeedCardStatementPeriod", period);
+  for (const intake of fixture.invoiceIntakes) await dataConnect.executeMutation("AdminSeedInvoiceIntake", intake);
   for (const card of fixture.cards) {
     await dataConnect.executeMutation("AdminSeedCreditCard", {
       ...card,
       holderId: card.holder.id,
       holder: undefined,
+    });
+    await dataConnect.executeMutation("AdminSeedCreditCardHolderHistory", {
+      id: `${card.id}-HISTORY-001`,
+      cardId: card.id,
+      holderId: card.holder.id,
+      validFrom: card.activeFrom,
+      validTo: null,
+      isCurrent: true,
+      status: "ACTIVE",
+    });
+  }
+  await dataConnect.executeMutation("AdminSeedCreditCardStatement", {
+    id: "DEMO-STATEMENT-RECON-001",
+    cardId: "DEMO-CARD-001",
+    holderIdSnapshot: "DEMO-USER-WORKER",
+    holderNameSnapshot: "Alice Démo",
+    periodStart: "2026-08-10",
+    periodEnd: "2026-09-09",
+    originalStoragePath: "demo/statements/DEMO-STATEMENT-RECON-001.json",
+    originalFilename: "DEMO-STATEMENT-RECON-001.json",
+    importedById: "DEMO-USER-KIM",
+    statementHash: "DEMO-HASH-RECON-001",
+    status: "IMPORTED",
+    lineCount: 3,
+    totalAmountCents: "27595",
+  });
+  const demoStatementLines = [
+    ["01", "2026-08-11", "STATION DEMO", "Station Démo", "9198"],
+    ["02", "2026-08-10", "CDN TIRE STORE 174", "Canadian Tire", "11498"],
+    ["03", "2026-08-15", "MARCHAND INCONNU", "MARCHAND INCONNU", "6899"],
+  ];
+  for (const [sequence, transactionDate, merchantRaw, merchantNormalized, amountCents] of demoStatementLines) {
+    await dataConnect.executeMutation("AdminSeedCreditCardStatementLine", {
+      id: `DEMO-STATEMENT-RECON-001-LINE-${sequence}`,
+      statementId: "DEMO-STATEMENT-RECON-001",
+      sequence: Number(sequence),
+      transactionDate,
+      postedDate: null,
+      merchantRaw,
+      merchantNormalized,
+      amountCents,
+      externalReference: `DEMO-RECON-REF-${sequence}`,
+      status: "REVIEW",
+      rawData: JSON.stringify({ sequence: Number(sequence), transactionDate, merchantRaw, amountCents: Number(amountCents) }),
+    });
+  }
+  const aliases = [
+    ["cdn tire store 174", "Canadian Tire", "EXPLICIT_DEMO_ALIAS"],
+    ["canadian tire 174", "Canadian Tire", "EXPLICIT_DEMO_ALIAS"],
+    ["ct chicoutimi", "Canadian Tire", "EXPLICIT_DEMO_ALIAS"],
+    ["canadian tire chicoutimi", "Canadian Tire", "EXPLICIT_DEMO_ALIAS"],
+    ["station demo", "Station Démo", "EXPLICIT_DEMO_ALIAS"],
+    ["station démo", "Station Démo", "EXPLICIT_DEMO_ALIAS"],
+    ["shell demo", "Station Démo", "EXPLICIT_DEMO_ALIAS"],
+    ["auto demo", "Auto Démo", "EXPLICIT_DEMO_ALIAS"],
+    ["auto démo", "Auto Démo", "EXPLICIT_DEMO_ALIAS"],
+  ];
+  for (const [index, [merchantRawKey, merchantCanonical, method]] of aliases.entries()) {
+    await dataConnect.executeMutation("AdminSeedMerchantAlias", {
+      id: `DEMO-ALIAS-${String(index + 1).padStart(3, "0")}`,
+      merchantRawKey,
+      merchantNormalized: merchantCanonical,
+      merchantCanonical,
+      active: true,
+      status: "ACTIVE",
+      source: "DEMO_FIXTURE",
+      confidence: 1,
+      method,
     });
   }
   for (const reference of fixture.skuReferences) {
@@ -105,6 +172,7 @@ function assertDemoFixture() {
     ...fixture.cards.map((row) => row.id), ...fixture.skuReferences.map((row) => row.sku),
     ...fixture.transactions.map((row) => row.id), ...fixture.invoices.map((row) => row.id),
     ...fixture.invoicePhotos.map((row) => row.id), ...fixture.invoiceIntakes.map((row) => row.receiptId),
+    "DEMO-STATEMENT-RECON-001", "DEMO-HASH-RECON-001",
   ];
   if (keyedValues.some((value) => !String(value).startsWith("DEMO-"))) throw new Error("Fixture de seed non-DEMO détectée; arrêt sans écriture.");
 }

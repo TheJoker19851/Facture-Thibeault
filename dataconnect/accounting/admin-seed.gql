@@ -2,6 +2,93 @@
 # from executing them. Only a trusted Firebase Admin SDK script can bypass the
 # directive, and scripts/seed-demo.mjs additionally refuses production.
 
+mutation AdminSeedUserProfile(
+  $id: String!
+  $firebaseUid: String!
+  $displayName: String!
+  $email: String
+  $jobTitle: String
+  $role: String!
+  $status: String!
+) @auth(level: NO_ACCESS) {
+  userProfile_upsert(data: { id: $id firebaseUid: $firebaseUid displayName: $displayName email: $email jobTitle: $jobTitle role: $role status: $status })
+}
+
+mutation AdminSeedProject(
+  $id: String!
+  $number: String!
+  $name: String!
+  $status: String!
+) @auth(level: NO_ACCESS) {
+  project_upsert(data: { id: $id number: $number name: $name status: $status })
+}
+
+mutation AdminSeedExpenseAccount(
+  $id: String!
+  $number: String!
+  $label: String!
+  $type: String!
+  $status: String!
+) @auth(level: NO_ACCESS) {
+  expenseAccount_upsert(data: { id: $id number: $number label: $label type: $type status: $status })
+}
+
+mutation AdminSeedCardStatementPeriod(
+  $id: String!
+  $label: String!
+  $startDate: Date!
+  $endDate: Date!
+  $statementLabel: String
+  $status: String!
+) @auth(level: NO_ACCESS) {
+  cardStatementPeriod_upsert(data: { id: $id label: $label startDate: $startDate endDate: $endDate statementLabel: $statementLabel status: $status })
+}
+
+mutation AdminSeedInvoiceIntake(
+  $receiptId: String!
+  $uploaderUid: String!
+  $storageFolder: String!
+  $photoCount: Int!
+  $status: String!
+  $processingStatus: String!
+  $accountingStatus: String!
+  $aiModel: String
+  $aiConfidence: Float
+  $extractedVendor: String
+  $extractedInvoiceNumber: String
+  $extractedInvoiceDate: Date
+  $extractedSubtotalCents: Int64
+  $extractedTpsCents: Int64
+  $extractedTvqCents: Int64
+  $extractedTotalCents: Int64
+  $extractedCurrency: String
+  $extractedSku: String
+  $extractedCategory: String
+  $extractedProjectId: String
+  $classificationAccountCode: String
+  $classificationCategory: String
+  $classificationSource: String
+  $classificationConfidence: Float
+  $classificationStatus: String
+  $decisionExceptions: String
+  $decisionChecks: String
+  $aiNotes: String
+) @auth(level: NO_ACCESS) {
+  invoiceIntake_upsert(data: {
+    receiptId: $receiptId uploaderUid: $uploaderUid storageFolder: $storageFolder photoCount: $photoCount
+    status: $status processingStatus: $processingStatus accountingStatus: $accountingStatus
+    aiModel: $aiModel aiConfidence: $aiConfidence extractedVendor: $extractedVendor
+    extractedInvoiceNumber: $extractedInvoiceNumber extractedInvoiceDate: $extractedInvoiceDate
+    extractedSubtotalCents: $extractedSubtotalCents extractedTpsCents: $extractedTpsCents
+    extractedTvqCents: $extractedTvqCents extractedTotalCents: $extractedTotalCents
+    extractedCurrency: $extractedCurrency extractedSku: $extractedSku extractedCategory: $extractedCategory
+    extractedProjectId: $extractedProjectId classificationAccountCode: $classificationAccountCode
+    classificationCategory: $classificationCategory classificationSource: $classificationSource
+    classificationConfidence: $classificationConfidence classificationStatus: $classificationStatus
+    decisionExceptions: $decisionExceptions decisionChecks: $decisionChecks aiNotes: $aiNotes
+  })
+}
+
 mutation AdminSeedCreditCard(
   $id: String!
   $lastFour: String!
@@ -17,6 +104,66 @@ mutation AdminSeedCreditCard(
     cardFunction: $cardFunction
     status: $status
     activeFrom: $activeFrom
+  })
+}
+
+mutation AdminSeedCreditCardStatement(
+  $id: String!
+  $cardId: String!
+  $holderIdSnapshot: String!
+  $holderNameSnapshot: String!
+  $periodStart: Date!
+  $periodEnd: Date!
+  $originalStoragePath: String!
+  $originalFilename: String!
+  $importedById: String!
+  $statementHash: String!
+  $status: String!
+  $lineCount: Int!
+  $totalAmountCents: Int64!
+) @auth(level: NO_ACCESS) {
+  creditCardStatement_upsert(data: {
+    id: $id
+    card: { id: $cardId }
+    holderIdSnapshot: $holderIdSnapshot
+    holderNameSnapshot: $holderNameSnapshot
+    periodStart: $periodStart
+    periodEnd: $periodEnd
+    originalStoragePath: $originalStoragePath
+    originalFilename: $originalFilename
+    importedBy: { id: $importedById }
+    statementHash: $statementHash
+    status: $status
+    lineCount: $lineCount
+    totalAmountCents: $totalAmountCents
+  })
+}
+
+mutation AdminSeedCreditCardStatementLine(
+  $id: String!
+  $statementId: String!
+  $sequence: Int!
+  $transactionDate: Date!
+  $postedDate: Date
+  $merchantRaw: String!
+  $merchantNormalized: String!
+  $amountCents: Int64!
+  $externalReference: String
+  $status: String!
+  $rawData: String
+) @auth(level: NO_ACCESS) {
+  creditCardStatementLine_upsert(data: {
+    id: $id
+    statement: { id: $statementId }
+    sequence: $sequence
+    transactionDate: $transactionDate
+    postedDate: $postedDate
+    merchantRaw: $merchantRaw
+    merchantNormalized: $merchantNormalized
+    amountCents: $amountCents
+    externalReference: $externalReference
+    status: $status
+    rawData: $rawData
   })
 }
 
@@ -172,6 +319,50 @@ mutation AdminDeleteProject($id: String!) @auth(level: NO_ACCESS) {
 
 mutation AdminDeleteExpenseAccount($id: String!) @auth(level: NO_ACCESS) {
   expenseAccount_delete(key: { id: $id })
+}
+
+mutation AdminSeedCreditCardHolderHistory(
+  $id: String!
+  $cardId: String!
+  $holderId: String!
+  $validFrom: Date!
+  $validTo: Date
+  $isCurrent: Boolean!
+  $status: String!
+) @auth(level: NO_ACCESS) {
+  creditCardHolderHistory_upsert(data: {
+    id: $id
+    card: { id: $cardId }
+    holder: { id: $holderId }
+    validFrom: $validFrom
+    validTo: $validTo
+    isCurrent: $isCurrent
+    status: $status
+  })
+}
+
+mutation AdminSeedMerchantAlias(
+  $id: String!
+  $merchantRawKey: String!
+  $merchantNormalized: String!
+  $merchantCanonical: String
+  $active: Boolean!
+  $status: String!
+  $source: String!
+  $confidence: Float
+  $method: String
+) @auth(level: NO_ACCESS) {
+  merchantAlias_upsert(data: {
+    id: $id
+    merchantRawKey: $merchantRawKey
+    merchantNormalized: $merchantNormalized
+    merchantCanonical: $merchantCanonical
+    active: $active
+    status: $status
+    source: $source
+    confidence: $confidence
+    method: $method
+  })
 }
 
 mutation AdminDeleteCardStatementPeriod($id: String!) @auth(level: NO_ACCESS) {

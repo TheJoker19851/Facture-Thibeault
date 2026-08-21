@@ -166,7 +166,7 @@ mutation UpsertCreditCardStatement(
   $totalAmountCents: Int64!
   $auditEventId: String!
   $auditDetails: String!
-) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") @transaction {
+) @auth(level: NO_ACCESS) @transaction {
   creditCardStatement_upsert(data: {
     id: $id
     card: { id: $cardId }
@@ -205,7 +205,7 @@ mutation UpsertCreditCardStatementLine(
   $externalReference: String
   $status: String!
   $rawData: String
-) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") @transaction {
+) @auth(level: NO_ACCESS) @transaction {
   creditCardStatementLine_upsert(data: {
     id: $id
     statement: { id: $statementId }
@@ -218,6 +218,338 @@ mutation UpsertCreditCardStatementLine(
     externalReference: $externalReference
     status: $status
     rawData: $rawData
+  })
+}
+
+# A statement import is one server-side transaction. The line array is
+# validated before this operation is called; Data Connect then commits the
+# statement, all lines and its explicit audit event together.
+mutation PersistCreditCardStatementImport(
+  $statement: CreditCardStatement_Data!
+    @allow(fields: "id cardId importedById holderIdSnapshot holderNameSnapshot periodStart periodEnd originalStoragePath originalFilename statementHash status lineCount totalAmountCents creditCardStatementLines_on_statement { id sequence transactionDate postedDate merchantRaw merchantNormalized amountCents externalReference status rawData }")
+  $auditEventId: String!
+  $id: String!
+  $actorUid: String!
+  $actorRole: String!
+  $auditDetails: String!
+) @auth(level: NO_ACCESS) @transaction {
+  creditCardStatement_insert(data: $statement)
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: "STATEMENT_IMPORTED"
+    entityType: "CreditCardStatement"
+    entityId: $id
+    details: $auditDetails
+  })
+}
+
+mutation UpsertCreditCardHolderHistory(
+  $id: String!
+  $cardId: String!
+  $holderId: String!
+  $validFrom: Date!
+  $validTo: Date
+  $isCurrent: Boolean!
+  $status: String!
+  $auditEventId: String!
+  $actorUid: String!
+  $actorRole: String!
+  $auditDetails: String!
+) @auth(level: NO_ACCESS) @transaction {
+  creditCardHolderHistory_upsert(data: {
+    id: $id
+    card: { id: $cardId }
+    holder: { id: $holderId }
+    validFrom: $validFrom
+    validTo: $validTo
+    isCurrent: $isCurrent
+    status: $status
+  })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: "CARD_HOLDER_HISTORY_UPDATED"
+    entityType: "CreditCardHolderHistory"
+    entityId: $id
+    details: $auditDetails
+  })
+}
+
+mutation UpsertMerchantAlias(
+  $id: String!
+  $merchantRawKey: String!
+  $merchantNormalized: String!
+  $merchantCanonical: String
+  $active: Boolean!
+  $status: String!
+  $source: String!
+  $confidence: Float
+  $method: String
+  $createdById: String!
+  $auditEventId: String!
+  $actorUid: String!
+  $actorRole: String!
+  $auditDetails: String!
+) @auth(level: NO_ACCESS) @transaction {
+  merchantAlias_upsert(data: {
+    id: $id
+    merchantRawKey: $merchantRawKey
+    merchantNormalized: $merchantNormalized
+    merchantCanonical: $merchantCanonical
+    active: $active
+    status: $status
+    source: $source
+    confidence: $confidence
+    method: $method
+    createdBy: { id: $createdById }
+  })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: "MERCHANT_ALIAS_UPDATED"
+    entityType: "MerchantAlias"
+    entityId: $id
+    details: $auditDetails
+  })
+}
+
+# Current match state is one row per statement line. SQL unique constraints on
+# statementLine, expenseTransaction and invoice reject double-jumelages even
+# when two server requests race.
+mutation PersistReconciliationMatch(
+  $id: String!
+  $statementLineId: String!
+  $expenseTransactionId: String!
+  $invoiceId: String!
+  $matchScore: Float
+  $matchMethod: String!
+  $status: String!
+  $confirmedById: String!
+  $confirmedAt: Timestamp
+  $reason: String
+  $details: String
+  $lineStatus: String!
+  $transactionReconciliationStatus: String!
+  $auditEventId: String!
+  $actorUid: String!
+  $actorRole: String!
+  $auditAction: String!
+  $auditDetails: String!
+  $expectedMatchId: String
+  $expectedExpenseTransactionId: String
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact @check(expr: "(vars.expectedMatchId == null && response.query.reconciliationMatches.size() == 0) || (vars.expectedMatchId != null && response.query.reconciliationMatches.size() == 1 && response.query.reconciliationMatches[0].id == vars.expectedMatchId && response.query.reconciliationMatches[0].expenseTransaction.id == vars.expectedExpenseTransactionId)", message: "Le jumelage a déjà été modifié par une autre action. Actualisez le rapprochement.") {
+    reconciliationMatches(where: { statementLine: { id: { eq: $statementLineId } } }, limit: 1) { id expenseTransaction { id } }
+  }
+  reconciliationMatch_upsert(data: {
+    id: $id
+    statementLine: { id: $statementLineId }
+    expenseTransaction: { id: $expenseTransactionId }
+    invoice: { id: $invoiceId }
+    matchScore: $matchScore
+    matchMethod: $matchMethod
+    status: $status
+    confirmedBy: { id: $confirmedById }
+    confirmedAt: $confirmedAt
+    reason: $reason
+    details: $details
+  })
+  creditCardStatementLine_update(key: { id: $statementLineId }, data: { status: $lineStatus })
+  expenseTransaction_update(key: { id: $expenseTransactionId }, data: { reconciliationStatus: $transactionReconciliationStatus })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: $auditAction
+    entityType: "CreditCardStatementLine"
+    entityId: $statementLineId
+    details: $auditDetails
+  })
+}
+
+mutation ClearReconciliationMatch(
+  $id: String!
+  $statementLineId: String!
+  $previousExpenseTransactionId: String!
+  $lineStatus: String!
+  $auditEventId: String!
+  $actorUid: String!
+  $actorRole: String!
+  $auditAction: String!
+  $auditDetails: String!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact @check(expr: "response.query.reconciliationMatches.size() == 1 && response.query.reconciliationMatches[0].id == vars.id && response.query.reconciliationMatches[0].expenseTransaction.id == vars.previousExpenseTransactionId", message: "Le jumelage a déjà été dissocié ou modifié.") {
+    reconciliationMatches(where: { id: { eq: $id } }, limit: 1) { id expenseTransaction { id } }
+  }
+  reconciliationMatch_update(key: { id: $id }, data: {
+    expenseTransaction: null
+    invoice: null
+    status: "UNLINKED"
+    confirmedBy: null
+    confirmedAt: null
+  })
+  creditCardStatementLine_update(key: { id: $statementLineId }, data: { status: $lineStatus })
+  expenseTransaction_update(key: { id: $previousExpenseTransactionId }, data: { reconciliationStatus: "UNMATCHED" })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: $auditAction
+    entityType: "CreditCardStatementLine"
+    entityId: $statementLineId
+    details: $auditDetails
+  })
+}
+
+mutation PersistReconciliationMatchWithoutInvoice(
+  $id: String!
+  $statementLineId: String!
+  $expenseTransactionId: String!
+  $matchScore: Float
+  $matchMethod: String!
+  $status: String!
+  $confirmedById: String!
+  $confirmedAt: Timestamp
+  $reason: String
+  $details: String
+  $lineStatus: String!
+  $transactionReconciliationStatus: String!
+  $auditEventId: String!
+  $actorUid: String!
+  $actorRole: String!
+  $auditAction: String!
+  $auditDetails: String!
+  $expectedMatchId: String
+  $expectedExpenseTransactionId: String
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact @check(expr: "(vars.expectedMatchId == null && response.query.reconciliationMatches.size() == 0) || (vars.expectedMatchId != null && response.query.reconciliationMatches.size() == 1 && response.query.reconciliationMatches[0].id == vars.expectedMatchId && response.query.reconciliationMatches[0].expenseTransaction.id == vars.expectedExpenseTransactionId)", message: "Le jumelage a déjà été modifié par une autre action. Actualisez le rapprochement.") {
+    reconciliationMatches(where: { statementLine: { id: { eq: $statementLineId } } }, limit: 1) { id expenseTransaction { id } }
+  }
+  reconciliationMatch_upsert(data: {
+    id: $id
+    statementLine: { id: $statementLineId }
+    expenseTransaction: { id: $expenseTransactionId }
+    invoice: null
+    matchScore: $matchScore
+    matchMethod: $matchMethod
+    status: $status
+    confirmedBy: { id: $confirmedById }
+    confirmedAt: $confirmedAt
+    reason: $reason
+    details: $details
+  })
+  creditCardStatementLine_update(key: { id: $statementLineId }, data: { status: $lineStatus })
+  expenseTransaction_update(key: { id: $expenseTransactionId }, data: { reconciliationStatus: $transactionReconciliationStatus })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: $auditAction
+    entityType: "CreditCardStatementLine"
+    entityId: $statementLineId
+    details: $auditDetails
+  })
+}
+
+mutation PersistReconciliationLineStatus(
+  $id: String!
+  $statementLineId: String!
+  $status: String!
+  $reason: String!
+  $details: String
+  $auditEventId: String!
+  $actorUid: String!
+  $actorRole: String!
+  $auditAction: String!
+  $auditDetails: String!
+  $expectedMatchId: String
+  $expectedExpenseTransactionId: String
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact @check(expr: "(vars.expectedMatchId == null && response.query.reconciliationMatches.size() == 0) || (vars.expectedMatchId != null && response.query.reconciliationMatches.size() == 1 && response.query.reconciliationMatches[0].id == vars.expectedMatchId && response.query.reconciliationMatches[0].expenseTransaction.id == vars.expectedExpenseTransactionId)", message: "La ligne a déjà été modifiée par une autre action. Actualisez le rapprochement.") {
+    reconciliationMatches(where: { statementLine: { id: { eq: $statementLineId } } }, limit: 1) { id expenseTransaction { id } }
+  }
+  reconciliationMatch_upsert(data: {
+    id: $id
+    statementLine: { id: $statementLineId }
+    expenseTransaction: null
+    invoice: null
+    matchScore: null
+    matchMethod: "MANUAL"
+    status: $status
+    confirmedBy: null
+    confirmedAt: null
+    reason: $reason
+    details: $details
+  })
+  creditCardStatementLine_update(key: { id: $statementLineId }, data: { status: $status })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: $auditAction
+    entityType: "CreditCardStatementLine"
+    entityId: $statementLineId
+    details: $auditDetails
+  })
+}
+
+mutation UpsertReconciliationOutsideControl(
+  $id: String!
+  $statementId: String!
+  $expenseTransactionId: String!
+  $status: String!
+  $reason: String!
+  $auditEventId: String!
+  $actorUid: String!
+  $actorRole: String!
+  $auditDetails: String!
+) @auth(level: NO_ACCESS) @transaction {
+  reconciliationOutsideControl_upsert(data: {
+    id: $id
+    statement: { id: $statementId }
+    expenseTransaction: { id: $expenseTransactionId }
+    status: $status
+    reason: $reason
+  })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: "RECONCILIATION_OUTSIDE_DETECTED"
+    entityType: "ReconciliationOutsideControl"
+    entityId: $id
+    details: $auditDetails
+  })
+}
+
+mutation ResolveReconciliationOutsideControl(
+  $id: String!
+  $status: String!
+  $resolvedById: String!
+  $resolutionNote: String!
+  $auditEventId: String!
+  $actorUid: String!
+  $actorRole: String!
+  $auditDetails: String!
+) @auth(level: NO_ACCESS) @transaction {
+  reconciliationOutsideControl_update(key: { id: $id }, data: {
+    status: $status
+    resolvedBy: { id: $resolvedById }
+    resolvedAt_expr: "request.time"
+    resolutionNote: $resolutionNote
+  })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: "STATEMENT_OUTSIDE_RESOLVED"
+    entityType: "ReconciliationOutsideControl"
+    entityId: $id
+    details: $auditDetails
   })
 }
 
@@ -665,7 +997,7 @@ mutation MaterializeInvoiceIntakeV2(
   $accountId: String!
   $cardId: String!
   $statementPeriod: CardStatementPeriod_Key
-  $project: Project_Key!
+  $project: Project_Key
   $storageFolder: String!
   $classificationNote: String!
   $expectedProcessingStatus: String!

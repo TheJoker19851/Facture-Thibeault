@@ -122,8 +122,10 @@ function postingVariables(receiptId) {
 }
 
 function autoPostingVariables(receiptId, photoCount = 1) {
+  const { statementPeriodId, ...base } = postingVariables(receiptId);
   return {
-    ...postingVariables(receiptId),
+    ...base,
+    statementPeriod: { id: statementPeriodId },
     project: { id: "DEMO-PROJET-001" },
     expectedProcessingStatus: "AUTO_APPROVED",
     classificationSource: "AUTO_DECISION",
@@ -133,8 +135,10 @@ function autoPostingVariables(receiptId, photoCount = 1) {
 }
 
 function humanPostingVariables(receiptId, photoCount = 1, projectId = "DEMO-PROJET-001") {
+  const { statementPeriodId, ...base } = postingVariables(receiptId);
   return {
-    ...postingVariables(receiptId),
+    ...base,
+    statementPeriod: { id: statementPeriodId },
     project: projectId ? { id: projectId } : null,
     expectedProcessingStatus: "VALIDATED",
     classificationSource: "KIM_COMMIT",
