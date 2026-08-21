@@ -6,6 +6,7 @@ schema:
   datasource:
     postgresql:
       database: "facture-thibeault-database"
+      schemaValidation: "STRICT"
       cloudSql:
         instanceId: "facture-thibeault-instance"
 connectorDirs:
