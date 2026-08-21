@@ -16,5 +16,6 @@ test("l’export comptable conserve les cents et les regroupements", () => {
   assert.match(xml, /114\.98/);
   assert.match(xml, /TABLEAU_COMPTABLE/);
   assert.match(xml, /PAR_COMPTE/);
+  assert.match(xml, /Taxes cumulées/);
   assert.equal(accountingReportFileName({ start: "2026-08-10", end: "2026-09-09" }), "Rapport-comptable-2026-08-10-2026-09-09.xls");
 });

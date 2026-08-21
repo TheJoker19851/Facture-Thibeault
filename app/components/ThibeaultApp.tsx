@@ -19,6 +19,7 @@ import { buildPersistedReconciliation } from "../../lib/reconciliation-server.mj
 import { DEMO_STATEMENT_IMPORTS } from "../../lib/reconciliation-fixtures.mjs";
 import { buildReconciliationExcelXml, reconciliationExportFileName } from "../../lib/reconciliation-export.mjs";
 import { accountingReportFileName, buildAccountingReportExcelXml } from "../../lib/report-export.mjs";
+import { buildAccountingCategorySummary, buildTaxSummaryByHolder } from "../../lib/accounting-report.mjs";
 import { useFirebaseIdentity, type AppRole } from "./FirebaseShell";
 
 type Role = AppRole;
@@ -423,6 +424,10 @@ const currency = new Intl.NumberFormat("fr-CA", { style: "currency", currency: "
 const dateFormat = new Intl.DateTimeFormat("fr-CA", { day: "2-digit", month: "short", year: "numeric" });
 function formatCurrency(value: number) {
   return currency.format(value).replace("CA", "$");
+}
+
+function formatPercent(value: number) {
+  return `${value.toLocaleString("fr-CA", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
 }
 
 function formatDate(value: string) {
@@ -1862,30 +1867,23 @@ function KimAccountingReport({ period, onPeriodChange, embedded = false }: { per
   const { cards, transactions, accounts } = data;
   const [selectedPerson, setSelectedPerson] = useState("TOUS");
   const [selectedProject, setSelectedProject] = useState("TOUS");
-  const people = Array.from(new Set(cards.map((card) => card.holder)));
+  const people = Array.from(new Set([...cards.map((card) => card.holder), ...transactions.map((transaction) => transaction.person).filter(Boolean)]));
   const projects = data.projects;
-  const visibleTransactions = useMemo(() => transactions.filter((transaction) => {
-    const matchesPerson = selectedPerson === "TOUS" || transaction.person === selectedPerson;
+  const periodTransactions = useMemo(() => transactions.filter((transaction) => {
     const matchesProject = selectedProject === "TOUS" || transaction.projectId === selectedProject || transaction.projectNumber === selectedProject;
     const matchesPeriod = isTransactionInPeriod(transaction, period);
     const isIncludedStatus = transaction.accountingStatus
       ? transaction.accountingStatus === "POSTED" && (transaction.processingStatus === "AUTO_APPROVED" || transaction.processingStatus === "VALIDATED")
       : transaction.status === "Validée";
-    return matchesPerson && matchesProject && matchesPeriod && isIncludedStatus;
-  }), [period, selectedPerson, selectedProject, transactions]);
-  const visibleTotals = useMemo(() => {
-    const totals = new Map<string, { subtotal: number; tps: number; tvq: number; total: number }>();
-    visibleTransactions.forEach((transaction) => {
-      const accountNumber = transaction.accountNumber ?? classifyTransaction(transaction, data).code;
-      const current = totals.get(accountNumber) ?? { subtotal: 0, tps: 0, tvq: 0, total: 0 };
-      totals.set(accountNumber, { subtotal: current.subtotal + transaction.subtotal, tps: current.tps + transaction.tps, tvq: current.tvq + transaction.tvq, total: current.total + transaction.total });
-    });
-    return totals;
-  }, [data, visibleTransactions]);
-  const visibleTotal = Array.from(visibleTotals.values()).reduce((sum, amount) => sum + amount.total, 0);
-  const visibleSubtotal = Array.from(visibleTotals.values()).reduce((sum, amount) => sum + amount.subtotal, 0);
-  const visibleTps = Array.from(visibleTotals.values()).reduce((sum, amount) => sum + amount.tps, 0);
-  const visibleTvq = Array.from(visibleTotals.values()).reduce((sum, amount) => sum + amount.tvq, 0);
+    return matchesProject && matchesPeriod && isIncludedStatus;
+  }), [period, selectedProject, transactions]);
+  const visibleTransactions = useMemo(() => periodTransactions.filter((transaction) => selectedPerson === "TOUS" || transaction.person === selectedPerson), [periodTransactions, selectedPerson]);
+  const normalizedTransactions = useMemo(() => visibleTransactions.map((transaction) => {
+    const classification = classifyTransaction(transaction, data);
+    return { ...transaction, accountNumber: transaction.accountNumber ?? classification.code, accountLabel: transaction.accountLabel ?? classification.category };
+  }), [data, visibleTransactions]);
+  const categorySummary = useMemo(() => buildAccountingCategorySummary({ transactions: normalizedTransactions, accounts }), [accounts, normalizedTransactions]);
+  const taxSummary = useMemo(() => buildTaxSummaryByHolder({ transactions: periodTransactions }), [periodTransactions]);
   const downloadReport = () => {
     const xml = buildAccountingReportExcelXml({ period, transactions: visibleTransactions, accounts });
     const blob = new Blob([xml], { type: "application/vnd.ms-excel" });
@@ -1902,13 +1900,19 @@ function KimAccountingReport({ period, onPeriodChange, embedded = false }: { per
       {!embedded && <PeriodSelector period={period} onChange={onPeriodChange} />}
        <label><span>Titulaire de carte</span><select aria-label="Filtrer par titulaire de carte" value={selectedPerson} onChange={(event) => setSelectedPerson(event.target.value)}><option value="TOUS">Tous les titulaires</option>{people.map((person) => <option value={person} key={person}>{person}</option>)}</select></label>
        <label><span>Projet</span><select aria-label="Filtrer par projet" value={selectedProject} onChange={(event) => setSelectedProject(event.target.value)}><option value="TOUS">Tous les projets</option>{projects.map((project) => <option value={project.id} key={project.id}>{project.number} — {project.name}</option>)}</select></label>
-       <div className="kim-report-context"><span className="status-dot" /><span>{period.label}</span><small>{visibleTransactions.length} transactions incluses</small></div>
+       <div className="kim-report-context"><span className="status-dot" /><span>{period.label}</span><small>{visibleTransactions.length} transaction{visibleTransactions.length === 1 ? "" : "s"} affichée{visibleTransactions.length === 1 ? "" : "s"} · taxes calculées sur {periodTransactions.length} transaction{periodTransactions.length === 1 ? "" : "s"}</small></div>
     </div>
     <section className="panel kim-report-table">
-      <div className="panel-header"><div><p className="eyebrow">Tableau de Kim</p><h2>Résumé par catégorie comptable</h2></div><span className="badge badge-neutral">Avant taxes</span></div>
-       <div className="kim-report-head"><span>Compte</span><span>Catégorie</span><span>Hors taxes</span><span>TPS</span><span>TVQ</span><span>Total</span></div>
-       <div className="kim-report-rows">{accounts.filter((account) => account.type === "EXPENSE").map((account) => { const totals = visibleTotals.get(account.number) ?? { subtotal: 0, tps: 0, tvq: 0, total: 0 }; return <div key={account.id}><span><b>{account.number}</b></span><span>{account.label}</span><strong>{formatCurrency(totals.subtotal)}</strong><strong>{formatCurrency(totals.tps)}</strong><strong>{formatCurrency(totals.tvq)}</strong><strong>{formatCurrency(totals.total)}</strong></div>; })}</div>
-       <div className="account-report-total"><strong>TOTAL</strong><span>{formatCurrency(visibleSubtotal)}</span><span>{formatCurrency(visibleTps)}</span><span>{formatCurrency(visibleTvq)}</span><strong>{formatCurrency(visibleTotal)}</strong></div>
+      <div className="panel-header"><div><p className="eyebrow">Tableau de Kim · {selectedPerson === "TOUS" ? "tous les titulaires" : selectedPerson}</p><h2>Répartition par compte et catégorie</h2></div><span className="badge badge-neutral">Avant taxes</span></div>
+       <div className="kim-report-head"><span>Compte</span><span>Catégorie</span><span>Total avant taxes</span><span>% du total catégorisé</span></div>
+       <div className="kim-report-rows">{categorySummary.rows.map((row) => <div key={row.accountNumber}><span><b>{row.accountNumber}</b></span><span>{row.category}</span><strong>{formatCurrency(row.subtotalCents / 100)}</strong><strong>{formatPercent(row.percent)}</strong></div>)}</div>
+       <div className="account-report-total"><strong>TOTAL CATÉGORIES</strong><span /><strong>{formatCurrency(categorySummary.totals.subtotalCents / 100)}</strong><strong>{formatPercent(categorySummary.totalBeforeTaxCents > 0 ? 100 : 0)}</strong></div>
+    </section>
+    <section className="panel kim-tax-table">
+      <div className="panel-header"><div><p className="eyebrow">Récupération des taxes · {period.label}</p><h2>Taxes cumulées par titulaire</h2></div><div className="kim-tax-total"><span>Total à récupérer</span><strong>{formatCurrency(taxSummary.totals.taxesCents / 100)}</strong><small>TPS {formatCurrency(taxSummary.totals.tpsCents / 100)} · TVQ {formatCurrency(taxSummary.totals.tvqCents / 100)}</small></div></div>
+      <div className="kim-tax-table-wrap"><div className="kim-tax-head"><span>Titulaire de carte</span><span>Avant taxes</span><span>TPS</span><span>TVQ</span><span>Taxes cumulées</span><span>Total période</span></div>
+        <div className="kim-tax-rows">{taxSummary.rows.map((row) => <div className={row.holder === selectedPerson ? "selected" : ""} key={row.holder}><span><b>{row.holder}</b><small>{row.cards.map((card: string) => `•••• ${card}`).join(" · ") || "Carte non identifiée"}</small></span><strong>{formatCurrency(row.subtotalCents / 100)}</strong><strong>{formatCurrency(row.tpsCents / 100)}</strong><strong>{formatCurrency(row.tvqCents / 100)}</strong><strong>{formatCurrency(row.taxesCents / 100)}</strong><strong>{formatCurrency(row.totalCents / 100)}</strong></div>)}<div className="kim-tax-total-row"><strong>TOTAL PÉRIODE</strong><strong>{formatCurrency(taxSummary.totals.subtotalCents / 100)}</strong><strong>{formatCurrency(taxSummary.totals.tpsCents / 100)}</strong><strong>{formatCurrency(taxSummary.totals.tvqCents / 100)}</strong><strong>{formatCurrency(taxSummary.totals.taxesCents / 100)}</strong><strong>{formatCurrency(taxSummary.totals.totalCents / 100)}</strong></div></div>
+      </div>
     </section>
   </>;
 }
