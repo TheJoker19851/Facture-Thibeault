@@ -343,6 +343,16 @@ export interface CreateInvoiceIntakeVariables {
   photoCount: number;
 }
 
+export interface CreditCardStatementLine_Key {
+  id: string;
+  __typename?: 'CreditCardStatementLine_Key';
+}
+
+export interface CreditCardStatement_Key {
+  id: string;
+  __typename?: 'CreditCardStatement_Key';
+}
+
 export interface CreditCard_Key {
   id: string;
   __typename?: 'CreditCard_Key';
@@ -426,6 +436,61 @@ export interface ListCardStatementPeriodsData {
     statementLabel?: string | null;
     status: string;
   } & CardStatementPeriod_Key)[];
+}
+
+export interface ListCreditCardStatementLinesData {
+  creditCardStatementLines: ({
+    id: string;
+    statement: {
+      id: string;
+    } & CreditCardStatement_Key;
+    sequence: number;
+    transactionDate: DateString;
+    postedDate?: DateString | null;
+    merchantRaw: string;
+    merchantNormalized: string;
+    amountCents: Int64String;
+    externalReference?: string | null;
+    status: string;
+    rawData?: string | null;
+    createdAt: TimestampString;
+    updatedAt: TimestampString;
+  } & CreditCardStatementLine_Key)[];
+}
+
+export interface ListCreditCardStatementLinesVariables {
+  statementId: string;
+}
+
+export interface ListCreditCardStatementsData {
+  creditCardStatements: ({
+    id: string;
+    card: {
+      id: string;
+      lastFour: string;
+      holder: {
+        id: string;
+        displayName: string;
+      } & UserProfile_Key;
+    } & CreditCard_Key;
+    holderIdSnapshot: string;
+    holderNameSnapshot: string;
+    periodStart: DateString;
+    periodEnd: DateString;
+    originalStoragePath: string;
+    originalFilename: string;
+    importedAt: TimestampString;
+    importedBy: {
+      id: string;
+      displayName: string;
+    } & UserProfile_Key;
+    statementHash: string;
+    status: string;
+    lineCount: number;
+    totalAmountCents: Int64String;
+    createdAt: TimestampString;
+    updatedAt: TimestampString;
+  } & CreditCardStatement_Key)[];
 }
 
 export interface ListCreditCardsData {
@@ -715,9 +780,19 @@ export interface MaterializeInvoiceIntakeV2Variables {
   photo5ContentType: string;
 }
 
+export interface MerchantAlias_Key {
+  id: string;
+  __typename?: 'MerchantAlias_Key';
+}
+
 export interface Project_Key {
   id: string;
   __typename?: 'Project_Key';
+}
+
+export interface ReconciliationMatch_Key {
+  id: string;
+  __typename?: 'ReconciliationMatch_Key';
 }
 
 export interface RetryInvoiceIntakeAiData {
@@ -840,6 +915,47 @@ export interface UpsertCardStatementPeriodVariables {
 
 export interface UpsertCreditCardData {
   creditCard_upsert: CreditCard_Key;
+}
+
+export interface UpsertCreditCardStatementData {
+  creditCardStatement_upsert: CreditCardStatement_Key;
+  auditEvent_upsert: AuditEvent_Key;
+}
+
+export interface UpsertCreditCardStatementLineData {
+  creditCardStatementLine_upsert: CreditCardStatementLine_Key;
+}
+
+export interface UpsertCreditCardStatementLineVariables {
+  id: string;
+  statementId: string;
+  sequence: number;
+  transactionDate: DateString;
+  postedDate?: DateString | null;
+  merchantRaw: string;
+  merchantNormalized: string;
+  amountCents: Int64String;
+  externalReference?: string | null;
+  status: string;
+  rawData?: string | null;
+}
+
+export interface UpsertCreditCardStatementVariables {
+  id: string;
+  cardId: string;
+  holderIdSnapshot: string;
+  holderNameSnapshot: string;
+  periodStart: DateString;
+  periodEnd: DateString;
+  originalStoragePath: string;
+  originalFilename: string;
+  importedById: string;
+  statementHash: string;
+  status: string;
+  lineCount: number;
+  totalAmountCents: Int64String;
+  auditEventId: string;
+  auditDetails: string;
 }
 
 export interface UpsertCreditCardVariables {
@@ -1190,6 +1306,30 @@ export const upsertCardStatementPeriodRef: UpsertCardStatementPeriodRef;
 export function upsertCardStatementPeriod(vars: UpsertCardStatementPeriodVariables): MutationPromise<UpsertCardStatementPeriodData, UpsertCardStatementPeriodVariables>;
 export function upsertCardStatementPeriod(dc: DataConnect, vars: UpsertCardStatementPeriodVariables): MutationPromise<UpsertCardStatementPeriodData, UpsertCardStatementPeriodVariables>;
 
+interface UpsertCreditCardStatementRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertCreditCardStatementVariables): MutationRef<UpsertCreditCardStatementData, UpsertCreditCardStatementVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpsertCreditCardStatementVariables): MutationRef<UpsertCreditCardStatementData, UpsertCreditCardStatementVariables>;
+  operationName: string;
+}
+export const upsertCreditCardStatementRef: UpsertCreditCardStatementRef;
+
+export function upsertCreditCardStatement(vars: UpsertCreditCardStatementVariables): MutationPromise<UpsertCreditCardStatementData, UpsertCreditCardStatementVariables>;
+export function upsertCreditCardStatement(dc: DataConnect, vars: UpsertCreditCardStatementVariables): MutationPromise<UpsertCreditCardStatementData, UpsertCreditCardStatementVariables>;
+
+interface UpsertCreditCardStatementLineRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertCreditCardStatementLineVariables): MutationRef<UpsertCreditCardStatementLineData, UpsertCreditCardStatementLineVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpsertCreditCardStatementLineVariables): MutationRef<UpsertCreditCardStatementLineData, UpsertCreditCardStatementLineVariables>;
+  operationName: string;
+}
+export const upsertCreditCardStatementLineRef: UpsertCreditCardStatementLineRef;
+
+export function upsertCreditCardStatementLine(vars: UpsertCreditCardStatementLineVariables): MutationPromise<UpsertCreditCardStatementLineData, UpsertCreditCardStatementLineVariables>;
+export function upsertCreditCardStatementLine(dc: DataConnect, vars: UpsertCreditCardStatementLineVariables): MutationPromise<UpsertCreditCardStatementLineData, UpsertCreditCardStatementLineVariables>;
+
 interface CreateInvoiceIntakeRef {
   /* Allow users to create refs without passing in DataConnect */
   (vars: CreateInvoiceIntakeVariables): MutationRef<CreateInvoiceIntakeData, CreateInvoiceIntakeVariables>;
@@ -1405,6 +1545,30 @@ export const listExpenseAccountsRef: ListExpenseAccountsRef;
 
 export function listExpenseAccounts(options?: ExecuteQueryOptions): QueryPromise<ListExpenseAccountsData, undefined>;
 export function listExpenseAccounts(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListExpenseAccountsData, undefined>;
+
+interface ListCreditCardStatementsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListCreditCardStatementsData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<ListCreditCardStatementsData, undefined>;
+  operationName: string;
+}
+export const listCreditCardStatementsRef: ListCreditCardStatementsRef;
+
+export function listCreditCardStatements(options?: ExecuteQueryOptions): QueryPromise<ListCreditCardStatementsData, undefined>;
+export function listCreditCardStatements(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListCreditCardStatementsData, undefined>;
+
+interface ListCreditCardStatementLinesRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ListCreditCardStatementLinesVariables): QueryRef<ListCreditCardStatementLinesData, ListCreditCardStatementLinesVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: ListCreditCardStatementLinesVariables): QueryRef<ListCreditCardStatementLinesData, ListCreditCardStatementLinesVariables>;
+  operationName: string;
+}
+export const listCreditCardStatementLinesRef: ListCreditCardStatementLinesRef;
+
+export function listCreditCardStatementLines(vars: ListCreditCardStatementLinesVariables, options?: ExecuteQueryOptions): QueryPromise<ListCreditCardStatementLinesData, ListCreditCardStatementLinesVariables>;
+export function listCreditCardStatementLines(dc: DataConnect, vars: ListCreditCardStatementLinesVariables, options?: ExecuteQueryOptions): QueryPromise<ListCreditCardStatementLinesData, ListCreditCardStatementLinesVariables>;
 
 interface ListProjectsRef {
   /* Allow users to create refs without passing in DataConnect */

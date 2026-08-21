@@ -202,3 +202,67 @@ type AuditEvent @table(name: "audit_events", key: "id") {
   details: String
   createdAt: Timestamp! @default(expr: "request.time")
 }
+
+# A statement is immutable source evidence. The period dates and holder values
+# are snapshots so later card assignments cannot rewrite history.
+type CreditCardStatement @table(name: "credit_card_statements", key: "id") {
+  id: String!
+  card: CreditCard!
+  holderIdSnapshot: String!
+  holderNameSnapshot: String!
+  periodStart: Date!
+  periodEnd: Date!
+  originalStoragePath: String!
+  originalFilename: String!
+  importedAt: Timestamp! @default(expr: "request.time")
+  importedBy: UserProfile!
+  statementHash: String! @unique
+  status: String! @default(value: "IMPORTED")
+  lineCount: Int! @default(value: 0)
+  totalAmountCents: Int64! @default(value: 0)
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type CreditCardStatementLine @table(name: "credit_card_statement_lines", key: "id") @unique(fields: ["statement", "sequence"]) {
+  id: String!
+  statement: CreditCardStatement!
+  sequence: Int!
+  transactionDate: Date!
+  postedDate: Date
+  merchantRaw: String!
+  merchantNormalized: String!
+  amountCents: Int64!
+  externalReference: String
+  status: String! @default(value: "REVIEW")
+  rawData: String
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type ReconciliationMatch @table(name: "reconciliation_matches", key: "id") {
+  id: String!
+  statementLine: CreditCardStatementLine! @unique
+  expenseTransaction: ExpenseTransaction @unique
+  invoice: Invoice @unique
+  matchScore: Float
+  matchMethod: String!
+  status: String!
+  confirmedBy: UserProfile
+  confirmedAt: Timestamp
+  reason: String
+  details: String
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type MerchantAlias @table(name: "merchant_aliases", key: "id") @unique(fields: ["merchantRawKey"]) {
+  id: String!
+  merchantRawKey: String!
+  merchantNormalized: String!
+  status: String! @default(value: "ACTIVE")
+  source: String! @default(value: "MANUAL")
+  createdBy: UserProfile
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}

@@ -345,6 +345,34 @@ exports.upsertCardStatementPeriod = function upsertCardStatementPeriod(dcOrVars,
 }
 ;
 
+const upsertCreditCardStatementRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertCreditCardStatement', inputVars);
+}
+upsertCreditCardStatementRef.operationName = 'UpsertCreditCardStatement';
+exports.upsertCreditCardStatementRef = upsertCreditCardStatementRef;
+
+exports.upsertCreditCardStatement = function upsertCreditCardStatement(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertCreditCardStatementRef(dcInstance, inputVars));
+}
+;
+
+const upsertCreditCardStatementLineRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertCreditCardStatementLine', inputVars);
+}
+upsertCreditCardStatementLineRef.operationName = 'UpsertCreditCardStatementLine';
+exports.upsertCreditCardStatementLineRef = upsertCreditCardStatementLineRef;
+
+exports.upsertCreditCardStatementLine = function upsertCreditCardStatementLine(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertCreditCardStatementLineRef(dcInstance, inputVars));
+}
+;
+
 const createInvoiceIntakeRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -598,6 +626,36 @@ exports.listExpenseAccounts = function listExpenseAccounts(dcOrOptions, options)
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
   return executeQuery(listExpenseAccountsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listCreditCardStatementsRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListCreditCardStatements');
+}
+listCreditCardStatementsRef.operationName = 'ListCreditCardStatements';
+exports.listCreditCardStatementsRef = listCreditCardStatementsRef;
+
+exports.listCreditCardStatements = function listCreditCardStatements(dcOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(listCreditCardStatementsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listCreditCardStatementLinesRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListCreditCardStatementLines', inputVars);
+}
+listCreditCardStatementLinesRef.operationName = 'ListCreditCardStatementLines';
+exports.listCreditCardStatementLinesRef = listCreditCardStatementLinesRef;
+
+exports.listCreditCardStatementLines = function listCreditCardStatementLines(dcOrVars, varsOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listCreditCardStatementLinesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 

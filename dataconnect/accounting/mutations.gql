@@ -150,6 +150,77 @@ mutation UpsertCardStatementPeriod(
   })
 }
 
+mutation UpsertCreditCardStatement(
+  $id: String!
+  $cardId: String!
+  $holderIdSnapshot: String!
+  $holderNameSnapshot: String!
+  $periodStart: Date!
+  $periodEnd: Date!
+  $originalStoragePath: String!
+  $originalFilename: String!
+  $importedById: String!
+  $statementHash: String!
+  $status: String!
+  $lineCount: Int!
+  $totalAmountCents: Int64!
+  $auditEventId: String!
+  $auditDetails: String!
+) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") @transaction {
+  creditCardStatement_upsert(data: {
+    id: $id
+    card: { id: $cardId }
+    holderIdSnapshot: $holderIdSnapshot
+    holderNameSnapshot: $holderNameSnapshot
+    periodStart: $periodStart
+    periodEnd: $periodEnd
+    originalStoragePath: $originalStoragePath
+    originalFilename: $originalFilename
+    importedBy: { id: $importedById }
+    statementHash: $statementHash
+    status: $status
+    lineCount: $lineCount
+    totalAmountCents: $totalAmountCents
+  })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid_expr: "auth.uid"
+    actorRole_expr: "auth.token.role"
+    action: "STATEMENT_IMPORTED"
+    entityType: "CreditCardStatement"
+    entityId: $id
+    details: $auditDetails
+  })
+}
+
+mutation UpsertCreditCardStatementLine(
+  $id: String!
+  $statementId: String!
+  $sequence: Int!
+  $transactionDate: Date!
+  $postedDate: Date
+  $merchantRaw: String!
+  $merchantNormalized: String!
+  $amountCents: Int64!
+  $externalReference: String
+  $status: String!
+  $rawData: String
+) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") @transaction {
+  creditCardStatementLine_upsert(data: {
+    id: $id
+    statement: { id: $statementId }
+    sequence: $sequence
+    transactionDate: $transactionDate
+    postedDate: $postedDate
+    merchantRaw: $merchantRaw
+    merchantNormalized: $merchantNormalized
+    amountCents: $amountCents
+    externalReference: $externalReference
+    status: $status
+    rawData: $rawData
+  })
+}
+
 mutation CreateInvoiceIntake($receiptId: String!, $storageFolder: String!, $photoCount: Int!) @auth(expr: "auth.token.role == 'WORKER' || auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") @transaction {
   invoiceIntake_upsert(data: {
     receiptId: $receiptId

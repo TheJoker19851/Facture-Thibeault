@@ -14,6 +14,10 @@ import { INVOICE_CLIENT_VERSION } from "../../lib/invoice-client-version.mjs";
 import { AUDIT_ACTIONS, auditDetails, parseAuditDetails } from "../../lib/audit-events.mjs";
 import { clearCaptureDraft, loadCaptureDraft, saveCaptureDraft } from "../../lib/capture-queue.mjs";
 import { buildProjectImportPlan, parseProjectImportJson, PROJECT_IMPORT_MAX_BYTES } from "../../lib/project-import.mjs";
+import { buildStatementImportBatch, confirmManualMatch, finalizeStatementImport, parseStatementImport, reconcileStatement, RECONCILIATION_STATUSES, setLineReconciliationStatus } from "../../lib/reconciliation.mjs";
+import { DEMO_STATEMENT_IMPORTS } from "../../lib/reconciliation-fixtures.mjs";
+import { buildReconciliationExcelXml, reconciliationExportFileName } from "../../lib/reconciliation-export.mjs";
+import { accountingReportFileName, buildAccountingReportExcelXml } from "../../lib/report-export.mjs";
 import { useFirebaseIdentity, type AppRole } from "./FirebaseShell";
 
 type Role = AppRole;
@@ -123,6 +127,37 @@ type ProjectReference = {
   number: string;
   name: string;
   status?: string;
+};
+
+type StatementLine = {
+  id: string;
+  sequence: number;
+  transactionDate: string;
+  postedDate?: string | null;
+  merchantRaw: string;
+  merchantNormalized: string;
+  amountCents: number;
+  externalReference?: string | null;
+  status: string;
+  rawData?: string;
+};
+
+type CreditCardStatement = {
+  id: string;
+  cardId: string;
+  holderId?: string | null;
+  holderNameSnapshot?: string | null;
+  periodStart: string;
+  periodEnd: string;
+  originalStoragePath?: string | null;
+  originalFilename: string;
+  importedAt?: string | null;
+  importedBy?: string | null;
+  statementHash: string;
+  status: string;
+  lineCount: number;
+  totalAmountCents: number;
+  lines: StatementLine[];
 };
 
 type SkuReference = {
@@ -1497,32 +1532,150 @@ function IntakeEvidencePreview({ url, alt }: { url: string; alt: string }) {
   return <img src={url} alt={alt} />;
 }
 
+type ReconciliationTransaction = { id: string; cardId?: string; date: string; vendor: string; totalCents: number; invoiceId?: string | null; invoiceNumber?: string; projectId?: string; projectNumber?: string; projectName?: string; accountNumber?: string; accountLabel?: string; person?: string; card?: string };
+type ReconciliationCandidate = { transaction: ReconciliationTransaction; score: { score: number; reasons: string[]; merchantMatches: boolean } };
+type ReconciliationLineResult = { line: StatementLine; status: string; match: { expenseTransactionId: string; invoiceId?: string | null; matchScore: number; matchMethod: string } | null; candidates: ReconciliationCandidate[]; reason: string };
+type ReconciliationView = { statement: CreditCardStatement; lineResults: ReconciliationLineResult[]; outsideTransactions: Array<{ transaction: ReconciliationTransaction; status: string; reason: string }>; summary: Record<string, number> };
+type StatementImportPlan = { additions: CreditCardStatement[]; duplicates: CreditCardStatement[]; warnings: string[]; errors: string[] };
+
+function reconciliationStatusLabel(status: string) {
+  if (status === RECONCILIATION_STATUSES.MATCHED) return "Jumelée";
+  if (status === RECONCILIATION_STATUSES.REVIEW) return "À vérifier";
+  if (status === RECONCILIATION_STATUSES.MISSING_INVOICE) return "Facture manquante";
+  if (status === RECONCILIATION_STATUSES.OUTSIDE_STATEMENT) return "Hors relevé";
+  if (status === RECONCILIATION_STATUSES.DUPLICATE) return "Doublon possible";
+  if (status === RECONCILIATION_STATUSES.IGNORED) return "Ignorée";
+  return status;
+}
+
+function reconciliationStatusTone(status: string) {
+  if (status === RECONCILIATION_STATUSES.MATCHED) return "success";
+  if (status === RECONCILIATION_STATUSES.MISSING_INVOICE) return "danger";
+  if (status === RECONCILIATION_STATUSES.REVIEW || status === RECONCILIATION_STATUSES.DUPLICATE) return "warning";
+  return "neutral";
+}
+
 function ReconciliationPage({ period, onPeriodChange, isProductionDataSource }: { period: CardPeriod; onPeriodChange: (period: CardPeriod) => void; isProductionDataSource: boolean }) {
   const { cards, transactions } = useAppData();
   const activeCards = cards.filter((card) => card.status === "Actif");
-  const visibleTransactions = transactions.filter((transaction) => isTransactionInPeriod(transaction, period));
-  const matchedCount = visibleTransactions.filter((transaction) => transaction.reconciliation === "Rapprochée").length;
-  const missingCount = visibleTransactions.filter((transaction) => transaction.reconciliation === "Facture manquante").length;
-  const reviewCount = visibleTransactions.filter((transaction) => transaction.reconciliation === "Non rapprochée").length;
+  const importInputRef = useRef<HTMLInputElement | null>(null);
+  const [statements, setStatements] = useState<CreditCardStatement[]>(() => isProductionDataSource ? [] : DEMO_STATEMENT_IMPORTS as unknown as CreditCardStatement[]);
+  const [selectedStatementId, setSelectedStatementId] = useState(() => isProductionDataSource ? "" : (DEMO_STATEMENT_IMPORTS[0]?.id ?? ""));
+  const [selectedLineId, setSelectedLineId] = useState("");
+  const [selectedCandidateId, setSelectedCandidateId] = useState("");
+  const [manualReconciliation, setManualReconciliation] = useState<ReconciliationView | null>(null);
+  const [statementImportPlan, setStatementImportPlan] = useState<StatementImportPlan | null>(null);
+  const [statementNotice, setStatementNotice] = useState("");
+  const [statementError, setStatementError] = useState("");
 
+  const selectedStatement = statements.find((statement) => statement.id === selectedStatementId) ?? statements[0] ?? null;
+  const reconciliationTransactions = useMemo<ReconciliationTransaction[]>(() => transactions.map((transaction) => {
+    const card = cards.find((candidate) => candidate.lastFour === transaction.card);
+    return { id: transaction.id, cardId: card?.id, date: transaction.date, vendor: transaction.vendor, totalCents: Math.round(transaction.total * 100), invoiceNumber: transaction.invoiceNumber, projectId: transaction.projectId, projectNumber: transaction.projectNumber, projectName: transaction.projectName, accountNumber: transaction.accountNumber, accountLabel: transaction.accountLabel, person: transaction.person, card: transaction.card };
+  }), [cards, transactions]);
+  const baseReconciliation = useMemo<ReconciliationView | null>(() => selectedStatement ? reconcileStatement(selectedStatement, reconciliationTransactions) as ReconciliationView : null, [reconciliationTransactions, selectedStatement]);
+  const reconciliation = manualReconciliation?.statement.id === selectedStatement?.id ? manualReconciliation : baseReconciliation;
+  const selectedResult = reconciliation?.lineResults.find((result) => result.line.id === selectedLineId) ?? reconciliation?.lineResults[0] ?? null;
+  const selectedCandidate = selectedResult?.candidates.find((candidate) => candidate.transaction.id === selectedCandidateId) ?? selectedResult?.candidates[0] ?? null;
+
+  const selectStatement = (id: string) => {
+    setSelectedStatementId(id);
+    setManualReconciliation(null);
+    setSelectedLineId("");
+    setSelectedCandidateId("");
+  };
+
+  const handleStatementFiles = async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    if (!files.length) return;
+    setStatementError("");
+    setStatementNotice("");
+    if (isProductionDataSource) {
+      setStatementError("L’import Production est volontairement désactivé tant que le workflow serveur et sa migration n’ont pas été validés.");
+      return;
+    }
+    const parsedStatements: CreditCardStatement[] = [];
+    const errors: string[] = [];
+    for (const file of files) {
+      try {
+        const source = await file.text();
+        const parsed = parseStatementImport(source, { originalFilename: file.name, originalStoragePath: `local://${file.name}`, importedBy: "DEMO-USER-KIM" });
+        if (parsed.errors.length || !parsed.statement) errors.push(`${file.name} : ${parsed.errors.join(" ")}`);
+        else parsedStatements.push(await finalizeStatementImport(parsed.statement, source) as CreditCardStatement);
+      } catch (reason) {
+        errors.push(`${file.name} : ${reason instanceof Error ? reason.message : "fichier invalide"}`);
+      }
+    }
+    const plan = buildStatementImportBatch(statements, parsedStatements) as StatementImportPlan;
+    setStatementImportPlan({ ...plan, errors: [...errors, ...plan.errors] });
+    if (errors.length || plan.errors.length) setStatementError("L’aperçu contient des erreurs; aucun relevé ne sera ajouté.");
+    else setStatementNotice(`${plan.additions.length} nouveau(x) relevé(s) prêt(s) à importer; ${plan.duplicates.length} rejeu(x) idempotent(s).`);
+  };
+
+  const applyStatementImport = () => {
+    if (!statementImportPlan || statementImportPlan.errors.length) return;
+    setStatements((current) => [...current, ...statementImportPlan.additions]);
+    if (!selectedStatementId && statementImportPlan.additions[0]) selectStatement(statementImportPlan.additions[0].id);
+    setStatementNotice(`${statementImportPlan.additions.length} relevé(s) importé(s). L’ordre de chaque fichier est conservé par sequence.`);
+    setStatementImportPlan(null);
+  };
+
+  const downloadExcel = () => {
+    if (!reconciliation) return;
+    const xml = buildReconciliationExcelXml({ statement: reconciliation.statement, lineResults: reconciliation.lineResults, outsideTransactions: reconciliation.outsideTransactions, transactions: reconciliationTransactions });
+    const url = URL.createObjectURL(new Blob([xml], { type: "application/vnd.ms-excel" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = reconciliationExportFileName(reconciliation.statement);
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const selectLine = (result: ReconciliationLineResult) => {
+    setSelectedLineId(result.line.id);
+    setSelectedCandidateId(result.candidates[0]?.transaction.id ?? "");
+  };
+
+  const confirmSelectedMatch = () => {
+    if (!reconciliation || !selectedResult || !selectedCandidate) return;
+    try {
+      setManualReconciliation(confirmManualMatch(reconciliation, selectedResult.line.id, selectedCandidate.transaction.id, { uid: "DEMO-USER-KIM", confirmedAt: new Date().toISOString() }) as ReconciliationView);
+      setStatementNotice("Jumelage manuel enregistré dans le scénario local et audité.");
+    } catch (reason) {
+      setStatementError(reason instanceof Error ? reason.message : "Le jumelage n’a pas pu être confirmé.");
+    }
+  };
+
+  const updateSelectedStatus = (status: string) => {
+    if (!reconciliation || !selectedResult) return;
+    try {
+      setManualReconciliation(setLineReconciliationStatus(reconciliation, selectedResult.line.id, status, { uid: "DEMO-USER-KIM" }) as ReconciliationView);
+      setStatementNotice(`Statut « ${reconciliationStatusLabel(status)} » enregistré dans le scénario local et audité.`);
+    } catch (reason) {
+      setStatementError(reason instanceof Error ? reason.message : "Le statut n’a pas pu être modifié.");
+    }
+  };
+
+  const summary = reconciliation?.summary ?? {};
   return <>
-    <PageHeading eyebrow="Contrôle des relevés" title="Rapprochement" description="Chaque relevé est comparé aux factures reçues pour la même période et la même carte." action={<button className="primary-button"><span>↑</span> Importer un relevé</button>} />
-    <div className="reconciliation-toolbar"><PeriodSelector period={period} onChange={onPeriodChange} /><div className="period-card"><span className="card-icon teal">▤</span><div><span>Cartes incluses</span><strong>{activeCards.length} cartes actives · titulaires associés</strong></div><button className="icon-button">⌄</button></div></div>
-    <div className="card-roster">{activeCards.map((card) => <span className="card-chip" key={card.id}><b>•••• {card.lastFour}</b><span>{card.holder}</span></span>)}</div>
-    <div className="reconciliation-stats"><StatTile label="Lignes du relevé" value={String(visibleTransactions.length)} /><StatTile label="Rapprochées" value={String(matchedCount)} tone="success" /><StatTile label="À vérifier" value={String(reviewCount)} tone="warning" /><StatTile label="Factures manquantes" value={String(missingCount)} tone="danger" /></div>
-    <section className="panel reconciliation-panel"><div className="panel-header"><div><p className="eyebrow">{period.statementLabel} · {period.label}</p><h2>{isProductionDataSource ? "Correspondances et exceptions" : "Correspondances et exceptions · données fictives"}</h2></div><button className="secondary-button">Exporter les exceptions</button></div>
-      <div className="reconciliation-explainer"><span className="summary-icon rose">!</span><div>{isProductionDataSource ? <><strong>Les lignes proviennent de Firebase SQL Connect.</strong><span>Les états de rapprochement sont calculés à partir des transactions du cycle sélectionné.</span></> : <><strong>Chaque ligne ci-dessous est une donnée de démonstration.</strong><span>Les cartes, titulaires, fournisseurs et montants sont fictifs.</span></>}</div></div>
-      <div className="statement-list">{isProductionDataSource ? visibleTransactions.map((transaction) => {
-        const isMatched = transaction.reconciliation === "Rapprochée";
-        const isMissing = transaction.reconciliation === "Facture manquante";
-        return <StatementRow key={transaction.id} date={formatDate(transaction.date)} vendor={transaction.vendor} amount={formatCurrency(transaction.total)} card={transaction.card} holder={transaction.person} status={isMatched ? "RAPPROCHÉE" : isMissing ? "FACTURE MANQUANTE" : "À VÉRIFIER"} tone={isMatched ? "success" : isMissing ? "danger" : "warning"} reason={isMatched ? "Facture associée et montant concordant." : isMissing ? "Aucune facture associée à cette ligne de relevé." : transaction.issue ?? "La ligne doit être vérifiée par Kim."} action={isMatched ? "Aucune action requise." : isMissing ? "Importer ou associer la facture correspondante." : "Ouvrir la transaction et confirmer le rapprochement."} />;
-      }) : <><StatementRow date="12 août 2026" vendor="Quincaillerie Démo" amount="114,98 $" card="9001" holder="Alice Démo" status="FACTURE MANQUANTE" tone="danger" reason="Aucune facture démo reçue pour cette ligne fictive." action="Tester le dépôt mobile avec le compte WORKER de démonstration." /><StatementRow date="11 août 2026" vendor="Station Démo" amount="91,98 $" card="9001" holder="Alice Démo" status="RAPPROCHÉE · DEMO-TX-002" tone="success" reason="Facture fictive trouvée et montant concordant." action="Aucune action — scénario de démonstration réussi." /><StatementRow date="10 août 2026" vendor="Équipement Démo" amount="229,95 $" card="9002" holder="Benoît Démo" status="À VÉRIFIER" tone="warning" reason="Catégorie démo encore à confirmer." action="Ouvrir la facture avec KIM et confirmer le compte 90003." /></>}{isProductionDataSource && visibleTransactions.length === 0 && <div className="empty-state"><span>⇄</span><strong>Aucune ligne pour cette période</strong><p>Importez un relevé ou sélectionnez une autre période.</p></div>}</div>
-    </section>
+    <PageHeading eyebrow="Contrôle des relevés" title="Rapprochement" description="Le relevé conserve l’ordre des lignes. Kim traite seulement les ambiguïtés, absences et doublons." action={<div className="reconciliation-actions"><button className="primary-button" type="button" onClick={() => importInputRef.current?.click()} disabled={isProductionDataSource}><span>↑</span> Importer des relevés</button><button className="secondary-button" type="button" onClick={downloadExcel} disabled={!reconciliation}>Exporter Excel</button><input ref={importInputRef} hidden type="file" accept=".json,.csv,application/json,text/csv" multiple onChange={(event) => void handleStatementFiles(event)} /></div>} />
+    <div className="reconciliation-toolbar"><PeriodSelector period={period} onChange={onPeriodChange} /><div className="period-card"><span className="card-icon teal">▤</span><div><span>Relevés disponibles</span><strong>{statements.length} relevé(s) · {activeCards.length} cartes actives</strong></div></div></div>
+    {statementError && <p className="intake-review-message error">{statementError}</p>}
+    {statementNotice && <p className="intake-review-message saved">{statementNotice}</p>}
+    {!isProductionDataSource && <section className="panel statement-import-panel"><div className="panel-header"><div><p className="eyebrow">Import local synthétique</p><h2>Relevés importés</h2></div><span className="badge badge-neutral">Aucun fichier Production</span></div><div className="statement-import-toolbar"><label className="field"><span>Relevé actif</span><select value={selectedStatement?.id ?? ""} onChange={(event) => selectStatement(event.target.value)}><option value="">Sélectionner un relevé</option>{statements.map((statement) => <option key={statement.id} value={statement.id}>{statement.originalFilename} · •••• {cards.find((card) => card.id === statement.cardId)?.lastFour ?? statement.cardId} · {statement.periodStart} → {statement.periodEnd}</option>)}</select></label><div className="directory-help">Le fichier JSON porte sa carte et ses dates. Un CSV structuré est accepté par l’adaptateur, avec les métadonnées de carte/période fournies par le workflow. Le PDF reste une extension future.</div></div>{statementImportPlan && <div className="statement-import-preview"><strong>Aperçu avant écriture</strong><span>{statementImportPlan.additions.length} ajout(s) · {statementImportPlan.duplicates.length} rejeu(x) idempotent(s) · {statementImportPlan.warnings.length} avertissement(s)</span>{statementImportPlan.warnings.map((warning) => <small key={warning}>{warning}</small>)}{statementImportPlan.errors.length === 0 && <button className="primary-button" type="button" onClick={applyStatementImport}>Appliquer l’import local</button>}</div>}</section>}
+    {isProductionDataSource && <div className="config-note"><span>i</span><p>Le rapprochement Production reste en lecture seule pendant cette étape. Le modèle et les opérations Data Connect seront migrés séparément après validation locale.</p></div>}
+    {reconciliation ? <>
+      <div className="card-roster">{activeCards.map((card) => <span className="card-chip" key={card.id}><b>•••• {card.lastFour}</b><span>{card.holder}</span></span>)}</div>
+      <div className="reconciliation-stats"><StatTile label="Lignes du relevé" value={String(reconciliation.lineResults.length)} /><StatTile label="Jumelées" value={String(summary.MATCHED ?? 0)} tone="success" /><StatTile label="À vérifier" value={String((summary.REVIEW ?? 0) + (summary.DUPLICATE ?? 0))} tone="warning" /><StatTile label="Factures manquantes" value={String(summary.MISSING_INVOICE ?? 0)} tone="danger" /></div>
+      <section className="panel reconciliation-panel"><div className="panel-header"><div><p className="eyebrow">{reconciliation.statement.originalFilename} · {reconciliation.statement.periodStart} → {reconciliation.statement.periodEnd}</p><h2>Correspondances et exceptions</h2></div><span className="badge badge-neutral">sequence immuable</span></div><div className="reconciliation-explainer"><span className="summary-icon rose">!</span><div><strong>Le relevé est la source de vérité de l’ordre.</strong><span>Montants comparés au cent; date tolérée de ±2 jours; deux candidats équivalents restent à vérifier.</span></div></div><div className="reconciliation-table-wrap"><table className="reconciliation-detail-table"><thead><tr><th>#</th><th>Date</th><th>Marchand relevé</th><th>Montant</th><th>Facture / projet / compte</th><th>Statut</th></tr></thead><tbody>{reconciliation.lineResults.map((result) => { const transaction = result.match ? reconciliationTransactions.find((candidate) => candidate.id === result.match?.expenseTransactionId) : null; const selected = selectedResult?.line.id === result.line.id; return <tr key={result.line.id} className={selected ? "selected" : ""} onClick={() => selectLine(result)}><td>{result.line.sequence}</td><td>{formatDate(result.line.transactionDate)}</td><td><strong>{result.line.merchantRaw}</strong><small>{result.line.merchantNormalized}</small></td><td><strong>{formatCurrency(result.line.amountCents / 100)}</strong></td><td><strong>{transaction?.invoiceNumber ?? "—"}</strong><small>{transaction ? `${transaction.projectNumber ?? "—"} · ${transaction.accountNumber ?? "—"}` : result.candidates.length ? `${result.candidates.length} candidate(s)` : "Aucune candidate"}</small></td><td><span className={`badge badge-${reconciliationStatusTone(result.status)}`}>{reconciliationStatusLabel(result.status)}</span></td></tr>; })}</tbody></table></div></section>
+      {selectedResult && <section className="panel reconciliation-detail-card"><div className="panel-header"><div><p className="eyebrow">Détail de la ligne {selectedResult.line.sequence}</p><h2>{selectedResult.line.merchantRaw} · {formatCurrency(selectedResult.line.amountCents / 100)}</h2></div><span className={`badge badge-${reconciliationStatusTone(selectedResult.status)}`}>{reconciliationStatusLabel(selectedResult.status)}</span></div><div className="reconciliation-detail-grid"><div><span>Date relevé</span><strong>{formatDate(selectedResult.line.transactionDate)}</strong></div><div><span>Motif du score</span><strong>{selectedResult.reason}</strong></div><div><span>Carte / titulaire</span><strong>{cards.find((card) => card.id === reconciliation.statement.cardId)?.lastFour ?? reconciliation.statement.cardId} · {reconciliation.statement.holderNameSnapshot ?? "titulaire snapshot"}</strong></div></div>{selectedResult.candidates.length > 0 && <div className="reconciliation-candidate-actions"><label className="field"><span>Facture candidate</span><select value={selectedCandidate?.transaction.id ?? ""} onChange={(event) => setSelectedCandidateId(event.target.value)}>{selectedResult.candidates.map((candidate) => <option key={candidate.transaction.id} value={candidate.transaction.id}>{candidate.transaction.invoiceNumber ?? candidate.transaction.id} · {candidate.score.score}/100 · {candidate.transaction.vendor}</option>)}</select></label><button className="primary-button" type="button" onClick={confirmSelectedMatch}>Confirmer le jumelage</button></div>}<div className="reconciliation-detail-actions"><button className="secondary-button" type="button" onClick={() => updateSelectedStatus(RECONCILIATION_STATUSES.MISSING_INVOICE)}>Marquer facture manquante</button><button className="secondary-button" type="button" onClick={() => updateSelectedStatus(RECONCILIATION_STATUSES.IGNORED)}>Ignorer</button><button className="text-button" type="button" onClick={() => updateSelectedStatus(RECONCILIATION_STATUSES.REVIEW)}>Rouvrir pour vérification</button></div></section>}
+      {reconciliation.outsideTransactions.length > 0 && <section className="panel reconciliation-outside"><div className="panel-header"><div><p className="eyebrow">Contrôle inverse</p><h2>Hors relevé</h2></div><span className="badge badge-warning">{reconciliation.outsideTransactions.length}</span></div><div className="directory-list">{reconciliation.outsideTransactions.map(({ transaction, reason }) => <div className="directory-row" key={transaction.id}><div><strong>{transaction.vendor} · {formatCurrency(transaction.totalCents / 100)}</strong><small>{transaction.date} · {transaction.invoiceNumber ?? transaction.id}</small></div><span className="badge badge-neutral">Hors relevé</span><small>{reason}</small></div>)}</div></section>}
+    </> : <section className="panel data-source-card"><p className="eyebrow">Aucun relevé sélectionné</p><h2>Importez un relevé synthétique local</h2><p className="muted">Le parcours local est prêt avec dix fixtures fictives; aucune écriture Production n’est effectuée.</p></section>}
   </>;
 }
 
 function StatTile({ label, value, tone = "" }: { label: string; value: string; tone?: string }) { return <div className={`stat-tile ${tone}`}><span>{label}</span><strong>{value}</strong></div>; }
-function StatementRow({ date, vendor, amount, card, holder, status, tone, reason, action }: { date: string; vendor: string; amount: string; card: string; holder: string; status: string; tone: string; reason: string; action: string }) { return <div className="statement-row"><span className="statement-date">{date}</span><span className="statement-vendor"><strong>{vendor}</strong><small>Carte •••• {card} · {holder}</small></span><strong className="statement-amount">{amount}</strong><span className={`statement-status ${tone}`}><span className="status-dot" />{status}</span><div className="statement-resolution"><strong>Pourquoi</strong><span>{reason}</span><strong>À faire</strong><span>{action}</span></div><button className="row-menu">→</button></div>; }
 
 function ReportsPage(props: { period: CardPeriod; onPeriodChange: (period: CardPeriod) => void }) {
   return <KimAccountingReport {...props} />;
@@ -1540,8 +1693,9 @@ function KimAccountingReport({ period, onPeriodChange, embedded = false }: { per
     const matchesPerson = selectedPerson === "TOUS" || transaction.person === selectedPerson;
     const matchesProject = selectedProject === "TOUS" || transaction.projectId === selectedProject || transaction.projectNumber === selectedProject;
     const matchesPeriod = isTransactionInPeriod(transaction, period);
-    const isIncludedStatus = transaction.accountingStatus === "POSTED" &&
-      (transaction.processingStatus === "AUTO_APPROVED" || transaction.processingStatus === "VALIDATED");
+    const isIncludedStatus = transaction.accountingStatus
+      ? transaction.accountingStatus === "POSTED" && (transaction.processingStatus === "AUTO_APPROVED" || transaction.processingStatus === "VALIDATED")
+      : transaction.status === "Validée";
     return matchesPerson && matchesProject && matchesPeriod && isIncludedStatus;
   }), [period, selectedPerson, selectedProject, transactions]);
   const visibleTotals = useMemo(() => {
@@ -1557,8 +1711,18 @@ function KimAccountingReport({ period, onPeriodChange, embedded = false }: { per
   const visibleSubtotal = Array.from(visibleTotals.values()).reduce((sum, amount) => sum + amount.subtotal, 0);
   const visibleTps = Array.from(visibleTotals.values()).reduce((sum, amount) => sum + amount.tps, 0);
   const visibleTvq = Array.from(visibleTotals.values()).reduce((sum, amount) => sum + amount.tvq, 0);
+  const downloadReport = () => {
+    const xml = buildAccountingReportExcelXml({ period, transactions: visibleTransactions, accounts });
+    const blob = new Blob([xml], { type: "application/vnd.ms-excel" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = accountingReportFileName(period);
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
   return <>
-    {!embedded && <PageHeading eyebrow="Analyse" title="Rapports" description="Le tableau compact utilisé par Kim pour reporter les dépenses dans la comptabilité." action={<button className="primary-button"><span>⇩</span> Exporter en Excel</button>} />}
+    {!embedded && <PageHeading eyebrow="Analyse" title="Rapports" description="Le tableau compact utilisé par Kim pour reporter les dépenses dans la comptabilité." action={<button className="primary-button" type="button" onClick={downloadReport}><span>⇩</span> Exporter en Excel</button>} />}
     <div className="kim-report-toolbar">
       {!embedded && <PeriodSelector period={period} onChange={onPeriodChange} />}
        <label><span>Titulaire de carte</span><select aria-label="Filtrer par titulaire de carte" value={selectedPerson} onChange={(event) => setSelectedPerson(event.target.value)}><option value="TOUS">Tous les titulaires</option>{people.map((person) => <option value={person} key={person}>{person}</option>)}</select></label>

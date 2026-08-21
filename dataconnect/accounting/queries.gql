@@ -52,6 +52,52 @@ query ListExpenseAccounts @auth(expr: "auth.token.role == 'KIM' || auth.token.ro
   }
 }
 
+query ListCreditCardStatements @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  creditCardStatements(limit: 250) {
+    id
+    card {
+      id
+      lastFour
+      holder { id displayName }
+    }
+    holderIdSnapshot
+    holderNameSnapshot
+    periodStart
+    periodEnd
+    originalStoragePath
+    originalFilename
+    importedAt
+    importedBy { id displayName }
+    statementHash
+    status
+    lineCount
+    totalAmountCents
+    createdAt
+    updatedAt
+  }
+}
+
+query ListCreditCardStatementLines($statementId: String!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  creditCardStatementLines(
+    where: { statement: { id: { eq: $statementId } } }
+    limit: 10000
+  ) {
+    id
+    statement { id }
+    sequence
+    transactionDate
+    postedDate
+    merchantRaw
+    merchantNormalized
+    amountCents
+    externalReference
+    status
+    rawData
+    createdAt
+    updatedAt
+  }
+}
+
 query ListProjects @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   projects {
     id
