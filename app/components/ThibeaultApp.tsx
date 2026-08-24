@@ -72,6 +72,10 @@ type Transaction = {
   issue?: string;
   correction?: string;
   imageCount: number;
+  invoiceId?: string;
+  receiptId?: string;
+  storageFolder?: string;
+  photoPaths?: Array<{ storagePath: string; contentType: string; sequence: number }>;
   invoiceNumber: string;
   note: string;
   sku?: string;
@@ -252,6 +256,20 @@ const emptyProductionPeriod: CardPeriod = {
   end: "2026-09-09",
   statementLabel: "Relevé · période personnalisée",
 };
+
+function periodForLoadedTransactions(transactions: Array<Pick<Transaction, "date">>): CardPeriod {
+  const dates = transactions.map((transaction) => transaction.date).filter(Boolean).sort();
+  if (!dates.length) return emptyProductionPeriod;
+  const start = dates[0];
+  const end = dates[dates.length - 1];
+  return {
+    id: "custom",
+    label: dates.length === 1 ? `Transaction chargée · ${formatDate(start)}` : `Transactions chargées · ${formatDate(start)} → ${formatDate(end)}`,
+    start,
+    end,
+    statementLabel: "Période personnalisée · transactions chargées",
+  };
+}
 
 const skuReferences: SkuReference[] = [
   { merchant: "Quincaillerie Démo", sku: "DEMO-SKU-001", label: "Bloc de démonstration", category: "Matériaux Démo", accountCode: "DEMO-90001", status: "Validé" },
@@ -610,7 +628,14 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
         const nextData = isLocalEmulatorMode ? mappedData : removeDemoAccountingData(mappedData);
         setAppData(nextData);
         setSelectedId((current) => nextData.transactions.some((transaction) => transaction.id === current) ? current : (nextData.transactions[0]?.id ?? ""));
-        setSelectedPeriod((current) => nextData.periods.find((period) => period.id === current.id) ?? nextData.periods[0] ?? current);
+        setSelectedPeriod((current) => {
+          const matchingPeriod = nextData.periods.find((period) => period.id === current.id);
+          if (matchingPeriod) return matchingPeriod;
+          if (nextData.periods[0]) return nextData.periods[0];
+          return current.start === emptyProductionPeriod.start && current.end === emptyProductionPeriod.end
+            ? periodForLoadedTransactions(nextData.transactions)
+            : current;
+        });
         setDataSourceState("ready");
       })
       .catch(() => {
@@ -953,7 +978,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
           {view === "settings" && <AdminDirectoryPage onDataChange={(patch) => setAppData((current) => ({ ...current, ...patch }))} role={accountRole ?? "ADMIN"} />}
           {view === "intakes" && canUseAccounting && <IntakeQueuePage items={appData.intakes.filter(isIntakeQueueItem)} onSaved={(receiptId, patch) => setAppData((current) => ({ ...current, intakes: current.intakes.map((intake) => intake.receiptId === receiptId ? { ...intake, ...patch } : intake) }))} />}
           {view === "debug" && canUseDiagnostics && <DebugPage dataSourceState={dataSourceState} onRetry={retryAccounting} role={accountRole ?? "ADMIN"} />}
-          {(view as string) === "transaction" && selected && <TransactionDetail transaction={selected} onBack={() => setView("transactions")} onNotify={notify} />}
+          {(view as string) === "transaction" && selected && <TransactionDetail transaction={selected} onBack={() => setView("transactions")} />}
         </div>
       </section>
       {toast && <div className="toast">{toast}</div>}
@@ -1181,6 +1206,58 @@ function InvoiceIntakeEvidence({ intake }: { intake: InvoiceIntake }) {
       </div>}
     </>}
   </section>;
+}
+
+type TransactionEvidencePhoto = { sequence: number; storagePath: string; url: string };
+type TransactionEvidenceState = { key: string; status: "loading" | "ready" | "error"; photos: TransactionEvidencePhoto[] };
+
+async function loadTransactionEvidencePhotos(transaction: Transaction): Promise<TransactionEvidencePhoto[]> {
+  if (!firebaseStorage) throw new Error("Firebase Storage n'est pas configure.");
+  const storage = firebaseStorage;
+  const photoPaths = [...(transaction.photoPaths ?? [])].sort((left, right) => left.sequence - right.sequence);
+  return Promise.all(photoPaths.map(async (photo) => ({
+    sequence: photo.sequence,
+    storagePath: photo.storagePath,
+    url: await getDownloadURL(ref(storage, photo.storagePath)),
+  })));
+}
+
+function TransactionEvidence({ transaction }: { transaction: Transaction }) {
+  const photoKey = (transaction.photoPaths ?? []).map((photo) => `${photo.sequence}:${photo.storagePath}`).join("|");
+  const evidenceKey = `${transaction.id}:${photoKey}`;
+  const [evidence, setEvidence] = useState<TransactionEvidenceState>({ key: "", status: "loading", photos: [] });
+  const [activeSequence, setActiveSequence] = useState(1);
+  const [zoom, setZoom] = useState(1);
+
+  useEffect(() => {
+    let active = true;
+    void loadTransactionEvidencePhotos(transaction)
+      .then((photos) => {
+        if (active) setEvidence({ key: evidenceKey, status: "ready", photos });
+      })
+      .catch(() => {
+        if (active) setEvidence({ key: evidenceKey, status: "error", photos: [] });
+      });
+    return () => {
+      active = false;
+    };
+  }, [evidenceKey, transaction]);
+
+  const currentEvidence = evidence.key === evidenceKey ? evidence : { key: evidenceKey, status: "loading" as const, photos: [] };
+  const activePhoto = currentEvidence.photos.find((photo) => photo.sequence === activeSequence) ?? currentEvidence.photos[0];
+  const pageCount = transaction.imageCount || currentEvidence.photos.length;
+
+  return <>
+    {currentEvidence.status === "loading" && <div className="document-viewer"><p className="intake-evidence-message">Chargement de la photo associée…</p></div>}
+    {currentEvidence.status === "error" && <div className="document-viewer"><p className="intake-evidence-message error">La photo Storage n’a pas pu être chargée. Le fichier original n’a pas été recréé.</p></div>}
+    {currentEvidence.status === "ready" && !activePhoto && <div className="document-viewer"><p className="intake-evidence-message">Aucune photo associée à cette transaction.</p></div>}
+    {currentEvidence.status === "ready" && activePhoto && <>
+      <div className="document-viewer"><div className="intake-evidence-zoom-stage"><div style={{ transform: `scale(${zoom})` }}><IntakeEvidencePreview url={activePhoto.url} alt={`Photo originale de la transaction ${transaction.id}, page ${activePhoto.sequence}`} /></div></div></div>
+      <div className="intake-evidence-tools" aria-label="Contrôles de zoom"><button type="button" className="icon-button" onClick={() => setZoom((current) => Math.max(0.75, Number((current - 0.25).toFixed(2))))} aria-label="Réduire le zoom">−</button><span>{Math.round(zoom * 100)}%</span><button type="button" className="icon-button" onClick={() => setZoom((current) => Math.min(2.5, Number((current + 0.25).toFixed(2))))} aria-label="Augmenter le zoom">＋</button><a className="text-button" href={activePhoto.url} target="_blank" rel="noreferrer">Ouvrir l’original</a></div>
+      {currentEvidence.photos.length > 1 && <div className="intake-evidence-thumbs" aria-label="Pages de la facture">{currentEvidence.photos.map((photo) => <button className={`intake-evidence-thumb ${photo.sequence === activePhoto.sequence ? "active" : ""}`} type="button" key={photo.sequence} onClick={() => setActiveSequence(photo.sequence)} aria-label={`Afficher la page ${photo.sequence}`} aria-pressed={photo.sequence === activePhoto.sequence}><IntakeEvidencePreview url={photo.url} alt={`Miniature, page ${photo.sequence}`} /></button>)}</div>}
+      <div className="page-controls"><button type="button" onClick={() => setActiveSequence(Math.max(1, activeSequence - 1))} disabled={activeSequence <= 1}>‹</button><span>Page {activePhoto.sequence} sur {pageCount}</span><button type="button" onClick={() => setActiveSequence(Math.min(pageCount, activeSequence + 1))} disabled={activeSequence >= pageCount}>›</button></div>
+    </>}
+  </>;
 }
 
 function auditActionLabel(action: string) {
@@ -1717,43 +1794,38 @@ function TransactionTable({ items, compact = false, onOpen }: { items: Transacti
   return <div className={`table-wrap ${compact ? "compact" : ""}`}><table><thead><tr><th>Transaction</th><th>Date</th><th>Fournisseur</th><th>Titulaire / carte</th><th>Projet</th><th>Compte</th><th>Sous-total</th><th>TPS</th><th>TVQ</th><th>Total</th><th>État / rapprochement</th><th /></tr></thead><tbody>{items.map((item) => { const classification = classifyTransaction(item, data); const accountNumber = item.accountNumber ?? classification.code; const accountLabel = item.accountLabel ?? classification.category; return <tr key={item.id} onClick={() => onOpen?.(item.id)}><td><div className="transaction-id"><span className="receipt-icon">▧</span><span><strong>{item.id}</strong><small>{item.invoiceNumber} · {item.imageCount} photo{item.imageCount > 1 ? "s" : ""}</small></span></div></td><td>{formatDate(item.date)}</td><td>{item.vendor}</td><td>{item.person}<small>•••• {item.card}</small></td><td><strong>{item.projectNumber ?? "—"}</strong><small>{item.projectName ?? item.project}</small></td><td><strong>{accountNumber}</strong><small>{accountLabel}</small></td><td>{formatCurrency(item.subtotal)}</td><td>{formatCurrency(item.tps)}</td><td>{formatCurrency(item.tvq)}</td><td><strong>{formatCurrency(item.total)}</strong></td><td><span className={statusClass(item.status)}>{item.status}</span><small className="table-substatus">{item.reconciliation}</small></td><td><button className="row-menu" onClick={(event) => { event.stopPropagation(); onOpen?.(item.id); }} aria-label={`Ouvrir ${item.id}`}>→</button></td></tr>; })}</tbody></table>{items.length === 0 && <div className="empty-state"><span>⌕</span><strong>Aucune transaction trouvée</strong><p>Modifiez vos filtres pour élargir la recherche.</p></div>}</div>;
 }
 
-function TransactionDetail({ transaction, onBack, onNotify }: { transaction: Transaction; onBack: () => void; onNotify: (message: string) => void }) {
+function TransactionDetail({ transaction, onBack }: { transaction: Transaction; onBack: () => void }) {
   const data = useAppData();
-  const [activePage, setActivePage] = useState(1);
-  const [saved, setSaved] = useState(false);
-  const [draftCategory, setDraftCategory] = useState(transaction.category);
-  const [draftSubtotal, setDraftSubtotal] = useState("160.35");
-  const [attachmentAdded, setAttachmentAdded] = useState(false);
-  const classification = classifyTransaction({ category: draftCategory, sku: transaction.sku, vendor: transaction.vendor }, data);
+  const classification = classifyTransaction({ category: transaction.category, sku: transaction.sku, vendor: transaction.vendor }, data);
+  const detailSource = transaction.storageFolder ?? (transaction.receiptId ? `Dépôt ${transaction.receiptId}` : "Non disponible");
+  const accountingLabel = transaction.accountingStatus === "POSTED" ? "Écriture comptabilisée" : "Lecture seule";
   return <>
     <div className="detail-toolbar">
       <button className="back-button" onClick={onBack}>← <span>Transactions</span></button>
       <div className="detail-toolbar-actions">
         <span className={statusClass(transaction.status)}>{transaction.status}</span>
-        <button className="secondary-button" onClick={() => onNotify("Transaction laissée dans la file À vérifier.")}>Remettre à vérifier</button>
-        <button className="primary-button" onClick={() => { setSaved(true); onNotify("Correction enregistrée dans l’audit."); }}>Valider la transaction</button>
+        <span className="data-source-help">{accountingLabel}</span>
       </div>
     </div>
     <div className="detail-layout">
       <section className="evidence-panel">
-        <div className="evidence-top"><div><p className="eyebrow">Preuve · {transaction.imageCount} pages</p><h1>{transaction.vendor}</h1></div><div className="evidence-tools"><button className="icon-button">−</button><span>100%</span><button className="icon-button">＋</button><button className="icon-button">↗</button></div></div>
-        <div className="document-viewer"><div className="document-paper"><div className="paper-brand">{transaction.vendor}</div><div className="paper-line wide" /><div className="paper-line medium" /><div className="paper-grid"><div /><div /><div /><div /><div /><div /></div><div className="paper-total"><span>TOTAL</span><strong>{formatCurrency(transaction.total)}</strong></div><span className="paper-stamp">APERÇU<br />DÉMO</span></div></div>
-        <div className="page-controls"><button onClick={() => setActivePage(Math.max(1, activePage - 1))}>‹</button><span>Page {activePage} sur {transaction.imageCount}</span><button onClick={() => setActivePage(Math.min(transaction.imageCount, activePage + 1))}>›</button></div>
+        <div className="evidence-top"><div><p className="eyebrow">Preuve · {transaction.imageCount} photo{transaction.imageCount > 1 ? "s" : ""}</p><h1>{transaction.vendor}</h1></div><span className="data-source-help">Lecture seule · Storage</span></div>
+        <TransactionEvidence transaction={transaction} />
       </section>
       <aside className="detail-form">
-        <div className="form-section"><div className="section-heading"><span>01</span><div><p className="eyebrow">Provenance</p><h2>Source de la transaction</h2></div></div><div className="provenance-card"><div className="avatar avatar-blue">K</div><div><strong>{transaction.submittedBy}</strong><span>Soumis le {formatDate(transaction.date)} · appareil mobile</span></div><span className="verified-mark">✓</span></div><div className="field-grid"><Field label="Personne associée" value={transaction.person} /><Field label="Carte détectée" value={`•••• ${transaction.card}`} hint="Concordance confirmée" tone="success" /><Field label="Dossier source" value="/dépôts/chantier" /><Field label="Réception" value={`${formatDate(transaction.date)} · 14:32`} /></div></div>
-         <div className="form-section"><div className="section-heading"><span>02</span><div><p className="eyebrow">Facture</p><h2>Données principales</h2></div></div><div className="field-grid"><Field label="Fournisseur" value={transaction.vendor} /><Field label="No facture" value={transaction.invoiceNumber} /><Field label="Date de facture" value={formatDate(transaction.date)} /><Field label="Chantier" value={transaction.project} /><Field label="Catégorie" value={draftCategory} /><Field label="Compte comptable" value={`${classification.code} · ${classification.category}`} invalid={transaction.correctionField === "account"} wide /></div>{transaction.correctionField === "account" && <label className="correction-editor correction-editor-danger"><span>Corriger la classification proposée par le SKU {transaction.sku}</span><select value={draftCategory} onChange={(event) => setDraftCategory(event.target.value)}>{data.accounts.filter((account) => account.type === "EXPENSE").map((account) => <option value={account.label} key={account.id}>{account.number} · {account.label}</option>)}</select></label>}</div>
+        <div className="form-section"><div className="section-heading"><span>01</span><div><p className="eyebrow">Provenance</p><h2>Source de la transaction</h2></div></div><div className="provenance-card"><div className="avatar avatar-blue">{transaction.person.slice(0, 1).toUpperCase()}</div><div><strong>{transaction.submittedBy}</strong><span>Transaction enregistrée le {formatDate(transaction.date)}</span></div><span className="verified-mark">✓</span></div><div className="field-grid"><Field label="Personne associée" value={transaction.person} /><Field label="Carte détectée" value={`•••• ${transaction.card}`} hint="Carte liée à l’écriture" tone="success" /><Field label="Dossier source" value={detailSource} /><Field label="Réception" value={transaction.receiptId ?? "Référence de dépôt non disponible"} /></div></div>
+         <div className="form-section"><div className="section-heading"><span>02</span><div><p className="eyebrow">Facture</p><h2>Données principales</h2></div></div><div className="field-grid"><Field label="Fournisseur" value={transaction.vendor} /><Field label="No facture" value={transaction.invoiceNumber} /><Field label="Date de facture" value={formatDate(transaction.date)} /><Field label="Chantier" value={transaction.project} /><Field label="Catégorie" value={transaction.category} /><Field label="Compte comptable" value={`${classification.code} · ${classification.category}`} invalid={transaction.correctionField === "account"} wide /></div></div>
         {transaction.issue && <div className="detail-alert"><div className="detail-alert-icon">!</div><div><p className="eyebrow">Action requise avant validation</p><strong>{transaction.issue}</strong><span>{transaction.correction ?? "Correction humaine requise avant validation."}</span></div></div>}
-         <div className="form-section"><div className="section-heading"><span>03</span><div><p className="eyebrow">Montants</p><h2>Contrôle comptable</h2></div><span className="control-ok">✓ Contrôles 4/4</span></div><div className="amount-card"><div className={transaction.correctionField === "subtotal" ? "amount-invalid" : ""}><span>Sous-total</span>{transaction.correctionField === "subtotal" ? <input className="amount-input" type="number" step="0.01" value={draftSubtotal} onChange={(event) => setDraftSubtotal(event.target.value)} /> : <strong>{formatCurrency(transaction.subtotal)}</strong>}</div><div><span>TPS</span><strong>{formatCurrency(transaction.tps)}</strong></div><div><span>TVQ</span><strong>{formatCurrency(transaction.tvq)}</strong></div><div className="amount-total"><span>Total</span><strong>{formatCurrency(transaction.total)}</strong></div></div></div>
-        <div className="form-section"><div className="section-heading"><span>04</span><div><p className="eyebrow">Articles</p><h2>Lignes extraites</h2></div><button className="text-button">＋ Ajouter</button></div><div className="line-items"><div className="line-item"><span>01</span><div><strong>Matériaux / pièce</strong><small>Description originale conservée</small></div><strong>120,00 $</strong></div><div className="line-item warning-line"><span>02</span><div><strong>Article à confirmer</strong><small>Information absente de la page analysée</small></div><strong>—</strong></div></div><div className="field-note">{transaction.note}</div>{transaction.correctionField === "attachment" && <div className="correction-editor correction-editor-danger"><strong>Bon de livraison requis</strong><span>Cette correction doit être jointe à la facture avant la validation.</span><button className="secondary-button" onClick={() => setAttachmentAdded(true)}>{attachmentAdded ? "Pièce ajoutée ✓" : "Ajouter la pièce justificative"}</button></div>}</div>
-        <div className="audit-footer">{saved ? "Dernière correction enregistrée à l’instant" : "Dernière analyse IA · il y a 8 min"}<button className="text-button">Voir l’audit →</button></div>
+         <div className="form-section"><div className="section-heading"><span>03</span><div><p className="eyebrow">Montants</p><h2>Contrôle comptable</h2></div><span className="control-ok">✓ Totaux persistés</span></div><div className="amount-card"><div><span>Sous-total</span><strong>{formatCurrency(transaction.subtotal)}</strong></div><div><span>TPS</span><strong>{formatCurrency(transaction.tps)}</strong></div><div><span>TVQ</span><strong>{formatCurrency(transaction.tvq)}</strong></div><div className="amount-total"><span>Total</span><strong>{formatCurrency(transaction.total)}</strong></div></div></div>
+        <div className="form-section"><div className="section-heading"><span>04</span><div><p className="eyebrow">Articles</p><h2>Détail des articles</h2></div></div><div className="line-items"><div className="line-item warning-line"><span>—</span><div><strong>Détail des articles non disponible</strong><small>La facture persistée contient les totaux, mais aucune ligne d’articles structurée.</small></div><strong>—</strong></div></div><div className="field-note">{transaction.note}</div></div>
+        <div className="audit-footer"><span>{accountingLabel} dans Data Connect</span><span>{transaction.invoiceId ? `Facture ${transaction.invoiceId}` : "Facture liée non disponible"}</span></div>
       </aside>
     </div>
   </>;
 }
 
 function Field({ label, value, hint, tone, wide = false, invalid = false }: { label: string; value: string; hint?: string; tone?: string; wide?: boolean; invalid?: boolean }) {
-  return <label className={`field ${wide ? "wide" : ""} ${invalid ? "field-invalid" : ""}`}><span>{label}{invalid && <b> · correction requise</b>}</span><div className="field-value">{value}<span className="field-edit">✎</span></div>{hint && <small className={tone === "success" ? "hint-success" : ""}>{hint}</small>}</label>;
+  return <div className={`field ${wide ? "wide" : ""} ${invalid ? "field-invalid" : ""}`}><span>{label}{invalid && <b> · correction requise</b>}</span><div className="field-value">{value}</div>{hint && <small className={tone === "success" ? "hint-success" : ""}>{hint}</small>}</div>;
 }
 
 function PhotoPreview({ url, alt }: { url: string; alt: string }) {

@@ -609,6 +609,12 @@ export interface ListInvoiceIntakesData {
 export interface ListInvoicesToReviewData {
   invoices: ({
     id: string;
+    intake?: {
+      receiptId: string;
+      uploaderUid: string;
+      storageFolder: string;
+      photoCount: number;
+    } & InvoiceIntake_Key;
     vendor: string;
     invoiceNumber?: string | null;
     invoiceDate?: DateString | null;
@@ -1641,4 +1647,3 @@ export const listAuditEventsRef: ListAuditEventsRef;
 
 export function listAuditEvents(vars: ListAuditEventsVariables, options?: ExecuteQueryOptions): QueryPromise<ListAuditEventsData, ListAuditEventsVariables>;
 export function listAuditEvents(dc: DataConnect, vars: ListAuditEventsVariables, options?: ExecuteQueryOptions): QueryPromise<ListAuditEventsData, ListAuditEventsVariables>;
-

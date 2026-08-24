@@ -242,8 +242,14 @@ query ListExpenseTransactions @auth(expr: "auth.token.role == 'KIM' || auth.toke
 }
 
 query ListInvoicesToReview @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  invoices(where: {processingStatus: {eq: "NEEDS_REVIEW"}}) {
+  invoices(limit: 250) {
     id
+    intake {
+      receiptId
+      uploaderUid
+      storageFolder
+      photoCount
+    }
     vendor
     invoiceNumber
     invoiceDate

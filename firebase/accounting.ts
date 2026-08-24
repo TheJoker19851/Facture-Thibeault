@@ -101,6 +101,10 @@ export type AppAccountingData = {
     issue?: string;
     correction?: string;
     imageCount: number;
+    invoiceId?: string;
+    receiptId?: string;
+    storageFolder?: string;
+    photoPaths?: Array<{ storagePath: string; contentType: string; sequence: number }>;
     invoiceNumber: string;
     note: string;
     sku?: string;
@@ -454,6 +458,8 @@ function reconciliationStatus(value: string): AppAccountingData["transactions"][
 
 /** Convert the generated SDK shape into the shape already used by the demo UI. */
 export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccountingData {
+  const invoicesByTransactionId = new Map(snapshot.invoices.map((invoice) => [invoice.transaction.id, invoice]));
+
   return {
     users: snapshot.users.map((user) => ({
       id: user.id,
@@ -492,32 +498,40 @@ export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccounti
       accountCode: reference.expenseAccount?.number ?? "—",
       status: reference.verificationStatus === "VALIDATED" ? "Validé" : "À confirmer",
     })),
-    transactions: snapshot.transactions.map((transaction) => ({
-      id: transaction.id,
-      date: transaction.transactionDate,
-      vendor: transaction.vendor,
-      submittedBy: transaction.card.holder.displayName,
-      person: transaction.card.holder.displayName,
-      card: transaction.card.lastFour,
-      ...(transaction.statementPeriod?.id ? { periodId: transaction.statementPeriod.id } : {}),
-      ...(transaction.project ? { projectId: transaction.project.id, projectNumber: transaction.project.number, projectName: transaction.project.name } : {}),
-      project: transaction.project ? `${transaction.project.number} · ${transaction.project.name}` : "—",
-      category: transaction.expenseAccount?.label ?? transaction.categoryLabel ?? "Divers",
-      ...(transaction.expenseAccount ? { accountId: transaction.expenseAccount.id, accountNumber: transaction.expenseAccount.number, accountLabel: transaction.expenseAccount.label } : {}),
-      subtotal: centsToCad(transaction.amountBeforeTaxCents),
-      tps: centsToCad(transaction.tpsCents),
-      tvq: centsToCad(transaction.tvqCents),
-      total: centsToCad(transaction.totalCents),
-      status: transactionStatus(transaction.processingStatus),
-      processingStatus: transaction.processingStatus,
-      accountingStatus: transaction.accountingStatus,
-      reconciliation: reconciliationStatus(transaction.reconciliationStatus),
-      ...(transaction.issue ? { issue: transaction.issue } : {}),
-      imageCount: 0,
-      invoiceNumber: transaction.invoiceNumber ?? "—",
-      note: transaction.classificationNote ?? "Classification issue de SQL Connect.",
-      ...(transaction.sku ? { sku: transaction.sku } : {}),
-    })),
+    transactions: snapshot.transactions.map((transaction) => {
+      const invoice = invoicesByTransactionId.get(transaction.id);
+      const photoPaths = invoice?.invoicePhotos_on_invoice ?? [];
+      return {
+        id: transaction.id,
+        date: transaction.transactionDate,
+        vendor: transaction.vendor,
+        submittedBy: transaction.card.holder.displayName,
+        person: transaction.card.holder.displayName,
+        card: transaction.card.lastFour,
+        ...(transaction.statementPeriod?.id ? { periodId: transaction.statementPeriod.id } : {}),
+        ...(transaction.project ? { projectId: transaction.project.id, projectNumber: transaction.project.number, projectName: transaction.project.name } : {}),
+        project: transaction.project ? `${transaction.project.number} · ${transaction.project.name}` : "—",
+        category: transaction.expenseAccount?.label ?? transaction.categoryLabel ?? "Divers",
+        ...(transaction.expenseAccount ? { accountId: transaction.expenseAccount.id, accountNumber: transaction.expenseAccount.number, accountLabel: transaction.expenseAccount.label } : {}),
+        subtotal: centsToCad(transaction.amountBeforeTaxCents),
+        tps: centsToCad(transaction.tpsCents),
+        tvq: centsToCad(transaction.tvqCents),
+        total: centsToCad(transaction.totalCents),
+        status: transactionStatus(transaction.processingStatus),
+        processingStatus: transaction.processingStatus,
+        accountingStatus: transaction.accountingStatus,
+        reconciliation: reconciliationStatus(transaction.reconciliationStatus),
+        ...(transaction.issue ? { issue: transaction.issue } : {}),
+        imageCount: photoPaths.length || invoice?.intake?.photoCount || 0,
+        ...(invoice?.id ? { invoiceId: invoice.id } : {}),
+        ...(invoice?.intake?.receiptId ? { receiptId: invoice.intake.receiptId } : {}),
+        ...((invoice?.storageFolder ?? invoice?.intake?.storageFolder) ? { storageFolder: invoice.storageFolder ?? invoice.intake?.storageFolder ?? undefined } : {}),
+        ...(photoPaths.length ? { photoPaths: photoPaths.map((photo) => ({ storagePath: photo.storagePath, contentType: photo.contentType, sequence: photo.sequence })) } : {}),
+        invoiceNumber: transaction.invoiceNumber ?? invoice?.invoiceNumber ?? "—",
+        note: transaction.classificationNote ?? "Classification issue de SQL Connect.",
+        ...(transaction.sku ? { sku: transaction.sku } : {}),
+      };
+    }),
     intakes: snapshot.intakes.map((intake) => ({
       receiptId: intake.receiptId,
       uploaderUid: intake.uploaderUid,
