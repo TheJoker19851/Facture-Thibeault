@@ -381,6 +381,28 @@ export async function commitInvoiceIntake(input: InvoiceIntakeCommitInput) {
   }
 }
 
+export async function discardInvoiceIntake(input: { receiptId: string; reason: string }) {
+  if (!firebaseDataConnect || !sqlConnectConfigured) {
+    throw new Error("SQL Connect est requis pour supprimer la facture.");
+  }
+  const user = firebaseAuth?.currentUser;
+  if (!user) throw new Error("Une session Firebase Authentication est requise pour supprimer la facture.");
+  const response = await fetch("/api/invoices/discard-intake", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${await user.getIdToken()}`,
+      "x-invoice-client-version": INVOICE_CLIENT_VERSION,
+    },
+    body: JSON.stringify(input),
+  });
+  const payload = await response.json().catch(() => null) as { ok?: boolean; error?: string; storageCleanup?: string } | null;
+  if (!response.ok || !payload?.ok) {
+    throw new Error(payload?.error ?? "La facture n'a pas pu être supprimée.");
+  }
+  return { storageCleanup: payload.storageCleanup ?? "completed" };
+}
+
 export async function loadAccountingSnapshot(): Promise<AccountingSnapshot> {
   if (!firebaseDataConnect || !sqlConnectConfigured) {
     throw new Error(

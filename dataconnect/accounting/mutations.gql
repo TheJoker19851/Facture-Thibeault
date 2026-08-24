@@ -869,6 +869,47 @@ mutation UpdateInvoiceIntakeReview(
   }) @include(if: $writeAudit)
 }
 
+# A wrong or personal invoice is removed from the operational queue without
+# deleting the intake row. The audit record remains available, while the
+# server route removes the associated Storage files after this guarded change.
+mutation DiscardInvoiceIntake(
+  $receiptId: String!
+  $auditEventId: String!
+  $auditDetails: String!
+) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") @transaction {
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      accountingStatus: { eq: "NOT_POSTED" }
+      processingStatus: { in: ["PROCESSING", "NEEDS_REVIEW", "VALIDATED", "AUTO_APPROVED", "POSTING_ERROR"] }
+    }
+    data: {
+      status: "DELETED"
+      processingStatus: "DELETED"
+      accountingStatus: "NOT_POSTED"
+      lastError: "Facture retirée par un utilisateur autorisé."
+      decisionExceptions: "[]"
+      decisionChecks: "[]"
+    }
+  )
+  query @redact @check(expr: "response.invoiceIntake_updateMany == 1", message: "La facture est déjà comptabilisée ou n’est plus supprimable.") {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) {
+      receiptId
+      processingStatus
+      accountingStatus
+    }
+  }
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid_expr: "auth.uid"
+    actorRole_expr: "auth.token.role"
+    action: "INVOICE_DISCARDED"
+    entityType: "InvoiceIntake"
+    entityId: $receiptId
+    details: $auditDetails
+  })
+}
+
 mutation MarkInvoiceIntakePostingError($receiptId: String!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   # Client-side KIM commits use this compensating transition only after the
   # transactional posting mutation fails. It cannot create or post anything.

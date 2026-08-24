@@ -116,6 +116,16 @@ test("rejects unauthenticated direct access to privileged API routes", async () 
     headers: { "x-invoice-client-version": "invoice-photo-v2" },
   }), context);
   assert.equal(aiResponse.status, 401);
+
+  const discardResponse = await worker.fetch(new Request("http://localhost/api/invoices/discard-intake", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-invoice-client-version": "invoice-photo-v2",
+    },
+    body: JSON.stringify({ receiptId: "receipt-12345678", reason: "Facture personnelle envoyée par erreur." }),
+  }), context);
+  assert.equal(discardResponse.status, 403);
 });
 
 test("fails closed for an obsolete invoice client and exposes the current version", async () => {

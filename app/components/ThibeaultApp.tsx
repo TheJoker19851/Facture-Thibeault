@@ -2,7 +2,7 @@
 
 import { ChangeEvent, createContext, FormEvent, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getDownloadURL, ref } from "firebase/storage";
-import { accountingReadSource, commitInvoiceIntake, createFirebaseUser, deleteExpenseAccount, deleteProject, loadAccountingSnapshot, mapAccountingSnapshot, removeDemoAccountingData, saveCreditCard, saveExpenseAccount, saveInvoiceIntakeReview, saveProject, saveStatementPeriod, saveUserProfile } from "../../firebase/accounting";
+import { accountingReadSource, commitInvoiceIntake, createFirebaseUser, deleteExpenseAccount, deleteProject, discardInvoiceIntake, loadAccountingSnapshot, mapAccountingSnapshot, removeDemoAccountingData, saveCreditCard, saveExpenseAccount, saveInvoiceIntakeReview, saveProject, saveStatementPeriod, saveUserProfile } from "../../firebase/accounting";
 import { appCheckConfigured, firebaseConfigured, firebaseStorage } from "../../firebase/client";
 import { sqlConnectConfigured } from "../../firebase/data-connect";
 import { processInvoiceIntakeWithGemini } from "../../firebase/ai";
@@ -457,6 +457,10 @@ function processingStatusOf(intake: InvoiceIntake) {
 
 function isIntakeException(intake: InvoiceIntake) {
   return processingStatusOf(intake) === "NEEDS_REVIEW" || intake.accountingStatus === "POSTING_ERROR";
+}
+
+function isIntakeQueueItem(intake: InvoiceIntake) {
+  return isIntakeException(intake) || (processingStatusOf(intake) === "VALIDATED" && intake.accountingStatus === "NOT_POSTED");
 }
 
 type IntakeDecisionException = {
@@ -934,7 +938,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
         <div className="brand-block brand-block-logo"><div className="brand-logo-frame"><img className="brand-logo" src="/brand-mbj-thibeault.png" alt="MBJ Thibeault" /></div></div>
         <div className="workspace-switcher"><span className="avatar avatar-blue">K</span><div><strong>Kim / Administration</strong><span>Équipe dépenses</span></div><span className="chevron">⌄</span></div>
         <nav className="main-nav" aria-label="Navigation principale">
-          {navItems.filter((item) => item.id !== "debug" || canUseDiagnostics).map((item) => <button key={item.id} className={`nav-item ${view === item.id ? "active" : ""}`} onClick={() => goTo(item.id)}><span className="nav-icon">{item.icon}</span><span>{item.label}</span>{item.id === "intakes" && appData.intakes.filter(isIntakeException).length > 0 && <span className="nav-count">{appData.intakes.filter(isIntakeException).length}</span>}</button>)}
+          {navItems.filter((item) => item.id !== "debug" || canUseDiagnostics).map((item) => <button key={item.id} className={`nav-item ${view === item.id ? "active" : ""}`} onClick={() => goTo(item.id)}><span className="nav-icon">{item.icon}</span><span>{item.label}</span>{item.id === "intakes" && appData.intakes.filter(isIntakeQueueItem).length > 0 && <span className="nav-count">{appData.intakes.filter(isIntakeQueueItem).length}</span>}</button>)}
         </nav>
         <div className="sidebar-bottom"><div className="archive-mini"><span className="archive-icon">◷</span><div><strong>Archivage recommandé</strong><span>842 photos admissibles</span></div><span className="arrow">→</span></div>{canUseAccounting && <button className="worker-mode-button" onClick={() => goTo("capture")}><span>⌾</span> Ouvrir le mode dépôt</button>}<div className="user-footer"><span className="avatar avatar-gold">{accountRole === "ADMIN" ? "A" : "K"}</span><div><strong>{accountRole === "ADMIN" ? "Administration" : "Kim"}</strong><span>{accountRole === "KIM" ? "Contrôle comptable" : "Administrateur"}</span></div><button className="icon-button" aria-label="Options du compte">•••</button></div></div>
       </aside>
@@ -947,7 +951,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
           {view === "reports" && <ReportsPage period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
           {view === "archives" && <ArchivesPage onNotify={notify} isProductionDataSource={isProductionDataSource} />}
           {view === "settings" && <AdminDirectoryPage onDataChange={(patch) => setAppData((current) => ({ ...current, ...patch }))} role={accountRole ?? "ADMIN"} />}
-          {view === "intakes" && canUseAccounting && <IntakeQueuePage items={appData.intakes.filter(isIntakeException)} onSaved={(receiptId, patch) => setAppData((current) => ({ ...current, intakes: current.intakes.map((intake) => intake.receiptId === receiptId ? { ...intake, ...patch } : intake) }))} />}
+          {view === "intakes" && canUseAccounting && <IntakeQueuePage items={appData.intakes.filter(isIntakeQueueItem)} onSaved={(receiptId, patch) => setAppData((current) => ({ ...current, intakes: current.intakes.map((intake) => intake.receiptId === receiptId ? { ...intake, ...patch } : intake) }))} />}
           {view === "debug" && canUseDiagnostics && <DebugPage dataSourceState={dataSourceState} onRetry={retryAccounting} role={accountRole ?? "ADMIN"} />}
           {(view as string) === "transaction" && selected && <TransactionDetail transaction={selected} onBack={() => setView("transactions")} onNotify={notify} />}
         </div>
@@ -1030,6 +1034,12 @@ function intakeStatusLabel(status: string) {
   if (status === "VALIDATED" || status === "READY_FOR_ACCOUNTING" || status === "COMMITTED") return "Validée";
   if (status === "REJECTED") return "Rejetée";
   return status.replaceAll("_", " ");
+}
+
+function intakeQueueStatusLabel(intake: InvoiceIntake) {
+  return processingStatusOf(intake) === "VALIDATED" && intake.accountingStatus === "NOT_POSTED"
+    ? "Prête à comptabiliser"
+    : intakeStatusLabel(processingStatusOf(intake));
 }
 
 function ClientVersionGate({ state, onRefresh }: { state: Exclude<ClientVersionState, "current">; onRefresh: () => void }) {
@@ -1181,6 +1191,7 @@ function auditActionLabel(action: string) {
     HUMAN_CORRECTION: "Correction humaine",
     HUMAN_VALIDATION: "Validation humaine",
     TRANSACTION_CREATED: "Transaction créée",
+    INVOICE_DISCARDED: "Facture supprimée",
     RECONCILIATION_UPDATED: "Rapprochement mis à jour",
   };
   return labels[action] ?? action;
@@ -1194,6 +1205,7 @@ function auditActionDescription(action: string) {
     HUMAN_CORRECTION: "Un membre autorisé a modifié les champs indiqués avant la création de l’écriture.",
     HUMAN_VALIDATION: "Les informations obligatoires ont été confirmées par un membre autorisé.",
     TRANSACTION_CREATED: "La facture a été transformée en écriture comptable.",
+    INVOICE_DISCARDED: "La facture a été retirée de la file et sa photo Storage a été supprimée.",
     RECONCILIATION_UPDATED: "Le lien entre la facture et le relevé de carte a été mis à jour.",
   };
   return descriptions[action] ?? "Cette étape a été enregistrée dans la piste d’audit.";
@@ -1336,8 +1348,8 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
     ? [...selectedReviewMessages, cardReviewMessage]
     : selectedReviewMessages;
 
-  const saveReview = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const saveReview = async (event?: FormEvent<HTMLFormElement>, action: "save" | "commit" = "save") => {
+    event?.preventDefault();
     if (!selectedIntake) return;
     const subtotalCents = dollarsToCents(draft.subtotal);
     const tpsCents = dollarsToCents(draft.tps);
@@ -1353,7 +1365,16 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
       setSaveMessage("Le total doit correspondre au sous-total plus les taxes.");
       return;
     }
+    if (action === "commit" && !isReadyForAccounting) {
+      setSaveState("error");
+      setSaveMessage("Le fournisseur, la date, les montants, le compte, le projet et la carte sont requis avant la comptabilisation.");
+      return;
+    }
+    if (action === "commit" && !window.confirm(`Enregistrer la correction et créer immédiatement l’écriture comptable pour ${draft.vendor.trim()} (${formatCurrency(totalCents / 100)}) ?`)) {
+      return;
+    }
     setSaveState("saving");
+    setCommitState(action === "commit" ? "saving" : "idle");
     setSaveMessage("");
     const status = isReadyForAccounting ? "VALIDATED" : "NEEDS_REVIEW";
     const classificationStatus = isReadyForAccounting ? "RESOLVED" : inferredClassification.resolution;
@@ -1389,6 +1410,25 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
       accountCode: draft.accountCode || null,
     };
     const changedFields = Object.keys(correctedValues).filter((field) => previousValues[field as keyof typeof previousValues] !== correctedValues[field as keyof typeof correctedValues]);
+    const commitInput = {
+      receiptId: selectedIntake.receiptId,
+      vendor: draft.vendor.trim(),
+      invoiceNumber: draft.invoiceNumber.trim() || null,
+      invoiceDate: draft.invoiceDate,
+      subtotalCents,
+      tpsCents,
+      tvqCents,
+      totalCents,
+      currency: draft.currency.trim().toUpperCase() || "CAD",
+      sku: draft.sku.trim() || null,
+      category: classificationCategory || "Divers",
+      accountCode: draft.accountCode,
+      cardId: commitCardId,
+      statementPeriodId: commitPeriodId || null,
+      projectId: draft.projectId,
+      classificationNote: draft.notes.trim() || "Revue confirmée.",
+    };
+    let reviewSaved = false;
     try {
       await saveInvoiceIntakeReview({
         receiptId: selectedIntake.receiptId,
@@ -1420,6 +1460,7 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
           corrections: changedFields.map((field) => ({ field, previous: previousValues[field as keyof typeof previousValues], corrected: correctedValues[field as keyof typeof correctedValues] })),
         }),
       });
+      reviewSaved = true;
       onSaved(selectedIntake.receiptId, {
         status,
         processingStatus: status,
@@ -1446,8 +1487,23 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
         decisionChecks: serializeDecisionChecks([{ code: "KIM_REVIEW", passed: isReadyForAccounting, message: isReadyForAccounting ? "Revue KIM complète." : "La revue KIM reste incomplète." }]),
       });
       setDraftDirty(false);
-      setCommitState("idle");
       setSaveState("saved");
+      if (action === "commit") {
+        await commitInvoiceIntake(commitInput);
+        onSaved(selectedIntake.receiptId, {
+          status: "VALIDATED",
+          processingStatus: "VALIDATED",
+          accountingStatus: "POSTED",
+          classificationSource: "KIM_COMMIT",
+          classificationStatus: "RESOLVED",
+          classificationConfidence: 1,
+          lastError: undefined,
+        });
+        setCommitState("saved");
+        setSaveMessage("Correction enregistrée et écriture comptable créée; dossier marqué comme traité.");
+        return;
+      }
+      setCommitState("idle");
       setSaveMessage(
         status === "VALIDATED"
           ? "Revue enregistrée; prête pour la création comptable."
@@ -1460,7 +1516,8 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
                 : "Correction enregistrée; certains contrôles doivent encore être confirmés.",
       );
     } catch (error) {
-      setSaveState("error");
+      setSaveState(reviewSaved ? "saved" : "error");
+      setCommitState(action === "commit" ? "error" : "idle");
       setSaveMessage(error instanceof Error ? error.message : "La revue n'a pas pu être enregistrée.");
     }
   };
@@ -1481,6 +1538,7 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
       setSaveMessage("Le fournisseur, la date, les montants, le compte, le projet et la carte sont requis. La période du relevé est facultative.");
       return;
     }
+    if (!window.confirm(`Créer l’écriture comptable pour ${draft.vendor.trim()} (${formatCurrency(totalCents / 100)}) ?`)) return;
     setCommitState("saving");
     setSaveMessage("");
     try {
@@ -1519,12 +1577,39 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
     }
   };
 
+  const discardReview = async () => {
+    if (!selectedIntake) return;
+    const description = `${draft.vendor.trim() || "cette facture"}${draft.invoiceNumber.trim() ? ` no ${draft.invoiceNumber.trim()}` : ""}`;
+    if (!window.confirm(`Supprimer ${description} ? La facture sera retirée de la file et sa photo Storage sera supprimée. Cette action est réservée à KIM/ADMIN.`)) return;
+    setSaveState("saving");
+    setSaveMessage("");
+    try {
+      const result = await discardInvoiceIntake({
+        receiptId: selectedIntake.receiptId,
+        reason: "Facture retirée manuellement de la file de traitement.",
+      });
+      onSaved(selectedIntake.receiptId, {
+        status: "DELETED",
+        processingStatus: "DELETED",
+        accountingStatus: "NOT_POSTED",
+        lastError: "Facture retirée par un utilisateur autorisé.",
+      });
+      setSaveState("saved");
+      setSaveMessage(result.storageCleanup === "failed"
+        ? "Facture retirée de la file; la photo Storage doit encore être nettoyée."
+        : "Facture supprimée et photo Storage supprimée.");
+    } catch (error) {
+      setSaveState("error");
+      setSaveMessage(error instanceof Error ? error.message : "La facture n'a pas pu être supprimée.");
+    }
+  };
+
   return <>
-    <PageHeading eyebrow="Traitement des factures" title="Factures à vérifier" description="Les factures bloquées par une exception restent ici pour être validées manuellement. Elles apparaîtront dans Transactions seulement après la création de l’écriture comptable; une carte et un projet valides sont donc nécessaires." />
+    <PageHeading eyebrow="Traitement des factures" title="Factures à vérifier" description="Les exceptions et les factures validées mais pas encore comptabilisées restent ici jusqu’à leur traitement final. Elles apparaîtront dans Transactions seulement après la création de l’écriture comptable." />
     <section className="intake-review-layout">
       <section className="panel intake-panel">
-        <div className="panel-header">
-          <div><p className="eyebrow">File d’exceptions</p><h2>{items.length ? `${items.length} exception${items.length > 1 ? "s" : ""}` : "Aucune exception"}</h2></div>
+          <div className="panel-header">
+          <div><p className="eyebrow">File de traitement</p><h2>{items.length ? `${items.length} facture${items.length > 1 ? "s" : ""}` : "Aucune facture à traiter"}</h2></div>
           <span className="data-source-help">Les factures fiables sont comptabilisées sans intervention KIM.</span>
         </div>
         {sortedItems.length ? <div className="intake-list">
@@ -1542,13 +1627,13 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
               </div>
               <div className="intake-fields"><span>Catégorie <strong>{category}</strong></span><span>Compte <strong>{account}</strong></span></div>
               <strong className="intake-total">{total == null || Number.isNaN(total) ? "—" : formatCurrency(total)}</strong>
-              <span className={intakeStatusClass(processingStatusOf(intake))}>{intakeStatusLabel(processingStatusOf(intake))}</span>
+              <span className={intakeStatusClass(processingStatusOf(intake))}>{intakeQueueStatusLabel(intake)}</span>
             </button>;
           })}
         </div> : <div className="empty-state"><span>◌</span><strong>Les prochains dépôts apparaîtront ici</strong><p>Après un envoi, Gemini extrait la facture et conserve sa proposition pour validation.</p></div>}
       </section>
-      {selectedIntake ? <form className="panel intake-review" onSubmit={saveReview}>
-        <div className="panel-header"><div><p className="eyebrow">Exception à résoudre</p><h2>{draft.vendor || "Facture sélectionnée"}</h2></div><span className={intakeStatusClass(processingStatusOf(selectedIntake))}>{intakeStatusLabel(processingStatusOf(selectedIntake))}</span></div>
+      {selectedIntake ? <form className="panel intake-review" onSubmit={(event) => void saveReview(event, "save")}>
+        <div className="panel-header"><div><p className="eyebrow">{processingStatusOf(selectedIntake) === "VALIDATED" ? "Prête pour comptabilisation" : "Exception à résoudre"}</p><h2>{draft.vendor || "Facture sélectionnée"}</h2></div><span className={intakeStatusClass(processingStatusOf(selectedIntake))}>{intakeQueueStatusLabel(selectedIntake)}</span></div>
         {visibleReviewMessages.length > 0 && <div className="detail-alert"><div className="detail-alert-icon">!</div><div><p className="eyebrow">À corriger</p>{visibleReviewMessages.map((message) => <span key={message}>{message}</span>)}</div></div>}
         <InvoiceIntakeEvidence key={selectedIntake.receiptId} intake={selectedIntake} />
         <AuditTrailView events={auditEvents} role={identity.role} state={auditState} />
@@ -1567,10 +1652,10 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
             </div>
             {processingStatusOf(selectedIntake) !== "VALIDATED" && <small>Enregistrez la correction et confirmez un compte avant de créer l’écriture.</small>}
             {draftDirty && <small>Des changements non enregistrés désactivent la création jusqu&apos;à la prochaine sauvegarde.</small>}
-            <button className="secondary-button" type="button" onClick={commitAccounting} disabled={commitState === "saving" || processingStatusOf(selectedIntake) !== "VALIDATED" || draftDirty}>{commitState === "saving" ? "Création…" : "Créer l’écriture comptable"}</button>
+            <button className="secondary-button" type="button" onClick={commitAccounting} disabled={commitState === "saving" || processingStatusOf(selectedIntake) !== "VALIDATED" || draftDirty}>{commitState === "saving" ? "Création…" : "Comptabiliser sans nouvelle correction"}</button>
           </section>
           {saveMessage && <p className={`intake-review-message ${messageState}`}>{saveMessage}</p>}
-          <div className="intake-review-actions"><button className="primary-button" type="submit" disabled={saveState === "saving"}>{saveState === "saving" ? "Enregistrement…" : isReadyForAccounting ? "Marquer prête pour comptabilité" : "Enregistrer la correction"}</button><span className="data-source-help">La création est réservée aux personnes autorisées; un nouvel essai ne crée pas de doublon.</span></div>
+          <div className="intake-review-actions"><button className="text-button danger-text" type="button" onClick={() => void discardReview()} disabled={saveState === "saving" || commitState === "saving"}>Supprimer la facture</button><div className="intake-review-primary-actions">{isReadyForAccounting && <button className="primary-button" type="button" onClick={() => void saveReview(undefined, "commit")} disabled={saveState === "saving" || commitState === "saving"}>{commitState === "saving" ? "Enregistrement et comptabilisation…" : "Enregistrer et comptabiliser"}</button>}<button className={isReadyForAccounting ? "secondary-button" : "primary-button"} type="submit" disabled={saveState === "saving" || commitState === "saving"}>{saveState === "saving" ? "Enregistrement…" : isReadyForAccounting ? "Enregistrer pour plus tard" : "Enregistrer la correction"}</button></div><span className="data-source-help">La suppression et la création comptable sont réservées aux personnes autorisées; les opérations sont idempotentes.</span></div>
         </div>
       </form> : <div className="panel empty-state"><span>◌</span><strong>Sélectionnez un dépôt</strong><p>La proposition Gemini et les corrections manuelles apparaîtront ici.</p></div>}
     </section>
