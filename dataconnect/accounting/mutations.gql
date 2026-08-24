@@ -817,12 +817,12 @@ mutation UpdateInvoiceIntakeReview(
   $auditEventId: String = ""
   $auditDetails: String = "{}"
 ) @auth(expr: "(auth.token.role == 'KIM' || auth.token.role == 'ADMIN') && (vars.status in ['NEEDS_REVIEW', 'VALIDATED'])") @transaction {
-  # KIM may resolve an exception exactly once. The new processing/accounting
-  # fields are the decision fields; a second validation cannot match this CAS.
+  # KIM may resolve an exception or revise an already validated, not-yet-posted
+  # intake. The processing/accounting fields remain the compare-and-set guard.
   invoiceIntake_updateMany(
     where: {
       receiptId: { eq: $receiptId }
-      processingStatus: { eq: "NEEDS_REVIEW" }
+      processingStatus: { in: ["NEEDS_REVIEW", "VALIDATED"] }
       accountingStatus: { eq: "NOT_POSTED" }
     }
     data: {
