@@ -20,6 +20,7 @@ import { DEMO_STATEMENT_IMPORTS } from "../../lib/reconciliation-fixtures.mjs";
 import { buildReconciliationExcelXml, reconciliationExportFileName } from "../../lib/reconciliation-export.mjs";
 import { accountingReportFileName, buildAccountingReportExcelXml } from "../../lib/report-export.mjs";
 import { buildAccountingCategorySummary, buildTaxSummaryByHolder } from "../../lib/accounting-report.mjs";
+import { createClientId } from "../../lib/client-id.mjs";
 import { useFirebaseIdentity, type AppRole } from "./FirebaseShell";
 
 type Role = AppRole;
@@ -76,6 +77,9 @@ type Transaction = {
   sku?: string;
   correctionField?: "subtotal" | "account" | "attachment";
 };
+
+const MAX_CAPTURE_PHOTOS = 5;
+const MAX_CAPTURE_TOTAL_BYTES = 40 * 1024 * 1024;
 
 type PhotoItem = {
   id: string;
@@ -291,7 +295,7 @@ const demoIntakes: InvoiceIntake[] = [
       { code: "TAX_MISMATCH", fieldName: "totalCents", message: "Le total ne correspond pas au sous-total et aux taxes extraites.", aiValue: "146,98 $", suggestedValue: "145,98 $", status: "OPEN" },
       { code: "LOW_CONFIDENCE", fieldName: "confidence", message: "La confiance du résultat démo est inférieure au seuil.", aiValue: "0.62", suggestedValue: "Vérification manuelle", status: "OPEN" },
     ]),
-    decisionChecks: serializeDecisionChecks([{ code: "AI_CONFIDENCE", passed: false, message: "Scénario démo volontairement incomplet pour la revue Kim." }]),
+    decisionChecks: serializeDecisionChecks([{ code: "AI_CONFIDENCE", passed: false, message: "Scénario démo volontairement incomplet pour une revue manuelle." }]),
     aiNotes: "Donnée entièrement fictive : corriger le compte, le projet et confirmer les taxes avant toute écriture.",
     createdAt: "2026-08-20T13:30:00.000Z",
     updatedAt: "2026-08-20T13:30:00.000Z",
@@ -521,12 +525,14 @@ function humanizeIntakeException(exception: IntakeDecisionException) {
       return "Informations incertaines — vérifiez les champs proposés.";
     case "MISSING_ACCOUNT":
       return "Compte comptable manquant — choisissez le compte approprié.";
+    case "ACCOUNT_SUGGESTION_REVIEW":
+      return "Compte comptable suggéré — confirmez ou corrigez le compte.";
     case "AMBIGUOUS_ACCOUNT":
       return "Plusieurs comptes sont possibles — choisissez le compte approprié.";
     case "UNKNOWN_CARD":
-      return "Carte utilisée introuvable — vérifiez la carte associée.";
+      return "Carte utilisée non détectée — si votre carte personnelle n’apparaît pas, ajoutez-la dans Configuration.";
     case "AMBIGUOUS_CARD":
-      return "Plusieurs cartes sont possibles — vérifiez la carte associée.";
+      return "Plusieurs cartes correspondent — choisissez la carte utilisée.";
     case "UNKNOWN_SKU":
       return "Article non reconnu — vérifiez le SKU ou la catégorie.";
     case "POSSIBLE_DUPLICATE":
@@ -580,10 +586,14 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [draftReceiptId, setDraftReceiptId] = useState<string | null>(null);
   const [queueState, setQueueState] = useState<"idle" | "uploading" | "sent">("idle");
-  const [isOnline, setIsOnline] = useState(() => typeof navigator === "undefined" ? true : navigator.onLine);
+  // Node 22 exposes a navigator object during SSR, but navigator.onLine can be
+  // undefined there. Treat only an explicit false as offline so the server
+  // render does not incorrectly show a disconnected capture screen.
+  const [isOnline, setIsOnline] = useState(() => typeof navigator === "undefined" || navigator.onLine !== false);
   const [clientVersionState, setClientVersionState] = useState<ClientVersionState>(isProductionDataSource ? "checking" : "current");
   const [toast, setToast] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const serviceWorkerRegistrationRef = useRef<ServiceWorkerRegistration | null>(null);
 
   useEffect(() => {
@@ -741,22 +751,59 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
   };
 
   const handleFiles = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const validationError = invoicePhotoFileError(file);
-    if (validationError) {
-      notify(validationError);
-      if (inputRef.current) inputRef.current.value = "";
+    const input = event.currentTarget;
+    const selectedFiles = Array.from(input.files ?? []);
+    input.value = "";
+    if (!selectedFiles.length) return;
+
+    const availableSlots = MAX_CAPTURE_PHOTOS - photos.length;
+    if (availableSlots <= 0) {
+      notify(`Maximum ${MAX_CAPTURE_PHOTOS} photos par facture.`);
       return;
     }
-    const next = await new Promise<PhotoItem>((resolve) => {
+
+    let totalBytes = photos.reduce((total, photo) => total + photo.file.size, 0);
+    const acceptedFiles: File[] = [];
+    let invalidCount = 0;
+    let tooLargeCount = 0;
+    let skippedCount = 0;
+
+    for (const file of selectedFiles) {
+      if (acceptedFiles.length >= availableSlots) {
+        skippedCount += 1;
+        continue;
+      }
+      if (invoicePhotoFileError(file)) {
+        invalidCount += 1;
+        continue;
+      }
+      if (totalBytes + file.size > MAX_CAPTURE_TOTAL_BYTES) {
+        tooLargeCount += 1;
+        continue;
+      }
+      acceptedFiles.push(file);
+      totalBytes += file.size;
+    }
+
+    const nextPhotos = await Promise.all(acceptedFiles.map((file) => new Promise<PhotoItem | null>((resolve) => {
       const reader = new FileReader();
-      reader.onload = () => resolve({ id: `${file.name}-${file.lastModified}-${crypto.randomUUID()}`, url: String(reader.result), name: file.name, file });
+      reader.onload = () => resolve({ id: `${file.name}-${file.lastModified}-${createClientId()}`, url: String(reader.result), name: file.name, file });
+      reader.onerror = () => resolve(null);
       reader.readAsDataURL(file);
-    });
-    if (!photos.length) setDraftReceiptId(crypto.randomUUID());
-    setPhotos((current) => [...current, next]);
-    if (inputRef.current) inputRef.current.value = "";
+    })));
+    const readyPhotos = nextPhotos.filter((photo): photo is PhotoItem => photo !== null);
+    if (readyPhotos.length > 0) {
+      if (!photos.length) setDraftReceiptId(createClientId());
+      setPhotos((current) => [...current, ...readyPhotos].slice(0, MAX_CAPTURE_PHOTOS));
+    }
+
+    const notices = [
+      invalidCount ? `${invalidCount} fichier${invalidCount > 1 ? "s" : ""} ignoré${invalidCount > 1 ? "s" : ""} : format non pris en charge.` : "",
+      tooLargeCount ? `${tooLargeCount} fichier${tooLargeCount > 1 ? "s" : ""} ignoré${tooLargeCount > 1 ? "s" : ""} : limite totale de 40 Mo dépassée.` : "",
+      skippedCount ? `${skippedCount} fichier${skippedCount > 1 ? "s" : ""} ignoré${skippedCount > 1 ? "s" : ""} : maximum de ${MAX_CAPTURE_PHOTOS} photos.` : "",
+    ].filter(Boolean);
+    if (notices.length) notify(notices.join(" "));
+    if (!readyPhotos.length && !notices.length) notify("Aucune photo n’a pu être ajoutée.");
   };
 
   const sendPhotos = async () => {
@@ -775,7 +822,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
       try {
         const receipt = await uploadInvoicePhotos(
           photos.map((photo, index) => ({ file: photo.file, sequence: index + 1 })),
-          draftReceiptId ?? crypto.randomUUID(),
+          draftReceiptId ?? createClientId(),
         );
         setPhotos([]);
         setDraftReceiptId(null);
@@ -831,7 +878,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
     return (
       <main className="worker-shell">
         <div className="worker-topbar">
-          <div className="brand-mark compact"><span className="brand-glyph">MT</span><span>Thibeault</span></div>
+          <div className="brand-mark compact"><img className="brand-logo worker-logo" src="/brand-mbj-thibeault.png" alt="MBJ Thibeault" /></div>
           {canUseAccounting ? <button className="ghost-button worker-status" onClick={() => goTo("dashboard")} aria-label="Retourner au contrôle comptable">Retour au contrôle</button> : <span className="worker-status">Dépôt sécurisé</span>}
         </div>
         <section className="capture-stage">
@@ -847,10 +894,14 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
             <div className="camera-placeholder">
               <div className="camera-reticle"><span>＋</span></div>
               <p>{photos.length ? `${photos.length} page${photos.length > 1 ? "s" : ""} prête${photos.length > 1 ? "s" : ""}` : "Prêt pour la première page"}</p>
-              <span className="camera-hint">La caméra arrière s’ouvre avec le bouton ci-dessous. Ajoutez les pages dans l’ordre avant l’envoi.</span>
+              <span className="camera-hint">Prenez une photo maintenant ou ajoutez des photos déjà prises. Vous pouvez sélectionner jusqu’à {MAX_CAPTURE_PHOTOS} pages avant l’envoi.</span>
             </div>
             <input ref={inputRef} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={handleFiles} />
-            <button className="capture-button" onClick={() => inputRef.current?.click()} aria-label={photos.length ? "Ajouter la page suivante" : "Prendre la première photo"}><span>⌾</span> {photos.length ? "Ajouter la page suivante" : "Prendre la première photo"}</button>
+            <input ref={galleryInputRef} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleFiles} />
+            <div className="capture-actions">
+              <button className="capture-button" onClick={() => inputRef.current?.click()} disabled={photos.length >= MAX_CAPTURE_PHOTOS} aria-label={photos.length ? "Ajouter une page avec la caméra" : "Prendre la première photo"}><span>⌾</span> {photos.length ? "Ajouter avec la caméra" : "Prendre une photo"}</button>
+              <button className="gallery-button" onClick={() => galleryInputRef.current?.click()} disabled={photos.length >= MAX_CAPTURE_PHOTOS} aria-label="Choisir plusieurs photos dans la galerie"><span>▧</span> Ajouter depuis la galerie</button>
+            </div>
           </div>
           {photos.length > 0 && (
             <div className="photo-tray">
@@ -880,7 +931,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
     <AppDataContext.Provider value={appData}>
       <main className="app-shell">
       <aside className="sidebar">
-        <div className="brand-block"><div className="brand-mark"><span className="brand-glyph">MT</span><div><strong>Maçonnerie</strong><span>Thibeault</span></div></div><span className="prototype-pill">{isProductionDataSource ? "Production" : "Prototype"}</span></div>
+        <div className="brand-block brand-block-logo"><div className="brand-logo-frame"><img className="brand-logo" src="/brand-mbj-thibeault.png" alt="MBJ Thibeault" /></div></div>
         <div className="workspace-switcher"><span className="avatar avatar-blue">K</span><div><strong>Kim / Administration</strong><span>Équipe dépenses</span></div><span className="chevron">⌄</span></div>
         <nav className="main-nav" aria-label="Navigation principale">
           {navItems.filter((item) => item.id !== "debug" || canUseDiagnostics).map((item) => <button key={item.id} className={`nav-item ${view === item.id ? "active" : ""}`} onClick={() => goTo(item.id)}><span className="nav-icon">{item.icon}</span><span>{item.label}</span>{item.id === "intakes" && appData.intakes.filter(isIntakeException).length > 0 && <span className="nav-count">{appData.intakes.filter(isIntakeException).length}</span>}</button>)}
@@ -1016,6 +1067,21 @@ function centsToDraftDollars(cents: string | undefined) {
   return Number.isFinite(value) ? (value / 100).toFixed(2) : "";
 }
 
+function normalizedIntakeCents(cents: string | undefined) {
+  if (cents == null || cents === "") return null;
+  const value = Number(cents);
+  return Number.isFinite(value) ? value : null;
+}
+
+function reviewNoteForDisplay(note?: string | null) {
+  const value = note?.trim() ?? "";
+  const dateMatch = value.match(/^Date appears as (.+?) on the receipt\.\s*(.*)$/i);
+  if (!dateMatch) return value;
+  const dateText = dateMatch[1].replace(/\bor\b/gi, "ou");
+  const remainder = dateMatch[2].replace(/\bor\b/gi, "ou").trim();
+  return [`Date à confirmer sur le reçu : ${dateText}.`, remainder].filter(Boolean).join(" ");
+}
+
 function intakeToReviewDraft(intake: InvoiceIntake): IntakeReviewDraft {
   return {
     vendor: intake.extractedVendor ?? "",
@@ -1029,8 +1095,8 @@ function intakeToReviewDraft(intake: InvoiceIntake): IntakeReviewDraft {
     sku: intake.extractedSku ?? "",
     category: intake.extractedCategory ?? intake.classificationCategory ?? "",
     projectId: intake.extractedProjectId ?? "",
-    accountCode: intake.classificationAccountCode ?? "",
-    notes: intake.aiNotes ?? "",
+    accountCode: intake.classificationStatus === "PROPOSED" ? "" : intake.classificationAccountCode ?? "",
+    notes: reviewNoteForDisplay(intake.aiNotes),
   };
 }
 
@@ -1120,8 +1186,67 @@ function auditActionLabel(action: string) {
   return labels[action] ?? action;
 }
 
+function auditActionDescription(action: string) {
+  const descriptions: Record<string, string> = {
+    DEPOSIT_CREATED: "La photo a été reçue et conservée dans le stockage sécurisé.",
+    AI_EXTRACTION_COMPLETED: "L’IA a rempli les champs visibles. Les valeurs incertaines doivent être confirmées avant la création de l’écriture.",
+    AI_PROCESSING_FAILED: "Le traitement automatique a rencontré une erreur; une revue manuelle est nécessaire.",
+    HUMAN_CORRECTION: "Un membre autorisé a modifié les champs indiqués avant la création de l’écriture.",
+    HUMAN_VALIDATION: "Les informations obligatoires ont été confirmées par un membre autorisé.",
+    TRANSACTION_CREATED: "La facture a été transformée en écriture comptable.",
+    RECONCILIATION_UPDATED: "Le lien entre la facture et le relevé de carte a été mis à jour.",
+  };
+  return descriptions[action] ?? "Cette étape a été enregistrée dans la piste d’audit.";
+}
+
+function auditFieldLabel(field?: string) {
+  const labels: Record<string, string> = {
+    vendor: "Fournisseur",
+    invoiceNumber: "No de facture",
+    invoiceDate: "Date de facture",
+    subtotalCents: "Sous-total",
+    tpsCents: "TPS",
+    tvqCents: "TVQ",
+    totalCents: "Total",
+    category: "Catégorie",
+    accountCode: "Compte comptable",
+    projectId: "Projet",
+    cardId: "Carte utilisée",
+  };
+  return field ? labels[field] ?? field : "Champ";
+}
+
+function auditFieldValue(field: string | undefined, value: unknown) {
+  if (value == null || value === "") return "Non renseigné";
+  if (field?.endsWith("Cents")) {
+    const cents = Number(value);
+    if (Number.isFinite(cents)) return formatCurrency(cents / 100);
+  }
+  if (field === "accountCode") return `Compte ${String(value)}`;
+  return String(value);
+}
+
+type AuditCorrection = { field?: string; previous?: unknown; corrected?: unknown };
+
+function meaningfulAuditCorrections(details: Record<string, unknown>) {
+  const corrections = Array.isArray(details.corrections) ? details.corrections as AuditCorrection[] : [];
+  return corrections.filter((correction) => auditFieldValue(correction.field, correction.previous) !== auditFieldValue(correction.field, correction.corrected));
+}
+
+function auditTimestamp(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("fr-CA", { dateStyle: "medium", timeStyle: "short" }).format(date);
+}
+
+function AuditTrailView({ events, role, state }: { events: AuditEventRecord[]; role: Role | null; state: "loading" | "ready" | "error" }) {
+  void AuditTrail;
+  events = events.filter((event) => !(event.action === "HUMAN_CORRECTION" && parseAuditDetails(event.details).source !== "HUMAN_EDIT"));
+  return <section className="audit-trail" aria-label="Piste d’audit"><div className="section-heading"><span>03</span><div><p className="eyebrow">Traçabilité</p><h2>Historique de la facture</h2><p className="section-help">Chaque étape indique ce qui s’est passé et qui l’a enregistrée.</p></div></div>{state === "loading" && <p className="muted">Chargement de l’historique…</p>}{state === "error" && <p className="intake-evidence-message error">La piste d’audit n’est pas disponible.</p>}{state === "ready" && !events.length && <p className="muted">Aucun événement d’audit enregistré.</p>}{events.length > 0 && <div className="audit-event-list">{events.map((event) => { const details = parseAuditDetails(event.details); const isLegacyCorrection = event.action === "HUMAN_CORRECTION" && details.source !== "HUMAN_EDIT"; const corrections = isLegacyCorrection ? [] : meaningfulAuditCorrections(details); const actor = event.actor?.displayName ?? (event.actorRole ? `Rôle ${event.actorRole}` : "Utilisateur authentifié"); const isUnconfirmedCorrection = event.action === "HUMAN_CORRECTION" && (isLegacyCorrection || corrections.length === 0); return <article className={`audit-event audit-event-${event.action.toLowerCase()}`} key={event.id}><div className="audit-event-heading"><div><strong>{isUnconfirmedCorrection ? "Revue enregistrée" : auditActionLabel(event.action)}</strong><p>{isLegacyCorrection ? "Cette revue provient d’une ancienne version de l’application; elle ne confirme pas une modification manuelle." : corrections.length === 0 && event.action === "HUMAN_CORRECTION" ? "La revue a été enregistrée sans modification de valeur." : auditActionDescription(event.action)}</p></div><small>{actor}<br />{auditTimestamp(event.createdAt)}</small></div>{role === "ADMIN" && event.action === "HUMAN_CORRECTION" && !isUnconfirmedCorrection && corrections.length > 0 && <div className="audit-corrections">{corrections.map((correction) => <span key={String(correction.field)}><b>{auditFieldLabel(correction.field)}</b><span>{auditFieldValue(correction.field, correction.previous)} <i aria-hidden="true">→</i> {auditFieldValue(correction.field, correction.corrected)}</span></span>)}</div>}</article>; })}</div>}</section>;
+}
+
 function AuditTrail({ events, role, state }: { events: AuditEventRecord[]; role: Role | null; state: "loading" | "ready" | "error" }) {
-  return <section className="audit-trail" aria-label="Piste d’audit"><div className="section-heading"><span>03</span><div><p className="eyebrow">Traçabilité</p><h2>Historique de la facture</h2></div></div>{state === "loading" && <p className="muted">Chargement de l’historique…</p>}{state === "error" && <p className="intake-evidence-message error">La piste d’audit n’est pas disponible.</p>}{state === "ready" && !events.length && <p className="muted">Aucun événement d’audit enregistré.</p>}{events.length > 0 && <div className="audit-event-list">{events.map((event) => { const details = parseAuditDetails(event.details); const actor = event.actor?.displayName ?? (event.actorRole ? `Rôle ${event.actorRole}` : "Utilisateur authentifié"); return <article className="audit-event" key={event.id}><div><strong>{auditActionLabel(event.action)}</strong><small>{actor} · {event.createdAt}</small></div>{role === "ADMIN" && event.action === "HUMAN_CORRECTION" && Array.isArray(details.corrections) && <div className="audit-corrections">{details.corrections.map((correction: { field?: string; previous?: unknown; corrected?: unknown }) => <span key={String(correction.field)}><b>{String(correction.field ?? "Champ")}</b> · {String(correction.previous ?? "Non renseigné")} → {String(correction.corrected ?? "Non renseigné")}</span>)}</div>}</article>; })}</div>}</section>;
+  return <section className="audit-trail" aria-label="Piste d’audit"><div className="section-heading"><span>03</span><div><p className="eyebrow">Traçabilité</p><h2>Historique de la facture</h2><p className="section-help">Chaque étape indique ce qui s’est passé et qui l’a enregistrée.</p></div></div>{state === "loading" && <p className="muted">Chargement de l’historique…</p>}{state === "error" && <p className="intake-evidence-message error">La piste d’audit n’est pas disponible.</p>}{state === "ready" && !events.length && <p className="muted">Aucun événement d’audit enregistré.</p>}{events.length > 0 && <div className="audit-event-list">{events.map((event) => { const details = parseAuditDetails(event.details); const corrections = meaningfulAuditCorrections(details); const actor = event.actor?.displayName ?? (event.actorRole ? `Rôle ${event.actorRole}` : "Utilisateur authentifié"); const isEmptyCorrection = event.action === "HUMAN_CORRECTION" && corrections.length === 0; return <article className={`audit-event audit-event-${event.action.toLowerCase()}`} key={event.id}><div className="audit-event-heading"><div><strong>{isEmptyCorrection ? "Revue enregistrée" : auditActionLabel(event.action)}</strong><p>{isEmptyCorrection ? "La revue a été enregistrée sans modification de valeur." : auditActionDescription(event.action)}</p></div><small>{actor}<br />{auditTimestamp(event.createdAt)}</small></div>{role === "ADMIN" && event.action === "HUMAN_CORRECTION" && corrections.length > 0 && <div className="audit-corrections">{corrections.map((correction) => <span key={String(correction.field)}><b>{auditFieldLabel(correction.field)}</b><span>{auditFieldValue(correction.field, correction.previous)} <i aria-hidden="true">→</i> {auditFieldValue(correction.field, correction.corrected)}</span></span>)}</div>}</article>; })}</div>}</section>;
 }
 
 function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: (receiptId: string, patch: Partial<InvoiceIntake>) => void }) {
@@ -1198,13 +1323,18 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
   const classificationCategory = draft.category || inferredClassification.category;
   const classificationSource = draft.accountCode ? "KIM_REVIEW" : inferredClassification.source;
   const classificationConfidence = draft.accountCode ? 1 : inferredClassification.confidence;
-  const isReadyForAccounting = Boolean(draft.vendor.trim() && draft.invoiceDate && draft.accountCode && draft.projectId);
+  const isReadyForAccounting = Boolean(draft.vendor.trim() && draft.invoiceDate && draft.accountCode && draft.projectId && commitCardId);
   const messageState = commitState === "error" || commitState === "saved" ? commitState : saveState;
   const suggestedCard = cards.find((card) => card.id === commitCardId);
   const suggestedUploader = selectedIntake ? users.find((user) => user.firebaseUid === selectedIntake.uploaderUid) : undefined;
   const selectedReviewMessages = selectedIntake ? intakeReviewMessages(selectedIntake) : [];
   const selectedCorrectionFields = selectedIntake ? intakeCorrectionFields(selectedIntake) : new Set<string>();
   const needsCorrection = (...fieldNames: string[]) => fieldNames.some((fieldName) => selectedCorrectionFields.has(fieldName));
+  const cardNeedsCorrection = needsCorrection("cardId") || !commitCardId;
+  const cardReviewMessage = "Carte utilisée non détectée ou non sélectionnée — si votre carte personnelle n’apparaît pas, ajoutez-la dans Configuration.";
+  const visibleReviewMessages = selectedIntake && cardNeedsCorrection && !selectedReviewMessages.some((message) => message.toLowerCase().includes("carte"))
+    ? [...selectedReviewMessages, cardReviewMessage]
+    : selectedReviewMessages;
 
   const saveReview = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -1230,17 +1360,18 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
     const decisionExceptions = isReadyForAccounting ? [] : [
       ...(!draft.accountCode ? [{ code: "MISSING_ACCOUNT", fieldName: "accountCode", message: "Un compte comptable doit être confirmé.", aiValue: null, suggestedValue: inferredClassification.accountCode, status: "OPEN" }] : []),
       ...(!draft.projectId ? [{ code: "UNKNOWN_PROJECT", fieldName: "projectId", message: "Projet introuvable — sélectionnez le chantier correspondant.", aiValue: null, suggestedValue: null, status: "OPEN" }] : []),
+      ...(!commitCardId ? [{ code: "UNKNOWN_CARD", fieldName: "cardId", message: "Carte utilisée non détectée ou non sélectionnée.", aiValue: null, suggestedValue: null, status: "OPEN" }] : []),
     ];
     const previousValues = {
       vendor: selectedIntake.extractedVendor ?? null,
       invoiceNumber: selectedIntake.extractedInvoiceNumber ?? null,
       invoiceDate: selectedIntake.extractedInvoiceDate ?? null,
-      subtotalCents: selectedIntake.extractedSubtotalCents ?? null,
-      tpsCents: selectedIntake.extractedTpsCents ?? null,
-      tvqCents: selectedIntake.extractedTvqCents ?? null,
-      totalCents: selectedIntake.extractedTotalCents ?? null,
+      subtotalCents: normalizedIntakeCents(selectedIntake.extractedSubtotalCents),
+      tpsCents: normalizedIntakeCents(selectedIntake.extractedTpsCents),
+      tvqCents: normalizedIntakeCents(selectedIntake.extractedTvqCents),
+      totalCents: normalizedIntakeCents(selectedIntake.extractedTotalCents),
       sku: selectedIntake.extractedSku ?? null,
-      category: selectedIntake.extractedCategory ?? null,
+      category: selectedIntake.extractedCategory ?? selectedIntake.classificationCategory ?? null,
       projectId: selectedIntake.extractedProjectId ?? null,
       accountCode: selectedIntake.classificationAccountCode ?? null,
     };
@@ -1279,9 +1410,11 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
         classificationConfidence,
         classificationStatus,
         aiNotes: draft.notes.trim(),
+        writeAudit: changedFields.length > 0,
         decisionExceptions: serializeDecisionExceptions(decisionExceptions),
         decisionChecks: serializeDecisionChecks([{ code: "KIM_REVIEW", passed: isReadyForAccounting, message: isReadyForAccounting ? "Revue KIM complète." : "La revue KIM reste incomplète." }]),
         auditDetails: auditDetails({
+          source: "HUMAN_EDIT",
           status,
           changedFields,
           corrections: changedFields.map((field) => ({ field, previous: previousValues[field as keyof typeof previousValues], corrected: correctedValues[field as keyof typeof correctedValues] })),
@@ -1315,7 +1448,17 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
       setDraftDirty(false);
       setCommitState("idle");
       setSaveState("saved");
-      setSaveMessage(status === "VALIDATED" ? "Revue enregistrée; prête pour la création comptable." : "Correction enregistrée; il manque encore le compte comptable.");
+      setSaveMessage(
+        status === "VALIDATED"
+          ? "Revue enregistrée; prête pour la création comptable."
+          : !draft.accountCode
+            ? "Correction enregistrée; il manque encore le compte comptable."
+            : !draft.projectId
+              ? "Correction enregistrée; il manque encore un projet actif."
+              : !commitCardId
+                ? "Correction enregistrée; la carte utilisée doit être confirmée avant la création."
+                : "Correction enregistrée; certains contrôles doivent encore être confirmés.",
+      );
     } catch (error) {
       setSaveState("error");
       setSaveMessage(error instanceof Error ? error.message : "La revue n'a pas pu être enregistrée.");
@@ -1326,7 +1469,7 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
     if (!selectedIntake) return;
     if (processingStatusOf(selectedIntake) !== "VALIDATED" || draftDirty) {
       setCommitState("error");
-      setSaveMessage("Enregistrez d'abord la revue Kim avant de créer l'écriture comptable.");
+    setSaveMessage("Enregistrez d'abord la revue avant de créer l'écriture comptable.");
       return;
     }
     const subtotalCents = dollarsToCents(draft.subtotal);
@@ -1357,7 +1500,7 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
         cardId: commitCardId,
         statementPeriodId: commitPeriodId || null,
         projectId: draft.projectId,
-        classificationNote: draft.notes.trim() || "Revue Kim confirmée.",
+        classificationNote: draft.notes.trim() || "Revue confirmée.",
       });
       onSaved(selectedIntake.receiptId, {
         status: "VALIDATED",
@@ -1377,7 +1520,7 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
   };
 
   return <>
-    <PageHeading eyebrow="Traitement des factures" title="Factures à vérifier" description="Seules les factures bloquées par une exception nécessitant une intervention sont présentées à Kim. Les dépôts en cours de traitement restent masqués." />
+    <PageHeading eyebrow="Traitement des factures" title="Factures à vérifier" description="Les factures bloquées par une exception restent ici pour être validées manuellement. Elles apparaîtront dans Transactions seulement après la création de l’écriture comptable; une carte et un projet valides sont donc nécessaires." />
     <section className="intake-review-layout">
       <section className="panel intake-panel">
         <div className="panel-header">
@@ -1406,20 +1549,20 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
       </section>
       {selectedIntake ? <form className="panel intake-review" onSubmit={saveReview}>
         <div className="panel-header"><div><p className="eyebrow">Exception à résoudre</p><h2>{draft.vendor || "Facture sélectionnée"}</h2></div><span className={intakeStatusClass(processingStatusOf(selectedIntake))}>{intakeStatusLabel(processingStatusOf(selectedIntake))}</span></div>
-        {selectedReviewMessages.length > 0 && <div className="detail-alert"><div className="detail-alert-icon">!</div><div><p className="eyebrow">À corriger</p>{selectedReviewMessages.map((message) => <span key={message}>{message}</span>)}</div></div>}
+        {visibleReviewMessages.length > 0 && <div className="detail-alert"><div className="detail-alert-icon">!</div><div><p className="eyebrow">À corriger</p>{visibleReviewMessages.map((message) => <span key={message}>{message}</span>)}</div></div>}
         <InvoiceIntakeEvidence key={selectedIntake.receiptId} intake={selectedIntake} />
-        <AuditTrail events={auditEvents} role={identity.role} state={auditState} />
+        <AuditTrailView events={auditEvents} role={identity.role} state={auditState} />
         <div className="intake-review-form">
           <label className={`field wide ${needsCorrection("vendor") ? "needs-correction" : ""}`}><span>Fournisseur</span><input aria-invalid={needsCorrection("vendor")} value={draft.vendor} onChange={(event) => updateDraft("vendor", event.target.value)} /></label>
           <div className="field-grid"><label className={`field ${needsCorrection("invoiceNumber") ? "needs-correction" : ""}`}><span>No de facture</span><input aria-invalid={needsCorrection("invoiceNumber")} value={draft.invoiceNumber} onChange={(event) => updateDraft("invoiceNumber", event.target.value)} /></label><label className={`field ${needsCorrection("invoiceDate") ? "needs-correction" : ""}`}><span>Date</span><input aria-invalid={needsCorrection("invoiceDate")} type="date" value={draft.invoiceDate} onChange={(event) => updateDraft("invoiceDate", event.target.value)} /></label></div>
           <div className="field-grid"><label className={`field ${needsCorrection("subtotalCents") ? "needs-correction" : ""}`}><span>Sous-total</span><input aria-invalid={needsCorrection("subtotalCents")} inputMode="decimal" value={draft.subtotal} onChange={(event) => updateDraft("subtotal", event.target.value)} /></label><label className={`field ${needsCorrection("totalCents") ? "needs-correction" : ""}`}><span>Total</span><input aria-invalid={needsCorrection("totalCents")} inputMode="decimal" value={draft.total} onChange={(event) => updateDraft("total", event.target.value)} /></label><label className={`field ${needsCorrection("tpsCents") ? "needs-correction" : ""}`}><span>TPS</span><input aria-invalid={needsCorrection("tpsCents")} inputMode="decimal" value={draft.tps} onChange={(event) => updateDraft("tps", event.target.value)} /></label><label className={`field ${needsCorrection("tvqCents") ? "needs-correction" : ""}`}><span>TVQ</span><input aria-invalid={needsCorrection("tvqCents")} inputMode="decimal" value={draft.tvq} onChange={(event) => updateDraft("tvq", event.target.value)} /></label></div>
-           <label className={`field wide ${needsCorrection("accountCode") ? "needs-correction" : ""}`}><span>Compte comptable confirmé</span><select aria-invalid={needsCorrection("accountCode")} value={draft.accountCode} onChange={(event) => updateDraft("accountCode", event.target.value)}><option value="">Choisir le compte de dépense</option>{accounts.filter((account) => account.status !== "INACTIVE" && account.type === "EXPENSE").map((account) => <option key={account.id} value={account.number}>{account.number} · {account.label}</option>)}</select><small>{inferredClassification.accountCode ? `Suggestion automatique : ${inferredClassification.accountCode} · ${inferredClassification.category}` : "Aucune suggestion fiable; le choix de Kim est requis."}</small></label>
-           <label className={`field wide ${needsCorrection("projectId") ? "needs-correction" : ""}`}><span>Chantier / projet</span><select required aria-invalid={needsCorrection("projectId")} value={draft.projectId} onChange={(event) => updateDraft("projectId", event.target.value)}><option value="">Projet introuvable — sélectionnez le chantier correspondant</option>{projects.filter((project) => project.status !== "INACTIVE").map((project) => <option key={project.id} value={project.id}>{project.number} · {project.name}</option>)}</select><small>Un projet actif est obligatoire avant la création de l’écriture.</small></label>
-          <label className="field wide"><span>Note de revue</span><textarea rows={3} value={draft.notes} onChange={(event) => updateDraft("notes", event.target.value)} /></label>
+          <label className={`field wide ${needsCorrection("accountCode") ? "needs-correction" : ""}`}><span>Compte comptable confirmé</span><select aria-invalid={needsCorrection("accountCode")} value={draft.accountCode} onChange={(event) => updateDraft("accountCode", event.target.value)}><option value="">Choisir le compte de dépense</option>{accounts.filter((account) => account.status !== "INACTIVE" && account.type === "EXPENSE").map((account) => <option key={account.id} value={account.number}>{account.number} · {account.label}</option>)}</select><small>{inferredClassification.accountCode ? `Suggestion automatique : ${inferredClassification.accountCode} · ${inferredClassification.category}` : "Aucune suggestion fiable; un choix manuel est requis."}</small></label>
+          <label className={`field wide ${needsCorrection("projectId") ? "needs-correction" : ""}`}><span>Chantier / projet</span><select aria-invalid={needsCorrection("projectId")} value={draft.projectId} onChange={(event) => updateDraft("projectId", event.target.value)}><option value="">Projet introuvable — sélectionnez le chantier correspondant</option>{projects.filter((project) => project.status !== "INACTIVE").map((project) => <option key={project.id} value={project.id}>{project.number} · {project.name}</option>)}</select><small>Un projet actif est obligatoire avant la création de l’écriture, mais la correction peut être enregistrée avant son choix.</small></label>
+          <label className="field wide"><span>Note de revue (facultative)</span><textarea rows={3} value={draft.notes} onChange={(event) => updateDraft("notes", event.target.value)} /><small>Expliquez brièvement ce qui reste incertain ou la décision prise. Laissez ce champ vide si aucune précision n’est nécessaire.</small></label>
           <section className="intake-commit-card">
-            <div><p className="eyebrow">Création comptable</p><h3>Références comptables</h3><p className="muted">La carte est requise pour créer l’écriture. La période du relevé est facultative et pourra être associée lors du rapprochement.</p></div>
+            <div><p className="eyebrow">Création comptable</p><h3>Références comptables</h3><p className="muted">Choisissez la carte utilisée lorsque vous êtes prêt à créer l’écriture. La période du relevé est facultative et pourra être associée lors du rapprochement.</p></div>
             <div className="field-grid">
-              <label className={`field ${needsCorrection("cardId") ? "needs-correction" : ""}`}><span>Carte utilisée</span><select aria-invalid={needsCorrection("cardId")} value={commitCardId} onChange={(event) => { setCommitCardId(event.target.value); setCommitState("idle"); }}><option value="">Choisir la carte</option>{cards.filter((card) => card.status === "Actif").map((card) => <option key={card.id} value={card.id}>•••• {card.lastFour} · {card.holder}</option>)}</select>{suggestedCard && suggestedUploader && <small>Suggestion : carte de {suggestedUploader.displayName}, selon le compte qui a envoyé la facture.</small>}</label>
+              <label className={`field ${cardNeedsCorrection ? "needs-correction" : ""}`}><span>Carte utilisée</span><select aria-invalid={cardNeedsCorrection} value={commitCardId} onChange={(event) => { setCommitCardId(event.target.value); setCommitState("idle"); }}><option value="">Choisir la carte</option>{cards.filter((card) => card.status === "Actif").map((card) => <option key={card.id} value={card.id}>•••• {card.lastFour} · {card.holder}</option>)}</select>{suggestedCard && suggestedUploader ? <small>Suggestion : carte de {suggestedUploader.displayName}, selon le compte qui a envoyé la facture.</small> : cardNeedsCorrection ? <small>{cardReviewMessage}</small> : null}</label>
               <label className="field"><span>Période du relevé (facultatif)</span><select value={commitPeriodId} onChange={(event) => { setCommitPeriodId(event.target.value); setCommitState("idle"); }}><option value="">Aucune période sélectionnée</option>{periods.map((period) => <option key={period.id} value={period.id}>{period.label}</option>)}</select><small>Association possible plus tard dans le rapprochement.</small></label>
             </div>
             {processingStatusOf(selectedIntake) !== "VALIDATED" && <small>Enregistrez la correction et confirmez un compte avant de créer l’écriture.</small>}
@@ -1427,9 +1570,9 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
             <button className="secondary-button" type="button" onClick={commitAccounting} disabled={commitState === "saving" || processingStatusOf(selectedIntake) !== "VALIDATED" || draftDirty}>{commitState === "saving" ? "Création…" : "Créer l’écriture comptable"}</button>
           </section>
           {saveMessage && <p className={`intake-review-message ${messageState}`}>{saveMessage}</p>}
-          <div className="intake-review-actions"><button className="primary-button" type="submit" disabled={saveState === "saving"}>{saveState === "saving" ? "Enregistrement…" : isReadyForAccounting ? "Marquer prête pour comptabilité" : "Enregistrer la correction"}</button><span className="data-source-help">La création est réservée à Kim et aux administrateurs; un nouvel essai ne crée pas de doublon.</span></div>
+          <div className="intake-review-actions"><button className="primary-button" type="submit" disabled={saveState === "saving"}>{saveState === "saving" ? "Enregistrement…" : isReadyForAccounting ? "Marquer prête pour comptabilité" : "Enregistrer la correction"}</button><span className="data-source-help">La création est réservée aux personnes autorisées; un nouvel essai ne crée pas de doublon.</span></div>
         </div>
-      </form> : <div className="panel empty-state"><span>◌</span><strong>Sélectionnez un dépôt</strong><p>La proposition Gemini et les corrections de Kim apparaîtront ici.</p></div>}
+      </form> : <div className="panel empty-state"><span>◌</span><strong>Sélectionnez un dépôt</strong><p>La proposition Gemini et les corrections manuelles apparaîtront ici.</p></div>}
     </section>
   </>;
 }
@@ -1446,7 +1589,7 @@ function PeriodSelector({ period, onChange }: { period: CardPeriod; onChange: (p
     const nextEnd = field === "end" ? value : period.end;
     onChange({ ...period, id: "custom", start: nextStart, end: nextEnd, label: formatDate(nextStart) + " → " + formatDate(nextEnd), statementLabel: "Relevé Mastercard · période personnalisée" });
   };
-  return <div className="period-selector"><span>Période des cartes</span><select value={selectedPreset} onChange={(event) => { const option = periods.find((candidate) => candidate.id === event.target.value); if (option) onChange(option); }}><option value="custom">Période personnalisée</option>{periods.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select><div className="period-custom-dates"><label><span>Du</span><input type="date" value={period.start} max={period.end} onChange={(event) => updateDate("start", event.target.value)} /></label><span className="period-date-arrow">→</span><label><span>Au</span><input type="date" value={period.end} min={period.start} onChange={(event) => updateDate("end", event.target.value)} /></label></div><small>Cycle standard : du 10 au 9. Kim peut ajuster les dates avec une période personnalisée.</small></div>;
+  return <div className="period-selector"><span>Période des cartes</span><select value={selectedPreset} onChange={(event) => { const option = periods.find((candidate) => candidate.id === event.target.value); if (option) onChange(option); }}><option value="custom">Période personnalisée</option>{periods.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select><div className="period-custom-dates"><label><span>Du</span><input type="date" value={period.start} max={period.end} onChange={(event) => updateDate("start", event.target.value)} /></label><span className="period-date-arrow">→</span><label><span>Au</span><input type="date" value={period.end} min={period.start} onChange={(event) => updateDate("end", event.target.value)} /></label></div><small>Cycle standard : du 10 au 9. Une personne autorisée peut ajuster les dates avec une période personnalisée.</small></div>;
 }
 
 function Dashboard({ onNavigate, onOpenTransactions, period, onPeriodChange }: { onNavigate: (view: View) => void; onOpenTransactions: (person?: string) => void; period: CardPeriod; onPeriodChange: (period: CardPeriod) => void }) {
@@ -1830,7 +1973,7 @@ function ReconciliationPage({ period, onPeriodChange, isProductionDataSource }: 
   const resolveOutside = async (controlId?: string) => {
     if (!reconciliation || !controlId || !useServerWorkflow) return;
     try {
-      await runServerAction({ action: "RESOLVE_OUTSIDE", statementId: reconciliation.statement.id, controlId, resolutionNote: "Contrôle revu par Kim dans l’émulateur." });
+      await runServerAction({ action: "RESOLVE_OUTSIDE", statementId: reconciliation.statement.id, controlId, resolutionNote: "Contrôle revu dans l’émulateur." });
       setStatementNotice("Contrôle hors relevé résolu et audité.");
     } catch (reason) {
       setStatementError(reason instanceof Error ? reason.message : "Le contrôle hors relevé n’a pas pu être résolu.");
@@ -1839,11 +1982,11 @@ function ReconciliationPage({ period, onPeriodChange, isProductionDataSource }: 
 
   const summary = reconciliation?.summary ?? {};
   return <>
-    <PageHeading eyebrow="Contrôle des relevés" title="Rapprochement" description="Le relevé conserve l’ordre des lignes. Kim traite seulement les ambiguïtés, absences et doublons." action={<div className="reconciliation-actions"><button className="primary-button" type="button" onClick={() => importInputRef.current?.click()} disabled={isProductionDataSource || workflowLoading}><span>↑</span> Importer des relevés</button>{useServerWorkflow && reconciliation && <button className="secondary-button" type="button" onClick={() => void autoMatchPersisted()} disabled={workflowLoading}>Enregistrer les jumelages sûrs</button>}<button className="secondary-button" type="button" onClick={downloadExcel} disabled={!reconciliation}>Exporter Excel</button><input ref={importInputRef} hidden type="file" accept=".json,.csv,application/json,text/csv" multiple onChange={(event) => void handleStatementFiles(event)} /></div>} />
+    <PageHeading eyebrow="Contrôle des relevés" title="Rapprochement" description="Le relevé conserve l’ordre des lignes. Le contrôle comptable traite seulement les ambiguïtés, absences et doublons." action={<div className="reconciliation-actions"><button className="primary-button" type="button" onClick={() => importInputRef.current?.click()} disabled={isProductionDataSource || workflowLoading}><span>↑</span> Importer des relevés</button>{useServerWorkflow && reconciliation && <button className="secondary-button" type="button" onClick={() => void autoMatchPersisted()} disabled={workflowLoading}>Enregistrer les jumelages sûrs</button>}<button className="secondary-button" type="button" onClick={downloadExcel} disabled={!reconciliation}>Exporter Excel</button><input ref={importInputRef} hidden type="file" accept=".json,.csv,application/json,text/csv" multiple onChange={(event) => void handleStatementFiles(event)} /></div>} />
     <div className="reconciliation-toolbar"><PeriodSelector period={period} onChange={onPeriodChange} /><div className="period-card"><span className="card-icon teal">▤</span><div><span>Relevés disponibles</span><strong>{statements.length} relevé(s) · {activeCards.length} cartes actives</strong></div></div></div>
     {statementError && <p className="intake-review-message error">{statementError}</p>}
     {statementNotice && <p className="intake-review-message saved">{statementNotice}</p>}
-    {!isProductionDataSource && <section className="panel statement-import-panel"><div className="panel-header"><div><p className="eyebrow">{useServerWorkflow ? "Import persistant émulateur" : "Import local synthétique"}</p><h2>Relevés importés</h2></div><span className="badge badge-neutral">Aucune écriture Production</span></div><div className="statement-import-toolbar"><label className="field"><span>Relevé actif</span><select value={selectedStatement?.id ?? ""} onChange={(event) => selectStatement(event.target.value)}><option value="">Sélectionner un relevé</option>{statements.map((statement) => <option key={statement.id} value={statement.id}>{statement.originalFilename} · •••• {cards.find((card) => card.id === statement.cardId)?.lastFour ?? statement.cardId} · {statement.periodStart} → {statement.periodEnd}</option>)}</select></label><div className="directory-help">{useServerWorkflow ? "Le fichier est relu et hashé côté serveur, puis écrit de façon atomique et idempotente dans Data Connect Emulator. Les actions Kim sont contrôlées par le serveur." : "Le fichier JSON porte sa carte et ses dates. Un CSV structuré est accepté par l’adaptateur, avec les métadonnées de carte/période fournies par le workflow. Le PDF reste une extension future."}</div></div>{statementImportPlan && <div className="statement-import-preview"><strong>Aperçu avant écriture</strong><span>{statementImportPlan.additions.length} ajout(s) · {statementImportPlan.duplicates.length} rejeu(x) idempotent(s) · {statementImportPlan.warnings.length} avertissement(s)</span>{statementImportPlan.warnings.map((warning) => <small key={warning}>{warning}</small>)}{statementImportPlan.errors.length === 0 && <button className="primary-button" type="button" onClick={() => void applyStatementImport()} disabled={workflowLoading}>{useServerWorkflow ? "Écrire dans l’émulateur" : "Appliquer l’import local"}</button>}</div>}</section>}
+    {!isProductionDataSource && <section className="panel statement-import-panel"><div className="panel-header"><div><p className="eyebrow">{useServerWorkflow ? "Import persistant émulateur" : "Import local synthétique"}</p><h2>Relevés importés</h2></div><span className="badge badge-neutral">Aucune écriture Production</span></div><div className="statement-import-toolbar"><label className="field"><span>Relevé actif</span><select value={selectedStatement?.id ?? ""} onChange={(event) => selectStatement(event.target.value)}><option value="">Sélectionner un relevé</option>{statements.map((statement) => <option key={statement.id} value={statement.id}>{statement.originalFilename} · •••• {cards.find((card) => card.id === statement.cardId)?.lastFour ?? statement.cardId} · {statement.periodStart} → {statement.periodEnd}</option>)}</select></label><div className="directory-help">{useServerWorkflow ? "Le fichier est relu et hashé côté serveur, puis écrit de façon atomique et idempotente dans Data Connect Emulator. Les actions manuelles sont contrôlées par le serveur." : "Le fichier JSON porte sa carte et ses dates. Un CSV structuré est accepté par l’adaptateur, avec les métadonnées de carte/période fournies par le workflow. Le PDF reste une extension future."}</div></div>{statementImportPlan && <div className="statement-import-preview"><strong>Aperçu avant écriture</strong><span>{statementImportPlan.additions.length} ajout(s) · {statementImportPlan.duplicates.length} rejeu(x) idempotent(s) · {statementImportPlan.warnings.length} avertissement(s)</span>{statementImportPlan.warnings.map((warning) => <small key={warning}>{warning}</small>)}{statementImportPlan.errors.length === 0 && <button className="primary-button" type="button" onClick={() => void applyStatementImport()} disabled={workflowLoading}>{useServerWorkflow ? "Écrire dans l’émulateur" : "Appliquer l’import local"}</button>}</div>}</section>}
     {isProductionDataSource && <div className="config-note"><span>i</span><p>Le rapprochement Production reste en lecture seule pendant cette étape. Le modèle et les opérations Data Connect seront migrés séparément après validation locale.</p></div>}
     {reconciliation ? <>
       <div className="card-roster">{activeCards.map((card) => <span className="card-chip" key={card.id}><b>•••• {card.lastFour}</b><span>{card.holder}</span></span>)}</div>
@@ -1895,7 +2038,7 @@ function KimAccountingReport({ period, onPeriodChange, embedded = false }: { per
     URL.revokeObjectURL(url);
   };
   return <>
-    {!embedded && <PageHeading eyebrow="Analyse" title="Rapports" description="Le tableau compact utilisé par Kim pour reporter les dépenses dans la comptabilité." action={<button className="primary-button" type="button" onClick={downloadReport}><span>⇩</span> Exporter en Excel</button>} />}
+    {!embedded && <PageHeading eyebrow="Analyse" title="Rapports" description="Le tableau compact utilisé pour reporter les dépenses dans la comptabilité." action={<button className="primary-button" type="button" onClick={downloadReport}><span>⇩</span> Exporter en Excel</button>} />}
     <div className="kim-report-toolbar">
       {!embedded && <PeriodSelector period={period} onChange={onPeriodChange} />}
        <label><span>Titulaire de carte</span><select aria-label="Filtrer par titulaire de carte" value={selectedPerson} onChange={(event) => setSelectedPerson(event.target.value)}><option value="TOUS">Tous les titulaires</option>{people.map((person) => <option value={person} key={person}>{person}</option>)}</select></label>
@@ -1903,7 +2046,7 @@ function KimAccountingReport({ period, onPeriodChange, embedded = false }: { per
        <div className="kim-report-context"><span className="status-dot" /><span>{period.label}</span><small>{visibleTransactions.length} transaction{visibleTransactions.length === 1 ? "" : "s"} affichée{visibleTransactions.length === 1 ? "" : "s"} · taxes calculées sur {periodTransactions.length} transaction{periodTransactions.length === 1 ? "" : "s"}</small></div>
     </div>
     <section className="panel kim-report-table">
-      <div className="panel-header"><div><p className="eyebrow">Tableau de Kim · {selectedPerson === "TOUS" ? "tous les titulaires" : selectedPerson}</p><h2>Répartition par compte et catégorie</h2></div><span className="badge badge-neutral">Avant taxes</span></div>
+      <div className="panel-header"><div><p className="eyebrow">Tableau comptable · {selectedPerson === "TOUS" ? "tous les titulaires" : selectedPerson}</p><h2>Répartition par compte et catégorie</h2></div><span className="badge badge-neutral">Avant taxes</span></div>
        <div className="kim-report-head"><span>Compte</span><span>Catégorie</span><span>Total avant taxes</span><span>% du total catégorisé</span></div>
        <div className="kim-report-rows">{categorySummary.rows.map((row) => <div key={row.accountNumber}><span><b>{row.accountNumber}</b></span><span>{row.category}</span><strong>{formatCurrency(row.subtotalCents / 100)}</strong><strong>{formatPercent(row.percent)}</strong></div>)}</div>
        <div className="account-report-total"><strong>TOTAL CATÉGORIES</strong><span /><strong>{formatCurrency(categorySummary.totals.subtotalCents / 100)}</strong><strong>{formatPercent(categorySummary.totalBeforeTaxCents > 0 ? 100 : 0)}</strong></div>
@@ -1950,7 +2093,7 @@ function DemoReportsPage({ period, onPeriodChange }: { period: CardPeriod; onPer
   const visibleCards = creditCards.filter((card) => card.status === "Actif" && (selectedPerson === "TOUS" || card.holder === selectedPerson));
 
   return <>
-    <PageHeading eyebrow="Analyse" title="Rapports" description="Générez le tableau que Kim reporte dans le programme de comptabilité, sur le même cycle que les cartes." action={<button className="primary-button"><span>⇩</span> Exporter en Excel</button>} />
+    <PageHeading eyebrow="Analyse" title="Rapports" description="Générez le tableau à reporter dans le programme de comptabilité, sur le même cycle que les cartes." action={<button className="primary-button"><span>⇩</span> Exporter en Excel</button>} />
     <div className="report-filter-grid">
       <PeriodSelector period={period} onChange={onPeriodChange} />
       <label><span>Titulaire de carte</span><select aria-label="Filtrer par titulaire de carte" value={selectedPerson} onChange={(event) => setSelectedPerson(event.target.value)}><option value="TOUS">Tous les titulaires</option>{people.map((person) => <option value={person} key={person}>{person}</option>)}</select></label>
@@ -1963,7 +2106,7 @@ function DemoReportsPage({ period, onPeriodChange }: { period: CardPeriod; onPer
       <section className="panel report-total"><p className="eyebrow">Résumé de période</p><h2>{formatCurrency(visibleTotal)}</h2><p className="muted">{visibleTransactions.length} transaction{visibleTransactions.length === 1 ? "" : "s"} dans cette vue</p><div className="report-breakdown"><div><span>Avant taxes</span><strong>{formatCurrency(visibleTotal)}</strong></div><div><span>TPS</span><strong>—</strong></div><div><span>TVQ</span><strong>—</strong></div></div></section>
       <section className="panel report-table"><div className="panel-header"><div><p className="eyebrow">Résumé par titulaire et carte</p><h2>Qui dépense quoi</h2></div><button className="text-button">Détails →</button></div><div className="mini-table card-total-list">{visibleCards.map((card) => <div key={card.id}><span><b>•••• {card.lastFour}</b> {card.holder}</span><strong>{formatCurrency(visibleCardTotals.get(card.lastFour) ?? 0)}</strong></div>)}</div></section>
     </div>
-    <section className="panel report-table full-width"><div className="panel-header"><div><p className="eyebrow">Résumé par catégorie comptable</p><h2>Répartition avant taxes · compte utilisé par Kim</h2></div><button className="secondary-button">Enregistrer ce rapport</button></div><div className="account-report-head"><span>Compte</span><span>Catégorie</span><span>Total avant taxes</span></div><div className="category-report">{accountCategories.map((account) => <div key={account.code}><span><b>{account.code}</b></span><span>{account.label}</span><strong>{formatCurrency(visibleTotals.get(account.code) ?? 0)}</strong></div>)}</div><div className="account-report-total"><strong>TOTAL CATÉGORIES</strong><strong>{formatCurrency(visibleTotal)}</strong></div></section>
+    <section className="panel report-table full-width"><div className="panel-header"><div><p className="eyebrow">Résumé par catégorie comptable</p><h2>Répartition avant taxes · compte utilisé</h2></div><button className="secondary-button">Enregistrer ce rapport</button></div><div className="account-report-head"><span>Compte</span><span>Catégorie</span><span>Total avant taxes</span></div><div className="category-report">{accountCategories.map((account) => <div key={account.code}><span><b>{account.code}</b></span><span>{account.label}</span><strong>{formatCurrency(visibleTotals.get(account.code) ?? 0)}</strong></div>)}</div><div className="account-report-total"><strong>TOTAL CATÉGORIES</strong><strong>{formatCurrency(visibleTotal)}</strong></div></section>
   </>;
 }
 
@@ -2113,7 +2256,7 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
     }
     setBusyKey("add-card");
     try {
-      const id = `CARD-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+      const id = `CARD-${createClientId().slice(0, 8).toUpperCase()}`;
       const today = new Date().toISOString().slice(0, 10);
       await saveCreditCard({ id, lastFour: cardForm.lastFour, holderId: cardForm.holderId, cardFunction: cardForm.cardFunction.trim() || null, status: "ACTIVE", activeFrom: today, inactiveFrom: null });
       const holder = users.find((user) => user.id === cardForm.holderId);
@@ -2206,7 +2349,7 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
       setError("Le numéro de compte doit contenir uniquement des chiffres et conserver les zéros initiaux.");
       return;
     }
-    const id = accountForm.id || `ACCOUNT-${crypto.randomUUID().toUpperCase()}`;
+    const id = accountForm.id || `ACCOUNT-${createClientId().toUpperCase()}`;
     const previous = accounts.find((account) => account.id === id);
     if (accounts.some((account) => account.id !== id && account.number === number)) {
       setError(`Le numéro de compte ${number} existe déjà.`);
@@ -2284,7 +2427,7 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
     event.preventDefault();
     setError("");
     setNotice("");
-    const id = projectForm.id || `PROJECT-${crypto.randomUUID().toUpperCase()}`;
+    const id = projectForm.id || `PROJECT-${createClientId().toUpperCase()}`;
     const number = projectForm.number.trim();
     const name = projectForm.name.trim();
     if (!ensureAdminPersistence()) return;
@@ -2521,7 +2664,7 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
           <div className="field-grid"><label className="field"><span>Fonction</span><input value={userForm.jobTitle} onChange={(event) => setUserForm((current) => ({ ...current, jobTitle: event.target.value }))} placeholder="Contremaître" /></label><label className="field"><span>Rôle applicatif</span><select value={userForm.role} onChange={(event) => setUserForm((current) => ({ ...current, role: event.target.value }))}><option value="WORKER">WORKER · dépôt seulement</option><option value="KIM">KIM · contrôle comptable</option><option value="ADMIN">ADMIN · administration</option></select></label></div>
           <div className="field-grid"><label className="field"><span>Mot de passe temporaire</span><input required minLength={12} type="password" value={userForm.password} onChange={(event) => setUserForm((current) => ({ ...current, password: event.target.value }))} placeholder="12 caractères minimum" /></label><div className="directory-help">Le mot de passe est envoyé une seule fois à Firebase Admin et n&apos;est jamais enregistré dans SQL Connect.</div></div>
           <button className="primary-button" type="submit" disabled={!persistenceReady || busyKey === "create-user"}>{busyKey === "create-user" ? "Création…" : "Créer le compte et le profil"}</button>
-        </form> : <div className="config-note"><span>i</span><p>Kim peut consulter les profils et gérer les cartes. La création et la désactivation des comptes sont réservées à ADMIN.</p></div>}
+        </form> : <div className="config-note"><span>i</span><p>Le contrôle comptable peut consulter les profils et gérer les cartes. La création et la désactivation des comptes sont réservées à ADMIN.</p></div>}
         <div className="directory-list">{visibleUsers.map((user) => <div className="directory-row" key={user.id}><div><strong>{user.displayName}</strong><small>{user.email ?? "Courriel non renseigné"} · {user.jobTitle ?? "Fonction non renseignée"}</small></div><span className="badge badge-neutral">{user.role}</span><span className={`badge ${user.status === "ACTIVE" ? "badge-success" : "badge-danger"}`}>{user.status === "ACTIVE" ? "Actif" : "Désactivé"}</span>{canCreateUsers && <button className="secondary-button" type="button" disabled={!persistenceReady || busyKey === `user-${user.id}`} onClick={() => void toggleUser(user)}>{busyKey === `user-${user.id}` ? "…" : user.status === "ACTIVE" ? "Désactiver" : "Réactiver"}</button>}</div>)}</div>
       </>}
       {selectedSection === "cards" && <>
@@ -2529,7 +2672,7 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
         <div className="directory-list">{visibleCards.map((card) => <div className="directory-row card-directory-row" key={card.id}><div><strong>•••• {card.lastFour}</strong><small>{card.function} · {card.status} · {card.startDate || "date inconnue"}</small></div><select value={cardHolderDrafts[card.id] ?? card.holderId ?? ""} onChange={(event) => setCardHolderDrafts((current) => ({ ...current, [card.id]: event.target.value }))} aria-label={`Titulaire de la carte ${card.lastFour}`}><option value="">Titulaire à choisir</option>{users.map((user) => <option key={user.id} value={user.id}>{user.displayName}</option>)}</select><button className="secondary-button" type="button" disabled={!persistenceReady || busyKey === `card-${card.id}`} onClick={() => void saveCardAssignment(card)}>{busyKey === `card-${card.id}` ? "…" : "Enregistrer"}</button><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `toggle-card-${card.id}`} onClick={() => void toggleCard(card)}>{card.status === "Actif" ? "Désactiver" : "Réactiver"}</button></div>)}</div>
       </>}
        {selectedSection === "accounts" && <>
-         {canEditReferences ? <form className="directory-form" onSubmit={saveAccountReference}><div className="field-grid"><label className="field"><span>Numéro de compte</span><input required inputMode="numeric" value={accountForm.number} onChange={(event) => setAccountForm((current) => ({ ...current, number: event.target.value }))} placeholder="33544" /></label><label className="field"><span>Libellé / catégorie</span><input required value={accountForm.label} onChange={(event) => setAccountForm((current) => ({ ...current, label: event.target.value }))} placeholder="Matériaux divers" /></label></div><div className="field-grid"><label className="field"><span>Type</span><select value={accountForm.type} onChange={(event) => setAccountForm((current) => ({ ...current, type: event.target.value }))}><option value="EXPENSE">Dépense</option><option value="TAX">Taxe</option></select></label><div className="directory-help">Le numéro est stocké comme texte afin de préserver les zéros initiaux. L’identifiant interne ne change pas lors d’une correction.</div></div><button className="primary-button" type="submit" disabled={!persistenceReady || busyKey.startsWith("account-")}>{busyKey.startsWith("account-") ? "Enregistrement…" : accountForm.id ? "Enregistrer la modification" : "Ajouter le compte"}</button></form> : <div className="config-note"><span>i</span><p>Kim peut consulter et sélectionner les comptes. La gestion du référentiel est réservée à ADMIN.</p></div>}
+         {canEditReferences ? <form className="directory-form" onSubmit={saveAccountReference}><div className="field-grid"><label className="field"><span>Numéro de compte</span><input required inputMode="numeric" value={accountForm.number} onChange={(event) => setAccountForm((current) => ({ ...current, number: event.target.value }))} placeholder="33544" /></label><label className="field"><span>Libellé / catégorie</span><input required value={accountForm.label} onChange={(event) => setAccountForm((current) => ({ ...current, label: event.target.value }))} placeholder="Matériaux divers" /></label></div><div className="field-grid"><label className="field"><span>Type</span><select value={accountForm.type} onChange={(event) => setAccountForm((current) => ({ ...current, type: event.target.value }))}><option value="EXPENSE">Dépense</option><option value="TAX">Taxe</option></select></label><div className="directory-help">Le numéro est stocké comme texte afin de préserver les zéros initiaux. L’identifiant interne ne change pas lors d’une correction.</div></div><button className="primary-button" type="submit" disabled={!persistenceReady || busyKey.startsWith("account-")}>{busyKey.startsWith("account-") ? "Enregistrement…" : accountForm.id ? "Enregistrer la modification" : "Ajouter le compte"}</button></form> : <div className="config-note"><span>i</span><p>Le contrôle comptable peut consulter et sélectionner les comptes. La gestion du référentiel est réservée à ADMIN.</p></div>}
          <div className="directory-list">{visibleAccounts.map((account) => <div className="directory-row" key={account.id}><div><strong>{account.number} — {account.label}</strong><small>{account.type === "TAX" ? "Taxe" : "Dépense"}</small></div><span className={`badge ${account.status === "INACTIVE" ? "badge-danger" : "badge-success"}`}>{account.status === "INACTIVE" ? "Inactif" : "Actif"}</span>{canEditReferences && <><button className="text-button" type="button" onClick={() => setAccountForm({ id: account.id, number: account.number, label: account.label, type: account.type })}>Modifier</button><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `account-toggle-${account.id}`} onClick={() => void toggleAccount(account)}>{account.status === "INACTIVE" ? "Réactiver" : "Désactiver"}</button><button className="text-button danger-text" type="button" disabled={!persistenceReady || busyKey === `account-delete-${account.id}`} onClick={() => void deleteAccount(account)}>Supprimer</button></>}</div>)}</div>
        </>}
        {selectedSection === "projects" && <>
@@ -2547,11 +2690,11 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
                {projectImportPlan.errors.length === 0 && projectImportPlan.conflicts.length === 0 && <button className="primary-button" type="button" disabled={!persistenceReady || busyKey === "project-import"} onClick={() => void applyProjectImport()}>{busyKey === "project-import" ? "Import en cours…" : "Appliquer l’import"}</button>}
              </div>}
            </div>
-         </> : <div className="config-note"><span>i</span><p>Kim peut consulter et sélectionner les projets. L’import JSON et la gestion du référentiel sont réservés à ADMIN.</p></div>}
+         </> : <div className="config-note"><span>i</span><p>Le contrôle comptable peut consulter et sélectionner les projets. L’import JSON et la gestion du référentiel sont réservés à ADMIN.</p></div>}
          <div className="directory-list">{visibleProjects.map((project) => <div className="directory-row" key={project.id}><div><strong>{project.number} — {project.name}</strong><small>ID interne conservé: {project.id}</small></div><span className={`badge ${project.status === "INACTIVE" ? "badge-danger" : "badge-success"}`}>{project.status === "INACTIVE" ? "Inactif" : "Actif"}</span>{canEditReferences && <><button className="text-button" type="button" onClick={() => setProjectForm({ id: project.id, number: project.number, name: project.name })}>Modifier</button><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `project-toggle-${project.id}`} onClick={() => void toggleProject(project)}>{project.status === "INACTIVE" ? "Réactiver" : "Désactiver"}</button><button className="text-button danger-text" type="button" disabled={!persistenceReady || busyKey === `project-delete-${project.id}`} onClick={() => void deleteProjectReference(project)}>Supprimer</button></>}</div>)}</div>
       </>}
       {selectedSection === "periods" && <>
-        <form className="directory-form" onSubmit={savePeriodReference}><div className="field-grid"><label className="field"><span>Identifiant de période</span><input required value={periodForm.id} onChange={(event) => setPeriodForm((current) => ({ ...current, id: event.target.value }))} placeholder="2026-08" /></label><label className="field"><span>Libellé</span><input required value={periodForm.label} onChange={(event) => setPeriodForm((current) => ({ ...current, label: event.target.value }))} placeholder="Cycle du 10 août au 9 septembre" /></label></div><div className="field-grid"><label className="field"><span>Du</span><input required type="date" value={periodForm.startDate} onChange={(event) => setPeriodForm((current) => ({ ...current, startDate: event.target.value }))} /></label><label className="field"><span>Au</span><input required type="date" value={periodForm.endDate} onChange={(event) => setPeriodForm((current) => ({ ...current, endDate: event.target.value }))} /></label></div><label className="field"><span>Libellé du relevé (facultatif)</span><input value={periodForm.statementLabel} onChange={(event) => setPeriodForm((current) => ({ ...current, statementLabel: event.target.value }))} placeholder="Relevé Mastercard · cycle du 10 au 9" /></label><p className="directory-help">Le cycle par défaut est du 10 au 9. Kim peut toujours corriger une période directement sur une revue.</p><button className="primary-button" type="submit" disabled={!persistenceReady || busyKey.startsWith("period-")}>{busyKey.startsWith("period-") ? "Enregistrement…" : "Ajouter ou actualiser la période"}</button></form>
+        <form className="directory-form" onSubmit={savePeriodReference}><div className="field-grid"><label className="field"><span>Identifiant de période</span><input required value={periodForm.id} onChange={(event) => setPeriodForm((current) => ({ ...current, id: event.target.value }))} placeholder="2026-08" /></label><label className="field"><span>Libellé</span><input required value={periodForm.label} onChange={(event) => setPeriodForm((current) => ({ ...current, label: event.target.value }))} placeholder="Cycle du 10 août au 9 septembre" /></label></div><div className="field-grid"><label className="field"><span>Du</span><input required type="date" value={periodForm.startDate} onChange={(event) => setPeriodForm((current) => ({ ...current, startDate: event.target.value }))} /></label><label className="field"><span>Au</span><input required type="date" value={periodForm.endDate} onChange={(event) => setPeriodForm((current) => ({ ...current, endDate: event.target.value }))} /></label></div><label className="field"><span>Libellé du relevé (facultatif)</span><input value={periodForm.statementLabel} onChange={(event) => setPeriodForm((current) => ({ ...current, statementLabel: event.target.value }))} placeholder="Relevé Mastercard · cycle du 10 au 9" /></label><p className="directory-help">Le cycle par défaut est du 10 au 9. Une personne autorisée peut toujours corriger une période directement sur une revue.</p><button className="primary-button" type="submit" disabled={!persistenceReady || busyKey.startsWith("period-")}>{busyKey.startsWith("period-") ? "Enregistrement…" : "Ajouter ou actualiser la période"}</button></form>
         <div className="directory-list">{visiblePeriods.map((period) => <div className="directory-row" key={period.id}><div><strong>{period.label}</strong><small>{period.start} → {period.end} · {period.statementLabel}</small></div><span className={`badge ${period.status === "INACTIVE" ? "badge-danger" : "badge-success"}`}>{period.status === "INACTIVE" ? "Désactivée" : "Active"}</span><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `period-toggle-${period.id}`} onClick={() => void togglePeriod(period)}>{period.status === "INACTIVE" ? "Réactiver" : "Désactiver"}</button></div>)}</div>
       </>}
     </section>
@@ -2599,7 +2742,7 @@ function SaferSettingsPage() {
         {editingCards && <form className="settings-add-row settings-add-card" onSubmit={(event) => { event.preventDefault(); addCard(); }}><input inputMode="numeric" maxLength={4} value={newCardLastFour} onChange={(event) => setNewCardLastFour(event.target.value)} placeholder="4 derniers chiffres" aria-label="Quatre derniers chiffres de la carte" /><input value={newCardHolder} onChange={(event) => setNewCardHolder(event.target.value)} placeholder="Titulaire" aria-label="Nouveau titulaire" /><button className="secondary-button" type="submit">＋ Ajouter la carte</button></form>}
       </div>}
       {selectedSection === "accounts" && <div className="settings-editor-list">{accounts.map((account) => <div className="settings-inline-row" key={account.code}><input value={account.code} onChange={(event) => setAccounts((current) => current.map((item) => item.code === account.code ? { ...item, code: event.target.value } : item))} aria-label="Code comptable" /><input value={account.label} onChange={(event) => setAccounts((current) => current.map((item) => item.code === account.code ? { ...item, label: event.target.value } : item))} aria-label="Catégorie comptable" /></div>)}</div>}
-      {selectedSection === "projects" && <div className="settings-editor-list">{projects.map((project, index) => <div className="settings-inline-row" key={project.id + "-" + index}><input value={project.name} onChange={(event) => setProjects((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} aria-label={"Projet " + (index + 1)} /></div>)}<form className="settings-add-row" onSubmit={(event) => { event.preventDefault(); if (!newProject.trim()) return; setProjects((current) => [...current, { id: "PROJECT-" + crypto.randomUUID().slice(0, 8), number: "PROJECT-" + crypto.randomUUID().slice(0, 8), name: newProject.trim(), status: "ACTIVE" }]); setNewProject(""); }}><input value={newProject} onChange={(event) => setNewProject(event.target.value)} placeholder="Ajouter un projet" /><button className="secondary-button" type="submit">＋ Ajouter</button></form></div>}
+      {selectedSection === "projects" && <div className="settings-editor-list">{projects.map((project, index) => <div className="settings-inline-row" key={project.id + "-" + index}><input value={project.name} onChange={(event) => setProjects((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} aria-label={"Projet " + (index + 1)} /></div>)}<form className="settings-add-row" onSubmit={(event) => { event.preventDefault(); if (!newProject.trim()) return; const projectId = createClientId().slice(0, 8); setProjects((current) => [...current, { id: "PROJECT-" + projectId, number: "PROJECT-" + projectId, name: newProject.trim(), status: "ACTIVE" }]); setNewProject(""); }}><input value={newProject} onChange={(event) => setNewProject(event.target.value)} placeholder="Ajouter un projet" /><button className="secondary-button" type="submit">＋ Ajouter</button></form></div>}
       {selectedSection === "sku" && <div className="settings-editor-list">{data.skuReferences.map((reference) => <div className="sku-reference-row" key={reference.merchant + "-" + reference.sku}><div><strong>{reference.merchant} · SKU {reference.sku}</strong><span>{reference.label} · {reference.accountCode} · {reference.category}</span></div><span className="badge badge-warning">{reference.status}</span><small>Recherche externe à lancer lorsque la fiche est nécessaire.</small></div>)}</div>}
       {!["cards", "accounts", "projects", "sku"].includes(selectedSection) && <div className="settings-placeholder"><strong>Référentiel prêt à connecter</strong><p>Cette section est préparée pour les règles Firebase et les permissions administrateur.</p></div>}
     </section>
@@ -2642,7 +2785,7 @@ function CompactSettingsPage() {
       <div className="panel-header"><div><p className="eyebrow">Éditeur de référentiel</p><h2>{sections.find((section) => section.id === selectedSection)?.title}</h2></div><span className="badge badge-neutral">Mode local</span></div>
       {selectedSection === "cards" && <div className="settings-editor-list settings-card-list">{cards.map((card) => <div className="settings-card-row" key={card.id}><span><b>•••• {card.lastFour}</b><small>{card.status} · {card.function}</small></span><input value={card.holder} onChange={(event) => updateCardHolder(card.id, event.target.value)} aria-label="Titulaire de la carte" /><button className="icon-button" type="button" onClick={() => removeCard(card.id)} aria-label="Retirer cette carte">×</button></div>)}<form className="settings-add-row settings-add-card" onSubmit={(event) => { event.preventDefault(); addCard(); }}><input inputMode="numeric" maxLength={4} value={newCardLastFour} onChange={(event) => setNewCardLastFour(event.target.value)} placeholder="4 derniers chiffres" aria-label="Quatre derniers chiffres de la carte" /><input value={newCardHolder} onChange={(event) => setNewCardHolder(event.target.value)} placeholder="Titulaire" aria-label="Nouveau titulaire" /><button className="secondary-button" type="submit">＋ Ajouter la carte</button></form></div>}
       {selectedSection === "accounts" && <div className="settings-editor-list">{accounts.map((account) => <div className="settings-inline-row" key={account.code}><input value={account.code} onChange={(event) => setAccounts((current) => current.map((item) => item.code === account.code ? { ...item, code: event.target.value } : item))} aria-label="Code comptable" /><input value={account.label} onChange={(event) => setAccounts((current) => current.map((item) => item.code === account.code ? { ...item, label: event.target.value } : item))} aria-label="Catégorie comptable" /></div>)}</div>}
-      {selectedSection === "projects" && <div className="settings-editor-list">{projects.map((project, index) => <div className="settings-inline-row" key={project.id + "-" + index}><input value={project.name} onChange={(event) => setProjects((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} aria-label={"Projet " + (index + 1)} /></div>)}<form className="settings-add-row" onSubmit={(event) => { event.preventDefault(); if (!newProject.trim()) return; setProjects((current) => [...current, { id: "PROJECT-" + crypto.randomUUID().slice(0, 8), number: "PROJECT-" + crypto.randomUUID().slice(0, 8), name: newProject.trim(), status: "ACTIVE" }]); setNewProject(""); }}><input value={newProject} onChange={(event) => setNewProject(event.target.value)} placeholder="Ajouter un projet" /><button className="secondary-button" type="submit">＋ Ajouter</button></form></div>}
+      {selectedSection === "projects" && <div className="settings-editor-list">{projects.map((project, index) => <div className="settings-inline-row" key={project.id + "-" + index}><input value={project.name} onChange={(event) => setProjects((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} aria-label={"Projet " + (index + 1)} /></div>)}<form className="settings-add-row" onSubmit={(event) => { event.preventDefault(); if (!newProject.trim()) return; const projectId = createClientId().slice(0, 8); setProjects((current) => [...current, { id: "PROJECT-" + projectId, number: "PROJECT-" + projectId, name: newProject.trim(), status: "ACTIVE" }]); setNewProject(""); }}><input value={newProject} onChange={(event) => setNewProject(event.target.value)} placeholder="Ajouter un projet" /><button className="secondary-button" type="submit">＋ Ajouter</button></form></div>}
       {selectedSection === "sku" && <div className="settings-editor-list">{skuReferences.map((reference) => <div className="sku-reference-row" key={reference.merchant + "-" + reference.sku}><div><strong>{reference.merchant} · SKU {reference.sku}</strong><span>{reference.label} · {reference.accountCode} · {reference.category}</span></div><span className="badge badge-warning">{reference.status}</span><small>Recherche externe à lancer lorsque la fiche est nécessaire.</small></div>)}</div>}
       {!["cards", "accounts", "projects", "sku"].includes(selectedSection) && <div className="settings-placeholder"><strong>Référentiel prêt à connecter</strong><p>Cette section est préparée pour les règles Firebase et les permissions administrateur.</p></div>}
     </section>
@@ -2663,7 +2806,7 @@ function SettingsPage() {
   const sections = [
     { id: "users", title: "Utilisateurs et accès", description: "Comptes, rôles, personnes, cartes autorisées", meta: "12 comptes" },
     { id: "cards", title: "Cartes et titulaires", description: "Association officielle entre chaque carte et sa personne", meta: `${cards.filter((card) => card.status === "Actif").length} actives · 1 inactive` },
-    { id: "accounts", title: "Comptes comptables", description: "Codes et catégories utilisés dans le rapport de Kim", meta: `${accounts.length} comptes` },
+    { id: "accounts", title: "Comptes comptables", description: "Codes et catégories utilisés dans les rapports", meta: `${accounts.length} comptes` },
     { id: "projects", title: "Référentiels métier", description: "Chantiers, fournisseurs et aliases", meta: `${projects.length} chantiers` },
     { id: "sku", title: "Produits et SKU", description: "Base Canadian Tire, enrichissement et validations", meta: `${skus.length} SKU suivis` },
     { id: "controls", title: "Contrôles et seuils", description: "Tolérance monétaire, doublons et règles de validation", meta: "0,01 $" },
@@ -2686,5 +2829,5 @@ function SettingsPage() {
   void removeCard;
   void addCard;
 
-      return <><PageHeading eyebrow="Administration" title="Configuration" description="Les cartes, titulaires, comptes, projets et références SKU sont regroupés dans une source de vérité administrable." action={<button className="primary-button" onClick={() => setNotice("Les changements sont prêts à être persistés après l’approbation du schéma Firebase.")}>Enregistrer les changements</button>} /><section className="settings-list">{sections.map((section, index) => <button className={`settings-row ${selectedSection === section.id ? "selected" : ""}`} key={section.id} onClick={() => setSelectedSection(section.id)}><span className={`settings-number n${(index % 6) + 1}`}>0{index + 1}</span><span className="settings-copy"><strong>{section.title}</strong><span>{section.description}</span></span><span className="settings-meta">{section.meta}</span><span className="row-arrow">→</span></button>)}</section><section className="panel settings-editor"><div className="panel-header"><div><p className="eyebrow">Éditeur de référentiel</p><h2>{selectedTitle}</h2></div><span className="badge badge-neutral">Mode local</span></div>{selectedSection === "cards" && <div className="settings-editor-grid">{cards.map((card) => <label className="settings-input-card" key={card.id}><span>Carte ···· {card.lastFour} · {card.status}</span><input value={card.holder} onChange={(event) => updateCardHolder(card.id, event.target.value)} aria-label={`Titulaire de la carte ${card.lastFour}`} /><small>{card.function} · active depuis {formatDate(card.startDate)}</small></label>)}</div>}{selectedSection === "accounts" && <div className="settings-editor-list">{accounts.map((account) => <div className="settings-inline-row" key={account.code}><input value={account.code} onChange={(event) => updateAccount(account.code, "code", event.target.value)} aria-label="Code comptable" /><input value={account.label} onChange={(event) => updateAccount(account.code, "label", event.target.value)} aria-label="Catégorie comptable" /></div>)}</div>}{selectedSection === "projects" && <div className="settings-editor-list">{projects.map((project, index) => <div className="settings-inline-row" key={`${project.id}-${index}`}><input value={project.name} onChange={(event) => updateProject(index, event.target.value)} aria-label={`Projet ${index + 1}`} /></div>)}<form className="settings-add-row" onSubmit={(event) => { event.preventDefault(); if (!newProject.trim()) return; setProjects((current) => [...current, { id: "PROJECT-" + crypto.randomUUID().slice(0, 8), number: "PROJECT-" + crypto.randomUUID().slice(0, 8), name: newProject.trim(), status: "ACTIVE" }]); setNewProject(""); }}><input value={newProject} onChange={(event) => setNewProject(event.target.value)} placeholder="Ajouter un projet" /><button className="secondary-button" type="submit">＋ Ajouter</button></form></div>}{selectedSection === "sku" && <div className="settings-editor-list">{skus.map((reference) => <div className="sku-reference-row" key={`${reference.merchant}-${reference.sku}`}><div><strong>{reference.merchant} · SKU {reference.sku}</strong><span>{reference.label} · {reference.accountCode} · {reference.category}</span></div><span className="badge badge-warning">{reference.status}</span><small>Recherche externe à lancer lorsque la fiche est nécessaire.</small></div>)}</div>}{!["cards", "accounts", "projects", "sku"].includes(selectedSection) && <div className="settings-placeholder"><strong>Référentiel prêt à connecter</strong><p>Cette section est préparée pour les règles Firebase et les permissions administrateur. Aucune mutation distante n’est envoyée dans cette étape.</p></div>}</section>{notice && <div className="config-note"><span>✓</span><p>{notice}</p></div>}<div className="config-note"><span>i</span><p><strong>Classification automatique.</strong> Les transactions sont classées par catégorie et code comptable; les SKU connus peuvent remplacer la catégorie locale. Les SKU inconnus restent « À confirmer » pour éviter une écriture comptable automatique non vérifiée.</p></div></>;
+      return <><PageHeading eyebrow="Administration" title="Configuration" description="Les cartes, titulaires, comptes, projets et références SKU sont regroupés dans une source de vérité administrable." action={<button className="primary-button" onClick={() => setNotice("Les changements sont prêts à être persistés après l’approbation du schéma Firebase.")}>Enregistrer les changements</button>} /><section className="settings-list">{sections.map((section, index) => <button className={`settings-row ${selectedSection === section.id ? "selected" : ""}`} key={section.id} onClick={() => setSelectedSection(section.id)}><span className={`settings-number n${(index % 6) + 1}`}>0{index + 1}</span><span className="settings-copy"><strong>{section.title}</strong><span>{section.description}</span></span><span className="settings-meta">{section.meta}</span><span className="row-arrow">→</span></button>)}</section><section className="panel settings-editor"><div className="panel-header"><div><p className="eyebrow">Éditeur de référentiel</p><h2>{selectedTitle}</h2></div><span className="badge badge-neutral">Mode local</span></div>{selectedSection === "cards" && <div className="settings-editor-grid">{cards.map((card) => <label className="settings-input-card" key={card.id}><span>Carte ···· {card.lastFour} · {card.status}</span><input value={card.holder} onChange={(event) => updateCardHolder(card.id, event.target.value)} aria-label={`Titulaire de la carte ${card.lastFour}`} /><small>{card.function} · active depuis {formatDate(card.startDate)}</small></label>)}</div>}{selectedSection === "accounts" && <div className="settings-editor-list">{accounts.map((account) => <div className="settings-inline-row" key={account.code}><input value={account.code} onChange={(event) => updateAccount(account.code, "code", event.target.value)} aria-label="Code comptable" /><input value={account.label} onChange={(event) => updateAccount(account.code, "label", event.target.value)} aria-label="Catégorie comptable" /></div>)}</div>}{selectedSection === "projects" && <div className="settings-editor-list">{projects.map((project, index) => <div className="settings-inline-row" key={`${project.id}-${index}`}><input value={project.name} onChange={(event) => updateProject(index, event.target.value)} aria-label={`Projet ${index + 1}`} /></div>)}<form className="settings-add-row" onSubmit={(event) => { event.preventDefault(); if (!newProject.trim()) return; const projectId = createClientId().slice(0, 8); setProjects((current) => [...current, { id: "PROJECT-" + projectId, number: "PROJECT-" + projectId, name: newProject.trim(), status: "ACTIVE" }]); setNewProject(""); }}><input value={newProject} onChange={(event) => setNewProject(event.target.value)} placeholder="Ajouter un projet" /><button className="secondary-button" type="submit">＋ Ajouter</button></form></div>}{selectedSection === "sku" && <div className="settings-editor-list">{skus.map((reference) => <div className="sku-reference-row" key={`${reference.merchant}-${reference.sku}`}><div><strong>{reference.merchant} · SKU {reference.sku}</strong><span>{reference.label} · {reference.accountCode} · {reference.category}</span></div><span className="badge badge-warning">{reference.status}</span><small>Recherche externe à lancer lorsque la fiche est nécessaire.</small></div>)}</div>}{!["cards", "accounts", "projects", "sku"].includes(selectedSection) && <div className="settings-placeholder"><strong>Référentiel prêt à connecter</strong><p>Cette section est préparée pour les règles Firebase et les permissions administrateur. Aucune mutation distante n’est envoyée dans cette étape.</p></div>}</section>{notice && <div className="config-note"><span>✓</span><p>{notice}</p></div>}<div className="config-note"><span>i</span><p><strong>Classification automatique.</strong> Les transactions sont classées par catégorie et code comptable; les SKU connus peuvent remplacer la catégorie locale. Les SKU inconnus restent « À confirmer » pour éviter une écriture comptable automatique non vérifiée.</p></div></>;
 }

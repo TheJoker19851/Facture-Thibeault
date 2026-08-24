@@ -32,6 +32,15 @@ export async function verifyReconciliationEmulator() {
     const identity = { uid: kim.uid, role: "KIM" };
     const dataConnect = getDataConnect({ serviceId: "facture-thibeault-service", location: "northamerica-northeast1", connector: "accounting" }, app);
     const runTag = String(Date.now());
+    // Keep repeated emulator runs independent even when Data Connect keeps its
+    // local database between invocations. Matching is intentionally exact on
+    // amount/date/card, so the synthetic amounts must not be reused.
+    const runSeed = Number(runTag.slice(-7));
+    const testAmounts = {
+      first: 10_000_000 + runSeed * 3,
+      second: 10_000_001 + runSeed * 3,
+      review: 10_000_002 + runSeed * 3,
+    };
 
     const seedTransaction = async ({ suffix, cardId, date, vendor, totalCents, invoiceNumber }) => {
       const transactionId = `RECON-${runTag}-TX-${suffix}`;
@@ -78,13 +87,13 @@ export async function verifyReconciliationEmulator() {
       });
       return transactionId;
     };
-    await seedTransaction({ suffix: "A", cardId: "DEMO-CARD-001", date: "2026-08-11", vendor: "Station Démo", totalCents: 12345, invoiceNumber: `RECON-${runTag}-FACT-A` });
-    await seedTransaction({ suffix: "B", cardId: "DEMO-CARD-001", date: "2026-08-10", vendor: "Quincaillerie Démo", totalCents: 23456, invoiceNumber: `RECON-${runTag}-FACT-B` });
-    await seedTransaction({ suffix: "C", cardId: "DEMO-CARD-002", date: "2026-08-15", vendor: "Marchand Candidate Seed", totalCents: 34567, invoiceNumber: `RECON-${runTag}-FACT-C` });
+    await seedTransaction({ suffix: "A", cardId: "DEMO-CARD-001", date: "2026-08-11", vendor: "Station Démo", totalCents: testAmounts.first, invoiceNumber: `RECON-${runTag}-FACT-A` });
+    await seedTransaction({ suffix: "B", cardId: "DEMO-CARD-001", date: "2026-08-10", vendor: "Quincaillerie Démo", totalCents: testAmounts.second, invoiceNumber: `RECON-${runTag}-FACT-B` });
+    await seedTransaction({ suffix: "C", cardId: "DEMO-CARD-002", date: "2026-08-15", vendor: "Marchand Candidate Seed", totalCents: testAmounts.review, invoiceNumber: `RECON-${runTag}-FACT-C` });
 
     const source = sourceFor(`SERVER-STATEMENT-001-${runTag}`, [
-      { sequence: 1, transactionDate: "2026-08-11", merchantRaw: "STATION DEMO", amountCents: 12345 },
-      { sequence: 2, transactionDate: "2026-08-10", merchantRaw: "Quincaillerie Démo", amountCents: 23456 },
+      { sequence: 1, transactionDate: "2026-08-11", merchantRaw: "STATION DEMO", amountCents: testAmounts.first },
+      { sequence: 2, transactionDate: "2026-08-10", merchantRaw: "Quincaillerie Démo", amountCents: testAmounts.second },
     ]);
     const imported = await importStatementBatch({ dataConnect, identity, imports: [{ sourceText: source, originalFilename: "server-statement-001.json", originalStoragePath: "local://server-statement-001.json" }] });
     assert.equal(imported.imported, 1);
@@ -141,7 +150,7 @@ export async function verifyReconciliationEmulator() {
     const withOutside = await loadReconciliationContext(dataConnect, identity);
     assert.equal(new Set(withOutside.outsideControls.filter((row) => row.statement?.id === statementId).map((row) => row.id)).size, outsideIds.length);
 
-    const reviewSource = sourceFor(`SERVER-STATEMENT-002-${runTag}`, [{ sequence: 1, transactionDate: "2026-08-15", merchantRaw: "MARCHAND AMBIGU DEMO", amountCents: 34567 }], "DEMO-CARD-002");
+    const reviewSource = sourceFor(`SERVER-STATEMENT-002-${runTag}`, [{ sequence: 1, transactionDate: "2026-08-15", merchantRaw: "MARCHAND AMBIGU DEMO", amountCents: testAmounts.review }], "DEMO-CARD-002");
     const reviewImport = await importStatementBatch({ dataConnect, identity, imports: [{ sourceText: reviewSource, originalFilename: "server-statement-002.json" }] });
     const reviewStatementId = reviewImport.results[0].statementId;
     const reviewContext = await loadReconciliationContext(dataConnect, identity);

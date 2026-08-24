@@ -287,3 +287,234 @@ main .reconciliation-explainer span:last-child { font-size: 11px; }
   .statement-resolution { grid-column: 1 / -1; grid-row: 4; }
   .statement-row .row-menu { grid-column: 2; grid-row: 2; justify-self: end; }
 }
+
+.capture-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.gallery-button { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; border: 0; border-top: 1px solid rgba(255,255,255,.15); padding: 16px; background: #416572; color: #fff; font-size: 12px; font-weight: 800; }
+.gallery-button span { font-size: 18px; }
+.capture-button:disabled, .gallery-button:disabled { cursor: not-allowed; opacity: .5; }
+
+@media (max-width: 460px) {
+  .capture-actions { grid-template-columns: 1fr; }
+  .gallery-button { border-top: 1px solid rgba(255,255,255,.15); }
+}
+
+/* Card hierarchy and audit readability. */
+:root {
+  --background: #e8f0f3;
+  --line: #d1dee4;
+  --line-strong: #a9c1cb;
+  --surface-muted: #dce8ec;
+  --card-surface: #e1ebee;
+}
+
+html, body { background: var(--background); }
+.topbar { border-bottom-color: var(--line-strong); background: rgba(255,255,255,.96); }
+
+.panel,
+.kpi-card,
+.review-summary > div,
+.period-card,
+.stat-tile,
+.holder-summary-card,
+.user-transaction-card,
+.evidence-panel,
+.detail-form,
+.intake-panel,
+.intake-review,
+.settings-list,
+.debug-card,
+.archive-card,
+.report-table,
+.reconciliation-panel {
+  background: var(--card-surface);
+  border-color: var(--line-strong);
+  box-shadow: 0 8px 20px rgba(28, 58, 76, .09);
+}
+
+.panel:hover,
+.kpi-card:hover,
+.holder-summary-card:hover,
+.period-card:hover,
+.stat-tile:hover {
+  border-color: #9fbac5;
+  box-shadow: 0 10px 24px rgba(28, 58, 76, .1);
+}
+
+.panel-header { background: rgba(248, 251, 252, .72); }
+.settings-row { background: rgba(248, 251, 252, .62); }
+.intake-row { background: rgba(248, 251, 252, .7); }
+.user-transaction-card summary { background: rgba(248, 251, 252, .62); }
+.report-total { background: var(--navy); }
+
+.panel-header { border-bottom: 1px solid #dbe6ea; }
+.attention-row,
+.review-row,
+.intake-row,
+.statement-row,
+.settings-row,
+.table-wrap td,
+.mini-table div,
+.category-report div { border-color: #dbe6ea; }
+.intake-row:hover, .intake-row.selected { background: #e9f4f5; }
+.intake-row.selected { box-shadow: inset 4px 0 0 var(--teal), 0 2px 8px rgba(31, 84, 96, .08); }
+.review-row:hover, .attention-row:hover, .settings-row:hover { background: #f1f7f8; }
+.settings-row.selected { border-color: #a9c9d0; background: #e8f3f4; box-shadow: inset 4px 0 0 var(--teal); }
+
+.primary-button, .secondary-button, .filter-select, .search-box, .filter-panel select,
+.dashboard-person-filter select, .report-filter-grid > label, .kim-report-toolbar > label {
+  border-color: var(--line-strong);
+}
+.secondary-button:hover, .filter-select:hover, .filter-panel select:hover,
+.dashboard-person-filter select:hover { border-color: #8eafbb; background: #f8fbfc; }
+main input, main select, main textarea {
+  border-color: #b9cdd6;
+  background: #d8e6eb;
+  color: var(--ink);
+  box-shadow: inset 0 1px 1px rgba(24, 55, 71, .03);
+}
+main input:hover, main select:hover, main textarea:hover {
+  border-color: #9fbac5;
+  background: #e1edf0;
+}
+main input:focus, main select:focus, main textarea:focus {
+  border-color: var(--blue);
+  background: #edf5f6;
+  outline: 3px solid rgba(59, 131, 166, .16);
+  outline-offset: 0;
+}
+.intake-review-form .needs-correction input,
+.intake-review-form .needs-correction select,
+.intake-review-form .needs-correction textarea {
+  border-color: #d9ad2d;
+  background: #fff3a8;
+  box-shadow: 0 0 0 3px rgba(217, 173, 45, .16);
+}
+
+.dashboard-total-pill,
+.review-guide,
+.provenance-card,
+.reference-card,
+.intake-evidence,
+.intake-commit-card,
+.reconciliation-detail-grid > div,
+.kim-report-context,
+.kim-tax-total,
+.report-local-note,
+.settings-input-card {
+  border-color: #bcd2da;
+  background: #d8e8ed;
+}
+.dashboard-total-pill { box-shadow: 0 3px 10px rgba(32, 74, 88, .06); }
+.intake-evidence, .intake-commit-card { box-shadow: 0 5px 14px rgba(32, 74, 88, .09); }
+.intake-commit-card { background: #d5e6eb; }
+.intake-evidence-main, .intake-evidence-zoom-stage { border-color: #b7cdd5; background: #dfeaed; }
+.intake-review .panel-header { background: linear-gradient(180deg, #ffffff 0%, #f6fafb 100%); }
+.intake-review-message { border: 1px solid #b7d9d1; }
+.intake-review-message.error { border-color: #e1b6b3; }
+
+.audit-trail {
+  margin: 0 21px 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  padding: 16px;
+  background: #dce8ec;
+  box-shadow: 0 5px 14px rgba(28, 58, 76, .06);
+}
+.audit-trail .section-heading { margin-bottom: 13px; }
+.audit-trail .section-heading > span:first-child {
+  border: 1px solid #b8d1da;
+  background: #dcebf0;
+}
+.section-help { margin: 4px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+.audit-event-list { gap: 9px; }
+.audit-event {
+  border: 1px solid #c2d5dd;
+  border-left: 4px solid #84b2c2;
+  border-radius: 10px;
+  padding: 12px 13px;
+  background: #fff;
+  box-shadow: 0 3px 9px rgba(28, 58, 76, .05);
+}
+.audit-event-ai_extraction_completed { border-left-color: var(--teal); }
+.audit-event-human_correction { border-left-color: var(--gold); }
+.audit-event-transaction_created, .audit-event-human_validation { border-left-color: var(--teal); }
+.audit-event-ai_processing_failed { border-left-color: var(--rose); }
+.audit-event-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.audit-event-heading > div:first-child { display: grid; gap: 4px; min-width: 0; }
+.audit-event-heading strong { color: var(--navy); font-size: 12px; }
+.audit-event-heading p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.45; }
+.audit-event-heading small { flex: 0 0 auto; color: #718792; font-size: 10px; line-height: 1.45; text-align: right; }
+.audit-corrections {
+  display: grid;
+  gap: 7px;
+  margin-top: 9px;
+  border-top: 1px solid #d8e5e9;
+  padding-top: 9px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.audit-corrections > span { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; line-height: 1.4; }
+.audit-corrections b { min-width: 132px; color: var(--navy); font-size: 10px; }
+.audit-corrections > span > span { color: #5f7580; }
+.audit-corrections i { color: var(--teal); font-style: normal; font-weight: 900; }
+
+@media (max-width: 620px) {
+  .audit-event-heading { flex-direction: column; gap: 7px; }
+  .audit-event-heading small { text-align: left; }
+  .audit-corrections b { min-width: 100%; }
+}
+
+/* Official MBJ Thibeault branding. */
+.brand-block-logo {
+  align-items: center;
+  flex-direction: column;
+  gap: 10px;
+  padding-inline: 8px;
+}
+.brand-logo-frame {
+  width: 100%;
+  max-width: 214px;
+  border-radius: 7px;
+  padding: 6px 7px;
+  background: #fff;
+  box-shadow: 0 5px 14px rgba(0, 0, 0, .16);
+}
+.brand-logo {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+.brand-block-logo .prototype-pill { align-self: flex-end; }
+.worker-topbar .brand-mark.compact { gap: 0; }
+.worker-logo { width: min(230px, 56vw); max-height: 48px; object-fit: contain; }
+
+/* Keep interactive fields visibly separate from the card surface. */
+main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .project-import-file, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) input,
+main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .project-import-file, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) select,
+main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .project-import-file, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) textarea {
+  border-color: #9fbac5;
+  background: #d8e6eb;
+  color: var(--ink);
+}
+main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .project-import-file, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) input:hover,
+main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .project-import-file, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) select:hover,
+main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .project-import-file, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) textarea:hover {
+  border-color: #789eac;
+  background: #e1edf0;
+}
+main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .project-import-file, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) input:focus,
+main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .project-import-file, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) select:focus,
+main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .project-import-file, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) textarea:focus {
+  border-color: var(--blue);
+  background: #edf5f6;
+  outline: 3px solid rgba(59, 131, 166, .16);
+  outline-offset: 0;
+}
+.intake-review-form .needs-correction input,
+.intake-review-form .needs-correction select,
+.intake-review-form .needs-correction textarea {
+  border-color: #d9ad2d;
+  background: #fff3a8;
+  box-shadow: 0 0 0 3px rgba(217, 173, 45, .16);
+}

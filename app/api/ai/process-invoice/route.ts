@@ -133,13 +133,23 @@ async function authenticate(request: Request): Promise<AuthenticatedIdentity | n
   }
 }
 
-const instructions = `You are the production invoice intake agent for Maçonnerie Thibeault.
+const baseInstructions = `You are the production invoice intake agent for Maçonnerie Thibeault.
 Read all supplied photos as pages of one invoice. Extract only information visible in the document.
-Never invent a value: use null for a missing invoice number, date, SKU, project or category.
+Never invent a value: use null for a missing invoice number, date, SKU or project.
 Return monetary values as integer Canadian cents. Use ISO date YYYY-MM-DD when the date is readable.
 The subtotal plus TPS plus TVQ must equal the total; if a value is unclear, lower confidence and explain it in notes.
+Read the visible line items and use them to propose one broad expense category when the evidence supports it.
 Use category only as a suggestion. Do not invent an accounting account or approve the invoice.
 Keep vendor names and invoice numbers faithful to the document, including accents and punctuation.`;
+
+function invoiceInstructions(accountLabels: string[]) {
+  const labels = [...new Set(accountLabels.map((label) => label.trim()).filter(Boolean))];
+  if (!labels.length) return baseInstructions;
+  return `${baseInstructions}
+Choose the category from this active expense-account label list when a label is supported by the visible items: ${labels.join(" | ")}.
+If the receipt is a miscellaneous retail purchase and no more specific label is justified, use "Divers" when it is present in the list.
+Return category null only when no useful item or category evidence is visible.`;
+}
 
 function localMockExtraction(receiptId: string) {
   return {
@@ -197,7 +207,7 @@ function isStableIntakeState(intake: IntakeData["invoiceIntakes"][number]) {
   );
 }
 
-async function extractInvoice(receiptId: string, files: File[]) {
+async function extractInvoice(receiptId: string, files: File[], accountLabels: string[] = []) {
   const environment = inferApplicationEnvironment({
     appEnvironment: process.env.APP_ENV ?? process.env.NEXT_PUBLIC_APP_ENV,
     projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -220,7 +230,7 @@ async function extractInvoice(receiptId: string, files: File[]) {
   })));
   const result = await generateText({
     model: google(modelId),
-    instructions,
+    instructions: invoiceInstructions(accountLabels),
     output: Output.object({
       name: "invoice_extraction",
       description: "Structured OCR result for one Canadian invoice.",
@@ -302,20 +312,25 @@ export async function POST(request: Request) {
       }
     }
 
-    const storedPhotos = await readInvoiceIntakeStoragePhotos(intake);
-    const [{ model, extraction }, skuResponse, accountResponse, cardResponse, userResponse, projectResponse, periodResponse, transactionResponse] = await Promise.all([
-      extractInvoice(receiptId, storedPhotos.map((photo) => photo.file)).catch((error) => {
-        transientGeminiFailure = transientGeminiErrorCode("GEMINI", error) === "GEMINI_TRANSIENT";
-        throw error;
-      }),
-      dataConnect.executeQuery<ReferenceData>("ListSkuReferences"),
-      dataConnect.executeQuery<AccountData>("ListExpenseAccounts"),
-      dataConnect.executeQuery<CardData>("ListCreditCards"),
-      dataConnect.executeQuery<UserData>("ListUserProfiles"),
-      dataConnect.executeQuery<ProjectData>("ListProjects"),
-      dataConnect.executeQuery<PeriodData>("ListCardStatementPeriods"),
-      dataConnect.executeQuery<TransactionData>("ListExpenseTransactions"),
+    const [storedPhotos, [skuResponse, accountResponse, cardResponse, userResponse, projectResponse, periodResponse, transactionResponse]] = await Promise.all([
+      readInvoiceIntakeStoragePhotos(intake),
+      Promise.all([
+        dataConnect.executeQuery<ReferenceData>("ListSkuReferences"),
+        dataConnect.executeQuery<AccountData>("ListExpenseAccounts"),
+        dataConnect.executeQuery<CardData>("ListCreditCards"),
+        dataConnect.executeQuery<UserData>("ListUserProfiles"),
+        dataConnect.executeQuery<ProjectData>("ListProjects"),
+        dataConnect.executeQuery<PeriodData>("ListCardStatementPeriods"),
+        dataConnect.executeQuery<TransactionData>("ListExpenseTransactions"),
+      ]),
     ]);
+    const accountLabels = accountResponse.data.expenseAccounts
+      .filter((account) => account.type === "EXPENSE" && account.status === "ACTIVE")
+      .map((account) => account.label);
+    const { model, extraction } = await extractInvoice(receiptId, storedPhotos.map((photo) => photo.file), accountLabels).catch((error) => {
+      transientGeminiFailure = transientGeminiErrorCode("GEMINI", error) === "GEMINI_TRANSIENT";
+      throw error;
+    });
     const validation = validateInvoiceExtraction(extraction);
     const classification = classifyInvoice({
       vendor: extraction?.vendor,

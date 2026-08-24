@@ -35,6 +35,7 @@ import { firebaseDataConnect, sqlConnectConfigured } from "./data-connect";
 import { INVOICE_CLIENT_VERSION } from "../lib/invoice-client-version.mjs";
 import { isDemoIdentifier, isDemoOrE2EInvoiceIntake } from "../lib/demo-data-policy.mjs";
 import { AUDIT_ACTIONS, auditDetails, auditEventId } from "../lib/audit-events.mjs";
+import { createClientId } from "../lib/client-id.mjs";
 
 export type AppAccountingData = {
   users: Array<{
@@ -181,6 +182,7 @@ export type InvoiceIntakeReviewInput = {
   classificationConfidence: number;
   classificationStatus: string;
   aiNotes: string;
+  writeAudit?: boolean;
   decisionExceptions?: string;
   decisionChecks?: string;
   auditDetails?: string;
@@ -248,7 +250,7 @@ export async function saveProject(input: ProjectInput) {
   await upsertProject(firebaseDataConnect, {
     ...input,
     auditAction: input.auditAction ?? AUDIT_ACTIONS.PROJECT_UPDATED,
-    auditEventId: auditEventId(input.id, input.auditAction ?? AUDIT_ACTIONS.PROJECT_UPDATED, crypto.randomUUID()),
+    auditEventId: auditEventId(input.id, input.auditAction ?? AUDIT_ACTIONS.PROJECT_UPDATED, createClientId()),
     auditDetails: input.auditDetails ?? auditDetails({ number: input.number, name: input.name, status: input.status }),
   });
 }
@@ -258,7 +260,7 @@ export async function saveExpenseAccount(input: ExpenseAccountInput) {
   await upsertExpenseAccount(firebaseDataConnect, {
     ...input,
     auditAction: input.auditAction ?? AUDIT_ACTIONS.ACCOUNT_UPDATED,
-    auditEventId: auditEventId(input.id, input.auditAction ?? AUDIT_ACTIONS.ACCOUNT_UPDATED, crypto.randomUUID()),
+    auditEventId: auditEventId(input.id, input.auditAction ?? AUDIT_ACTIONS.ACCOUNT_UPDATED, createClientId()),
     auditDetails: input.auditDetails ?? auditDetails({ number: input.number, label: input.label, type: input.type, status: input.status }),
   });
 }
@@ -267,7 +269,7 @@ export async function deleteProject(input: { id: string; auditDetails?: string }
   if (!firebaseDataConnect || !sqlConnectConfigured) throw new Error("SQL Connect est requis pour supprimer le projet.");
   await deleteProjectMutation(firebaseDataConnect, {
     id: input.id,
-    auditEventId: auditEventId(input.id, AUDIT_ACTIONS.PROJECT_DELETED, crypto.randomUUID()),
+    auditEventId: auditEventId(input.id, AUDIT_ACTIONS.PROJECT_DELETED, createClientId()),
     auditDetails: input.auditDetails ?? auditDetails({ action: AUDIT_ACTIONS.PROJECT_DELETED }),
   });
 }
@@ -276,7 +278,7 @@ export async function deleteExpenseAccount(input: { id: string; auditDetails?: s
   if (!firebaseDataConnect || !sqlConnectConfigured) throw new Error("SQL Connect est requis pour supprimer le compte.");
   await deleteExpenseAccountMutation(firebaseDataConnect, {
     id: input.id,
-    auditEventId: auditEventId(input.id, AUDIT_ACTIONS.EXPENSE_ACCOUNT_DELETED, crypto.randomUUID()),
+    auditEventId: auditEventId(input.id, AUDIT_ACTIONS.EXPENSE_ACCOUNT_DELETED, createClientId()),
     auditDetails: input.auditDetails ?? auditDetails({ action: AUDIT_ACTIONS.EXPENSE_ACCOUNT_DELETED }),
   });
 }
@@ -342,8 +344,8 @@ export async function saveInvoiceIntakeReview(input: InvoiceIntakeReviewInput) {
     aiNotes: input.aiNotes,
     decisionExceptions: input.decisionExceptions ?? "[]",
     decisionChecks: input.decisionChecks ?? "[]",
-    writeAudit: true,
-    auditEventId: auditEventId(input.receiptId, AUDIT_ACTIONS.HUMAN_CORRECTION, crypto.randomUUID()),
+    writeAudit: input.writeAudit ?? true,
+    auditEventId: auditEventId(input.receiptId, AUDIT_ACTIONS.HUMAN_CORRECTION, createClientId()),
     auditDetails: input.auditDetails ?? auditDetails({ status: input.status }),
   });
 

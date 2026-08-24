@@ -60,6 +60,22 @@ test("bloque une classification comptable ambiguë", () => {
   assert.ok(codes(result).includes("AMBIGUOUS_ACCOUNT"));
 });
 
+test("propose Divers quand la catégorie IA est absente, sans comptabiliser automatiquement", () => {
+  const extraction = { ...baseExtraction, sku: null, category: null };
+  const classification = classifyInvoice(extraction, [], [
+    ...accounts,
+    { code: "33526", label: "Divers", type: "EXPENSE", status: "ACTIVE" },
+  ]);
+  assert.equal(classification.accountCode, "33526");
+  assert.equal(classification.source, "DEFAULT_CATEGORY");
+  assert.equal(classification.resolution, "PROPOSED");
+
+  const result = decideInvoice({ extraction, classification, context: baseContext });
+  assert.equal(result.decision, "NEEDS_REVIEW");
+  assert.ok(codes(result).includes("ACCOUNT_SUGGESTION_REVIEW"));
+  assert.equal(result.resolutions.accountCode, null);
+});
+
 test("conserve plusieurs exceptions sur la même facture", () => {
   const extraction = { ...baseExtraction, sku: "SKU-INCONNU", confidence: 0.8 };
   const classification = classifyInvoice(extraction, skuReferences, [...accounts, { code: "90002", label: "Matériaux" }]);

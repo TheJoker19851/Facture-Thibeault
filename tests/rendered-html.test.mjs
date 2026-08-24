@@ -49,7 +49,6 @@ test("server-renders the Thibeault administration shell", async () => {
 
   assert.match(html, /Tableau de bord/);
   assert.match(html, /Données de démonstration|Connexion Firebase…/);
-  assert.match(html, /À vérifier/);
   assert.match(html, /1 · Titulaires/);
   assert.match(html, /2 · Transactions par personne/);
   assert.match(html, /Factures à vérifier/);

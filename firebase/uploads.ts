@@ -5,6 +5,7 @@ import { firebaseDataConnect, sqlConnectConfigured } from "./data-connect";
 import { SUPPORTED_INVOICE_MEDIA_TYPES } from "../lib/invoice-storage.mjs";
 import { INVOICE_CLIENT_VERSION } from "../lib/invoice-client-version.mjs";
 import { AUDIT_ACTIONS, auditDetails, auditEventId } from "../lib/audit-events.mjs";
+import { createClientId } from "../lib/client-id.mjs";
 
 export type InvoicePhotoUpload = {
   file: File;
@@ -31,7 +32,7 @@ export function invoicePhotoFileError(file: File) {
  */
 export async function uploadInvoicePhotos(
   photos: InvoicePhotoUpload[],
-  receiptId = crypto.randomUUID(),
+  receiptId = createClientId(),
 ): Promise<{ receiptId: string; paths: string[] }> {
   if (!firebaseStorage) throw new Error("Firebase Storage n'est pas configure.");
   if (!firebaseDataConnect || !sqlConnectConfigured) {
