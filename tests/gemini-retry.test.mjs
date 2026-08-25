@@ -45,6 +45,11 @@ test("refuse les états ou exceptions techniques incomplets", () => {
   assert.equal(isTransientGeminiCapacityRetry(technicalIntake({ decisionExceptions: "not-json" })), false);
 });
 
+test("admet un délai Gemini comme erreur transitoire", () => {
+  assert.equal(transientGeminiErrorCode("GEMINI", new Error("Gemini request timed out")), "GEMINI_TRANSIENT");
+  assert.equal(transientGeminiErrorCode("GEMINI", new Error("Le délai Gemini est dépassé")), "GEMINI_TRANSIENT");
+});
+
 test("utilise cinq tentatives par défaut et refuse une configuration invalide", () => {
   assert.equal(invoiceAiMaxAttempts(undefined), 5);
   assert.equal(invoiceAiMaxAttempts("5"), 5);

@@ -250,7 +250,7 @@ async function extractInvoice(receiptId: string, files: File[], accountLabels: s
     });
     return { model: modelId, extraction: result.output };
   } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
+    if (error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError")) {
       const timeoutError = new Error(`Gemini n’a pas répondu dans le délai de ${GEMINI_TIMEOUT_MS / 1000} secondes.`);
       Object.assign(timeoutError, { isRetryable: true });
       throw timeoutError;
