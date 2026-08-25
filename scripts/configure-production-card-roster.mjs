@@ -3,10 +3,7 @@ import { resolve } from "node:path";
 import { assertSafeProductionCardRoster, PRODUCTION_FIREBASE_PROJECT_ID } from "../lib/environment.mjs";
 import { normalizeCardRoster } from "../lib/card-roster.mjs";
 import { readEnvFile } from "./lib/env-files.mjs";
-
-function rowsFromResult(result) {
-  return Object.values(result?.data ?? {}).find(Array.isArray) ?? [];
-}
+import { executeAllQueryPages } from "./lib/data-connect-pages.mjs";
 
 function requireAdminCredentials(values) {
   if (!values.FIREBASE_ADMIN_CLIENT_EMAIL || !values.FIREBASE_ADMIN_PRIVATE_KEY) {
@@ -66,12 +63,10 @@ export async function configureProductionCardRoster({ envValues = {} } = {}) {
       location: values.NEXT_PUBLIC_SQL_CONNECT_LOCATION,
       connector: values.NEXT_PUBLIC_SQL_CONNECT_CONNECTOR_ID,
     }, app);
-    const [profilesResult, cardsResult] = await Promise.all([
-      dataConnect.executeQuery("ListUserProfiles"),
-      dataConnect.executeQuery("ListCreditCards"),
+    const [profiles, cards] = await Promise.all([
+      executeAllQueryPages(dataConnect, "ListUserProfiles", "userProfiles"),
+      executeAllQueryPages(dataConnect, "ListCreditCardsPage", "creditCards"),
     ]);
-    const profiles = rowsFromResult(profilesResult);
-    const cards = rowsFromResult(cardsResult);
     const admin = profiles.find((profile) => profile.role === "ADMIN" && profile.status === "ACTIVE" && profile.firebaseUid);
     if (!admin) throw new Error("Aucun profil ADMIN actif n'a été trouvé; aucune carte n'a été modifiée.");
     const existingCardIds = new Set(cards.map((card) => card.id));

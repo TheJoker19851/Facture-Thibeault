@@ -24,8 +24,14 @@ export async function GET(request: Request) {
     return Response.json({ error: "L’entité auditée est invalide." }, { status: 400 });
   }
   try {
-    const result = await (await getFirebaseAdminDataConnect()).executeQuery("ListAuditEvents", { entityType, entityId });
-    const auditEvents = (result.data as { auditEvents?: unknown[] }).auditEvents ?? [];
+    const dataConnect = await getFirebaseAdminDataConnect();
+    const auditEvents: unknown[] = [];
+    for (let offset = 0; ; offset += 200) {
+      const result = await dataConnect.executeQuery("ListAuditEvents", { entityType, entityId, limit: 200, offset });
+      const page = (result.data as { auditEvents?: unknown[] }).auditEvents ?? [];
+      auditEvents.push(...page);
+      if (page.length < 200) break;
+    }
     return Response.json({ events: auditEvents }, { headers: { "cache-control": "no-store" } });
   } catch {
     return Response.json({ error: "La piste d’audit n’est pas disponible." }, { status: 503 });

@@ -1,6 +1,7 @@
 import { firebaseAdminConfigured, getFirebaseAdminAuth, getFirebaseAdminDataConnect, getFirebaseAdminStorage } from "../../../../firebase/admin";
 import { inferApplicationEnvironment } from "../../../../lib/environment.mjs";
 import { INVOICE_CLIENT_VERSION } from "../../../../lib/invoice-client-version.mjs";
+import { listAllExpenseTransactions, listAllInvoiceIntakes, listAllInvoicesToReview } from "../../../../firebase/accounting-pagination.server";
 
 export const runtime = "nodejs";
 
@@ -55,14 +56,11 @@ export async function GET(request: Request) {
 
   try {
     const dataConnect = await getFirebaseAdminDataConnect();
-    const [transactions, invoices, intakes] = await Promise.all([
-      dataConnect.executeQuery<{ expenseTransactions: Array<{ updatedAt?: string | null; createdAt?: string | null }> }>("ListExpenseTransactions"),
-      dataConnect.executeQuery<{ invoices: Array<{ updatedAt?: string | null; createdAt?: string | null }> }>("ListInvoicesToReview"),
-      dataConnect.executeQuery<{ invoiceIntakes: Array<{ processingStatus?: string | null; accountingStatus?: string | null; lastError?: string | null; updatedAt?: string | null; createdAt?: string | null }> }>("ListInvoiceIntakes"),
+    const [transactionRows, invoiceRows, intakeRows] = await Promise.all([
+      listAllExpenseTransactions(dataConnect),
+      listAllInvoicesToReview(dataConnect),
+      listAllInvoiceIntakes(dataConnect),
     ]);
-    const transactionRows = transactions.data.expenseTransactions ?? [];
-    const invoiceRows = invoices.data.invoices ?? [];
-    const intakeRows = intakes.data.invoiceIntakes ?? [];
     const latestError = newestError(intakeRows);
     base.transactionCount = transactionRows.length;
     base.reviewInvoiceCount = invoiceRows.length;

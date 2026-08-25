@@ -18,10 +18,11 @@ export type InvoiceCommitValues = {
   tpsCents: number;
   tvqCents: number;
   totalCents: number;
+  lineItems: string;
   currency: string;
   sku: string | null;
   category: string;
-  accountId: string;
+  accountId: string | null;
   cardId: string;
   statementPeriodId: string | null;
   projectId: string;
@@ -57,10 +58,11 @@ export async function materializeInvoiceIntake(
     tpsCents: String(values.tpsCents),
     tvqCents: String(values.tvqCents),
     totalCents: String(values.totalCents),
+    lineItems: values.lineItems,
     currency: values.currency,
     sku: values.sku,
     category: values.category,
-    accountId: values.accountId,
+    account: values.accountId ? { id: values.accountId } : null,
     cardId: values.cardId,
     statementPeriod: values.statementPeriodId ? { id: values.statementPeriodId } : null,
     project: { id: values.projectId },

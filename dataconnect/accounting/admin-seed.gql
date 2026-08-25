@@ -373,8 +373,8 @@ mutation AdminDeleteUserProfile($id: String!) @auth(level: NO_ACCESS) {
   userProfile_delete(key: { id: $id })
 }
 
-query AdminListInvoices @auth(level: NO_ACCESS) {
-  invoices(limit: 1000) {
+query AdminListInvoices($limit: Int!, $offset: Int!) @auth(level: NO_ACCESS) {
+  invoices(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     intake {
       receiptId
@@ -402,8 +402,8 @@ query AdminListInvoices @auth(level: NO_ACCESS) {
   }
 }
 
-query AdminListInvoicePhotos @auth(level: NO_ACCESS) {
-  invoicePhotos(limit: 1000) {
+query AdminListInvoicePhotos($limit: Int!, $offset: Int!) @auth(level: NO_ACCESS) {
+  invoicePhotos(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     invoice {
       id

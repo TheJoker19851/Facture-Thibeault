@@ -1,54 +1,34 @@
 import { firebaseAuth } from "./client";
 import { INVOICE_CLIENT_VERSION } from "../lib/invoice-client-version.mjs";
 
-export type InvoiceAiResult = {
+export type InvoiceIntakeStatus = {
   ok: true;
   receiptId: string;
-  model: string;
-  extraction: {
-    vendor: string;
-    invoiceNumber: string | null;
-    invoiceDate: string | null;
-    subtotalCents: number;
-    tpsCents: number;
-    tvqCents: number;
-    totalCents: number;
-    currency: string;
-    sku: string | null;
-    category: string | null;
-    projectId: string | null;
-    confidence: number;
-    notes: string;
-  };
-  classification: {
-    accountCode: string | null;
-    category: string;
-    source: string;
-    confidence: number;
-    status: string;
-    note: string;
+  state: {
+    processingStatus: string;
+    processingState: string;
+    processingAttempts: number;
+    lastAttemptAt: string | null;
+    accountingStatus: string;
+    lastError: string | null;
+    aiErrorCode: string | null;
   };
 };
 
-export async function processInvoiceIntakeWithGemini(receiptId: string) {
+/** Le navigateur consulte l'état; le traitement IA appartient au worker serveur. */
+export async function getInvoiceIntakeStatus(receiptId: string): Promise<InvoiceIntakeStatus> {
   const user = firebaseAuth?.currentUser;
-  if (!user) throw new Error("Une session Firebase Authentication est requise pour l'analyse IA.");
+  if (!user) throw new Error("Une session Firebase Authentication est requise pour consulter l'état de l'analyse.");
 
-  const token = await user.getIdToken();
-  const formData = new FormData();
-  formData.append("receiptId", receiptId);
-
-  const response = await fetch("/api/ai/process-invoice", {
-    method: "POST",
+  const response = await fetch(`/api/invoices/intake-status?receiptId=${encodeURIComponent(receiptId)}`, {
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${await user.getIdToken()}`,
       "x-invoice-client-version": INVOICE_CLIENT_VERSION,
     },
-    body: formData,
   });
-  const payload = (await response.json().catch(() => null)) as Partial<InvoiceAiResult> & { error?: string } | null;
+  const payload = (await response.json().catch(() => null)) as Partial<InvoiceIntakeStatus> & { error?: string } | null;
   if (!response.ok || !payload?.ok) {
-    throw new Error(payload?.error || "Le traitement IA a échoué.");
+    throw new Error(payload?.error || "L'état de l'analyse n'a pas pu être chargé.");
   }
-  return payload as InvoiceAiResult;
+  return payload as InvoiceIntakeStatus;
 }

@@ -7,6 +7,76 @@ const connectorConfig = {
 };
 exports.connectorConfig = connectorConfig;
 
+const adminSeedUserProfileRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminSeedUserProfile', inputVars);
+}
+adminSeedUserProfileRef.operationName = 'AdminSeedUserProfile';
+exports.adminSeedUserProfileRef = adminSeedUserProfileRef;
+
+exports.adminSeedUserProfile = function adminSeedUserProfile(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminSeedUserProfileRef(dcInstance, inputVars));
+}
+;
+
+const adminSeedProjectRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminSeedProject', inputVars);
+}
+adminSeedProjectRef.operationName = 'AdminSeedProject';
+exports.adminSeedProjectRef = adminSeedProjectRef;
+
+exports.adminSeedProject = function adminSeedProject(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminSeedProjectRef(dcInstance, inputVars));
+}
+;
+
+const adminSeedExpenseAccountRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminSeedExpenseAccount', inputVars);
+}
+adminSeedExpenseAccountRef.operationName = 'AdminSeedExpenseAccount';
+exports.adminSeedExpenseAccountRef = adminSeedExpenseAccountRef;
+
+exports.adminSeedExpenseAccount = function adminSeedExpenseAccount(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminSeedExpenseAccountRef(dcInstance, inputVars));
+}
+;
+
+const adminSeedCardStatementPeriodRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminSeedCardStatementPeriod', inputVars);
+}
+adminSeedCardStatementPeriodRef.operationName = 'AdminSeedCardStatementPeriod';
+exports.adminSeedCardStatementPeriodRef = adminSeedCardStatementPeriodRef;
+
+exports.adminSeedCardStatementPeriod = function adminSeedCardStatementPeriod(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminSeedCardStatementPeriodRef(dcInstance, inputVars));
+}
+;
+
+const adminSeedInvoiceIntakeRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminSeedInvoiceIntake', inputVars);
+}
+adminSeedInvoiceIntakeRef.operationName = 'AdminSeedInvoiceIntake';
+exports.adminSeedInvoiceIntakeRef = adminSeedInvoiceIntakeRef;
+
+exports.adminSeedInvoiceIntake = function adminSeedInvoiceIntake(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminSeedInvoiceIntakeRef(dcInstance, inputVars));
+}
+;
+
 const adminSeedCreditCardRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -18,6 +88,34 @@ exports.adminSeedCreditCardRef = adminSeedCreditCardRef;
 exports.adminSeedCreditCard = function adminSeedCreditCard(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(adminSeedCreditCardRef(dcInstance, inputVars));
+}
+;
+
+const adminSeedCreditCardStatementRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminSeedCreditCardStatement', inputVars);
+}
+adminSeedCreditCardStatementRef.operationName = 'AdminSeedCreditCardStatement';
+exports.adminSeedCreditCardStatementRef = adminSeedCreditCardStatementRef;
+
+exports.adminSeedCreditCardStatement = function adminSeedCreditCardStatement(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminSeedCreditCardStatementRef(dcInstance, inputVars));
+}
+;
+
+const adminSeedCreditCardStatementLineRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminSeedCreditCardStatementLine', inputVars);
+}
+adminSeedCreditCardStatementLineRef.operationName = 'AdminSeedCreditCardStatementLine';
+exports.adminSeedCreditCardStatementLineRef = adminSeedCreditCardStatementLineRef;
+
+exports.adminSeedCreditCardStatementLine = function adminSeedCreditCardStatementLine(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminSeedCreditCardStatementLineRef(dcInstance, inputVars));
 }
 ;
 
@@ -189,6 +287,34 @@ exports.adminDeleteExpenseAccount = function adminDeleteExpenseAccount(dcOrVars,
 }
 ;
 
+const adminSeedCreditCardHolderHistoryRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminSeedCreditCardHolderHistory', inputVars);
+}
+adminSeedCreditCardHolderHistoryRef.operationName = 'AdminSeedCreditCardHolderHistory';
+exports.adminSeedCreditCardHolderHistoryRef = adminSeedCreditCardHolderHistoryRef;
+
+exports.adminSeedCreditCardHolderHistory = function adminSeedCreditCardHolderHistory(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminSeedCreditCardHolderHistoryRef(dcInstance, inputVars));
+}
+;
+
+const adminSeedMerchantAliasRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminSeedMerchantAlias', inputVars);
+}
+adminSeedMerchantAliasRef.operationName = 'AdminSeedMerchantAlias';
+exports.adminSeedMerchantAliasRef = adminSeedMerchantAliasRef;
+
+exports.adminSeedMerchantAlias = function adminSeedMerchantAlias(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminSeedMerchantAliasRef(dcInstance, inputVars));
+}
+;
+
 const adminDeleteCardStatementPeriodRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -217,32 +343,32 @@ exports.adminDeleteUserProfile = function adminDeleteUserProfile(dcOrVars, vars)
 }
 ;
 
-const adminListInvoicesRef = (dc) => {
-  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+const adminListInvoicesRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'AdminListInvoices');
+  return queryRef(dcInstance, 'AdminListInvoices', inputVars);
 }
 adminListInvoicesRef.operationName = 'AdminListInvoices';
 exports.adminListInvoicesRef = adminListInvoicesRef;
 
-exports.adminListInvoices = function adminListInvoices(dcOrOptions, options) {
+exports.adminListInvoices = function adminListInvoices(dcOrVars, varsOrOptions, options) {
   
-  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(adminListInvoicesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 
-const adminListInvoicePhotosRef = (dc) => {
-  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+const adminListInvoicePhotosRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'AdminListInvoicePhotos');
+  return queryRef(dcInstance, 'AdminListInvoicePhotos', inputVars);
 }
 adminListInvoicePhotosRef.operationName = 'AdminListInvoicePhotos';
 exports.adminListInvoicePhotosRef = adminListInvoicePhotosRef;
 
-exports.adminListInvoicePhotos = function adminListInvoicePhotos(dcOrOptions, options) {
+exports.adminListInvoicePhotos = function adminListInvoicePhotos(dcOrVars, varsOrOptions, options) {
   
-  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(adminListInvoicePhotosRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
@@ -345,6 +471,34 @@ exports.upsertCardStatementPeriod = function upsertCardStatementPeriod(dcOrVars,
 }
 ;
 
+const saveStatementManualAdjustmentsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'SaveStatementManualAdjustments', inputVars);
+}
+saveStatementManualAdjustmentsRef.operationName = 'SaveStatementManualAdjustments';
+exports.saveStatementManualAdjustmentsRef = saveStatementManualAdjustmentsRef;
+
+exports.saveStatementManualAdjustments = function saveStatementManualAdjustments(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(saveStatementManualAdjustmentsRef(dcInstance, inputVars));
+}
+;
+
+const upsertReportAdjustmentSetRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertReportAdjustmentSet', inputVars);
+}
+upsertReportAdjustmentSetRef.operationName = 'UpsertReportAdjustmentSet';
+exports.upsertReportAdjustmentSetRef = upsertReportAdjustmentSetRef;
+
+exports.upsertReportAdjustmentSet = function upsertReportAdjustmentSet(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertReportAdjustmentSetRef(dcInstance, inputVars));
+}
+;
+
 const upsertCreditCardStatementRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -370,6 +524,118 @@ exports.upsertCreditCardStatementLineRef = upsertCreditCardStatementLineRef;
 exports.upsertCreditCardStatementLine = function upsertCreditCardStatementLine(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(upsertCreditCardStatementLineRef(dcInstance, inputVars));
+}
+;
+
+const upsertCreditCardHolderHistoryRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertCreditCardHolderHistory', inputVars);
+}
+upsertCreditCardHolderHistoryRef.operationName = 'UpsertCreditCardHolderHistory';
+exports.upsertCreditCardHolderHistoryRef = upsertCreditCardHolderHistoryRef;
+
+exports.upsertCreditCardHolderHistory = function upsertCreditCardHolderHistory(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertCreditCardHolderHistoryRef(dcInstance, inputVars));
+}
+;
+
+const upsertMerchantAliasRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertMerchantAlias', inputVars);
+}
+upsertMerchantAliasRef.operationName = 'UpsertMerchantAlias';
+exports.upsertMerchantAliasRef = upsertMerchantAliasRef;
+
+exports.upsertMerchantAlias = function upsertMerchantAlias(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertMerchantAliasRef(dcInstance, inputVars));
+}
+;
+
+const persistReconciliationMatchRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'PersistReconciliationMatch', inputVars);
+}
+persistReconciliationMatchRef.operationName = 'PersistReconciliationMatch';
+exports.persistReconciliationMatchRef = persistReconciliationMatchRef;
+
+exports.persistReconciliationMatch = function persistReconciliationMatch(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(persistReconciliationMatchRef(dcInstance, inputVars));
+}
+;
+
+const clearReconciliationMatchRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'ClearReconciliationMatch', inputVars);
+}
+clearReconciliationMatchRef.operationName = 'ClearReconciliationMatch';
+exports.clearReconciliationMatchRef = clearReconciliationMatchRef;
+
+exports.clearReconciliationMatch = function clearReconciliationMatch(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(clearReconciliationMatchRef(dcInstance, inputVars));
+}
+;
+
+const persistReconciliationMatchWithoutInvoiceRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'PersistReconciliationMatchWithoutInvoice', inputVars);
+}
+persistReconciliationMatchWithoutInvoiceRef.operationName = 'PersistReconciliationMatchWithoutInvoice';
+exports.persistReconciliationMatchWithoutInvoiceRef = persistReconciliationMatchWithoutInvoiceRef;
+
+exports.persistReconciliationMatchWithoutInvoice = function persistReconciliationMatchWithoutInvoice(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(persistReconciliationMatchWithoutInvoiceRef(dcInstance, inputVars));
+}
+;
+
+const persistReconciliationLineStatusRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'PersistReconciliationLineStatus', inputVars);
+}
+persistReconciliationLineStatusRef.operationName = 'PersistReconciliationLineStatus';
+exports.persistReconciliationLineStatusRef = persistReconciliationLineStatusRef;
+
+exports.persistReconciliationLineStatus = function persistReconciliationLineStatus(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(persistReconciliationLineStatusRef(dcInstance, inputVars));
+}
+;
+
+const upsertReconciliationOutsideControlRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertReconciliationOutsideControl', inputVars);
+}
+upsertReconciliationOutsideControlRef.operationName = 'UpsertReconciliationOutsideControl';
+exports.upsertReconciliationOutsideControlRef = upsertReconciliationOutsideControlRef;
+
+exports.upsertReconciliationOutsideControl = function upsertReconciliationOutsideControl(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertReconciliationOutsideControlRef(dcInstance, inputVars));
+}
+;
+
+const resolveReconciliationOutsideControlRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'ResolveReconciliationOutsideControl', inputVars);
+}
+resolveReconciliationOutsideControlRef.operationName = 'ResolveReconciliationOutsideControl';
+exports.resolveReconciliationOutsideControlRef = resolveReconciliationOutsideControlRef;
+
+exports.resolveReconciliationOutsideControl = function resolveReconciliationOutsideControl(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(resolveReconciliationOutsideControlRef(dcInstance, inputVars));
 }
 ;
 
@@ -401,6 +667,20 @@ exports.createInvoiceIntakeV2 = function createInvoiceIntakeV2(dcOrVars, vars) {
 }
 ;
 
+const claimInvoiceIntakeProcessingRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'ClaimInvoiceIntakeProcessing', inputVars);
+}
+claimInvoiceIntakeProcessingRef.operationName = 'ClaimInvoiceIntakeProcessing';
+exports.claimInvoiceIntakeProcessingRef = claimInvoiceIntakeProcessingRef;
+
+exports.claimInvoiceIntakeProcessing = function claimInvoiceIntakeProcessing(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(claimInvoiceIntakeProcessingRef(dcInstance, inputVars));
+}
+;
+
 const updateInvoiceIntakeAiResultRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -429,6 +709,20 @@ exports.markInvoiceIntakeAiError = function markInvoiceIntakeAiError(dcOrVars, v
 }
 ;
 
+const markInvoiceIntakeAiMaxAttemptsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'MarkInvoiceIntakeAiMaxAttempts', inputVars);
+}
+markInvoiceIntakeAiMaxAttemptsRef.operationName = 'MarkInvoiceIntakeAiMaxAttempts';
+exports.markInvoiceIntakeAiMaxAttemptsRef = markInvoiceIntakeAiMaxAttemptsRef;
+
+exports.markInvoiceIntakeAiMaxAttempts = function markInvoiceIntakeAiMaxAttempts(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(markInvoiceIntakeAiMaxAttemptsRef(dcInstance, inputVars));
+}
+;
+
 const markInvoiceIntakeAutoPostingErrorRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -454,6 +748,20 @@ exports.updateInvoiceIntakeReviewRef = updateInvoiceIntakeReviewRef;
 exports.updateInvoiceIntakeReview = function updateInvoiceIntakeReview(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(updateInvoiceIntakeReviewRef(dcInstance, inputVars));
+}
+;
+
+const discardInvoiceIntakeRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'DiscardInvoiceIntake', inputVars);
+}
+discardInvoiceIntakeRef.operationName = 'DiscardInvoiceIntake';
+exports.discardInvoiceIntakeRef = discardInvoiceIntakeRef;
+
+exports.discardInvoiceIntake = function discardInvoiceIntake(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(discardInvoiceIntakeRef(dcInstance, inputVars));
 }
 ;
 
@@ -527,6 +835,20 @@ exports.materializeInvoiceIntakeV2 = function materializeInvoiceIntakeV2(dcOrVar
 }
 ;
 
+const correctPostedInvoiceRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CorrectPostedInvoice', inputVars);
+}
+correctPostedInvoiceRef.operationName = 'CorrectPostedInvoice';
+exports.correctPostedInvoiceRef = correctPostedInvoiceRef;
+
+exports.correctPostedInvoice = function correctPostedInvoice(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(correctPostedInvoiceRef(dcInstance, inputVars));
+}
+;
+
 const commitInvoiceIntakeRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -569,17 +891,17 @@ exports.autoCommitInvoiceIntake = function autoCommitInvoiceIntake(dcOrVars, var
 }
 ;
 
-const listUserProfilesRef = (dc) => {
-  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+const listUserProfilesRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'ListUserProfiles');
+  return queryRef(dcInstance, 'ListUserProfiles', inputVars);
 }
 listUserProfilesRef.operationName = 'ListUserProfiles';
 exports.listUserProfilesRef = listUserProfilesRef;
 
-exports.listUserProfiles = function listUserProfiles(dcOrOptions, options) {
+exports.listUserProfiles = function listUserProfiles(dcOrVars, varsOrOptions, options) {
   
-  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(listUserProfilesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
@@ -629,18 +951,48 @@ exports.listExpenseAccounts = function listExpenseAccounts(dcOrOptions, options)
 }
 ;
 
-const listCreditCardStatementsRef = (dc) => {
-  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+const listCreditCardHolderHistoriesRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'ListCreditCardStatements');
+  return queryRef(dcInstance, 'ListCreditCardHolderHistories', inputVars);
+}
+listCreditCardHolderHistoriesRef.operationName = 'ListCreditCardHolderHistories';
+exports.listCreditCardHolderHistoriesRef = listCreditCardHolderHistoriesRef;
+
+exports.listCreditCardHolderHistories = function listCreditCardHolderHistories(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listCreditCardHolderHistoriesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listCreditCardStatementsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListCreditCardStatements', inputVars);
 }
 listCreditCardStatementsRef.operationName = 'ListCreditCardStatements';
 exports.listCreditCardStatementsRef = listCreditCardStatementsRef;
 
-exports.listCreditCardStatements = function listCreditCardStatements(dcOrOptions, options) {
-
-  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+exports.listCreditCardStatements = function listCreditCardStatements(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(listCreditCardStatementsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listCreditCardStatementsPageRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListCreditCardStatementsPage', inputVars);
+}
+listCreditCardStatementsPageRef.operationName = 'ListCreditCardStatementsPage';
+exports.listCreditCardStatementsPageRef = listCreditCardStatementsPageRef;
+
+exports.listCreditCardStatementsPage = function listCreditCardStatementsPage(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listCreditCardStatementsPageRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 
@@ -653,9 +1005,114 @@ listCreditCardStatementLinesRef.operationName = 'ListCreditCardStatementLines';
 exports.listCreditCardStatementLinesRef = listCreditCardStatementLinesRef;
 
 exports.listCreditCardStatementLines = function listCreditCardStatementLines(dcOrVars, varsOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(listCreditCardStatementLinesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listCreditCardStatementLinesPageRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListCreditCardStatementLinesPage', inputVars);
+}
+listCreditCardStatementLinesPageRef.operationName = 'ListCreditCardStatementLinesPage';
+exports.listCreditCardStatementLinesPageRef = listCreditCardStatementLinesPageRef;
+
+exports.listCreditCardStatementLinesPage = function listCreditCardStatementLinesPage(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listCreditCardStatementLinesPageRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listAllCreditCardStatementLinesRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListAllCreditCardStatementLines', inputVars);
+}
+listAllCreditCardStatementLinesRef.operationName = 'ListAllCreditCardStatementLines';
+exports.listAllCreditCardStatementLinesRef = listAllCreditCardStatementLinesRef;
+
+exports.listAllCreditCardStatementLines = function listAllCreditCardStatementLines(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listAllCreditCardStatementLinesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listAllCreditCardStatementLinesPageRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListAllCreditCardStatementLinesPage', inputVars);
+}
+listAllCreditCardStatementLinesPageRef.operationName = 'ListAllCreditCardStatementLinesPage';
+exports.listAllCreditCardStatementLinesPageRef = listAllCreditCardStatementLinesPageRef;
+
+exports.listAllCreditCardStatementLinesPage = function listAllCreditCardStatementLinesPage(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listAllCreditCardStatementLinesPageRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listMerchantAliasesRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListMerchantAliases', inputVars);
+}
+listMerchantAliasesRef.operationName = 'ListMerchantAliases';
+exports.listMerchantAliasesRef = listMerchantAliasesRef;
+
+exports.listMerchantAliases = function listMerchantAliases(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listMerchantAliasesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listMerchantAliasesPageRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListMerchantAliasesPage', inputVars);
+}
+listMerchantAliasesPageRef.operationName = 'ListMerchantAliasesPage';
+exports.listMerchantAliasesPageRef = listMerchantAliasesPageRef;
+
+exports.listMerchantAliasesPage = function listMerchantAliasesPage(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listMerchantAliasesPageRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listReconciliationMatchesRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListReconciliationMatches', inputVars);
+}
+listReconciliationMatchesRef.operationName = 'ListReconciliationMatches';
+exports.listReconciliationMatchesRef = listReconciliationMatchesRef;
+
+exports.listReconciliationMatches = function listReconciliationMatches(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listReconciliationMatchesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listReconciliationMatchesPageRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListReconciliationMatchesPage', inputVars);
+}
+listReconciliationMatchesPageRef.operationName = 'ListReconciliationMatchesPage';
+exports.listReconciliationMatchesPageRef = listReconciliationMatchesPageRef;
+
+exports.listReconciliationMatchesPage = function listReconciliationMatchesPage(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listReconciliationMatchesPageRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 
@@ -689,48 +1146,153 @@ exports.listSkuReferences = function listSkuReferences(dcOrOptions, options) {
 }
 ;
 
-const listExpenseTransactionsRef = (dc) => {
-  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+const listExpenseTransactionsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'ListExpenseTransactions');
+  return queryRef(dcInstance, 'ListExpenseTransactions', inputVars);
 }
 listExpenseTransactionsRef.operationName = 'ListExpenseTransactions';
 exports.listExpenseTransactionsRef = listExpenseTransactionsRef;
 
-exports.listExpenseTransactions = function listExpenseTransactions(dcOrOptions, options) {
+exports.listExpenseTransactions = function listExpenseTransactions(dcOrVars, varsOrOptions, options) {
   
-  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(listExpenseTransactionsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 
-const listInvoicesToReviewRef = (dc) => {
-  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+const listExpenseTransactionsPageRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'ListInvoicesToReview');
+  return queryRef(dcInstance, 'ListExpenseTransactionsPage', inputVars);
+}
+listExpenseTransactionsPageRef.operationName = 'ListExpenseTransactionsPage';
+exports.listExpenseTransactionsPageRef = listExpenseTransactionsPageRef;
+
+exports.listExpenseTransactionsPage = function listExpenseTransactionsPage(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listExpenseTransactionsPageRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listInvoicesToReviewRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListInvoicesToReview', inputVars);
 }
 listInvoicesToReviewRef.operationName = 'ListInvoicesToReview';
 exports.listInvoicesToReviewRef = listInvoicesToReviewRef;
 
-exports.listInvoicesToReview = function listInvoicesToReview(dcOrOptions, options) {
+exports.listInvoicesToReview = function listInvoicesToReview(dcOrVars, varsOrOptions, options) {
   
-  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(listInvoicesToReviewRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 
-const listInvoiceIntakesRef = (dc) => {
-  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+const listInvoicesToReviewPageRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'ListInvoiceIntakes');
+  return queryRef(dcInstance, 'ListInvoicesToReviewPage', inputVars);
+}
+listInvoicesToReviewPageRef.operationName = 'ListInvoicesToReviewPage';
+exports.listInvoicesToReviewPageRef = listInvoicesToReviewPageRef;
+
+exports.listInvoicesToReviewPage = function listInvoicesToReviewPage(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listInvoicesToReviewPageRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listInvoiceIntakesRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListInvoiceIntakes', inputVars);
 }
 listInvoiceIntakesRef.operationName = 'ListInvoiceIntakes';
 exports.listInvoiceIntakesRef = listInvoiceIntakesRef;
 
-exports.listInvoiceIntakes = function listInvoiceIntakes(dcOrOptions, options) {
+exports.listInvoiceIntakes = function listInvoiceIntakes(dcOrVars, varsOrOptions, options) {
   
-  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(listInvoiceIntakesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listInvoiceIntakesPageRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListInvoiceIntakesPage', inputVars);
+}
+listInvoiceIntakesPageRef.operationName = 'ListInvoiceIntakesPage';
+exports.listInvoiceIntakesPageRef = listInvoiceIntakesPageRef;
+
+exports.listInvoiceIntakesPage = function listInvoiceIntakesPage(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listInvoiceIntakesPageRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listInvoicesForReconciliationRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListInvoicesForReconciliation', inputVars);
+}
+listInvoicesForReconciliationRef.operationName = 'ListInvoicesForReconciliation';
+exports.listInvoicesForReconciliationRef = listInvoicesForReconciliationRef;
+
+exports.listInvoicesForReconciliation = function listInvoicesForReconciliation(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listInvoicesForReconciliationRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listInvoicesForReconciliationPageRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListInvoicesForReconciliationPage', inputVars);
+}
+listInvoicesForReconciliationPageRef.operationName = 'ListInvoicesForReconciliationPage';
+exports.listInvoicesForReconciliationPageRef = listInvoicesForReconciliationPageRef;
+
+exports.listInvoicesForReconciliationPage = function listInvoicesForReconciliationPage(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listInvoicesForReconciliationPageRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listTransactionCorrectionsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListTransactionCorrections', inputVars);
+}
+listTransactionCorrectionsRef.operationName = 'ListTransactionCorrections';
+exports.listTransactionCorrectionsRef = listTransactionCorrectionsRef;
+
+exports.listTransactionCorrections = function listTransactionCorrections(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listTransactionCorrectionsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listReportAdjustmentSetsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListReportAdjustmentSets', inputVars);
+}
+listReportAdjustmentSetsRef.operationName = 'ListReportAdjustmentSets';
+exports.listReportAdjustmentSetsRef = listReportAdjustmentSetsRef;
+
+exports.listReportAdjustmentSets = function listReportAdjustmentSets(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listReportAdjustmentSetsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 
@@ -746,5 +1308,110 @@ exports.listAuditEvents = function listAuditEvents(dcOrVars, varsOrOptions, opti
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(listAuditEventsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listReconciliationOutsideControlsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListReconciliationOutsideControls', inputVars);
+}
+listReconciliationOutsideControlsRef.operationName = 'ListReconciliationOutsideControls';
+exports.listReconciliationOutsideControlsRef = listReconciliationOutsideControlsRef;
+
+exports.listReconciliationOutsideControls = function listReconciliationOutsideControls(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listReconciliationOutsideControlsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listReconciliationOutsideControlsPageRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListReconciliationOutsideControlsPage', inputVars);
+}
+listReconciliationOutsideControlsPageRef.operationName = 'ListReconciliationOutsideControlsPage';
+exports.listReconciliationOutsideControlsPageRef = listReconciliationOutsideControlsPageRef;
+
+exports.listReconciliationOutsideControlsPage = function listReconciliationOutsideControlsPage(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listReconciliationOutsideControlsPageRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listCreditCardsPageRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListCreditCardsPage', inputVars);
+}
+listCreditCardsPageRef.operationName = 'ListCreditCardsPage';
+exports.listCreditCardsPageRef = listCreditCardsPageRef;
+
+exports.listCreditCardsPage = function listCreditCardsPage(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listCreditCardsPageRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listCardStatementPeriodsPageRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListCardStatementPeriodsPage', inputVars);
+}
+listCardStatementPeriodsPageRef.operationName = 'ListCardStatementPeriodsPage';
+exports.listCardStatementPeriodsPageRef = listCardStatementPeriodsPageRef;
+
+exports.listCardStatementPeriodsPage = function listCardStatementPeriodsPage(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listCardStatementPeriodsPageRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listExpenseAccountsPageRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListExpenseAccountsPage', inputVars);
+}
+listExpenseAccountsPageRef.operationName = 'ListExpenseAccountsPage';
+exports.listExpenseAccountsPageRef = listExpenseAccountsPageRef;
+
+exports.listExpenseAccountsPage = function listExpenseAccountsPage(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listExpenseAccountsPageRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listProjectsPageRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListProjectsPage', inputVars);
+}
+listProjectsPageRef.operationName = 'ListProjectsPage';
+exports.listProjectsPageRef = listProjectsPageRef;
+
+exports.listProjectsPage = function listProjectsPage(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listProjectsPageRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listSkuReferencesPageRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListSkuReferencesPage', inputVars);
+}
+listSkuReferencesPageRef.operationName = 'ListSkuReferencesPage';
+exports.listSkuReferencesPageRef = listSkuReferencesPageRef;
+
+exports.listSkuReferencesPage = function listSkuReferencesPage(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listSkuReferencesPageRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;

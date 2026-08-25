@@ -1,6 +1,7 @@
 import { PRODUCTION_FIREBASE_PROJECT_ID, validateFirebaseEnvironment } from "../lib/environment.mjs";
 import { isDemoIdentifier, isKnownE2EInvoiceIntake } from "../lib/demo-data-policy.mjs";
 import { readEnvFile } from "./lib/env-files.mjs";
+import { executeAllQueryPages } from "./lib/data-connect-pages.mjs";
 
 const QUERY_BY_TYPE = {
   UserProfile: "ListUserProfiles",
@@ -12,6 +13,13 @@ const QUERY_BY_TYPE = {
   ExpenseTransaction: "ListExpenseTransactions",
   InvoiceIntake: "ListInvoiceIntakes",
   Invoice: "AdminListInvoices",
+};
+
+const PAGED_QUERY_FIELDS = {
+  ListUserProfiles: "userProfiles",
+  ListExpenseTransactions: "expenseTransactions",
+  ListInvoiceIntakes: "invoiceIntakes",
+  AdminListInvoices: "invoices",
 };
 
 function rowsFromResult(result) {
@@ -108,7 +116,10 @@ try {
   }, app);
   const results = await Promise.all(Object.entries(QUERY_BY_TYPE).map(async ([type, operation]) => {
     try {
-      const result = await dataConnect.executeQuery(operation);
+      const field = PAGED_QUERY_FIELDS[operation];
+      const result = field
+        ? { data: { [field]: await executeAllQueryPages(dataConnect, operation, field) } }
+        : await dataConnect.executeQuery(operation);
       return [type, { rows: rowsFromResult(result) }];
     } catch (error) {
       return [type, { error: error?.parsedData?.error?.message || error?.message || "erreur de lecture inconnue" }];

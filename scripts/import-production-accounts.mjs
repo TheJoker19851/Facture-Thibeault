@@ -7,10 +7,7 @@ import {
 } from "../lib/environment.mjs";
 import { PRODUCTION_ACCOUNT_DEFINITIONS } from "../lib/accounting-references.mjs";
 import { readEnvFile } from "./lib/env-files.mjs";
-
-function rowsFromResult(result) {
-  return Array.isArray(result?.data?.expenseAccounts) ? result.data.expenseAccounts : [];
-}
+import { executeAllQueryPages } from "./lib/data-connect-pages.mjs";
 
 function expectedRows() {
   return PRODUCTION_ACCOUNT_DEFINITIONS.map((account) => ({
@@ -85,14 +82,14 @@ try {
     location: values.NEXT_PUBLIC_SQL_CONNECT_LOCATION,
     connector: values.NEXT_PUBLIC_SQL_CONNECT_CONNECTOR_ID,
   }, app);
-  const current = rowsFromResult(await dataConnect.executeQuery("ListExpenseAccounts"));
+  const current = await executeAllQueryPages(dataConnect, "ListExpenseAccountsPage", "expenseAccounts");
   assertNoIdentifierConflicts(current, desiredRows);
   console.log(`TARGET PROJECT: ${PRODUCTION_FIREBASE_PROJECT_ID}`);
   console.log("ENVIRONMENT: PRODUCTION");
   console.log(`DATA MODE: REAL ACCOUNT REFERENCE IMPORT (${desiredRows.length} comptes)`);
   console.log(`CONFIRMATION: ${PRODUCTION_ACCOUNT_IMPORT_CONFIRMATION}`);
   await dataConnect.upsertMany("ExpenseAccount", desiredRows);
-  const verified = rowsFromResult(await dataConnect.executeQuery("ListExpenseAccounts"));
+  const verified = await executeAllQueryPages(dataConnect, "ListExpenseAccountsPage", "expenseAccounts");
   const verifiedByNumber = new Map(verified.map((row) => [row.number, row]));
   for (const desired of desiredRows) {
     const actual = verifiedByNumber.get(desired.number);

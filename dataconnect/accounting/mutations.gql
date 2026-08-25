@@ -150,6 +150,58 @@ mutation UpsertCardStatementPeriod(
   })
 }
 
+mutation SaveStatementManualAdjustments(
+  $id: String!
+  $manualAdjustmentsJson: String!
+  $auditEventId: String!
+  $auditDetails: String!
+) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") @transaction {
+  cardStatementPeriod_update(key: { id: $id }, data: { manualAdjustmentsJson: $manualAdjustmentsJson })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid_expr: "auth.uid"
+    actorRole_expr: "auth.token.role"
+    action: "STATEMENT_ADJUSTMENTS_UPDATED"
+    entityType: "CardStatementPeriod"
+    entityId: $id
+    details: $auditDetails
+  })
+}
+
+mutation UpsertReportAdjustmentSet(
+  $id: String!
+  $periodKey: String!
+  $periodStart: Date!
+  $periodEnd: Date!
+  $projectId: String
+  $holderId: String
+  $rowsJson: String!
+  $actorUid: String!
+  $auditEventId: String!
+  $auditDetails: String!
+) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") @transaction {
+  reportAdjustmentSet_upsert(data: {
+    id: $id
+    periodKey: $periodKey
+    periodStart: $periodStart
+    periodEnd: $periodEnd
+    projectId: $projectId
+    holderId: $holderId
+    rowsJson: $rowsJson
+    createdByUid: $actorUid
+    updatedByUid: $actorUid
+  })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid_expr: "auth.uid"
+    actorRole_expr: "auth.token.role"
+    action: "REPORT_ADJUSTMENTS_UPDATED"
+    entityType: "ReportAdjustmentSet"
+    entityId: $id
+    details: $auditDetails
+  })
+}
+
 mutation UpsertCreditCardStatement(
   $id: String!
   $cardId: String!
@@ -164,10 +216,12 @@ mutation UpsertCreditCardStatement(
   $status: String!
   $lineCount: Int!
   $totalAmountCents: Int64!
+  $actorUid: String!
+  $actorRole: String!
   $auditEventId: String!
   $auditDetails: String!
 ) @auth(level: NO_ACCESS) @transaction {
-  creditCardStatement_upsert(data: {
+  creditCardStatement_insert(data: {
     id: $id
     card: { id: $cardId }
     holderIdSnapshot: $holderIdSnapshot
@@ -184,8 +238,8 @@ mutation UpsertCreditCardStatement(
   })
   auditEvent_upsert(data: {
     id: $auditEventId
-    actorUid_expr: "auth.uid"
-    actorRole_expr: "auth.token.role"
+    actorUid: $actorUid
+    actorRole: $actorRole
     action: "STATEMENT_IMPORTED"
     entityType: "CreditCardStatement"
     entityId: $id
@@ -218,30 +272,6 @@ mutation UpsertCreditCardStatementLine(
     externalReference: $externalReference
     status: $status
     rawData: $rawData
-  })
-}
-
-# A statement import is one server-side transaction. The line array is
-# validated before this operation is called; Data Connect then commits the
-# statement, all lines and its explicit audit event together.
-mutation PersistCreditCardStatementImport(
-  $statement: CreditCardStatement_Data!
-    @allow(fields: "id cardId importedById holderIdSnapshot holderNameSnapshot periodStart periodEnd originalStoragePath originalFilename statementHash status lineCount totalAmountCents creditCardStatementLines_on_statement { id sequence transactionDate postedDate merchantRaw merchantNormalized amountCents externalReference status rawData }")
-  $auditEventId: String!
-  $id: String!
-  $actorUid: String!
-  $actorRole: String!
-  $auditDetails: String!
-) @auth(level: NO_ACCESS) @transaction {
-  creditCardStatement_insert(data: $statement)
-  auditEvent_upsert(data: {
-    id: $auditEventId
-    actorUid: $actorUid
-    actorRole: $actorRole
-    action: "STATEMENT_IMPORTED"
-    entityType: "CreditCardStatement"
-    entityId: $id
-    details: $auditDetails
   })
 }
 
@@ -586,6 +616,10 @@ mutation CreateInvoiceIntakeV2(
     photoCount: $photoCount
     status: "PROCESSING"
     processingStatus: "PROCESSING"
+    processingState: "QUEUED"
+    processingAttempts: 0
+    reviewRevision: 0
+    lastAttemptAt: null
     accountingStatus: "NOT_POSTED"
     lastError: null
     aiErrorCode: null
@@ -595,6 +629,46 @@ mutation CreateInvoiceIntakeV2(
     actorUid_expr: "auth.uid"
     actorRole_expr: "auth.token.role"
     action: "DEPOSIT_CREATED"
+    entityType: "InvoiceIntake"
+    entityId: $receiptId
+    details: $auditDetails
+  }) @include(if: $writeAudit)
+}
+
+# Server-side compare-and-set claim. A retry or a second browser request can
+# observe the queued intake, but only one processor may move it to RUNNING.
+mutation ClaimInvoiceIntakeProcessing(
+  $receiptId: String!
+  $processingAttempts: Int!
+  $maxAttempts: Int! = 5
+  $actorUid: String = ""
+  $actorRole: String = ""
+  $writeAudit: Boolean = false
+  $auditEventId: String = ""
+  $auditDetails: String = "{}"
+) @auth(level: NO_ACCESS) @transaction {
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      processingStatus: { eq: "PROCESSING" }
+      processingState: { in: ["QUEUED", "RETRY"] }
+      accountingStatus: { eq: "NOT_POSTED" }
+    }
+    data: {
+      processingState: "RUNNING"
+      processingAttempts: $processingAttempts
+      lastAttemptAt_expr: "request.time"
+      lastError: null
+    }
+  )
+  query @redact @check(expr: "response.invoiceIntake_updateMany == 1 && vars.processingAttempts <= vars.maxAttempts", message: "L’intake a atteint le nombre maximal de tentatives ou est déjà pris en charge.") {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) { receiptId }
+  }
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: "AI_PROCESSING_STARTED"
     entityType: "InvoiceIntake"
     entityId: $receiptId
     details: $auditDetails
@@ -616,6 +690,7 @@ mutation UpdateInvoiceIntakeAiResult(
   $extractedTpsCents: Int64!
   $extractedTvqCents: Int64!
   $extractedTotalCents: Int64!
+  $extractedLineItems: String!
   $extractedCurrency: String!
   $extractedSku: String
   $extractedCategory: String
@@ -641,11 +716,14 @@ mutation UpdateInvoiceIntakeAiResult(
     where: {
       receiptId: { eq: $receiptId }
       processingStatus: { eq: "PROCESSING" }
+      processingState: { in: ["QUEUED", "RUNNING"] }
       accountingStatus: { eq: "NOT_POSTED" }
     }
     data: {
       status: $processingStatus
       processingStatus: $processingStatus
+      processingState: "COMPLETED"
+      lastAttemptAt_expr: "request.time"
       accountingStatus: "NOT_POSTED"
       lastError: null
       aiErrorCode: null
@@ -658,6 +736,7 @@ mutation UpdateInvoiceIntakeAiResult(
       extractedTpsCents: $extractedTpsCents
       extractedTvqCents: $extractedTvqCents
       extractedTotalCents: $extractedTotalCents
+      extractedLineItems: $extractedLineItems
       extractedCurrency: $extractedCurrency
       extractedSku: $extractedSku
       extractedCategory: $extractedCategory
@@ -715,6 +794,8 @@ mutation MarkInvoiceIntakeAiError(
     data: {
       status: "NEEDS_REVIEW"
       processingStatus: "NEEDS_REVIEW"
+      processingState: "FAILED"
+      lastAttemptAt_expr: "request.time"
       accountingStatus: "NOT_POSTED"
       lastError: $error
       aiErrorCode: $aiErrorCode
@@ -734,6 +815,53 @@ mutation MarkInvoiceIntakeAiError(
     actorUid: $actorUid
     actorRole: $actorRole
     action: "AI_PROCESSING_FAILED"
+    entityType: "InvoiceIntake"
+    entityId: $receiptId
+    details: $auditDetails
+  }) @include(if: $writeAudit)
+}
+
+mutation MarkInvoiceIntakeAiMaxAttempts(
+  $receiptId: String!
+  $currentAttempts: Int!
+  $decisionExceptions: String!
+  $decisionChecks: String!
+  $actorUid: String = ""
+  $actorRole: String = ""
+  $writeAudit: Boolean = false
+  $auditEventId: String = ""
+  $auditDetails: String = "{}"
+) @auth(level: NO_ACCESS) @transaction {
+  # A transient Gemini error may be reopened only before the configured limit.
+  # Reaching the limit remains a human-review state and never re-enters the queue.
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      processingStatus: { eq: "NEEDS_REVIEW" }
+      processingState: { eq: "FAILED" }
+      processingAttempts: { eq: $currentAttempts }
+      accountingStatus: { eq: "NOT_POSTED" }
+      aiErrorCode: { eq: "GEMINI_TRANSIENT" }
+    }
+    data: {
+      status: "NEEDS_REVIEW"
+      processingStatus: "NEEDS_REVIEW"
+      processingState: "FAILED"
+      accountingStatus: "NOT_POSTED"
+      aiErrorCode: "AI_MAX_ATTEMPTS_REACHED"
+      decisionExceptions: $decisionExceptions
+      decisionChecks: $decisionChecks
+      aiNotes: "AI_MAX_ATTEMPTS_REACHED"
+    }
+  )
+  query @redact @check(expr: "response.invoiceIntake_updateMany == 1", message: "La limite de tentatives est déjà enregistrée ou l’intake n’est plus dans l’état attendu.") {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) { receiptId }
+  }
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: "AI_MAX_ATTEMPTS_REACHED"
     entityType: "InvoiceIntake"
     entityId: $receiptId
     details: $auditDetails
@@ -762,6 +890,8 @@ mutation MarkInvoiceIntakeAutoPostingError(
     data: {
       status: "NEEDS_REVIEW"
       processingStatus: "NEEDS_REVIEW"
+      processingState: "FAILED"
+      lastAttemptAt_expr: "request.time"
       accountingStatus: "POSTING_ERROR"
       lastError: $error
       aiErrorCode: null
@@ -801,6 +931,7 @@ mutation UpdateInvoiceIntakeReview(
   $extractedTpsCents: Int64!
   $extractedTvqCents: Int64!
   $extractedTotalCents: Int64!
+  $extractedLineItems: String!
   $extractedCurrency: String!
   $extractedSku: String
   $extractedCategory: String
@@ -816,6 +947,8 @@ mutation UpdateInvoiceIntakeReview(
   $writeAudit: Boolean = false
   $auditEventId: String = ""
   $auditDetails: String = "{}"
+  $expectedReviewRevision: Int! = 0
+  $nextReviewRevision: Int!
 ) @auth(expr: "(auth.token.role == 'KIM' || auth.token.role == 'ADMIN') && (vars.status in ['NEEDS_REVIEW', 'VALIDATED'])") @transaction {
   # KIM may resolve an exception or revise an already validated, not-yet-posted
   # intake. The processing/accounting fields remain the compare-and-set guard.
@@ -823,11 +956,14 @@ mutation UpdateInvoiceIntakeReview(
     where: {
       receiptId: { eq: $receiptId }
       processingStatus: { in: ["NEEDS_REVIEW", "VALIDATED"] }
+      reviewRevision: { eq: $expectedReviewRevision }
       accountingStatus: { eq: "NOT_POSTED" }
     }
     data: {
       status: $status
       processingStatus: $status
+      processingState: "REVIEWED"
+      reviewRevision: $nextReviewRevision
       accountingStatus: "NOT_POSTED"
       lastError: null
       aiErrorCode: null
@@ -838,6 +974,7 @@ mutation UpdateInvoiceIntakeReview(
       extractedTpsCents: $extractedTpsCents
       extractedTvqCents: $extractedTvqCents
       extractedTotalCents: $extractedTotalCents
+      extractedLineItems: $extractedLineItems
       extractedCurrency: $extractedCurrency
       extractedSku: $extractedSku
       extractedCategory: $extractedCategory
@@ -942,6 +1079,7 @@ mutation RetryInvoiceIntakeAi($receiptId: String!) @auth(level: NO_ACCESS) @tran
     data: {
       status: "PROCESSING"
       processingStatus: "PROCESSING"
+      processingState: "RETRY"
       accountingStatus: "NOT_POSTED"
       lastError: null
       aiErrorCode: null
@@ -967,6 +1105,7 @@ mutation RetryInvoiceIntakeAiTransient($receiptId: String!) @auth(level: NO_ACCE
     data: {
       status: "PROCESSING"
       processingStatus: "PROCESSING"
+      processingState: "RETRY"
       accountingStatus: "NOT_POSTED"
       lastError: null
       decisionExceptions: "[]"
@@ -999,6 +1138,7 @@ mutation RetryInvoiceIntakeAiTransientV2(
     data: {
       status: "PROCESSING"
       processingStatus: "PROCESSING"
+      processingState: "RETRY"
       accountingStatus: "NOT_POSTED"
       lastError: null
       aiErrorCode: null
@@ -1032,10 +1172,11 @@ mutation MaterializeInvoiceIntakeV2(
   $tpsCents: Int64!
   $tvqCents: Int64!
   $totalCents: Int64!
+  $lineItems: String!
   $currency: String!
   $sku: String
   $category: String!
-  $accountId: String!
+  $account: ExpenseAccount_Key
   $cardId: String!
   $statementPeriod: CardStatementPeriod_Key
   $project: Project_Key
@@ -1094,7 +1235,7 @@ mutation MaterializeInvoiceIntakeV2(
     card: { id: $cardId }
     statementPeriod: $statementPeriod
     project: $project
-    expenseAccount: { id: $accountId }
+    expenseAccount: $account
     categoryLabel: $category
     sku: $sku
     amountBeforeTaxCents: $subtotalCents
@@ -1123,6 +1264,7 @@ mutation MaterializeInvoiceIntakeV2(
     tpsCents: $tpsCents
     tvqCents: $tvqCents
     totalCents: $totalCents
+    lineItems: $lineItems
     processingStatus: $expectedProcessingStatus
     accountingStatus: "POSTED"
     reviewStatus: "VALIDATED"
@@ -1168,6 +1310,7 @@ mutation MaterializeInvoiceIntakeV2(
     data: {
       status: $expectedProcessingStatus
       processingStatus: $expectedProcessingStatus
+      processingState: "POSTED"
       accountingStatus: "POSTED"
       lastError: null
       aiErrorCode: null
@@ -1185,6 +1328,81 @@ mutation MaterializeInvoiceIntakeV2(
     entityId: $receiptId
     details: $auditDetails
   }) @include(if: $writeAudit)
+}
+
+# Posted accounting rows are corrected by recording the previous value and
+# applying a new complete snapshot in the same transaction. No original row
+# is deleted and no posted transaction is silently overwritten.
+mutation CorrectPostedInvoice(
+  $correctionId: String!
+  $invoiceId: String!
+  $transactionId: String!
+  $actorUserId: String!
+  $fieldName: String!
+  $previousValue: String
+  $correctedValue: String!
+  $note: String!
+  $vendor: String!
+  $invoiceNumber: String
+  $invoiceDate: Date!
+  $subtotalCents: Int64!
+  $tpsCents: Int64!
+  $tvqCents: Int64!
+  $totalCents: Int64!
+  $lineItems: String!
+  $category: String!
+  $account: ExpenseAccount_Key
+  $auditEventId: String!
+  $auditDetails: String!
+) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") @transaction {
+  query @redact @check(
+    expr: "response.query.invoices.size() == 1 && response.query.invoices[0].accountingStatus == 'POSTED' && response.query.invoices[0].transaction.id == vars.transactionId && response.query.transactions.size() == 1 && response.query.transactions[0].accountingStatus == 'POSTED'"
+    message: "La facture ou la transaction n’est pas comptabilisée comme attendu."
+  ) {
+    invoices(where: { id: { eq: $invoiceId } }, limit: 1) { id accountingStatus transaction { id } }
+    transactions: expenseTransactions(where: { id: { eq: $transactionId } }, limit: 1) { id accountingStatus }
+  }
+  transactionCorrection_upsert(data: {
+    id: $correctionId
+    invoice: { id: $invoiceId }
+    transaction: { id: $transactionId }
+    fieldName: $fieldName
+    previousValue: $previousValue
+    correctedValue: $correctedValue
+    correctedBy: { id: $actorUserId }
+    note: $note
+  })
+  expenseTransaction_update(key: { id: $transactionId }, data: {
+    transactionDate: $invoiceDate
+    vendor: $vendor
+    invoiceNumber: $invoiceNumber
+    amountBeforeTaxCents: $subtotalCents
+    tpsCents: $tpsCents
+    tvqCents: $tvqCents
+    totalCents: $totalCents
+    categoryLabel: $category
+    expenseAccount: $account
+    issue: null
+  })
+  invoice_update(key: { id: $invoiceId }, data: {
+    vendor: $vendor
+    invoiceNumber: $invoiceNumber
+    invoiceDate: $invoiceDate
+    subtotalCents: $subtotalCents
+    tpsCents: $tpsCents
+    tvqCents: $tvqCents
+    totalCents: $totalCents
+    lineItems: $lineItems
+  })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid_expr: "auth.uid"
+    actorRole_expr: "auth.token.role"
+    action: "POSTED_INVOICE_CORRECTED"
+    entityType: "Invoice"
+    entityId: $invoiceId
+    details: $auditDetails
+  })
 }
 
 # V1 signatures remain for connector compatibility, but fail closed inside the

@@ -2,8 +2,8 @@
 # Only Kim and administrator accounts can read the global accounting view.
 # WORKER accounts are limited to invoice-photo uploads through Storage.
 
-query ListUserProfiles @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  userProfiles(limit: 100) {
+query ListUserProfiles($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  userProfiles(orderBy: [{ displayName: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     firebaseUid
     displayName
@@ -38,6 +38,7 @@ query ListCardStatementPeriods @auth(expr: "auth.token.role == 'KIM' || auth.tok
     startDate
     endDate
     statementLabel
+    manualAdjustmentsJson
     status
   }
 }
@@ -52,8 +53,8 @@ query ListExpenseAccounts @auth(expr: "auth.token.role == 'KIM' || auth.token.ro
   }
 }
 
-query ListCreditCardHolderHistories @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  creditCardHolderHistories(limit: 1000) {
+query ListCreditCardHolderHistories($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  creditCardHolderHistories(orderBy: [{ validFrom: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     card { id lastFour }
     holder { id displayName role status }
@@ -66,8 +67,8 @@ query ListCreditCardHolderHistories @auth(expr: "auth.token.role == 'KIM' || aut
   }
 }
 
-query ListCreditCardStatements @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  creditCardStatements(limit: 250) {
+query ListCreditCardStatements($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  creditCardStatements(orderBy: [{ periodStart: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     card {
       id
@@ -91,10 +92,33 @@ query ListCreditCardStatements @auth(expr: "auth.token.role == 'KIM' || auth.tok
   }
 }
 
-query ListCreditCardStatementLines($statementId: String!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+query ListCreditCardStatementsPage($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  creditCardStatements(orderBy: [{ periodStart: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+    id
+    card { id lastFour holder { id displayName } }
+    holderIdSnapshot
+    holderNameSnapshot
+    periodStart
+    periodEnd
+    originalStoragePath
+    originalFilename
+    importedAt
+    importedBy { id displayName }
+    statementHash
+    status
+    lineCount
+    totalAmountCents
+    createdAt
+    updatedAt
+  }
+}
+
+query ListCreditCardStatementLines($statementId: String!, $limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   creditCardStatementLines(
     where: { statement: { id: { eq: $statementId } } }
-    limit: 10000
+    orderBy: [{ sequence: ASC }, { id: ASC }]
+    limit: $limit
+    offset: $offset
   ) {
     id
     statement { id }
@@ -112,8 +136,8 @@ query ListCreditCardStatementLines($statementId: String!) @auth(expr: "auth.toke
   }
 }
 
-query ListAllCreditCardStatementLines @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  creditCardStatementLines(limit: 10000) {
+query ListCreditCardStatementLinesPage($statementId: String!, $limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  creditCardStatementLines(where: { statement: { id: { eq: $statementId } } }, orderBy: [{ sequence: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     statement { id }
     sequence
@@ -130,8 +154,44 @@ query ListAllCreditCardStatementLines @auth(expr: "auth.token.role == 'KIM' || a
   }
 }
 
-query ListMerchantAliases @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  merchantAliases(limit: 5000) {
+query ListAllCreditCardStatementLines($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  creditCardStatementLines(orderBy: [{ statement: { id: ASC } }, { sequence: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+    id
+    statement { id }
+    sequence
+    transactionDate
+    postedDate
+    merchantRaw
+    merchantNormalized
+    amountCents
+    externalReference
+    status
+    rawData
+    createdAt
+    updatedAt
+  }
+}
+
+query ListAllCreditCardStatementLinesPage($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  creditCardStatementLines(orderBy: [{ statement: { id: ASC } }, { sequence: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+    id
+    statement { id }
+    sequence
+    transactionDate
+    postedDate
+    merchantRaw
+    merchantNormalized
+    amountCents
+    externalReference
+    status
+    rawData
+    createdAt
+    updatedAt
+  }
+}
+
+query ListMerchantAliases($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  merchantAliases(orderBy: [{ merchantNormalized: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     merchantRawKey
     merchantNormalized
@@ -147,8 +207,43 @@ query ListMerchantAliases @auth(expr: "auth.token.role == 'KIM' || auth.token.ro
   }
 }
 
-query ListReconciliationMatches @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  reconciliationMatches(limit: 10000) {
+query ListMerchantAliasesPage($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  merchantAliases(orderBy: [{ merchantNormalized: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+    id
+    merchantRawKey
+    merchantNormalized
+    merchantCanonical
+    active
+    status
+    source
+    confidence
+    method
+    createdBy { id displayName role }
+    createdAt
+    updatedAt
+  }
+}
+
+query ListReconciliationMatches($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  reconciliationMatches(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+    id
+    statementLine { id statement { id } sequence }
+    expenseTransaction { id }
+    invoice { id }
+    matchScore
+    matchMethod
+    status
+    confirmedBy { id displayName role }
+    confirmedAt
+    reason
+    details
+    createdAt
+    updatedAt
+  }
+}
+
+query ListReconciliationMatchesPage($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  reconciliationMatches(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     statementLine { id statement { id } sequence }
     expenseTransaction { id }
@@ -192,8 +287,8 @@ query ListSkuReferences @auth(expr: "auth.token.role == 'KIM' || auth.token.role
   }
 }
 
-query ListExpenseTransactions @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  expenseTransactions(limit: 250) {
+query ListExpenseTransactions($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  expenseTransactions(orderBy: [{ transactionDate: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     transactionDate
     vendor
@@ -241,8 +336,36 @@ query ListExpenseTransactions @auth(expr: "auth.token.role == 'KIM' || auth.toke
   }
 }
 
-query ListInvoicesToReview @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  invoices(limit: 250) {
+query ListExpenseTransactionsPage($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  expenseTransactions(orderBy: [{ transactionDate: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+    id
+    transactionDate
+    vendor
+    card { id lastFour holder { id displayName } }
+    statementPeriod { id label startDate endDate }
+    project { id number name }
+    expenseAccount { id number label type }
+    categoryLabel
+    sku
+    amountBeforeTaxCents
+    tpsCents
+    tvqCents
+    totalCents
+    currency
+    status
+    processingStatus
+    accountingStatus
+    reconciliationStatus
+    classificationSource
+    classificationConfidence
+    classificationNote
+    invoiceNumber
+    issue
+  }
+}
+
+query ListInvoicesToReview($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  invoices(orderBy: [{ invoiceDate: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     intake {
       receiptId
@@ -257,6 +380,7 @@ query ListInvoicesToReview @auth(expr: "auth.token.role == 'KIM' || auth.token.r
     tpsCents
     tvqCents
     totalCents
+    lineItems
     processingStatus
     accountingStatus
     reviewStatus
@@ -275,14 +399,39 @@ query ListInvoicesToReview @auth(expr: "auth.token.role == 'KIM' || auth.token.r
   }
 }
 
-query ListInvoiceIntakes @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  invoiceIntakes(limit: 250) {
+query ListInvoicesToReviewPage($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  invoices(orderBy: [{ invoiceDate: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+    id
+    intake { receiptId uploaderUid storageFolder photoCount }
+    vendor
+    invoiceNumber
+    invoiceDate
+    subtotalCents
+    tpsCents
+    tvqCents
+    totalCents
+    lineItems
+    processingStatus
+    accountingStatus
+    reviewStatus
+    storageFolder
+    transaction { id vendor issue }
+    invoicePhotos_on_invoice { id storagePath contentType sequence }
+  }
+}
+
+query ListInvoiceIntakes($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  invoiceIntakes(orderBy: [{ createdAt: ASC }, { receiptId: ASC }], limit: $limit, offset: $offset) {
     receiptId
     uploaderUid
     storageFolder
     photoCount
     status
     processingStatus
+    processingState
+    processingAttempts
+    reviewRevision
+    lastAttemptAt
     accountingStatus
     lastError
     aiErrorCode
@@ -295,6 +444,7 @@ query ListInvoiceIntakes @auth(expr: "auth.token.role == 'KIM' || auth.token.rol
     extractedTpsCents
     extractedTvqCents
     extractedTotalCents
+    extractedLineItems
     extractedCurrency
     extractedSku
     extractedCategory
@@ -312,8 +462,50 @@ query ListInvoiceIntakes @auth(expr: "auth.token.role == 'KIM' || auth.token.rol
   }
 }
 
-query ListInvoicesForReconciliation @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  invoices(limit: 1000) {
+query ListInvoiceIntakesPage($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  invoiceIntakes(orderBy: [{ createdAt: ASC }, { receiptId: ASC }], limit: $limit, offset: $offset) {
+    receiptId
+    uploaderUid
+    storageFolder
+    photoCount
+    status
+    processingStatus
+    processingState
+    processingAttempts
+    reviewRevision
+    lastAttemptAt
+    accountingStatus
+    lastError
+    aiErrorCode
+    aiModel
+    aiConfidence
+    extractedVendor
+    extractedInvoiceNumber
+    extractedInvoiceDate
+    extractedSubtotalCents
+    extractedTpsCents
+    extractedTvqCents
+    extractedTotalCents
+    extractedLineItems
+    extractedCurrency
+    extractedSku
+    extractedCategory
+    extractedProjectId
+    classificationAccountCode
+    classificationCategory
+    classificationSource
+    classificationConfidence
+    classificationStatus
+    aiNotes
+    decisionExceptions
+    decisionChecks
+    createdAt
+    updatedAt
+  }
+}
+
+query ListInvoicesForReconciliation($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  invoices(orderBy: [{ invoiceDate: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     vendor
     invoiceNumber
@@ -326,13 +518,59 @@ query ListInvoicesForReconciliation @auth(expr: "auth.token.role == 'KIM' || aut
   }
 }
 
-query ListAuditEvents($entityType: String!, $entityId: String!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+query ListInvoicesForReconciliationPage($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  invoices(orderBy: [{ invoiceDate: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+    id
+    vendor
+    invoiceNumber
+    invoiceDate
+    totalCents
+    processingStatus
+    accountingStatus
+    reviewStatus
+    transaction { id }
+  }
+}
+
+query ListTransactionCorrections($transactionId: String!, $limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  transactionCorrections(where: { transaction: { id: { eq: $transactionId } } }, orderBy: [{ createdAt: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+    id
+    invoice { id }
+    transaction { id }
+    fieldName
+    previousValue
+    correctedValue
+    correctedBy { id displayName role }
+    note
+    createdAt
+  }
+}
+
+query ListReportAdjustmentSets($periodKey: String!, $limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  reportAdjustmentSets(where: { periodKey: { eq: $periodKey } }, orderBy: [{ projectId: ASC }, { holderId: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+    id
+    periodKey
+    periodStart
+    periodEnd
+    projectId
+    holderId
+    rowsJson
+    createdByUid
+    updatedByUid
+    createdAt
+    updatedAt
+  }
+}
+
+query ListAuditEvents($entityType: String!, $entityId: String!, $limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   auditEvents(
     where: {
       entityType: { eq: $entityType }
       entityId: { eq: $entityId }
     }
-    limit: 100
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: $limit
+    offset: $offset
   ) {
     id
     actorUid
@@ -346,8 +584,8 @@ query ListAuditEvents($entityType: String!, $entityId: String!) @auth(expr: "aut
   }
 }
 
-query ListReconciliationOutsideControls @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  reconciliationOutsideControls(limit: 10000) {
+query ListReconciliationOutsideControls($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  reconciliationOutsideControls(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     statement { id }
     expenseTransaction { id transactionDate vendor totalCents card { id } }
@@ -358,5 +596,76 @@ query ListReconciliationOutsideControls @auth(expr: "auth.token.role == 'KIM' ||
     resolutionNote
     createdAt
     updatedAt
+  }
+}
+
+query ListReconciliationOutsideControlsPage($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  reconciliationOutsideControls(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+    id
+    statement { id }
+    expenseTransaction { id transactionDate vendor totalCents card { id } }
+    status
+    reason
+    resolvedBy { id displayName role }
+    resolvedAt
+    resolutionNote
+    createdAt
+    updatedAt
+  }
+}
+
+query ListCreditCardsPage($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  creditCards(orderBy: [{ lastFour: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+    id
+    lastFour
+    holder { id displayName role status }
+    cardFunction
+    activeFrom
+    inactiveFrom
+    status
+  }
+}
+
+query ListCardStatementPeriodsPage($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  cardStatementPeriods(orderBy: [{ startDate: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+    id
+    label
+    startDate
+    endDate
+    statementLabel
+    manualAdjustmentsJson
+    status
+  }
+}
+
+query ListExpenseAccountsPage($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  expenseAccounts(orderBy: [{ number: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+    id
+    number
+    label
+    type
+    status
+  }
+}
+
+query ListProjectsPage($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  projects(orderBy: [{ number: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+    id
+    number
+    name
+    status
+  }
+}
+
+query ListSkuReferencesPage($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+  skuReferences(orderBy: [{ merchant: ASC }, { sku: ASC }], limit: $limit, offset: $offset) {
+    merchant
+    sku
+    productLabel
+    categoryLabel
+    expenseAccount { id number label type }
+    sourceUrl
+    verificationStatus
+    verifiedAt
   }
 }

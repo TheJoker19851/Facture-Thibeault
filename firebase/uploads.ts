@@ -25,8 +25,8 @@ export function invoicePhotoFileError(file: File) {
 }
 
 /**
- * Uploads evidence to a private, non-guessable Storage path. The SQL Connect
- * The browser sends only original image bytes and an idempotent intake
+ * Uploads evidence to a private, non-guessable Storage path. The browser
+ * sends only original image bytes and an idempotent intake
  * acknowledgement. Invoice extraction, SQL transaction creation and Gemini
  * analysis remain privileged server workflows.
  */

@@ -120,7 +120,7 @@ export async function verifyEmulatorPermissions() {
         storageFolder: `receipts/demo/${blockedV1ReceiptId}`,
         photoCount: 1,
       }, { impersonate: { authClaims: workerClaims } }));
-      const afterV1 = await dataConnect.executeQuery("ListInvoiceIntakes");
+      const afterV1 = await dataConnect.executeQuery("ListInvoiceIntakes", { limit: 200, offset: 0 });
       assert.equal(afterV1.data.invoiceIntakes.some((intake) => intake.receiptId === blockedV1ReceiptId), false);
       await dataConnect.executeMutation("CreateInvoiceIntakeV2", {
         receiptId: "DEMO-PERMISSION-INTAKE",
@@ -134,7 +134,7 @@ export async function verifyEmulatorPermissions() {
         photoCount: 1,
         clientVersion: "invoice-photo-v1",
       }, { impersonate: { authClaims: workerClaims } }));
-      const afterStaleV2 = await dataConnect.executeQuery("ListInvoiceIntakes");
+      const afterStaleV2 = await dataConnect.executeQuery("ListInvoiceIntakes", { limit: 200, offset: 0 });
       assert.equal(afterStaleV2.data.invoiceIntakes.some((intake) => intake.receiptId === blockedStaleV2ReceiptId), false);
       await assert.rejects(
         () => dataConnect.executeMutation("UpsertUserProfile", {

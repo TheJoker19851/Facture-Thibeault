@@ -53,6 +53,9 @@ type CardStatementPeriod @table(name: "card_statement_periods", key: "id") {
   startDate: Date!
   endDate: Date!
   statementLabel: String
+  # Five bounded free-form adjustment rows used by Kim for payments/credits.
+  # The application validates and serializes the rows at this V1 boundary.
+  manualAdjustmentsJson: String
   status: String! @default(value: "OPEN")
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
@@ -114,6 +117,9 @@ type Invoice @table(name: "invoices", key: "id") {
   tpsCents: Int64
   tvqCents: Int64
   totalCents: Int64
+  # Validated structured line items serialized as JSON at the current V1
+  # boundary. The application reconciles their sum before posting.
+  lineItems: String
   processingStatus: String! @default(value: "PROCESSING")
   accountingStatus: String! @default(value: "NOT_POSTED")
   reviewStatus: String! @default(value: "TO_VERIFY")
@@ -147,6 +153,10 @@ type InvoiceIntake @table(name: "invoice_intakes", key: "receiptId") {
   # decision is now represented by processingStatus.
   status: String! @default(value: "PROCESSING")
   processingStatus: String! @default(value: "PROCESSING")
+  processingState: String! @default(value: "QUEUED")
+  processingAttempts: Int! @default(value: 0)
+  reviewRevision: Int! @default(value: 0)
+  lastAttemptAt: Timestamp
   accountingStatus: String! @default(value: "NOT_POSTED")
   lastError: String
   # Machine-readable retry eligibility. Business exceptions such as
@@ -161,6 +171,7 @@ type InvoiceIntake @table(name: "invoice_intakes", key: "receiptId") {
   extractedTpsCents: Int64
   extractedTvqCents: Int64
   extractedTotalCents: Int64
+  extractedLineItems: String
   extractedCurrency: String
   extractedSku: String
   extractedCategory: String
@@ -221,6 +232,21 @@ type CreditCardStatement @table(name: "credit_card_statements", key: "id")
   status: String! @default(value: "IMPORTED")
   lineCount: Int! @default(value: 0)
   totalAmountCents: Int64! @default(value: 0)
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# Server-owned manual report adjustments for custom and scoped periods.
+type ReportAdjustmentSet @table(name: "report_adjustment_sets", key: "id") {
+  id: String!
+  periodKey: String!
+  periodStart: Date!
+  periodEnd: Date!
+  projectId: String
+  holderId: String
+  rowsJson: String!
+  createdByUid: String!
+  updatedByUid: String!
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }

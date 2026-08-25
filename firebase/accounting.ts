@@ -1,14 +1,14 @@
 "use client";
 
 import {
-  listCardStatementPeriods,
-  listCreditCards,
-  listExpenseAccounts,
-  listExpenseTransactions,
-  listInvoiceIntakes,
-  listInvoicesToReview,
-  listProjects,
-  listSkuReferences,
+  listCardStatementPeriodsPage,
+  listCreditCardsPage,
+  listExpenseAccountsPage,
+  listExpenseTransactionsPage,
+  listInvoiceIntakesPage,
+  listInvoicesToReviewPage,
+  listProjectsPage,
+  listSkuReferencesPage,
   listUserProfiles,
   deleteExpenseAccount as deleteExpenseAccountMutation,
   deleteProject as deleteProjectMutation,
@@ -18,6 +18,10 @@ import {
   upsertProject,
   upsertUserProfile,
   updateInvoiceIntakeReview,
+  listReportAdjustmentSets,
+  upsertReportAdjustmentSet,
+  correctPostedInvoice as correctPostedInvoiceMutation,
+  listTransactionCorrections,
 } from "../generated/data-connect/esm/index.esm.js";
 import type {
   ListCardStatementPeriodsData,
@@ -26,16 +30,60 @@ import type {
   ListExpenseTransactionsData,
   ListInvoiceIntakesData,
   ListInvoicesToReviewData,
+  ListReportAdjustmentSetsData,
+  ListTransactionCorrectionsData,
   ListProjectsData,
   ListSkuReferencesData,
   ListUserProfilesData,
 } from "../generated/data-connect";
+import { executeMutation, mutationRef } from "firebase/data-connect";
 import { firebaseAuth } from "./client";
 import { firebaseDataConnect, sqlConnectConfigured } from "./data-connect";
 import { INVOICE_CLIENT_VERSION } from "../lib/invoice-client-version.mjs";
 import { isDemoIdentifier, isDemoOrE2EInvoiceIntake } from "../lib/demo-data-policy.mjs";
 import { AUDIT_ACTIONS, auditDetails, auditEventId } from "../lib/audit-events.mjs";
 import { createClientId } from "../lib/client-id.mjs";
+import { normalizeManualAdjustmentRows, parseManualAdjustmentRows, serializeManualAdjustmentRows } from "../lib/manual-adjustments.mjs";
+import { collectPagedRows as collectPagedRowsUntyped } from "../lib/pagination.mjs";
+
+export type AccountingLineItem = {
+  sequence: number;
+  description: string;
+  quantity: number | null;
+  unitPriceCents: number | null;
+  amountCents: number | null;
+  sku: string | null;
+  category: string | null;
+  accountCode: string | null;
+  classificationSource: string | null;
+  classificationConfidence: number | null;
+  classificationStatus: string | null;
+  classificationNote: string | null;
+};
+
+function parseInvoiceLineItems(value: string | null | undefined): AccountingLineItem[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((item, index) => ({
+      sequence: Number(item?.sequence) || index + 1,
+      description: String(item?.description ?? ""),
+      quantity: item?.quantity == null ? null : Number(item.quantity),
+      unitPriceCents: item?.unitPriceCents == null ? null : Number(item.unitPriceCents),
+      amountCents: item?.amountCents == null ? null : Number(item.amountCents),
+      sku: item?.sku == null ? null : String(item.sku),
+      category: item?.category == null ? null : String(item.category),
+      accountCode: item?.accountCode == null ? null : String(item.accountCode),
+      classificationSource: item?.classificationSource == null ? null : String(item.classificationSource),
+      classificationConfidence: item?.classificationConfidence == null ? null : Number(item.classificationConfidence),
+      classificationStatus: item?.classificationStatus == null ? null : String(item.classificationStatus),
+      classificationNote: item?.classificationNote == null ? null : String(item.classificationNote),
+    }));
+  } catch {
+    return [];
+  }
+}
 
 export type AppAccountingData = {
   users: Array<{
@@ -64,6 +112,7 @@ export type AppAccountingData = {
     start: string;
     end: string;
     statementLabel: string;
+    manualAdjustmentRows?: ManualAdjustmentRow[];
     status?: string;
   }>;
   projects: Array<{ id: string; number: string; name: string; status?: string }>;
@@ -108,6 +157,7 @@ export type AppAccountingData = {
     invoiceNumber: string;
     note: string;
     sku?: string;
+    lineItems?: AccountingLineItem[];
     correctionField?: "subtotal" | "account" | "attachment";
   }>;
   intakes: Array<{
@@ -117,6 +167,10 @@ export type AppAccountingData = {
     photoCount: number;
     status: string;
     processingStatus?: string;
+    processingState?: string;
+    processingAttempts?: number;
+    reviewRevision?: number;
+    lastAttemptAt?: string | null;
     accountingStatus?: string;
     lastError?: string;
     aiModel?: string;
@@ -137,6 +191,7 @@ export type AppAccountingData = {
     classificationSource?: string;
     classificationConfidence?: number;
     classificationStatus?: string;
+    lineItems?: AccountingLineItem[];
     aiNotes?: string;
     decisionExceptions?: string;
     decisionChecks?: string;
@@ -166,6 +221,79 @@ export const accountingReadSource = sqlConnectConfigured
   ? "firebase-sql-connect"
   : "demo";
 
+const DATA_CONNECT_PAGE_SIZE = 200;
+const collectPagedRows = collectPagedRowsUntyped as <T>(
+  readPage: (variables: { limit: number; offset: number }) => Promise<T[]>,
+  options?: { pageSize?: number },
+) => Promise<T[]>;
+
+async function readAllPages<T>(readPage: (variables: { limit: number; offset: number }) => Promise<{ rows: T[] }>) {
+  return collectPagedRows(async (variables) => (await readPage(variables)).rows, { pageSize: DATA_CONNECT_PAGE_SIZE });
+}
+
+async function readAllExpenseTransactions(): Promise<ListExpenseTransactionsData["expenseTransactions"]> {
+  return readAllPages(async (variables) => {
+    const page = await listExpenseTransactionsPage(firebaseDataConnect!, variables);
+    return { rows: page.data.expenseTransactions };
+  });
+}
+
+async function readAllInvoicesToReview(): Promise<ListInvoicesToReviewData["invoices"]> {
+  return readAllPages(async (variables) => {
+    const page = await listInvoicesToReviewPage(firebaseDataConnect!, variables);
+    return { rows: page.data.invoices };
+  });
+}
+
+async function readAllInvoiceIntakes(): Promise<ListInvoiceIntakesData["invoiceIntakes"]> {
+  return readAllPages(async (variables) => {
+    const page = await listInvoiceIntakesPage(firebaseDataConnect!, variables);
+    return { rows: page.data.invoiceIntakes };
+  });
+}
+
+async function readAllUserProfiles(): Promise<ListUserProfilesData["userProfiles"]> {
+  return readAllPages(async (variables) => {
+    const page = await listUserProfiles(firebaseDataConnect!, variables);
+    return { rows: page.data.userProfiles };
+  });
+}
+
+async function readAllCreditCards(): Promise<ListCreditCardsData["creditCards"]> {
+  return readAllPages(async (variables) => {
+    const page = await listCreditCardsPage(firebaseDataConnect!, variables);
+    return { rows: page.data.creditCards };
+  });
+}
+
+async function readAllCardStatementPeriods(): Promise<ListCardStatementPeriodsData["cardStatementPeriods"]> {
+  return readAllPages(async (variables) => {
+    const page = await listCardStatementPeriodsPage(firebaseDataConnect!, variables);
+    return { rows: page.data.cardStatementPeriods };
+  });
+}
+
+async function readAllExpenseAccounts(): Promise<ListExpenseAccountsData["expenseAccounts"]> {
+  return readAllPages(async (variables) => {
+    const page = await listExpenseAccountsPage(firebaseDataConnect!, variables);
+    return { rows: page.data.expenseAccounts };
+  });
+}
+
+async function readAllProjects(): Promise<ListProjectsData["projects"]> {
+  return readAllPages(async (variables) => {
+    const page = await listProjectsPage(firebaseDataConnect!, variables);
+    return { rows: page.data.projects };
+  });
+}
+
+async function readAllSkuReferences(): Promise<ListSkuReferencesData["skuReferences"]> {
+  return readAllPages(async (variables) => {
+    const page = await listSkuReferencesPage(firebaseDataConnect!, variables);
+    return { rows: page.data.skuReferences };
+  });
+}
+
 export type InvoiceIntakeReviewInput = {
   receiptId: string;
   status: "NEEDS_REVIEW" | "VALIDATED";
@@ -186,9 +314,11 @@ export type InvoiceIntakeReviewInput = {
   classificationConfidence: number;
   classificationStatus: string;
   aiNotes: string;
+  lineItems: string;
   writeAudit?: boolean;
   decisionExceptions?: string;
   decisionChecks?: string;
+  reviewRevision?: number;
   auditDetails?: string;
 };
 
@@ -204,11 +334,26 @@ export type InvoiceIntakeCommitInput = {
   currency: string;
   sku: string | null;
   category: string;
-  accountCode: string;
+  accountCode: string | null;
   cardId: string;
   statementPeriodId: string | null;
   projectId: string;
   classificationNote: string;
+  lineItems: string;
+};
+
+export type ManualAdjustmentRow = {
+  index: number;
+  description: string;
+  amountCents: number | null;
+};
+
+export type ReportAdjustmentScope = {
+  periodKey: string;
+  periodStart: string;
+  periodEnd: string;
+  projectId: string | null;
+  holderId: string | null;
 };
 
 export type UserProfileInput = {
@@ -292,6 +437,109 @@ export async function saveStatementPeriod(input: StatementPeriodInput) {
   await upsertCardStatementPeriod(firebaseDataConnect, input);
 }
 
+export async function saveStatementManualAdjustments(input: { id: string; rows: ManualAdjustmentRow[]; auditDetails?: string }) {
+  if (!firebaseDataConnect || !sqlConnectConfigured) throw new Error("SQL Connect est requis pour enregistrer les ajustements de période.");
+  const rows = normalizeManualAdjustmentRows(input.rows);
+  await executeMutation(mutationRef(firebaseDataConnect, "SaveStatementManualAdjustments", {
+    id: input.id,
+    manualAdjustmentsJson: serializeManualAdjustmentRows(rows),
+    auditEventId: auditEventId(input.id, AUDIT_ACTIONS.STATEMENT_ADJUSTMENTS_UPDATED, createClientId()),
+    auditDetails: input.auditDetails ?? auditDetails({ after: rows }),
+  }));
+}
+
+function reportAdjustmentSetId(scope: ReportAdjustmentScope) {
+  return `ADJ-${scope.periodKey}-${scope.projectId ?? "ALL"}-${scope.holderId ?? "ALL"}`.replace(/[^A-Za-z0-9_-]/g, "_");
+}
+
+export async function loadReportAdjustments(scope: ReportAdjustmentScope) {
+  if (!firebaseDataConnect || !sqlConnectConfigured) throw new Error("SQL Connect est requis pour charger les ajustements.");
+  const rows = await readAllPages<ListReportAdjustmentSetsData["reportAdjustmentSets"][number]>(async (variables) => {
+    const result = await listReportAdjustmentSets(firebaseDataConnect!, { periodKey: scope.periodKey, ...variables });
+    return { rows: result.data.reportAdjustmentSets };
+  });
+  const match = rows.find((row: ListReportAdjustmentSetsData["reportAdjustmentSets"][number]) =>
+    row.projectId === scope.projectId && row.holderId === scope.holderId &&
+    row.periodStart === scope.periodStart && row.periodEnd === scope.periodEnd,
+  );
+  return parseManualAdjustmentRows(match?.rowsJson);
+}
+
+export async function saveReportAdjustments(input: { scope: ReportAdjustmentScope; rows: ManualAdjustmentRow[]; auditDetails?: string }) {
+  if (!firebaseDataConnect || !sqlConnectConfigured) throw new Error("SQL Connect est requis pour enregistrer les ajustements.");
+  const user = firebaseAuth?.currentUser;
+  if (!user) throw new Error("Une session Firebase Authentication est requise pour enregistrer les ajustements.");
+  const rows = normalizeManualAdjustmentRows(input.rows);
+  await upsertReportAdjustmentSet(firebaseDataConnect, {
+    id: reportAdjustmentSetId(input.scope),
+    periodKey: input.scope.periodKey,
+    periodStart: input.scope.periodStart,
+    periodEnd: input.scope.periodEnd,
+    projectId: input.scope.projectId,
+    holderId: input.scope.holderId,
+    rowsJson: serializeManualAdjustmentRows(rows),
+    actorUid: user.uid,
+    auditEventId: auditEventId(reportAdjustmentSetId(input.scope), AUDIT_ACTIONS.REPORT_ADJUSTMENTS_UPDATED, createClientId()),
+    auditDetails: input.auditDetails ?? auditDetails({ scope: input.scope, after: rows }),
+  });
+}
+
+export type PostedInvoiceCorrectionInput = {
+  invoiceId: string;
+  transactionId: string;
+  fieldName: string;
+  previousValue: string | null;
+  correctedValue: string;
+  note: string;
+  vendor: string;
+  invoiceNumber: string | null;
+  invoiceDate: string;
+  subtotalCents: number;
+  tpsCents: number;
+  tvqCents: number;
+  totalCents: number;
+  lineItems: string;
+  category: string;
+  accountId: string | null;
+};
+
+export async function correctPostedInvoice(input: PostedInvoiceCorrectionInput) {
+  if (!firebaseDataConnect || !sqlConnectConfigured) throw new Error("SQL Connect est requis pour corriger la facture.");
+  const user = firebaseAuth?.currentUser;
+  if (!user) throw new Error("Une session Firebase Authentication est requise pour corriger la facture.");
+  const result = await correctPostedInvoiceMutation(firebaseDataConnect, {
+    correctionId: `CORR-${input.invoiceId}-${createClientId()}`,
+    invoiceId: input.invoiceId,
+    transactionId: input.transactionId,
+    actorUserId: (await readAllUserProfiles()).find((profile: ListUserProfilesData["userProfiles"][number]) => profile.firebaseUid === user.uid)?.id ?? user.uid,
+    fieldName: input.fieldName,
+    previousValue: input.previousValue,
+    correctedValue: input.correctedValue,
+    note: input.note,
+    vendor: input.vendor,
+    invoiceNumber: input.invoiceNumber,
+    invoiceDate: input.invoiceDate,
+    subtotalCents: String(input.subtotalCents),
+    tpsCents: String(input.tpsCents),
+    tvqCents: String(input.tvqCents),
+    totalCents: String(input.totalCents),
+    lineItems: input.lineItems,
+    category: input.category,
+    account: input.accountId ? { id: input.accountId } : null,
+    auditEventId: auditEventId(input.invoiceId, AUDIT_ACTIONS.POSTED_INVOICE_CORRECTED, createClientId()),
+    auditDetails: auditDetails({ fieldName: input.fieldName, previousValue: input.previousValue, correctedValue: input.correctedValue, note: input.note }),
+  });
+  return result.data;
+}
+
+export async function loadTransactionCorrections(transactionId: string) {
+  if (!firebaseDataConnect || !sqlConnectConfigured) return [];
+  return readAllPages<ListTransactionCorrectionsData["transactionCorrections"][number]>(async (variables) => {
+    const result = await listTransactionCorrections(firebaseDataConnect!, { transactionId, ...variables });
+    return { rows: result.data.transactionCorrections };
+  });
+}
+
 export async function createFirebaseUser(input: { displayName: string; email: string; password: string; jobTitle: string; role: string }, idToken: string) {
   const response = await fetch("/api/admin/users", {
     method: "POST",
@@ -346,15 +594,18 @@ export async function saveInvoiceIntakeReview(input: InvoiceIntakeReviewInput) {
     classificationConfidence: input.classificationConfidence,
     classificationStatus: input.classificationStatus,
     aiNotes: input.aiNotes,
+    extractedLineItems: input.lineItems,
     decisionExceptions: input.decisionExceptions ?? "[]",
     decisionChecks: input.decisionChecks ?? "[]",
+    expectedReviewRevision: input.reviewRevision ?? 0,
+    nextReviewRevision: (input.reviewRevision ?? 0) + 1,
     writeAudit: input.writeAudit ?? true,
     auditEventId: auditEventId(input.receiptId, AUDIT_ACTIONS.HUMAN_CORRECTION, createClientId()),
     auditDetails: input.auditDetails ?? auditDetails({ status: input.status }),
   });
 
   if (result.data.invoiceIntake_updateMany === 0) {
-    const current = (await listInvoiceIntakes(firebaseDataConnect)).data.invoiceIntakes.find(
+    const current = (await readAllInvoiceIntakes()).find(
       (intake: ListInvoiceIntakesData["invoiceIntakes"][number]) => intake.receiptId === input.receiptId,
     );
     if (current?.accountingStatus === "POSTED") {
@@ -416,27 +667,27 @@ export async function loadAccountingSnapshot(): Promise<AccountingSnapshot> {
 
   const [users, cards, periods, accounts, projects, skuReferences, transactions, invoices, intakes] =
     await Promise.all([
-      listUserProfiles(firebaseDataConnect),
-      listCreditCards(firebaseDataConnect),
-      listCardStatementPeriods(firebaseDataConnect),
-      listExpenseAccounts(firebaseDataConnect),
-      listProjects(firebaseDataConnect),
-      listSkuReferences(firebaseDataConnect),
-      listExpenseTransactions(firebaseDataConnect),
-      listInvoicesToReview(firebaseDataConnect),
-      listInvoiceIntakes(firebaseDataConnect),
+      readAllUserProfiles(),
+      readAllCreditCards(),
+      readAllCardStatementPeriods(),
+      readAllExpenseAccounts(),
+      readAllProjects(),
+      readAllSkuReferences(),
+      readAllExpenseTransactions(),
+      readAllInvoicesToReview(),
+      readAllInvoiceIntakes(),
     ]);
 
   return {
-    users: users.data.userProfiles,
-    cards: cards.data.creditCards,
-    periods: periods.data.cardStatementPeriods,
-    accounts: accounts.data.expenseAccounts,
-    projects: projects.data.projects,
-    skuReferences: skuReferences.data.skuReferences,
-    transactions: transactions.data.expenseTransactions,
-    invoices: invoices.data.invoices,
-    intakes: intakes.data.invoiceIntakes,
+    users,
+    cards,
+    periods,
+    accounts,
+    projects,
+    skuReferences,
+    transactions,
+    invoices,
+    intakes,
   };
 }
 
@@ -487,6 +738,7 @@ export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccounti
       start: period.startDate,
       end: period.endDate,
       statementLabel: period.statementLabel ?? "Relevé Mastercard",
+      manualAdjustmentRows: parseManualAdjustmentRows(period.manualAdjustmentsJson),
       status: period.status,
     })),
     projects: snapshot.projects.map((project) => ({ id: project.id, number: project.number, name: project.name, status: project.status })),
@@ -527,6 +779,7 @@ export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccounti
         ...(invoice?.intake?.receiptId ? { receiptId: invoice.intake.receiptId } : {}),
         ...((invoice?.storageFolder ?? invoice?.intake?.storageFolder) ? { storageFolder: invoice.storageFolder ?? invoice.intake?.storageFolder ?? undefined } : {}),
         ...(photoPaths.length ? { photoPaths: photoPaths.map((photo) => ({ storagePath: photo.storagePath, contentType: photo.contentType, sequence: photo.sequence })) } : {}),
+        ...(invoice?.lineItems ? { lineItems: parseInvoiceLineItems(invoice.lineItems) } : {}),
         invoiceNumber: transaction.invoiceNumber ?? invoice?.invoiceNumber ?? "—",
         note: transaction.classificationNote ?? "Classification issue de SQL Connect.",
         ...(transaction.sku ? { sku: transaction.sku } : {}),
@@ -539,6 +792,10 @@ export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccounti
       photoCount: intake.photoCount,
       status: intake.status,
       processingStatus: intake.processingStatus,
+      processingState: intake.processingState,
+      processingAttempts: intake.processingAttempts,
+      reviewRevision: intake.reviewRevision,
+      lastAttemptAt: intake.lastAttemptAt,
       accountingStatus: intake.accountingStatus,
       ...(intake.lastError ? { lastError: intake.lastError } : {}),
       ...(intake.aiModel ? { aiModel: intake.aiModel } : {}),
@@ -559,6 +816,7 @@ export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccounti
       ...(intake.classificationSource ? { classificationSource: intake.classificationSource } : {}),
       ...(intake.classificationConfidence != null ? { classificationConfidence: intake.classificationConfidence } : {}),
       ...(intake.classificationStatus ? { classificationStatus: intake.classificationStatus } : {}),
+      ...(intake.extractedLineItems ? { lineItems: parseInvoiceLineItems(intake.extractedLineItems) } : {}),
       ...(intake.aiNotes ? { aiNotes: intake.aiNotes } : {}),
       ...(intake.decisionExceptions ? { decisionExceptions: intake.decisionExceptions } : {}),
       ...(intake.decisionChecks ? { decisionChecks: intake.decisionChecks } : {}),

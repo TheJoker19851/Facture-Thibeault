@@ -1,5 +1,6 @@
 import { PRODUCTION_FIREBASE_PROJECT_ID, validateFirebaseEnvironment } from "../lib/environment.mjs";
 import { readEnvFile } from "./lib/env-files.mjs";
+import { executeAllQueryPages } from "./lib/data-connect-pages.mjs";
 
 function duplicates(rows, keyOf) {
   const counts = new Map();
@@ -58,17 +59,13 @@ try {
   }, app);
   // Read-only allowlist. This script intentionally contains no executeMutation
   // call and performs no Storage or Auth write.
-  const [invoiceResult, photoResult, intakeResult, transactionResult, storageFilesResult] = await Promise.all([
-    dataConnect.executeQuery("AdminListInvoices"),
-    dataConnect.executeQuery("AdminListInvoicePhotos"),
-    dataConnect.executeQuery("ListInvoiceIntakes"),
-    dataConnect.executeQuery("ListExpenseTransactions"),
+  const [invoices, photos, intakes, transactions, storageFilesResult] = await Promise.all([
+    executeAllQueryPages(dataConnect, "AdminListInvoices", "invoices"),
+    executeAllQueryPages(dataConnect, "AdminListInvoicePhotos", "invoicePhotos"),
+    executeAllQueryPages(dataConnect, "ListInvoiceIntakes", "invoiceIntakes"),
+    executeAllQueryPages(dataConnect, "ListExpenseTransactions", "expenseTransactions"),
     getStorage(app).bucket(values.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET).getFiles({ prefix: "receipts/" }),
   ]);
-  const invoices = invoiceResult.data.invoices ?? [];
-  const photos = photoResult.data.invoicePhotos ?? [];
-  const intakes = intakeResult.data.invoiceIntakes ?? [];
-  const transactions = transactionResult.data.expenseTransactions ?? [];
   const storageObjects = await Promise.all(storageFilesResult[0].map(async (file) => {
     const [metadata] = await file.getMetadata();
     return { name: file.name, contentType: metadata.contentType ?? "" };

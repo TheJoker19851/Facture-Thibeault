@@ -11,6 +11,7 @@ import {
   resourceRowsFromResults,
 } from "./lib/demo-cleanup.mjs";
 import { readEnvFile } from "./lib/env-files.mjs";
+import { executeAllQueryPages } from "./lib/data-connect-pages.mjs";
 
 const DESTRUCTIVE_CONFIRMATION = "DELETE_DEMO_ONLY";
 const QUERY_BY_TYPE = {
@@ -23,6 +24,13 @@ const QUERY_BY_TYPE = {
   ExpenseTransaction: "ListExpenseTransactions",
   InvoiceIntake: "ListInvoiceIntakes",
   Invoice: "AdminListInvoices",
+};
+
+const PAGED_QUERY_FIELDS = {
+  ListUserProfiles: "userProfiles",
+  ListExpenseTransactions: "expenseTransactions",
+  ListInvoiceIntakes: "invoiceIntakes",
+  AdminListInvoices: "invoices",
 };
 
 function requireAdminCredentials(values) {
@@ -84,7 +92,10 @@ async function createProductionContext(values, app) {
   const queryErrors = [];
   await Promise.all(Object.entries(QUERY_BY_TYPE).map(async ([type, operation]) => {
     try {
-      queryResults[type] = await dataConnect.executeQuery(operation);
+      const field = PAGED_QUERY_FIELDS[operation];
+      queryResults[type] = field
+        ? { data: { [field]: await executeAllQueryPages(dataConnect, operation, field) } }
+        : await dataConnect.executeQuery(operation);
     } catch (error) {
       queryErrors.push({ type, operation, message: error?.parsedData?.error?.message || error?.message || "erreur de lecture inconnue" });
       queryResults[type] = { data: {} };
@@ -92,8 +103,7 @@ async function createProductionContext(values, app) {
   }));
   let invoicePhotos = [];
   try {
-    const invoicePhotosResult = await dataConnect.executeQuery("AdminListInvoicePhotos");
-    invoicePhotos = Object.values(invoicePhotosResult.data ?? {}).find(Array.isArray) ?? [];
+    invoicePhotos = await executeAllQueryPages(dataConnect, "AdminListInvoicePhotos", "invoicePhotos");
   } catch (error) {
     queryErrors.push({ type: "InvoicePhoto", operation: "AdminListInvoicePhotos", message: error?.parsedData?.error?.message || error?.message || "erreur de lecture inconnue" });
   }

@@ -12,28 +12,28 @@ For each operation, there is a wrapper hook that can be used to call the operati
 
 Here are all of the hooks that get generated:
 ```ts
-import { useAdminSeedCreditCard, useAdminSeedSkuReference, useAdminSeedExpenseTransaction, useAdminSeedInvoice, useAdminSeedInvoicePhoto, useAdminDeleteInvoicePhoto, useAdminDeleteInvoice, useAdminDeleteExpenseTransaction, useAdminDeleteInvoiceIntake, useAdminDeleteCreditCard } from '@factures-thibeault/data-connect-generated/react';
+import { useAdminSeedUserProfile, useAdminSeedProject, useAdminSeedExpenseAccount, useAdminSeedCardStatementPeriod, useAdminSeedInvoiceIntake, useAdminSeedCreditCard, useAdminSeedCreditCardStatement, useAdminSeedCreditCardStatementLine, useAdminSeedSkuReference, useAdminSeedExpenseTransaction } from '@factures-thibeault/data-connect-generated/react';
 // The types of these hooks are available in react/index.d.ts
 
+const { data, isPending, isSuccess, isError, error } = useAdminSeedUserProfile(adminSeedUserProfileVars);
+
+const { data, isPending, isSuccess, isError, error } = useAdminSeedProject(adminSeedProjectVars);
+
+const { data, isPending, isSuccess, isError, error } = useAdminSeedExpenseAccount(adminSeedExpenseAccountVars);
+
+const { data, isPending, isSuccess, isError, error } = useAdminSeedCardStatementPeriod(adminSeedCardStatementPeriodVars);
+
+const { data, isPending, isSuccess, isError, error } = useAdminSeedInvoiceIntake(adminSeedInvoiceIntakeVars);
+
 const { data, isPending, isSuccess, isError, error } = useAdminSeedCreditCard(adminSeedCreditCardVars);
+
+const { data, isPending, isSuccess, isError, error } = useAdminSeedCreditCardStatement(adminSeedCreditCardStatementVars);
+
+const { data, isPending, isSuccess, isError, error } = useAdminSeedCreditCardStatementLine(adminSeedCreditCardStatementLineVars);
 
 const { data, isPending, isSuccess, isError, error } = useAdminSeedSkuReference(adminSeedSkuReferenceVars);
 
 const { data, isPending, isSuccess, isError, error } = useAdminSeedExpenseTransaction(adminSeedExpenseTransactionVars);
-
-const { data, isPending, isSuccess, isError, error } = useAdminSeedInvoice(adminSeedInvoiceVars);
-
-const { data, isPending, isSuccess, isError, error } = useAdminSeedInvoicePhoto(adminSeedInvoicePhotoVars);
-
-const { data, isPending, isSuccess, isError, error } = useAdminDeleteInvoicePhoto(adminDeleteInvoicePhotoVars);
-
-const { data, isPending, isSuccess, isError, error } = useAdminDeleteInvoice(adminDeleteInvoiceVars);
-
-const { data, isPending, isSuccess, isError, error } = useAdminDeleteExpenseTransaction(adminDeleteExpenseTransactionVars);
-
-const { data, isPending, isSuccess, isError, error } = useAdminDeleteInvoiceIntake(adminDeleteInvoiceIntakeVars);
-
-const { data, isPending, isSuccess, isError, error } = useAdminDeleteCreditCard(adminDeleteCreditCardVars);
 
 ```
 
@@ -72,38 +72,38 @@ If a user is not using a supported framework, they can use the generated SDK dir
 Here's an example of how to use it with the first 5 operations:
 
 ```js
-import { adminSeedCreditCard, adminSeedSkuReference, adminSeedExpenseTransaction, adminSeedInvoice, adminSeedInvoicePhoto, adminDeleteInvoicePhoto, adminDeleteInvoice, adminDeleteExpenseTransaction, adminDeleteInvoiceIntake, adminDeleteCreditCard } from '@factures-thibeault/data-connect-generated';
+import { adminSeedUserProfile, adminSeedProject, adminSeedExpenseAccount, adminSeedCardStatementPeriod, adminSeedInvoiceIntake, adminSeedCreditCard, adminSeedCreditCardStatement, adminSeedCreditCardStatementLine, adminSeedSkuReference, adminSeedExpenseTransaction } from '@factures-thibeault/data-connect-generated';
 
+
+// Operation AdminSeedUserProfile:  For variables, look at type AdminSeedUserProfileVars in ../index.d.ts
+const { data } = await AdminSeedUserProfile(dataConnect, adminSeedUserProfileVars);
+
+// Operation AdminSeedProject:  For variables, look at type AdminSeedProjectVars in ../index.d.ts
+const { data } = await AdminSeedProject(dataConnect, adminSeedProjectVars);
+
+// Operation AdminSeedExpenseAccount:  For variables, look at type AdminSeedExpenseAccountVars in ../index.d.ts
+const { data } = await AdminSeedExpenseAccount(dataConnect, adminSeedExpenseAccountVars);
+
+// Operation AdminSeedCardStatementPeriod:  For variables, look at type AdminSeedCardStatementPeriodVars in ../index.d.ts
+const { data } = await AdminSeedCardStatementPeriod(dataConnect, adminSeedCardStatementPeriodVars);
+
+// Operation AdminSeedInvoiceIntake:  For variables, look at type AdminSeedInvoiceIntakeVars in ../index.d.ts
+const { data } = await AdminSeedInvoiceIntake(dataConnect, adminSeedInvoiceIntakeVars);
 
 // Operation AdminSeedCreditCard:  For variables, look at type AdminSeedCreditCardVars in ../index.d.ts
 const { data } = await AdminSeedCreditCard(dataConnect, adminSeedCreditCardVars);
+
+// Operation AdminSeedCreditCardStatement:  For variables, look at type AdminSeedCreditCardStatementVars in ../index.d.ts
+const { data } = await AdminSeedCreditCardStatement(dataConnect, adminSeedCreditCardStatementVars);
+
+// Operation AdminSeedCreditCardStatementLine:  For variables, look at type AdminSeedCreditCardStatementLineVars in ../index.d.ts
+const { data } = await AdminSeedCreditCardStatementLine(dataConnect, adminSeedCreditCardStatementLineVars);
 
 // Operation AdminSeedSkuReference:  For variables, look at type AdminSeedSkuReferenceVars in ../index.d.ts
 const { data } = await AdminSeedSkuReference(dataConnect, adminSeedSkuReferenceVars);
 
 // Operation AdminSeedExpenseTransaction:  For variables, look at type AdminSeedExpenseTransactionVars in ../index.d.ts
 const { data } = await AdminSeedExpenseTransaction(dataConnect, adminSeedExpenseTransactionVars);
-
-// Operation AdminSeedInvoice:  For variables, look at type AdminSeedInvoiceVars in ../index.d.ts
-const { data } = await AdminSeedInvoice(dataConnect, adminSeedInvoiceVars);
-
-// Operation AdminSeedInvoicePhoto:  For variables, look at type AdminSeedInvoicePhotoVars in ../index.d.ts
-const { data } = await AdminSeedInvoicePhoto(dataConnect, adminSeedInvoicePhotoVars);
-
-// Operation AdminDeleteInvoicePhoto:  For variables, look at type AdminDeleteInvoicePhotoVars in ../index.d.ts
-const { data } = await AdminDeleteInvoicePhoto(dataConnect, adminDeleteInvoicePhotoVars);
-
-// Operation AdminDeleteInvoice:  For variables, look at type AdminDeleteInvoiceVars in ../index.d.ts
-const { data } = await AdminDeleteInvoice(dataConnect, adminDeleteInvoiceVars);
-
-// Operation AdminDeleteExpenseTransaction:  For variables, look at type AdminDeleteExpenseTransactionVars in ../index.d.ts
-const { data } = await AdminDeleteExpenseTransaction(dataConnect, adminDeleteExpenseTransactionVars);
-
-// Operation AdminDeleteInvoiceIntake:  For variables, look at type AdminDeleteInvoiceIntakeVars in ../index.d.ts
-const { data } = await AdminDeleteInvoiceIntake(dataConnect, adminDeleteInvoiceIntakeVars);
-
-// Operation AdminDeleteCreditCard:  For variables, look at type AdminDeleteCreditCardVars in ../index.d.ts
-const { data } = await AdminDeleteCreditCard(dataConnect, adminDeleteCreditCardVars);
 
 
 ```

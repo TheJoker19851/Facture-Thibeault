@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { classifyInvoice } from "../lib/invoice-processing.mjs";
+import { classifyInvoice, classifyInvoiceLineItems, validateInvoiceLineItemsForCommit } from "../lib/invoice-processing.mjs";
 import { decideInvoice, findPotentialDuplicates } from "../lib/invoice-decision-engine.mjs";
 
 const accounts = [{ code: "90001", label: "Matériaux" }];
@@ -118,4 +118,31 @@ test("rejette une date calendrier impossible", () => {
   const result = decision({ invoiceDate: "2026-02-30" });
   assert.equal(result.decision, "NEEDS_REVIEW");
   assert.ok(codes(result).includes("INVALID_DATE"));
+});
+
+test("classifie les lignes et bloque un sous-total non concordant", () => {
+  const lineItems = [{ description: "Bloc", quantity: 1, unitPriceCents: 10000, amountCents: 10000, sku: "SKU-1", category: "Matériaux" }];
+  const classified = classifyInvoiceLineItems({ vendor: "Quincaillerie", lineItems, skuReferences, accounts });
+  assert.equal(classified[0].accountCode, "90001");
+  assert.equal(classified[0].classificationStatus, "RESOLVED");
+
+  const extraction = { ...baseExtraction, lineItems: classified };
+  const result = decideInvoice({
+    extraction,
+    classification: classifyInvoice(extraction, skuReferences, accounts),
+    lineItemClassifications: classified,
+    context: baseContext,
+  });
+  assert.equal(result.decision, "AUTO_APPROVED");
+
+  const mismatch = decideInvoice({
+    extraction: { ...extraction, lineItems: [{ ...classified[0], amountCents: 9000 }] },
+    classification: classifyInvoice(extraction, skuReferences, accounts),
+    lineItemClassifications: classified,
+    context: baseContext,
+  });
+  assert.equal(mismatch.decision, "NEEDS_REVIEW");
+  assert.ok(codes(mismatch).includes("LINE_ITEMS_TOTAL_MISMATCH"));
+  assert.equal(validateInvoiceLineItemsForCommit(classified, 10000).ok, true);
+  assert.equal(validateInvoiceLineItemsForCommit([{ ...classified[0], amountCents: 9000 }], 10000).ok, false);
 });

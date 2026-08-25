@@ -3,10 +3,28 @@ import { createGoogle } from "@ai-sdk/google";
 import { z } from "zod";
 import { firebaseAdminConfigured, getFirebaseAdminAuth, getFirebaseAdminDataConnect } from "../../../../firebase/admin";
 import { materializeInvoiceIntake, readInvoiceIntakeStoragePhotos } from "../../../../firebase/invoice-intake-commit.server";
+import {
+  listAllCreditCards,
+  listAllExpenseAccounts,
+  listAllExpenseTransactions,
+  listAllInvoiceIntakes,
+  listAllProjects,
+  listAllSkuReferences,
+  listAllStatementPeriods,
+  listAllUserProfiles,
+} from "../../../../firebase/accounting-pagination.server";
 import { inferApplicationEnvironment } from "../../../../lib/environment.mjs";
-import { isTransientGeminiCapacityRetry, transientGeminiErrorCode } from "../../../../lib/gemini-retry.mjs";
+import {
+  AI_MAX_ATTEMPTS_REACHED,
+  decisionChecksAtMaxAttempts,
+  decisionExceptionsAtMaxAttempts,
+  hasReachedInvoiceAiMaxAttempts,
+  invoiceAiMaxAttempts,
+  isTransientGeminiCapacityRetry,
+  transientGeminiErrorCode,
+} from "../../../../lib/gemini-retry.mjs";
 import { clientUpdateRequiredResponse, isCurrentInvoiceClientVersion } from "../../../../lib/invoice-client-version.mjs";
-import { classifyInvoice, validateInvoiceExtraction } from "../../../../lib/invoice-processing.mjs";
+import { classifyInvoice, classifyInvoiceLineItems, validateInvoiceExtraction } from "../../../../lib/invoice-processing.mjs";
 import { AUDIT_ACTIONS, auditDetails, auditEventId } from "../../../../lib/audit-events.mjs";
 import {
   DEFAULT_INVOICE_AI_MIN_CONFIDENCE,
@@ -22,6 +40,15 @@ export const maxDuration = 120;
 
 const ALLOWED_ROLES = new Set(["WORKER", "KIM", "ADMIN"]);
 
+const invoiceLineItemSchema = z.object({
+  description: z.string().trim().min(1),
+  quantity: z.number().positive(),
+  unitPriceCents: z.number().int().nonnegative().nullable(),
+  amountCents: z.number().int().nonnegative(),
+  sku: z.string().trim().nullable(),
+  category: z.string().trim().nullable(),
+});
+
 const invoiceExtractionSchema = z.object({
   vendor: z.string(),
   invoiceNumber: z.string().nullable(),
@@ -34,6 +61,7 @@ const invoiceExtractionSchema = z.object({
   sku: z.string().nullable(),
   category: z.string().nullable(),
   projectId: z.string().nullable(),
+  lineItems: z.array(invoiceLineItemSchema).max(100).default([]),
   confidence: z.number().min(0).max(1),
   notes: z.string(),
 });
@@ -41,6 +69,7 @@ const invoiceExtractionSchema = z.object({
 type AuthenticatedIdentity = {
   uid: string;
   role: "WORKER" | "KIM" | "ADMIN";
+  internal?: boolean;
 };
 
 type IntakeData = {
@@ -50,62 +79,20 @@ type IntakeData = {
     storageFolder: string;
     photoCount: number;
     processingStatus?: string | null;
+    processingState?: string | null;
+    processingAttempts?: number | null;
+    lastAttemptAt?: string | null;
     accountingStatus?: string | null;
     lastError?: string | null;
     aiErrorCode?: string | null;
     aiModel?: string | null;
     decisionExceptions?: string | null;
+    decisionChecks?: string | null;
   }>;
 };
 
 type IntakeMutationData = {
   invoiceIntake_updateMany: number;
-};
-
-type ReferenceData = {
-  skuReferences: Array<{
-    merchant: string;
-    sku: string;
-    categoryLabel?: string | null;
-    verificationStatus: string;
-    expenseAccount?: { number: string } | null;
-  }>;
-};
-
-type CardData = {
-  creditCards: Array<{
-    id: string;
-    lastFour: string;
-    status: string;
-    holder: { id: string; displayName: string };
-  }>;
-};
-
-type UserData = {
-  userProfiles: Array<{ id: string; firebaseUid: string; displayName: string }>;
-};
-
-type ProjectData = {
-  projects: Array<{ id: string; number: string; name: string; status: string }>;
-};
-
-type PeriodData = {
-  cardStatementPeriods: Array<{ id: string; startDate: string; endDate: string; status: string }>;
-};
-
-type TransactionData = {
-  expenseTransactions: Array<{
-    id: string;
-    transactionDate: string;
-    vendor: string;
-    invoiceNumber?: string | null;
-    totalCents: string | number;
-    card?: { id: string } | null;
-  }>;
-};
-
-type AccountData = {
-  expenseAccounts: Array<{ id: string; number: string; label: string; type: string; status: string }>;
 };
 
 type NormalizedExtraction = {
@@ -119,9 +106,17 @@ type NormalizedExtraction = {
   currency: string;
   sku: string | null;
   projectId: string | null;
+  lineItems: Array<Record<string, unknown>>;
+  lineItemsSubtotalCents: number;
+  lineItemsMatchSubtotal: boolean;
 };
 
 async function authenticate(request: Request): Promise<AuthenticatedIdentity | null> {
+  const workerSecret = request.headers.get("x-invoice-worker-secret");
+  const configuredWorkerSecret = process.env.INVOICE_WORKER_SECRET || process.env.CRON_SECRET;
+  if (workerSecret && configuredWorkerSecret && workerSecret === configuredWorkerSecret) {
+    return { uid: "invoice-worker", role: "ADMIN", internal: true };
+  }
   const token = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return null;
   try {
@@ -138,7 +133,8 @@ Read all supplied photos as pages of one invoice. Extract only information visib
 Never invent a value: use null for a missing invoice number, date, SKU or project.
 Return monetary values as integer Canadian cents. Use ISO date YYYY-MM-DD when the date is readable.
 The subtotal plus TPS plus TVQ must equal the total; if a value is unclear, lower confidence and explain it in notes.
-Read the visible line items and use them to propose one broad expense category when the evidence supports it.
+Read every visible line item. Return its description, quantity, unit price when visible, amount before tax, SKU/code when visible, and a category suggestion only when the document supports it.
+The line amounts must add up to the invoice subtotal. If no line detail is visible, return an empty lineItems array and explain that limitation in notes.
 Use category only as a suggestion. Do not invent an accounting account or approve the invoice.
 Keep vendor names and invoice numbers faithful to the document, including accents and punctuation.`;
 
@@ -164,6 +160,7 @@ function localMockExtraction(receiptId: string) {
     sku: "DEMO-SKU-001",
     category: "Matériaux Démo",
     projectId: "DEMO-PROJET-001",
+    lineItems: [{ description: "Article de démonstration", quantity: 1, unitPriceCents: 10000, amountCents: 10000, sku: "DEMO-SKU-001", category: "Matériaux Démo" }],
     confidence: 0.75,
     notes: "Résultat IA simulé pour le projet Firebase demo-* local.",
   };
@@ -174,7 +171,7 @@ function confidenceThreshold() {
   return Number.isFinite(configured) ? Math.min(1, Math.max(0, configured)) : DEFAULT_INVOICE_AI_MIN_CONFIDENCE;
 }
 
-function matchingStatementPeriod(invoiceDate: string | null, periods: PeriodData["cardStatementPeriods"]) {
+function matchingStatementPeriod(invoiceDate: string | null, periods: Array<{ id: string; startDate: string; endDate: string; status: string }>) {
   if (!invoiceDate) return null;
   const matches = periods.filter((period) =>
     period.status === "OPEN" && period.startDate <= invoiceDate && invoiceDate <= period.endDate,
@@ -185,7 +182,11 @@ function matchingStatementPeriod(invoiceDate: string | null, periods: PeriodData
 function stateOf(intake: IntakeData["invoiceIntakes"][number]) {
   return {
     processingStatus: intake.processingStatus ?? "PROCESSING",
+    processingState: intake.processingState ?? "QUEUED",
+    processingAttempts: intake.processingAttempts ?? 0,
+    lastAttemptAt: intake.lastAttemptAt ?? null,
     accountingStatus: intake.accountingStatus ?? "NOT_POSTED",
+    ...(intake.aiErrorCode ? { aiErrorCode: intake.aiErrorCode } : {}),
     ...(intake.lastError ? { lastError: intake.lastError } : {}),
   };
 }
@@ -274,21 +275,62 @@ export async function POST(request: Request) {
 
     dataConnect = await getFirebaseAdminDataConnect();
     const readIntake = async () => {
-      const response = await dataConnect!.executeQuery<IntakeData>("ListInvoiceIntakes");
-      return response.data.invoiceIntakes.find((item) => item.receiptId === receiptId) ?? null;
+      const intakes = await listAllInvoiceIntakes(dataConnect!);
+      return intakes.find((item) => item.receiptId === receiptId) ?? null;
     };
     const intake = await readIntake();
     if (!intake) return Response.json({ error: "Le dépôt de facture n'existe pas." }, { status: 404 });
-    if (intake.uploaderUid !== identity.uid) {
+    if (!identity.internal && intake.uploaderUid !== identity.uid) {
       return Response.json({ error: "Ce dépôt appartient à un autre utilisateur." }, { status: 403 });
     }
     ownedIntake = true;
+    const maxAttempts = invoiceAiMaxAttempts();
 
     // A posted/validated/reviewed intake is already owned by the existing
     // result. Only a verified transient Gemini error or POSTING_ERROR can be
     // deliberately reopened, and each reopen is a database compare-and-set.
     const transientGeminiRetry = isTransientGeminiCapacityRetry(intake);
     if (isStableIntakeState(intake) && !transientGeminiRetry) return existingIntakeResponse(receiptId, intake);
+    if (transientGeminiRetry && hasReachedInvoiceAiMaxAttempts(intake, maxAttempts)) {
+      const currentAttempts = Number(intake.processingAttempts ?? 0);
+      const decisionExceptions = decisionExceptionsAtMaxAttempts(intake.decisionExceptions, maxAttempts);
+      const decisionChecks = decisionChecksAtMaxAttempts(intake.decisionChecks, maxAttempts);
+      try {
+        const maxAttemptsResult = await dataConnect.executeMutation<IntakeMutationData, Record<string, unknown>>(
+          "MarkInvoiceIntakeAiMaxAttempts",
+          {
+            receiptId,
+            currentAttempts,
+            decisionExceptions,
+            decisionChecks,
+            actorUid: identity.uid,
+            actorRole: identity.role,
+            writeAudit: true,
+            auditEventId: auditEventId(receiptId, AUDIT_ACTIONS.AI_MAX_ATTEMPTS_REACHED),
+            auditDetails: auditDetails({
+              reason: AI_MAX_ATTEMPTS_REACHED,
+              maxAttempts,
+              processingAttempts: currentAttempts,
+              lastError: intake.lastError ?? null,
+            }),
+          },
+        );
+        if (maxAttemptsResult.data.invoiceIntake_updateMany !== 1) throw new Error("La limite de tentatives n’a pas été enregistrée.");
+      } catch (error) {
+        const latest = await readIntake();
+        if (latest) return existingIntakeResponse(receiptId, latest);
+        throw error;
+      }
+      const finalized = await readIntake();
+      return Response.json({
+        ok: false,
+        receiptId,
+        code: AI_MAX_ATTEMPTS_REACHED,
+        error: "Le traitement IA a atteint sa limite de tentatives; une intervention humaine est requise.",
+        maxAttempts,
+        state: stateOf(finalized ?? intake),
+      }, { status: 422 });
+    }
     if (transientGeminiRetry || intake.accountingStatus === "POSTING_ERROR") {
       let retry: { data: IntakeMutationData };
       try {
@@ -312,19 +354,29 @@ export async function POST(request: Request) {
       }
     }
 
-    const [storedPhotos, [skuResponse, accountResponse, cardResponse, userResponse, projectResponse, periodResponse, transactionResponse]] = await Promise.all([
+    const claim = await dataConnect.executeMutation<IntakeMutationData, { receiptId: string; processingAttempts: number; maxAttempts: number }>(
+      "ClaimInvoiceIntakeProcessing",
+      { receiptId, processingAttempts: Number(intake.processingAttempts ?? 0) + 1, maxAttempts },
+    ).catch(() => null);
+    if (!claim || claim.data.invoiceIntake_updateMany !== 1) {
+      const latest = await readIntake();
+      if (latest) return existingIntakeResponse(receiptId, latest);
+      throw new Error("Le traitement serveur n’a pas pu prendre en charge l’intake.");
+    }
+
+    const [storedPhotos, [skuReferences, expenseAccounts, creditCards, userProfiles, projects, statementPeriods, transactionResponse]] = await Promise.all([
       readInvoiceIntakeStoragePhotos(intake),
       Promise.all([
-        dataConnect.executeQuery<ReferenceData>("ListSkuReferences"),
-        dataConnect.executeQuery<AccountData>("ListExpenseAccounts"),
-        dataConnect.executeQuery<CardData>("ListCreditCards"),
-        dataConnect.executeQuery<UserData>("ListUserProfiles"),
-        dataConnect.executeQuery<ProjectData>("ListProjects"),
-        dataConnect.executeQuery<PeriodData>("ListCardStatementPeriods"),
-        dataConnect.executeQuery<TransactionData>("ListExpenseTransactions"),
+        listAllSkuReferences(dataConnect),
+        listAllExpenseAccounts(dataConnect),
+        listAllCreditCards(dataConnect),
+        listAllUserProfiles(dataConnect),
+        listAllProjects(dataConnect),
+        listAllStatementPeriods(dataConnect),
+        listAllExpenseTransactions(dataConnect),
       ]),
     ]);
-    const accountLabels = accountResponse.data.expenseAccounts
+    const accountLabels = expenseAccounts
       .filter((account) => account.type === "EXPENSE" && account.status === "ACTIVE")
       .map((account) => account.label);
     const { model, extraction } = await extractInvoice(receiptId, storedPhotos.map((photo) => photo.file), accountLabels).catch((error) => {
@@ -336,16 +388,29 @@ export async function POST(request: Request) {
       vendor: extraction?.vendor,
       sku: extraction?.sku ?? undefined,
       category: extraction?.category ?? undefined,
-    }, skuResponse.data.skuReferences.map((reference) => ({
+    }, skuReferences.map((reference) => ({
       merchant: reference.merchant,
       sku: reference.sku,
       category: reference.categoryLabel ?? undefined,
       accountCode: reference.expenseAccount?.number,
       status: reference.verificationStatus,
-    })), accountResponse.data.expenseAccounts);
+    })), expenseAccounts);
+    const lineItems = classifyInvoiceLineItems({
+      vendor: extraction?.vendor,
+      lineItems: extraction?.lineItems,
+      skuReferences: skuReferences.map((reference) => ({
+        merchant: reference.merchant,
+        sku: reference.sku,
+        category: reference.categoryLabel ?? undefined,
+        accountCode: reference.expenseAccount?.number,
+        status: reference.verificationStatus,
+      })),
+      accounts: expenseAccounts,
+    });
+    const extractionWithLineItems = { ...extraction, lineItems };
 
-    const uploader = userResponse.data.userProfiles.find((user) => user.firebaseUid === identity.uid);
-    const cards = cardResponse.data.creditCards.map((card) => ({
+    const uploader = userProfiles.find((user) => user.firebaseUid === identity.uid);
+    const cards = creditCards.map((card) => ({
       id: card.id,
       lastFour: card.lastFour,
       status: card.status,
@@ -358,16 +423,17 @@ export async function POST(request: Request) {
     });
     const statementPeriod = matchingStatementPeriod(
       typeof extraction?.invoiceDate === "string" ? extraction.invoiceDate : null,
-      periodResponse.data.cardStatementPeriods,
+      statementPeriods,
     );
     const decision = decideInvoice({
-      extraction,
+      extraction: extractionWithLineItems,
       extractionValidation: validation,
       classification,
+      lineItemClassifications: lineItems,
       confidenceThreshold: confidenceThreshold(),
       duplicateCandidates: findPotentialDuplicates(
         extraction,
-        transactionResponse.data.expenseTransactions,
+        transactionResponse,
         cardResolution.card?.id ?? null,
       ),
       context: {
@@ -375,7 +441,7 @@ export async function POST(request: Request) {
         uploaderUserId: uploader?.id,
         cards,
         cardResolution,
-        projects: projectResponse.data.projects,
+        projects,
         statementPeriodId: statementPeriod?.id ?? null,
         requireStatementPeriod: true,
         allowMissingProject: false,
@@ -416,6 +482,7 @@ export async function POST(request: Request) {
       extractedSku: extraction.sku,
       extractedCategory: extraction.category,
       extractedProjectId: extraction.projectId,
+      extractedLineItems: JSON.stringify(lineItems),
       classificationAccountCode: classification.accountCode,
       classificationCategory: classification.category,
       classificationSource: classification.source,
@@ -452,7 +519,7 @@ export async function POST(request: Request) {
       if (!accountCode || !cardId || !statementPeriodId || !projectId || !normalized.invoiceDate) {
         throw new Error("La décision automatique ne contient pas toutes les références comptables requises.");
       }
-      const account = accountResponse.data.expenseAccounts.find((candidate) =>
+      const account = expenseAccounts.find((candidate) =>
         candidate.number === accountCode && candidate.type === "EXPENSE" && candidate.status === "ACTIVE",
       );
       if (!account) throw new Error("Le compte comptable résolu n'existe plus ou est inactif.");
@@ -473,6 +540,7 @@ export async function POST(request: Request) {
           cardId,
           statementPeriodId,
           projectId,
+          lineItems: JSON.stringify(lineItems),
           classificationNote: `${extraction.notes} ${classification.note}`.trim(),
           actorUid: identity.uid,
           actorRole: identity.role,
@@ -488,14 +556,14 @@ export async function POST(request: Request) {
       ok: true,
       receiptId,
       model,
-      extraction: { ...normalized, confidence: extraction.confidence, notes: extraction.notes, category: extraction.category, projectId: extraction.projectId, sku: extraction.sku },
+      extraction: { ...normalized, lineItems, confidence: extraction.confidence, notes: extraction.notes, category: extraction.category, projectId: extraction.projectId, sku: extraction.sku },
       classification,
       decision,
     });
   } catch (error) {
     if (ownedIntake && dataConnect && receiptIdForLog !== "unknown") {
-      const latest = await dataConnect.executeQuery<IntakeData>("ListInvoiceIntakes").catch(() => null);
-      const current = latest?.data.invoiceIntakes.find((item) => item.receiptId === receiptIdForLog);
+      const latest = await listAllInvoiceIntakes(dataConnect).catch(() => null);
+      const current = latest?.find((item) => item.receiptId === receiptIdForLog);
       // A competing request has already produced a decision or posting
       // outcome. Its state must win over this stale error path.
       if (current && (
@@ -514,6 +582,18 @@ export async function POST(request: Request) {
         status: "OPEN",
       }]);
       const decisionChecks = serializeDecisionChecks([{ code: "AI_PROCESSING", passed: false, message: "Le traitement serveur a échoué." }]);
+      const maxAttemptsReached = Boolean(
+        !autoCommitAttempted &&
+        transientGeminiFailure &&
+        current &&
+        hasReachedInvoiceAiMaxAttempts(current, invoiceAiMaxAttempts()),
+      );
+      const persistedDecisionExceptions = maxAttemptsReached
+        ? decisionExceptionsAtMaxAttempts(decisionExceptions, invoiceAiMaxAttempts())
+        : decisionExceptions;
+      const persistedDecisionChecks = maxAttemptsReached
+        ? decisionChecksAtMaxAttempts(decisionChecks, invoiceAiMaxAttempts())
+        : decisionChecks;
       if (autoCommitAttempted) {
         await dataConnect.executeMutation("MarkInvoiceIntakeAutoPostingError", {
           receiptId: receiptIdForLog,
@@ -530,22 +610,23 @@ export async function POST(request: Request) {
         await dataConnect.executeMutation("MarkInvoiceIntakeAiError", {
           receiptId: receiptIdForLog,
           error: "Le traitement IA a échoué; la facture doit être vérifiée manuellement.",
-          aiErrorCode: transientGeminiFailure ? "GEMINI_TRANSIENT" : null,
-          decisionExceptions,
-          decisionChecks,
+          aiErrorCode: maxAttemptsReached ? AI_MAX_ATTEMPTS_REACHED : transientGeminiFailure ? "GEMINI_TRANSIENT" : null,
+          decisionExceptions: persistedDecisionExceptions,
+          decisionChecks: persistedDecisionChecks,
           actorUid: identityForAudit?.uid ?? "unknown",
           actorRole: identityForAudit?.role ?? "UNKNOWN",
           writeAudit: true,
-          auditEventId: auditEventId(receiptIdForLog, AUDIT_ACTIONS.AI_PROCESSING_FAILED),
+          auditEventId: auditEventId(receiptIdForLog, maxAttemptsReached ? AUDIT_ACTIONS.AI_MAX_ATTEMPTS_REACHED : AUDIT_ACTIONS.AI_PROCESSING_FAILED),
           auditDetails: auditDetails({
-            reason: "AI_PROCESSING_ERROR",
-            aiErrorCode: transientGeminiFailure ? "GEMINI_TRANSIENT" : null,
+            reason: maxAttemptsReached ? AI_MAX_ATTEMPTS_REACHED : "AI_PROCESSING_ERROR",
+            aiErrorCode: maxAttemptsReached ? AI_MAX_ATTEMPTS_REACHED : transientGeminiFailure ? "GEMINI_TRANSIENT" : null,
+            maxAttempts: maxAttemptsReached ? invoiceAiMaxAttempts() : undefined,
           }),
         }).catch(() => undefined);
       }
 
-      const afterError = await dataConnect.executeQuery<IntakeData>("ListInvoiceIntakes").catch(() => null);
-      const afterErrorIntake = afterError?.data.invoiceIntakes.find((item) => item.receiptId === receiptIdForLog);
+      const afterError = await listAllInvoiceIntakes(dataConnect).catch(() => null);
+      const afterErrorIntake = afterError?.find((item) => item.receiptId === receiptIdForLog);
       if (afterErrorIntake && isStableIntakeState(afterErrorIntake)) return existingIntakeResponse(receiptIdForLog, afterErrorIntake);
     }
     console.error("[invoice-ai] request failed", {

@@ -1,13 +1,13 @@
 "use client";
 
-import { ChangeEvent, createContext, FormEvent, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, createContext, FormEvent, Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getDownloadURL, ref } from "firebase/storage";
-import { accountingReadSource, commitInvoiceIntake, createFirebaseUser, deleteExpenseAccount, deleteProject, discardInvoiceIntake, loadAccountingSnapshot, mapAccountingSnapshot, removeDemoAccountingData, saveCreditCard, saveExpenseAccount, saveInvoiceIntakeReview, saveProject, saveStatementPeriod, saveUserProfile } from "../../firebase/accounting";
-import { appCheckConfigured, firebaseConfigured, firebaseStorage } from "../../firebase/client";
+import { accountingReadSource, commitInvoiceIntake, correctPostedInvoice, createFirebaseUser, deleteExpenseAccount, deleteProject, discardInvoiceIntake, loadAccountingSnapshot, loadReportAdjustments, loadTransactionCorrections, mapAccountingSnapshot, removeDemoAccountingData, saveCreditCard, saveExpenseAccount, saveInvoiceIntakeReview, saveProject, saveReportAdjustments, saveStatementPeriod, saveUserProfile, type AccountingLineItem, type ManualAdjustmentRow } from "../../firebase/accounting";
+import { getInvoiceIntakeStatus, type InvoiceIntakeStatus } from "../../firebase/ai";
+import { appCheckConfigured, firebaseAuth, firebaseConfigured, firebaseStorage } from "../../firebase/client";
 import { sqlConnectConfigured } from "../../firebase/data-connect";
-import { processInvoiceIntakeWithGemini } from "../../firebase/ai";
 import { invoicePhotoFileError, uploadInvoicePhotos } from "../../firebase/uploads";
-import { classifyInvoice } from "../../lib/invoice-processing.mjs";
+import { classifyInvoice, invoiceLineItemsSubtotalCents, validateInvoiceLineItemsForCommit } from "../../lib/invoice-processing.mjs";
 import { DecisionJsonError, parseDecisionExceptions, serializeDecisionChecks, serializeDecisionExceptions } from "../../lib/decision-json.mjs";
 import { filterTransactionsByStatus, transactionStatusFilterCounts, TRANSACTION_STATUS_FILTERS } from "../../lib/transaction-filters.mjs";
 import { INVOICE_CLIENT_VERSION } from "../../lib/invoice-client-version.mjs";
@@ -18,8 +18,10 @@ import { buildStatementImportBatch, confirmManualMatch, finalizeStatementImport,
 import { buildPersistedReconciliation } from "../../lib/reconciliation-server.mjs";
 import { DEMO_STATEMENT_IMPORTS } from "../../lib/reconciliation-fixtures.mjs";
 import { buildReconciliationExcelXml, reconciliationExportFileName } from "../../lib/reconciliation-export.mjs";
-import { accountingReportFileName, buildAccountingReportExcelXml } from "../../lib/report-export.mjs";
-import { buildAccountingCategorySummary, buildTaxSummaryByHolder } from "../../lib/accounting-report.mjs";
+import { accountingReportFileName, buildAccountingReportXlsx } from "../../lib/report-export.mjs";
+import { buildAccountingTemplateReport } from "../../lib/accounting-template-report.mjs";
+import { normalizeManualAdjustmentRows, serializeManualAdjustmentRows } from "../../lib/manual-adjustments.mjs";
+import { buildTaxSummaryByHolder } from "../../lib/accounting-report.mjs";
 import { createClientId } from "../../lib/client-id.mjs";
 import { useFirebaseIdentity, type AppRole } from "./FirebaseShell";
 
@@ -79,6 +81,7 @@ type Transaction = {
   invoiceNumber: string;
   note: string;
   sku?: string;
+  lineItems?: AccountingLineItem[];
   correctionField?: "subtotal" | "account" | "attachment";
 };
 
@@ -129,6 +132,7 @@ type CardPeriod = {
   start: string;
   end: string;
   statementLabel: string;
+  manualAdjustmentRows?: ManualAdjustmentRow[];
   status?: string;
 };
 
@@ -186,6 +190,9 @@ type InvoiceIntake = {
   photoCount: number;
   status: string;
   processingStatus?: string;
+  processingState?: string;
+  processingAttempts?: number;
+  reviewRevision?: number;
   accountingStatus?: string;
   lastError?: string;
   aiModel?: string;
@@ -206,6 +213,7 @@ type InvoiceIntake = {
   classificationSource?: string;
   classificationConfidence?: number;
   classificationStatus?: string;
+  lineItems?: AccountingLineItem[];
   aiNotes?: string;
   decisionExceptions?: string;
   decisionChecks?: string;
@@ -432,11 +440,8 @@ function useAppData() {
 }
 
 const navItems: Array<{ id: View; label: string; icon: string }> = [
-  { id: "dashboard", label: "Tableau de bord", icon: "⌂" },
-  { id: "transactions", label: "Transactions", icon: "▤" },
   { id: "intakes", label: "Factures à vérifier", icon: "!" },
-  { id: "reconciliation", label: "Rapprochement", icon: "⇄" },
-  { id: "reports", label: "Rapports", icon: "◔" },
+  { id: "transactions", label: "Transactions", icon: "▤" },
   { id: "archives", label: "Archives", icon: "▣" },
   { id: "settings", label: "Configuration", icon: "⚙" },
   { id: "debug", label: "Diagnostic", icon: "⌁" },
@@ -448,12 +453,31 @@ function formatCurrency(value: number) {
   return currency.format(value).replace("CA", "$");
 }
 
-function formatPercent(value: number) {
-  return `${value.toLocaleString("fr-CA", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
-}
-
 function formatDate(value: string) {
   return dateFormat.format(new Date(`${value}T12:00:00`));
+}
+
+function transactionAccountDisplay(transaction: Pick<Transaction, "lineItems" | "accountNumber" | "accountLabel">) {
+  const lineCodes = Array.from(new Set((transaction.lineItems ?? []).map((item) => item.accountCode).filter(Boolean)));
+  if (lineCodes.length > 1) return { number: "Ventilation", label: "Comptes par ligne" };
+  if (lineCodes.length === 1) return { number: lineCodes[0], label: "Compte source de la ligne" };
+  return { number: transaction.accountNumber ?? "—", label: transaction.accountLabel ?? "Compte à confirmer" };
+}
+
+function manualAdjustmentRowsForPeriod(period: CardPeriod) {
+  if (Array.isArray(period.manualAdjustmentRows)) return normalizeManualAdjustmentRows(period.manualAdjustmentRows);
+  return normalizeManualAdjustmentRows([]);
+}
+
+function manualAmountDraft(value: number | null | undefined) {
+  return value == null ? "" : (Number(value) / 100).toFixed(2);
+}
+
+function manualAmountToCents(value: string) {
+  const normalized = value.trim().replace(",", ".");
+  if (!normalized) return null;
+  const amount = Number(normalized);
+  return Number.isFinite(amount) ? Math.round(amount * 100) : null;
 }
 
 function isTransactionInPeriod(transaction: Pick<Transaction, "date" | "periodId">, period: CardPeriod) {
@@ -588,6 +612,9 @@ function intakeReviewMessages(intake: InvoiceIntake) {
 }
 
 export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) {
+  void Dashboard;
+  void ReconciliationPage;
+  void ReportsPage;
   const identity = useFirebaseIdentity();
   const isPreviewMode = process.env.NEXT_PUBLIC_FIREBASE_PREVIEW_MODE === "true";
   const isLocalEmulatorMode = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID === "demo-facture-thibeault" && process.env.NEXT_PUBLIC_FIREBASE_USE_EMULATORS === "true";
@@ -600,7 +627,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
   const [dataSourceState, setDataSourceState] = useState<"demo" | "loading" | "ready" | "error">(isAccountingDataSource ? "loading" : "demo");
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [viewMode, setViewMode] = useState<"accounting" | "capture">(accountRole === "WORKER" || initialRole === "WORKER" ? "capture" : "accounting");
-  const [view, setView] = useState<View>(accountRole === "WORKER" || initialRole === "WORKER" ? "capture" : "dashboard");
+  const [view, setView] = useState<View>(accountRole === "WORKER" || initialRole === "WORKER" ? "capture" : "intakes");
   const [selectedId, setSelectedId] = useState<string>(appData.transactions[0]?.id ?? "");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<TransactionStatusFilter>("Toutes");
@@ -608,6 +635,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [draftReceiptId, setDraftReceiptId] = useState<string | null>(null);
   const [queueState, setQueueState] = useState<"idle" | "uploading" | "sent">("idle");
+  const [submittedReceipt, setSubmittedReceipt] = useState<InvoiceIntakeStatus | null>(null);
   // Node 22 exposes a navigator object during SSR, but navigator.onLine can be
   // undefined there. Treat only an explicit false as offline so the server
   // render does not incorrectly show a disconnected capture screen.
@@ -689,6 +717,29 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
     }
     void saveCaptureDraft(draftReceiptId, photos.map(({ id, name, file }) => ({ id, name, file }))).catch(() => undefined);
   }, [draftReceiptId, photos]);
+
+  useEffect(() => {
+    const receiptId = submittedReceipt?.receiptId;
+    if (!isProductionDataSource || !receiptId || !firebaseAuth?.currentUser) return;
+    let active = true;
+    let timer: number | undefined;
+    const poll = async () => {
+      try {
+        const next = await getInvoiceIntakeStatus(receiptId);
+        if (!active) return;
+        setSubmittedReceipt(next);
+        const terminal = next.state.accountingStatus === "POSTED" || ["NEEDS_REVIEW", "AI_ERROR", "REJECTED", "VALIDATED"].includes(next.state.processingStatus);
+        if (!terminal) timer = window.setTimeout(() => void poll(), 5000);
+      } catch {
+        if (active) timer = window.setTimeout(() => void poll(), 10000);
+      }
+    };
+    void poll();
+    return () => {
+      active = false;
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, [isProductionDataSource, submittedReceipt?.receiptId]);
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
@@ -856,16 +907,22 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
         setPhotos([]);
         setDraftReceiptId(null);
         await clearCaptureDraft();
+        setSubmittedReceipt({
+          ok: true,
+          receiptId: receipt.receiptId,
+          state: {
+            processingStatus: "PROCESSING",
+            processingState: "QUEUED",
+            processingAttempts: 0,
+            lastAttemptAt: null,
+            accountingStatus: "NOT_POSTED",
+            lastError: null,
+            aiErrorCode: null,
+          },
+        });
         setQueueState("idle");
         notify(`Facture reçue · ${receipt.receiptId.slice(0, 8)} ✓ Vous pouvez en déposer une autre.`);
-        void processInvoiceIntakeWithGemini(receipt.receiptId)
-          .then((result) => {
-            const vendor = result.extraction.vendor || "fournisseur à confirmer";
-            notify(`IA enregistrée · ${vendor} · facture ${receipt.receiptId.slice(0, 8)} à vérifier.`);
-          })
-          .catch(() => {
-            notify(`Facture ${receipt.receiptId.slice(0, 8)} reçue · analyse IA à vérifier dans l'administration.`);
-          });
+        notify(`Facture ${receipt.receiptId.slice(0, 8)} reçue · analyse IA planifiée côté serveur.`);
       } catch (error) {
         setQueueState("idle");
         notify(error instanceof Error ? error.message : "L’envoi Firebase a échoué.");
@@ -884,10 +941,11 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
   };
 
   const goTo = (nextView: View) => {
-    if (nextView === "debug" && !canUseDiagnostics) return;
-    if (nextView !== "capture" && !canUseAccounting) return;
-    setView(nextView);
-    setViewMode(nextView === "capture" ? "capture" : "accounting");
+    const resolvedView: View = nextView === "dashboard" || nextView === "reconciliation" || nextView === "reports" ? "intakes" : nextView;
+    if (resolvedView === "debug" && !canUseDiagnostics) return;
+    if (resolvedView !== "capture" && !canUseAccounting) return;
+    setView(resolvedView);
+    setViewMode(resolvedView === "capture" ? "capture" : "accounting");
   };
 
   const refreshApplication = () => {
@@ -908,7 +966,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
       <main className="worker-shell">
         <div className="worker-topbar">
           <div className="brand-mark compact"><img className="brand-logo worker-logo" src="/brand-mbj-thibeault.png" alt="MBJ Thibeault" /></div>
-          {canUseAccounting ? <button className="ghost-button worker-status" onClick={() => goTo("dashboard")} aria-label="Retourner au contrôle comptable">Retour au contrôle</button> : <span className="worker-status">Dépôt sécurisé</span>}
+          {canUseAccounting ? <button className="ghost-button worker-status" onClick={() => goTo("intakes")} aria-label="Retourner aux factures à vérifier">Retour au contrôle</button> : <span className="worker-status">Dépôt sécurisé</span>}
         </div>
         <section className="capture-stage">
           <div className="capture-intro">
@@ -942,6 +1000,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
             </div>
           )}
           {!isOnline && <div className="offline-notice"><span className="notice-icon">↯</span><div><strong>En attente d’envoi</strong><p>Vos photos restent sur cet appareil et seront reprises dès que le réseau revient.</p></div></div>}
+          {submittedReceipt && <div className="offline-notice" aria-live="polite"><span className="notice-icon">✓</span><div><strong>Facture {submittedReceipt.receiptId.slice(0, 8)} · {intakeStatusLabel(submittedReceipt.state.processingStatus)}</strong><p>{submittedReceipt.state.accountingStatus === "POSTED" ? "Écriture comptable créée." : submittedReceipt.state.lastError ?? `Traitement serveur · tentative ${submittedReceipt.state.processingAttempts}.`}</p></div></div>}
         </section>
         {toast && <div className="toast">{toast}</div>}
       </main>
@@ -965,18 +1024,15 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
         <nav className="main-nav" aria-label="Navigation principale">
           {navItems.filter((item) => item.id !== "debug" || canUseDiagnostics).map((item) => <button key={item.id} className={`nav-item ${view === item.id ? "active" : ""}`} onClick={() => goTo(item.id)}><span className="nav-icon">{item.icon}</span><span>{item.label}</span>{item.id === "intakes" && appData.intakes.filter(isIntakeQueueItem).length > 0 && <span className="nav-count">{appData.intakes.filter(isIntakeQueueItem).length}</span>}</button>)}
         </nav>
-        <div className="sidebar-bottom"><div className="archive-mini"><span className="archive-icon">◷</span><div><strong>Archivage recommandé</strong><span>842 photos admissibles</span></div><span className="arrow">→</span></div>{canUseAccounting && <button className="worker-mode-button" onClick={() => goTo("capture")}><span>⌾</span> Ouvrir le mode dépôt</button>}<div className="user-footer"><span className="avatar avatar-gold">{accountRole === "ADMIN" ? "A" : "K"}</span><div><strong>{accountRole === "ADMIN" ? "Administration" : "Kim"}</strong><span>{accountRole === "KIM" ? "Contrôle comptable" : "Administrateur"}</span></div><button className="icon-button" aria-label="Options du compte">•••</button></div></div>
+        <div className="sidebar-bottom"><div className="archive-mini"><span className="archive-icon">◷</span><div><strong>{isProductionDataSource ? "Archivage à configurer" : "Archivage recommandé"}</strong><span>{isProductionDataSource ? "Statistiques Storage à calculer" : "Statistiques non disponibles"}</span></div><span className="arrow">→</span></div>{canUseAccounting && <button className="worker-mode-button" onClick={() => goTo("capture")}><span>⌾</span> Ouvrir le mode dépôt</button>}<div className="user-footer"><span className="avatar avatar-gold">{accountRole === "ADMIN" ? "A" : "K"}</span><div><strong>{accountRole === "ADMIN" ? "Administration" : "Kim"}</strong><span>{accountRole === "KIM" ? "Contrôle comptable" : "Administrateur"}</span></div><button className="icon-button" aria-label="Options du compte">•••</button></div></div>
       </aside>
       <section className="content-area">
-        <header className="topbar"><div className="breadcrumbs"><span>Maçonnerie Thibeault</span><span>/</span><strong>{navItems.find((item) => item.id === view)?.label ?? "Tableau de bord"}</strong></div><div className="topbar-actions"><span className="demo-note">{dataSourceLabel}</span><button className="icon-button" aria-label="Notifications">♧<span className="notification-dot" /></button><button className="avatar avatar-gold small" onClick={() => goTo("capture")} aria-label="Ouvrir le mode dépôt">{accountRole === "ADMIN" ? "A" : "K"}</button></div></header>
+        <header className="topbar"><div className="breadcrumbs"><span>Maçonnerie Thibeault</span><span>/</span><strong>{navItems.find((item) => item.id === view)?.label ?? (view === "transaction" ? "Transaction" : "Factures à vérifier")}</strong></div><div className="topbar-actions"><span className="demo-note">{dataSourceLabel}</span><button className="icon-button" aria-label="Notifications">♧<span className="notification-dot" /></button><button className="avatar avatar-gold small" onClick={() => goTo("capture")} aria-label="Ouvrir le mode dépôt">{accountRole === "ADMIN" ? "A" : "K"}</button></div></header>
         <div className="page-content">
-          {view === "dashboard" && <Dashboard onNavigate={goTo} onOpenTransactions={(person) => { setQuery(person ?? ""); setStatusFilter("Toutes"); goTo("transactions"); }} period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
           {view === "transactions" && <TransactionsPage items={filteredTransactions} query={query} setQuery={setQuery} statusFilter={statusFilter} statusCounts={transactionStatusCounts} setStatusFilter={setStatusFilter} onOpen={(id) => { setSelectedId(id); setView("transaction" as View); }} />}
-          {view === "reconciliation" && <ReconciliationPage period={selectedPeriod} onPeriodChange={setSelectedPeriod} isProductionDataSource={isProductionDataSource} />}
-          {view === "reports" && <ReportsPage period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
           {view === "archives" && <ArchivesPage onNotify={notify} isProductionDataSource={isProductionDataSource} />}
           {view === "settings" && <AdminDirectoryPage onDataChange={(patch) => setAppData((current) => ({ ...current, ...patch }))} role={accountRole ?? "ADMIN"} />}
-          {view === "intakes" && canUseAccounting && <IntakeQueuePage items={appData.intakes.filter(isIntakeQueueItem)} onSaved={(receiptId, patch) => setAppData((current) => ({ ...current, intakes: current.intakes.map((intake) => intake.receiptId === receiptId ? { ...intake, ...patch } : intake) }))} />}
+          {view === "intakes" && canUseAccounting && <IntakeQueuePage period={selectedPeriod} onPeriodChange={setSelectedPeriod} items={appData.intakes.filter(isIntakeQueueItem)} onSaved={(receiptId, patch) => { setAppData((current) => ({ ...current, intakes: current.intakes.map((intake) => intake.receiptId === receiptId ? { ...intake, ...patch } : intake) })); if (patch.accountingStatus === "POSTED") retryAccounting(); }} />}
           {view === "debug" && canUseDiagnostics && <DebugPage dataSourceState={dataSourceState} onRetry={retryAccounting} role={accountRole ?? "ADMIN"} />}
           {(view as string) === "transaction" && selected && <TransactionDetail transaction={selected} onBack={() => setView("transactions")} />}
         </div>
@@ -1093,6 +1149,7 @@ type IntakeReviewDraft = {
   category: string;
   projectId: string;
   accountCode: string;
+  lineItems: AccountingLineItem[];
   notes: string;
 };
 
@@ -1131,6 +1188,7 @@ function intakeToReviewDraft(intake: InvoiceIntake): IntakeReviewDraft {
     category: intake.extractedCategory ?? intake.classificationCategory ?? "",
     projectId: intake.extractedProjectId ?? "",
     accountCode: intake.classificationStatus === "PROPOSED" ? "" : intake.classificationAccountCode ?? "",
+    lineItems: intake.lineItems ?? [],
     notes: reviewNoteForDisplay(intake.aiNotes),
   };
 }
@@ -1208,6 +1266,79 @@ function InvoiceIntakeEvidence({ intake }: { intake: InvoiceIntake }) {
   </section>;
 }
 
+function prepareLineItemsForSave(lineItems: AccountingLineItem[], vendor: string, skuReferences: SkuReference[], accounts: AccountCategory[]) {
+  return lineItems.map((item, index) => {
+    const classification = classifyInvoice(
+      { vendor, sku: item.sku ?? undefined, category: item.category ?? undefined },
+      skuReferences,
+      accounts,
+    );
+    const accountCode = item.accountCode?.trim() || null;
+    return {
+      ...item,
+      sequence: index + 1,
+      description: item.description.trim(),
+      category: item.category?.trim() || classification.category,
+      accountCode,
+      classificationSource: accountCode ? "KIM_LINE_REVIEW" : classification.source,
+      classificationConfidence: accountCode ? 1 : classification.confidence,
+      classificationStatus: accountCode ? "CONFIRMED" : classification.resolution,
+      classificationNote: accountCode ? "Compte confirmé par KIM." : classification.note,
+    };
+  });
+}
+
+function reviewLineStatus(item: AccountingLineItem) {
+  return item.accountCode && ["RESOLVED", "CONFIRMED"].includes(item.classificationStatus ?? "")
+    ? "Confirmée"
+    : "À confirmer";
+}
+
+function InvoiceLineItemsReview({
+  items,
+  vendor,
+  subtotalCents,
+  accounts,
+  skuReferences,
+  onUpdate,
+  onAdd,
+  onRemove,
+}: {
+  items: AccountingLineItem[];
+  vendor: string;
+  subtotalCents: number | null;
+  accounts: AccountCategory[];
+  skuReferences: SkuReference[];
+  onUpdate: (index: number, patch: Partial<AccountingLineItem>) => void;
+  onAdd: () => void;
+  onRemove: (index: number) => void;
+}) {
+  const linesSubtotalCents = invoiceLineItemsSubtotalCents(items);
+  const differenceCents = subtotalCents == null ? null : linesSubtotalCents - subtotalCents;
+  const missingAccounts = items.filter((item) => !item.accountCode).length;
+  return <section className="review-line-items" aria-labelledby="review-line-items-title">
+    <div className="section-heading"><span>04</span><div><p className="eyebrow">Articles extraits</p><h2 id="review-line-items-title">Classification par ligne</h2></div><button className="text-button" type="button" onClick={onAdd}>+ Ajouter une ligne</button></div>
+    <p className="muted">Chaque ligne doit conserver la description visible sur la facture et être associée à un compte avant la comptabilisation.</p>
+    {items.length === 0 && <div className="line-item warning-line"><span>—</span><div><strong>Aucune ligne extraite</strong><small>Ajoutez les articles à partir de la photo originale. La comptabilisation restera bloquée tant que le détail ne sera pas complet.</small></div><strong>—</strong></div>}
+    {items.map((item, index) => {
+      const suggestion = classifyInvoice({ vendor, sku: item.sku ?? undefined, category: item.category ?? undefined }, skuReferences, accounts);
+      return <div className="review-line-item" key={`${item.sequence}-${index}`}>
+        <div className="review-line-item-header"><span>{String(index + 1).padStart(2, "0")}</span><strong>{reviewLineStatus(item)}</strong><button className="text-button danger-text" type="button" onClick={() => onRemove(index)}>Retirer</button></div>
+        <div className="review-line-item-grid">
+          <label className="field wide"><span>Description</span><input value={item.description} onChange={(event) => onUpdate(index, { description: event.target.value })} /></label>
+          <label className="field"><span>Quantité</span><input inputMode="decimal" value={item.quantity == null ? "" : String(item.quantity)} onChange={(event) => onUpdate(index, { quantity: Number(event.target.value.replace(",", ".")) || null })} /></label>
+          <label className="field"><span>Prix unitaire</span><input inputMode="decimal" value={centsToDraftDollars(item.unitPriceCents == null ? undefined : String(item.unitPriceCents))} onChange={(event) => onUpdate(index, { unitPriceCents: dollarsToCents(event.target.value) })} /></label>
+          <label className="field"><span>Montant avant taxes</span><input inputMode="decimal" value={centsToDraftDollars(item.amountCents == null ? undefined : String(item.amountCents))} onChange={(event) => onUpdate(index, { amountCents: dollarsToCents(event.target.value) })} /></label>
+          <label className="field"><span>SKU / code produit</span><input value={item.sku ?? ""} onChange={(event) => onUpdate(index, { sku: event.target.value || null })} /></label>
+          <label className="field"><span>Catégorie proposée</span><input value={item.category ?? ""} onChange={(event) => onUpdate(index, { category: event.target.value || null })} /><small>{suggestion.category ? `Suggestion : ${suggestion.category}` : "Aucune suggestion fiable."}</small></label>
+          <label className="field wide"><span>Compte comptable</span><select value={item.accountCode ?? ""} onChange={(event) => onUpdate(index, { accountCode: event.target.value || null })}><option value="">Choisir le compte de dépense</option>{accounts.filter((account) => account.status !== "INACTIVE" && account.type === "EXPENSE").map((account) => <option key={account.id} value={account.number}>{account.number} · {account.label}</option>)}</select><small>{suggestion.accountCode ? `Suggestion : ${suggestion.accountCode} · ${suggestion.category}` : "Aucune suggestion fiable; un choix manuel est requis."}</small></label>
+        </div>
+      </div>;
+    })}
+    <div className={`line-items-control ${items.length && differenceCents === 0 && missingAccounts === 0 ? "success" : "warning"}`}><span>{items.length ? `Total des lignes : ${formatCurrency(linesSubtotalCents / 100)}` : "Détail manquant"}</span><span>{differenceCents == null ? "Sous-total à saisir" : Math.abs(differenceCents) <= 1 ? "✓ Concorde avec le sous-total" : `Écart : ${formatCurrency(Math.abs(differenceCents) / 100)}`}</span><span>{missingAccounts ? `${missingAccounts} compte${missingAccounts > 1 ? "s" : ""} à confirmer` : items.length ? "✓ Comptes confirmés" : ""}</span></div>
+  </section>;
+}
+
 type TransactionEvidencePhoto = { sequence: number; storagePath: string; url: string };
 type TransactionEvidenceState = { key: string; status: "loading" | "ready" | "error"; photos: TransactionEvidencePhoto[] };
 
@@ -1270,6 +1401,7 @@ function auditActionLabel(action: string) {
     TRANSACTION_CREATED: "Transaction créée",
     INVOICE_DISCARDED: "Facture supprimée",
     RECONCILIATION_UPDATED: "Rapprochement mis à jour",
+    STATEMENT_ADJUSTMENTS_UPDATED: "Ajustements de relevé enregistrés",
   };
   return labels[action] ?? action;
 }
@@ -1284,6 +1416,7 @@ function auditActionDescription(action: string) {
     TRANSACTION_CREATED: "La facture a été transformée en écriture comptable.",
     INVOICE_DISCARDED: "La facture a été retirée de la file et sa photo Storage a été supprimée.",
     RECONCILIATION_UPDATED: "Le lien entre la facture et le relevé de carte a été mis à jour.",
+    STATEMENT_ADJUSTMENTS_UPDATED: "Les lignes manuelles du relevé ont été enregistrées pour la période.",
   };
   return descriptions[action] ?? "Cette étape a été enregistrée dans la piste d’audit.";
 }
@@ -1338,14 +1471,14 @@ function AuditTrail({ events, role, state }: { events: AuditEventRecord[]; role:
   return <section className="audit-trail" aria-label="Piste d’audit"><div className="section-heading"><span>03</span><div><p className="eyebrow">Traçabilité</p><h2>Historique de la facture</h2><p className="section-help">Chaque étape indique ce qui s’est passé et qui l’a enregistrée.</p></div></div>{state === "loading" && <p className="muted">Chargement de l’historique…</p>}{state === "error" && <p className="intake-evidence-message error">La piste d’audit n’est pas disponible.</p>}{state === "ready" && !events.length && <p className="muted">Aucun événement d’audit enregistré.</p>}{events.length > 0 && <div className="audit-event-list">{events.map((event) => { const details = parseAuditDetails(event.details); const corrections = meaningfulAuditCorrections(details); const actor = event.actor?.displayName ?? (event.actorRole ? `Rôle ${event.actorRole}` : "Utilisateur authentifié"); const isEmptyCorrection = event.action === "HUMAN_CORRECTION" && corrections.length === 0; return <article className={`audit-event audit-event-${event.action.toLowerCase()}`} key={event.id}><div className="audit-event-heading"><div><strong>{isEmptyCorrection ? "Revue enregistrée" : auditActionLabel(event.action)}</strong><p>{isEmptyCorrection ? "La revue a été enregistrée sans modification de valeur." : auditActionDescription(event.action)}</p></div><small>{actor}<br />{auditTimestamp(event.createdAt)}</small></div>{role === "ADMIN" && event.action === "HUMAN_CORRECTION" && corrections.length > 0 && <div className="audit-corrections">{corrections.map((correction) => <span key={String(correction.field)}><b>{auditFieldLabel(correction.field)}</b><span>{auditFieldValue(correction.field, correction.previous)} <i aria-hidden="true">→</i> {auditFieldValue(correction.field, correction.corrected)}</span></span>)}</div>}</article>; })}</div>}</section>;
 }
 
-function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: (receiptId: string, patch: Partial<InvoiceIntake>) => void }) {
+function IntakeQueuePage({ items, period, onPeriodChange, onSaved }: { items: InvoiceIntake[]; period: CardPeriod; onPeriodChange: (period: CardPeriod) => void; onSaved: (receiptId: string, patch: Partial<InvoiceIntake>) => void }) {
   const { accounts, cards, periods, projects, skuReferences, users } = useAppData();
   const identity = useFirebaseIdentity();
   const sortedItems = [...items].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
   const [selectedReceiptId, setSelectedReceiptId] = useState(items[0]?.receiptId ?? "");
   const selectedIntake = items.find((intake) => intake.receiptId === selectedReceiptId) ?? null;
   const [draft, setDraft] = useState<IntakeReviewDraft>(() => selectedIntake ? intakeToReviewDraft(selectedIntake) : {
-    vendor: "", invoiceNumber: "", invoiceDate: "", subtotal: "", tps: "0.00", tvq: "0.00", total: "", currency: "CAD", sku: "", category: "", projectId: "", accountCode: "", notes: "",
+    vendor: "", invoiceNumber: "", invoiceDate: "", subtotal: "", tps: "0.00", tvq: "0.00", total: "", currency: "CAD", sku: "", category: "", projectId: "", accountCode: "", lineItems: [], notes: "",
   });
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveMessage, setSaveMessage] = useState("");
@@ -1356,7 +1489,7 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
     return cards.find((card) => card.status === "Actif" && card.holderId === uploader?.id)?.id ?? "";
   };
   const [commitCardId, setCommitCardId] = useState(() => cardSuggestionFor(selectedIntake));
-  const [commitPeriodId, setCommitPeriodId] = useState("");
+  const [commitPeriodId, setCommitPeriodId] = useState(() => period.id === "custom" ? "" : period.id);
   const [commitState, setCommitState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [auditEvents, setAuditEvents] = useState<AuditEventRecord[]>([]);
   const [auditState, setAuditState] = useState<"loading" | "ready" | "error">("loading");
@@ -1387,6 +1520,13 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
     };
   }, [auditReceiptId, auditUser]);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setCommitPeriodId(period.id === "custom" ? "" : period.id);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [period.id]);
+
   const selectIntake = (intake: InvoiceIntake) => {
     setSelectedReceiptId(intake.receiptId);
     setDraft(intakeToReviewDraft(intake));
@@ -1394,7 +1534,7 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
     setSaveMessage("");
     setDraftDirty(false);
     setCommitCardId(cardSuggestionFor(intake));
-    setCommitPeriodId("");
+    setCommitPeriodId(period.id === "custom" ? "" : period.id);
     setCommitState("idle");
   };
   const updateDraft = (field: keyof IntakeReviewDraft, value: string) => {
@@ -1404,15 +1544,41 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
     setCommitState("idle");
     setSaveMessage("");
   };
+  const updateLineItem = (index: number, patch: Partial<AccountingLineItem>) => {
+    setDraft((current) => ({ ...current, lineItems: current.lineItems.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item) }));
+    setDraftDirty(true);
+    setSaveState("idle");
+    setCommitState("idle");
+    setSaveMessage("");
+  };
+  const addLineItem = () => {
+    setDraft((current) => ({ ...current, lineItems: [...current.lineItems, { sequence: current.lineItems.length + 1, description: "", quantity: 1, unitPriceCents: null, amountCents: null, sku: null, category: null, accountCode: null, classificationSource: null, classificationConfidence: null, classificationStatus: null, classificationNote: null }] }));
+    setDraftDirty(true);
+    setSaveState("idle");
+    setCommitState("idle");
+  };
+  const removeLineItem = (index: number) => {
+    setDraft((current) => ({ ...current, lineItems: current.lineItems.filter((_, itemIndex) => itemIndex !== index).map((item, itemIndex) => ({ ...item, sequence: itemIndex + 1 })) }));
+    setDraftDirty(true);
+    setSaveState("idle");
+    setCommitState("idle");
+  };
   const inferredClassification = classifyInvoice(
     { vendor: draft.vendor, sku: draft.sku || undefined, category: draft.category || undefined },
     skuReferences,
     accounts,
   );
+  const preparedLineItems = prepareLineItemsForSave(draft.lineItems, draft.vendor, skuReferences, accounts);
+  const draftSubtotalCents = dollarsToCents(draft.subtotal);
+  const lineItemsValidation = validateInvoiceLineItemsForCommit(preparedLineItems, draftSubtotalCents ?? -1);
+  const lineItemsReady = lineItemsValidation.ok;
+  const lineAccountCodes = Array.from(new Set(preparedLineItems.map((item) => item.accountCode).filter((code): code is string => Boolean(code))));
+  const allLineAccountsConfirmed = preparedLineItems.length > 0 && preparedLineItems.every((item) => Boolean(item.accountCode));
+  const summaryAccountCode = lineAccountCodes.length === 1 ? lineAccountCodes[0] : null;
   const classificationCategory = draft.category || inferredClassification.category;
-  const classificationSource = draft.accountCode ? "KIM_REVIEW" : inferredClassification.source;
-  const classificationConfidence = draft.accountCode ? 1 : inferredClassification.confidence;
-  const isReadyForAccounting = Boolean(draft.vendor.trim() && draft.invoiceDate && draft.accountCode && draft.projectId && commitCardId);
+  const classificationSource = allLineAccountsConfirmed ? "KIM_LINE_REVIEW" : draft.accountCode ? "KIM_REVIEW" : inferredClassification.source;
+  const classificationConfidence = allLineAccountsConfirmed ? 1 : draft.accountCode ? 1 : inferredClassification.confidence;
+  const isReadyForAccounting = Boolean(draft.vendor.trim() && draft.invoiceDate && draft.projectId && commitCardId && lineItemsReady && allLineAccountsConfirmed);
   const messageState = commitState === "error" || commitState === "saved" ? commitState : saveState;
   const suggestedCard = cards.find((card) => card.id === commitCardId);
   const suggestedUploader = selectedIntake ? users.find((user) => user.firebaseUid === selectedIntake.uploaderUid) : undefined;
@@ -1444,7 +1610,7 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
     }
     if (action === "commit" && !isReadyForAccounting) {
       setSaveState("error");
-      setSaveMessage("Le fournisseur, la date, les montants, le compte, le projet et la carte sont requis avant la comptabilisation.");
+      setSaveMessage("Le fournisseur, la date, les montants, chaque compte de ligne, le projet et la carte sont requis avant la comptabilisation.");
       return;
     }
     if (action === "commit" && !window.confirm(`Enregistrer la correction et créer immédiatement l’écriture comptable pour ${draft.vendor.trim()} (${formatCurrency(totalCents / 100)}) ?`)) {
@@ -1455,8 +1621,8 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
     setSaveMessage("");
     const status = isReadyForAccounting ? "VALIDATED" : "NEEDS_REVIEW";
     const classificationStatus = isReadyForAccounting ? "RESOLVED" : inferredClassification.resolution;
-    const decisionExceptions = isReadyForAccounting ? [] : [
-      ...(!draft.accountCode ? [{ code: "MISSING_ACCOUNT", fieldName: "accountCode", message: "Un compte comptable doit être confirmé.", aiValue: null, suggestedValue: inferredClassification.accountCode, status: "OPEN" }] : []),
+    const decisionExceptions: Array<{ code: string; fieldName: string; message: string; aiValue: string | null; suggestedValue: string | null; status: string }> = isReadyForAccounting ? [] : [
+      ...(!allLineAccountsConfirmed ? [{ code: "MISSING_ACCOUNT", fieldName: "accountCode", message: "Chaque ligne doit avoir un compte comptable confirmé.", aiValue: null, suggestedValue: inferredClassification.accountCode, status: "OPEN" }] : []),
       ...(!draft.projectId ? [{ code: "UNKNOWN_PROJECT", fieldName: "projectId", message: "Projet introuvable — sélectionnez le chantier correspondant.", aiValue: null, suggestedValue: null, status: "OPEN" }] : []),
       ...(!commitCardId ? [{ code: "UNKNOWN_CARD", fieldName: "cardId", message: "Carte utilisée non détectée ou non sélectionnée.", aiValue: null, suggestedValue: null, status: "OPEN" }] : []),
     ];
@@ -1472,6 +1638,7 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
       category: selectedIntake.extractedCategory ?? selectedIntake.classificationCategory ?? null,
       projectId: selectedIntake.extractedProjectId ?? null,
       accountCode: selectedIntake.classificationAccountCode ?? null,
+      lineItems: JSON.stringify(selectedIntake.lineItems ?? []),
     };
     const correctedValues = {
       vendor: draft.vendor.trim(),
@@ -1484,7 +1651,8 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
       sku: draft.sku.trim() || null,
       category: draft.category.trim() || null,
       projectId: draft.projectId || null,
-      accountCode: draft.accountCode || null,
+      accountCode: summaryAccountCode,
+      lineItems: JSON.stringify(preparedLineItems),
     };
     const changedFields = Object.keys(correctedValues).filter((field) => previousValues[field as keyof typeof previousValues] !== correctedValues[field as keyof typeof correctedValues]);
     const commitInput = {
@@ -1499,12 +1667,21 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
       currency: draft.currency.trim().toUpperCase() || "CAD",
       sku: draft.sku.trim() || null,
       category: classificationCategory || "Divers",
-      accountCode: draft.accountCode,
+      accountCode: summaryAccountCode,
       cardId: commitCardId,
       statementPeriodId: commitPeriodId || null,
       projectId: draft.projectId,
       classificationNote: draft.notes.trim() || "Revue confirmée.",
+      lineItems: JSON.stringify(preparedLineItems),
     };
+    if (preparedLineItems.length === 0) {
+      decisionExceptions.push({ code: "MISSING_LINE_ITEMS", fieldName: "lineItems", message: "Au moins une ligne d’article doit être ajoutée.", aiValue: null, suggestedValue: null, status: "OPEN" });
+    } else if (Math.abs(lineItemsValidation.differenceCents) > 1) {
+      decisionExceptions.push({ code: "LINE_ITEMS_TOTAL_MISMATCH", fieldName: "lineItems", message: "La somme des lignes doit correspondre au sous-total.", aiValue: String(lineItemsValidation.linesSubtotalCents), suggestedValue: String(subtotalCents), status: "OPEN" });
+    }
+    if (preparedLineItems.some((item) => !item.accountCode)) {
+      decisionExceptions.push({ code: "LINE_ITEM_CLASSIFICATION_REVIEW", fieldName: "lineItems", message: "Chaque ligne doit avoir un compte comptable confirmé.", aiValue: null, suggestedValue: null, status: "OPEN" });
+    }
     let reviewSaved = false;
     try {
       await saveInvoiceIntakeReview({
@@ -1521,15 +1698,17 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
         sku: draft.sku.trim() || null,
         category: draft.category.trim() || null,
         projectId: draft.projectId,
-        accountCode: draft.accountCode || null,
+        accountCode: summaryAccountCode,
         classificationCategory: classificationCategory || null,
         classificationSource,
         classificationConfidence,
         classificationStatus,
         aiNotes: draft.notes.trim(),
+        lineItems: JSON.stringify(preparedLineItems),
         writeAudit: changedFields.length > 0,
         decisionExceptions: serializeDecisionExceptions(decisionExceptions),
         decisionChecks: serializeDecisionChecks([{ code: "KIM_REVIEW", passed: isReadyForAccounting, message: isReadyForAccounting ? "Revue KIM complète." : "La revue KIM reste incomplète." }]),
+        reviewRevision: selectedIntake.reviewRevision ?? 0,
         auditDetails: auditDetails({
           source: "HUMAN_EDIT",
           status,
@@ -1554,7 +1733,8 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
         extractedSku: draft.sku.trim() || undefined,
         extractedCategory: draft.category.trim() || undefined,
         extractedProjectId: draft.projectId || undefined,
-        classificationAccountCode: draft.accountCode || undefined,
+        lineItems: preparedLineItems,
+        classificationAccountCode: summaryAccountCode || undefined,
         classificationCategory: classificationCategory || undefined,
         classificationSource,
         classificationConfidence,
@@ -1562,6 +1742,7 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
         aiNotes: draft.notes.trim(),
         decisionExceptions: serializeDecisionExceptions(decisionExceptions),
         decisionChecks: serializeDecisionChecks([{ code: "KIM_REVIEW", passed: isReadyForAccounting, message: isReadyForAccounting ? "Revue KIM complète." : "La revue KIM reste incomplète." }]),
+        reviewRevision: (selectedIntake.reviewRevision ?? 0) + 1,
       });
       setDraftDirty(false);
       setSaveState("saved");
@@ -1584,8 +1765,8 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
       setSaveMessage(
         status === "VALIDATED"
           ? "Revue enregistrée; prête pour la création comptable."
-          : !draft.accountCode
-            ? "Correction enregistrée; il manque encore le compte comptable."
+          : !allLineAccountsConfirmed
+            ? "Correction enregistrée; chaque ligne doit encore recevoir un compte comptable."
             : !draft.projectId
               ? "Correction enregistrée; il manque encore un projet actif."
               : !commitCardId
@@ -1610,9 +1791,9 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
     const tpsCents = dollarsToCents(draft.tps);
     const tvqCents = dollarsToCents(draft.tvq);
     const totalCents = dollarsToCents(draft.total);
-    if (!draft.vendor.trim() || !draft.invoiceDate || subtotalCents == null || tpsCents == null || tvqCents == null || totalCents == null || !draft.accountCode || !draft.projectId || !commitCardId) {
+    if (!draft.vendor.trim() || !draft.invoiceDate || subtotalCents == null || tpsCents == null || tvqCents == null || totalCents == null || !allLineAccountsConfirmed || !draft.projectId || !commitCardId) {
       setCommitState("error");
-      setSaveMessage("Le fournisseur, la date, les montants, le compte, le projet et la carte sont requis. La période du relevé est facultative.");
+      setSaveMessage("Le fournisseur, la date, les montants, chaque compte de ligne, le projet et la carte sont requis. La période du relevé est facultative.");
       return;
     }
     if (!window.confirm(`Créer l’écriture comptable pour ${draft.vendor.trim()} (${formatCurrency(totalCents / 100)}) ?`)) return;
@@ -1631,11 +1812,12 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
         currency: draft.currency.trim().toUpperCase() || "CAD",
         sku: draft.sku.trim() || null,
         category: classificationCategory || "Divers",
-        accountCode: draft.accountCode,
+        accountCode: summaryAccountCode,
         cardId: commitCardId,
         statementPeriodId: commitPeriodId || null,
         projectId: draft.projectId,
         classificationNote: draft.notes.trim() || "Revue confirmée.",
+        lineItems: JSON.stringify(preparedLineItems),
       });
       onSaved(selectedIntake.receiptId, {
         status: "VALIDATED",
@@ -1718,16 +1900,17 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
           <label className={`field wide ${needsCorrection("vendor") ? "needs-correction" : ""}`}><span>Fournisseur</span><input aria-invalid={needsCorrection("vendor")} value={draft.vendor} onChange={(event) => updateDraft("vendor", event.target.value)} /></label>
           <div className="field-grid"><label className={`field ${needsCorrection("invoiceNumber") ? "needs-correction" : ""}`}><span>No de facture</span><input aria-invalid={needsCorrection("invoiceNumber")} value={draft.invoiceNumber} onChange={(event) => updateDraft("invoiceNumber", event.target.value)} /></label><label className={`field ${needsCorrection("invoiceDate") ? "needs-correction" : ""}`}><span>Date</span><input aria-invalid={needsCorrection("invoiceDate")} type="date" value={draft.invoiceDate} onChange={(event) => updateDraft("invoiceDate", event.target.value)} /></label></div>
           <div className="field-grid"><label className={`field ${needsCorrection("subtotalCents") ? "needs-correction" : ""}`}><span>Sous-total</span><input aria-invalid={needsCorrection("subtotalCents")} inputMode="decimal" value={draft.subtotal} onChange={(event) => updateDraft("subtotal", event.target.value)} /></label><label className={`field ${needsCorrection("totalCents") ? "needs-correction" : ""}`}><span>Total</span><input aria-invalid={needsCorrection("totalCents")} inputMode="decimal" value={draft.total} onChange={(event) => updateDraft("total", event.target.value)} /></label><label className={`field ${needsCorrection("tpsCents") ? "needs-correction" : ""}`}><span>TPS</span><input aria-invalid={needsCorrection("tpsCents")} inputMode="decimal" value={draft.tps} onChange={(event) => updateDraft("tps", event.target.value)} /></label><label className={`field ${needsCorrection("tvqCents") ? "needs-correction" : ""}`}><span>TVQ</span><input aria-invalid={needsCorrection("tvqCents")} inputMode="decimal" value={draft.tvq} onChange={(event) => updateDraft("tvq", event.target.value)} /></label></div>
-          <label className={`field wide ${needsCorrection("accountCode") ? "needs-correction" : ""}`}><span>Compte comptable confirmé</span><select aria-invalid={needsCorrection("accountCode")} value={draft.accountCode} onChange={(event) => updateDraft("accountCode", event.target.value)}><option value="">Choisir le compte de dépense</option>{accounts.filter((account) => account.status !== "INACTIVE" && account.type === "EXPENSE").map((account) => <option key={account.id} value={account.number}>{account.number} · {account.label}</option>)}</select><small>{inferredClassification.accountCode ? `Suggestion automatique : ${inferredClassification.accountCode} · ${inferredClassification.category}` : "Aucune suggestion fiable; un choix manuel est requis."}</small></label>
+          <InvoiceLineItemsReview items={draft.lineItems} vendor={draft.vendor} subtotalCents={draftSubtotalCents} accounts={accounts} skuReferences={skuReferences} onUpdate={updateLineItem} onAdd={addLineItem} onRemove={removeLineItem} />
+          <div className={`field wide ${needsCorrection("accountCode") || !allLineAccountsConfirmed ? "needs-correction" : ""}`}><span>Compte résumé (facultatif)</span><div className="field-value">{summaryAccountCode ? `${summaryAccountCode} · ventilation uniforme` : lineAccountCodes.length > 1 ? "Ventilation multi-comptes — voir les lignes" : "Aucun compte de ligne confirmé"}</div><small>La ventilation des lignes est la source de vérité. Le compte résumé n’est affiché que lorsque toutes les lignes utilisent le même compte.</small></div>
           <label className={`field wide ${needsCorrection("projectId") ? "needs-correction" : ""}`}><span>Chantier / projet</span><select aria-invalid={needsCorrection("projectId")} value={draft.projectId} onChange={(event) => updateDraft("projectId", event.target.value)}><option value="">Projet introuvable — sélectionnez le chantier correspondant</option>{projects.filter((project) => project.status !== "INACTIVE").map((project) => <option key={project.id} value={project.id}>{project.number} · {project.name}</option>)}</select><small>Un projet actif est obligatoire avant la création de l’écriture, mais la correction peut être enregistrée avant son choix.</small></label>
           <label className="field wide"><span>Note de revue (facultative)</span><textarea rows={3} value={draft.notes} onChange={(event) => updateDraft("notes", event.target.value)} /><small>Expliquez brièvement ce qui reste incertain ou la décision prise. Laissez ce champ vide si aucune précision n’est nécessaire.</small></label>
           <section className="intake-commit-card">
-            <div><p className="eyebrow">Création comptable</p><h3>Références comptables</h3><p className="muted">Choisissez la carte utilisée lorsque vous êtes prêt à créer l’écriture. La période du relevé est facultative et pourra être associée lors du rapprochement.</p></div>
+            <div><p className="eyebrow">Création comptable</p><h3>Références comptables</h3><p className="muted">Choisissez la carte utilisée et le cycle comptable. Ces informations alimentent directement le tableau de Kim après la comptabilisation.</p></div>
             <div className="field-grid">
               <label className={`field ${cardNeedsCorrection ? "needs-correction" : ""}`}><span>Carte utilisée</span><select aria-invalid={cardNeedsCorrection} value={commitCardId} onChange={(event) => { setCommitCardId(event.target.value); setCommitState("idle"); }}><option value="">Choisir la carte</option>{cards.filter((card) => card.status === "Actif").map((card) => <option key={card.id} value={card.id}>•••• {card.lastFour} · {card.holder}</option>)}</select>{suggestedCard && suggestedUploader ? <small>Suggestion : carte de {suggestedUploader.displayName}, selon le compte qui a envoyé la facture.</small> : cardNeedsCorrection ? <small>{cardReviewMessage}</small> : null}</label>
-              <label className="field"><span>Période du relevé (facultatif)</span><select value={commitPeriodId} onChange={(event) => { setCommitPeriodId(event.target.value); setCommitState("idle"); }}><option value="">Aucune période sélectionnée</option>{periods.map((period) => <option key={period.id} value={period.id}>{period.label}</option>)}</select><small>Association possible plus tard dans le rapprochement.</small></label>
+              <label className="field"><span>Période du relevé (facultatif)</span><select value={commitPeriodId} onChange={(event) => { setCommitPeriodId(event.target.value); setCommitState("idle"); }}><option value="">Aucune période sélectionnée</option>{periods.map((period) => <option key={period.id} value={period.id}>{period.label}</option>)}</select><small>Cette association classe l’écriture dans le cycle du tableau de Kim.</small></label>
             </div>
-            {processingStatusOf(selectedIntake) !== "VALIDATED" && <small>Enregistrez la correction et confirmez un compte avant de créer l’écriture.</small>}
+            {processingStatusOf(selectedIntake) !== "VALIDATED" && <small>Enregistrez la correction et confirmez le compte de chaque ligne avant de créer l’écriture.</small>}
             {draftDirty && <small>Des changements non enregistrés désactivent la création jusqu&apos;à la prochaine sauvegarde.</small>}
             <button className="secondary-button" type="button" onClick={commitAccounting} disabled={commitState === "saving" || processingStatusOf(selectedIntake) !== "VALIDATED" || draftDirty}>{commitState === "saving" ? "Création…" : "Comptabiliser sans nouvelle correction"}</button>
           </section>
@@ -1735,6 +1918,9 @@ function IntakeQueuePage({ items, onSaved }: { items: InvoiceIntake[]; onSaved: 
           <div className="intake-review-actions"><button className="text-button danger-text" type="button" onClick={() => void discardReview()} disabled={saveState === "saving" || commitState === "saving"}>Supprimer la facture</button><div className="intake-review-primary-actions">{isReadyForAccounting && <button className="primary-button" type="button" onClick={() => void saveReview(undefined, "commit")} disabled={saveState === "saving" || commitState === "saving"}>{commitState === "saving" ? "Enregistrement et comptabilisation…" : "Enregistrer et comptabiliser"}</button>}<button className={isReadyForAccounting ? "secondary-button" : "primary-button"} type="submit" disabled={saveState === "saving" || commitState === "saving"}>{saveState === "saving" ? "Enregistrement…" : isReadyForAccounting ? "Enregistrer pour plus tard" : "Enregistrer la correction"}</button></div><span className="data-source-help">La suppression et la création comptable sont réservées aux personnes autorisées; les opérations sont idempotentes.</span></div>
         </div>
       </form> : <div className="panel empty-state"><span>◌</span><strong>Sélectionnez un dépôt</strong><p>La proposition Gemini et les corrections manuelles apparaîtront ici.</p></div>}
+    </section>
+    <section className="invoice-workflow-accounting">
+      <KimAccountingReport key={`${period.id}:${period.start}:${period.end}`} period={period} onPeriodChange={onPeriodChange} embedded />
     </section>
   </>;
 }
@@ -1791,14 +1977,112 @@ function TransactionsPage({ items, query, setQuery, statusFilter, statusCounts, 
 
 function TransactionTable({ items, compact = false, onOpen }: { items: Transaction[]; compact?: boolean; onOpen?: (id: string) => void }) {
   const data = useAppData();
-  return <div className={`table-wrap ${compact ? "compact" : ""}`}><table><thead><tr><th>Transaction</th><th>Date</th><th>Fournisseur</th><th>Titulaire / carte</th><th>Projet</th><th>Compte</th><th>Sous-total</th><th>TPS</th><th>TVQ</th><th>Total</th><th>État / rapprochement</th><th /></tr></thead><tbody>{items.map((item) => { const classification = classifyTransaction(item, data); const accountNumber = item.accountNumber ?? classification.code; const accountLabel = item.accountLabel ?? classification.category; return <tr key={item.id} onClick={() => onOpen?.(item.id)}><td><div className="transaction-id"><span className="receipt-icon">▧</span><span><strong>{item.id}</strong><small>{item.invoiceNumber} · {item.imageCount} photo{item.imageCount > 1 ? "s" : ""}</small></span></div></td><td>{formatDate(item.date)}</td><td>{item.vendor}</td><td>{item.person}<small>•••• {item.card}</small></td><td><strong>{item.projectNumber ?? "—"}</strong><small>{item.projectName ?? item.project}</small></td><td><strong>{accountNumber}</strong><small>{accountLabel}</small></td><td>{formatCurrency(item.subtotal)}</td><td>{formatCurrency(item.tps)}</td><td>{formatCurrency(item.tvq)}</td><td><strong>{formatCurrency(item.total)}</strong></td><td><span className={statusClass(item.status)}>{item.status}</span><small className="table-substatus">{item.reconciliation}</small></td><td><button className="row-menu" onClick={(event) => { event.stopPropagation(); onOpen?.(item.id); }} aria-label={`Ouvrir ${item.id}`}>→</button></td></tr>; })}</tbody></table>{items.length === 0 && <div className="empty-state"><span>⌕</span><strong>Aucune transaction trouvée</strong><p>Modifiez vos filtres pour élargir la recherche.</p></div>}</div>;
+  return <div className={`table-wrap ${compact ? "compact" : ""}`}><table><thead><tr><th>Dépense</th><th>Date</th><th>Fournisseur</th><th>Titulaire / carte</th><th>Projet</th><th>Compte</th><th>Sous-total</th><th>TPS</th><th>TVQ</th><th>Total</th><th>État / rapprochement</th><th /></tr></thead><tbody>{items.map((item) => { const fallbackClassification = classifyTransaction(item, data); const account = transactionAccountDisplay(item); const accountNumber = account.number === "—" ? fallbackClassification.code : account.number; const accountLabel = account.label === "Compte à confirmer" ? fallbackClassification.category : account.label; const invoiceLabel = item.invoiceNumber ? `Facture ${item.invoiceNumber}` : "Facture sans numéro"; return <tr key={item.id} onClick={() => onOpen?.(item.id)}><td><div className="transaction-id"><span className="receipt-icon">▧</span><span><strong>{item.vendor}</strong><small>{invoiceLabel} · {item.imageCount} photo{item.imageCount > 1 ? "s" : ""}</small></span></div></td><td>{formatDate(item.date)}</td><td>{item.vendor}</td><td>{item.person}<small>•••• {item.card}</small></td><td><strong>{item.projectNumber ?? "—"}</strong><small>{item.projectName ?? item.project}</small></td><td><strong>{accountNumber}</strong><small>{accountLabel}</small></td><td>{formatCurrency(item.subtotal)}</td><td>{formatCurrency(item.tps)}</td><td>{formatCurrency(item.tvq)}</td><td><strong>{formatCurrency(item.total)}</strong></td><td><span className={statusClass(item.status)}>{item.status}</span><small className="table-substatus">{item.reconciliation}</small></td><td><button className="row-menu" onClick={(event) => { event.stopPropagation(); onOpen?.(item.id); }} aria-label={`Ouvrir ${item.vendor}${item.invoiceNumber ? `, facture ${item.invoiceNumber}` : ""}`}>→</button></td></tr>; })}</tbody></table>{items.length === 0 && <div className="empty-state"><span>⌕</span><strong>Aucune transaction trouvée</strong><p>Modifiez vos filtres pour élargir la recherche.</p></div>}</div>;
 }
 
 function TransactionDetail({ transaction, onBack }: { transaction: Transaction; onBack: () => void }) {
   const data = useAppData();
-  const classification = classifyTransaction({ category: transaction.category, sku: transaction.sku, vendor: transaction.vendor }, data);
+  const identity = useFirebaseIdentity();
+  const accountDisplay = transactionAccountDisplay(transaction);
   const detailSource = transaction.storageFolder ?? (transaction.receiptId ? `Dépôt ${transaction.receiptId}` : "Non disponible");
   const accountingLabel = transaction.accountingStatus === "POSTED" ? "Écriture comptabilisée" : "Lecture seule";
+  const lineItems = transaction.lineItems ?? [];
+  const lineSubtotalCents = invoiceLineItemsSubtotalCents(lineItems);
+  const lineDifferenceCents = lineSubtotalCents - Math.round(transaction.subtotal * 100);
+  const canCorrect = transaction.accountingStatus === "POSTED" && Boolean(transaction.invoiceId) && (identity.role === "KIM" || identity.role === "ADMIN");
+  const [correctionField, setCorrectionField] = useState("subtotalCents");
+  const [correctionValue, setCorrectionValue] = useState(String(transaction.subtotal.toFixed(2)));
+  const [correctionAccountId, setCorrectionAccountId] = useState(transaction.accountId ?? "");
+  const [correctionNote, setCorrectionNote] = useState("");
+  const [correctionState, setCorrectionState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [correctionMessage, setCorrectionMessage] = useState("");
+  const [corrections, setCorrections] = useState<Array<{ id: string; fieldName: string; previousValue?: string | null; correctedValue: string; note: string; createdAt: string; correctedBy?: string }>>([]);
+  useEffect(() => {
+    if (!transaction.id || transaction.accountingStatus !== "POSTED") return;
+    void loadTransactionCorrections(transaction.id).then((rows) => setCorrections(rows.map((row) => ({
+      id: row.id,
+      fieldName: row.fieldName,
+      previousValue: row.previousValue,
+      correctedValue: row.correctedValue,
+      note: row.note ?? "",
+      createdAt: row.createdAt,
+      correctedBy: row.correctedBy?.displayName ?? "Utilisateur autorisé",
+    })))).catch(() => setCorrections([]));
+  }, [transaction.accountingStatus, transaction.id]);
+  const savePostedCorrection = async () => {
+    if (!canCorrect || !transaction.invoiceId) return;
+    if (!correctionNote.trim()) {
+      setCorrectionState("error");
+      setCorrectionMessage("Une note de correction est obligatoire pour conserver le contexte de l’audit.");
+      return;
+    }
+    const currentValues = {
+      subtotalCents: Math.round(transaction.subtotal * 100),
+      tpsCents: Math.round(transaction.tps * 100),
+      tvqCents: Math.round(transaction.tvq * 100),
+      totalCents: Math.round(transaction.total * 100),
+    };
+    const nextValues = { ...currentValues };
+    let previousValue: string | null = null;
+    let correctedValue = correctionValue.trim();
+    let lineItemsJson = JSON.stringify(lineItems);
+    let category = transaction.category;
+    let accountId = transaction.accountId ?? null;
+    if (correctionField === "account") {
+      const account = data.accounts.find((candidate) => candidate.id === correctionAccountId);
+      if (!account) {
+        setCorrectionState("error");
+        setCorrectionMessage("Sélectionnez un compte actif.");
+        return;
+      }
+      previousValue = accountDisplay.number;
+      correctedValue = account.number;
+      category = account.label;
+      accountId = account.id;
+      lineItemsJson = JSON.stringify(lineItems.map((item) => ({ ...item, accountCode: account.number, classificationSource: "POSTED_CORRECTION", classificationStatus: "CONFIRMED", classificationConfidence: 1 })));
+    } else {
+      const cents = dollarsToCents(correctionValue);
+      if (cents == null || cents < 0) {
+        setCorrectionState("error");
+        setCorrectionMessage("Saisissez un montant valide en dollars canadiens.");
+        return;
+      }
+      previousValue = String(currentValues[correctionField as keyof typeof currentValues]);
+      nextValues[correctionField as keyof typeof nextValues] = cents;
+      correctedValue = String(cents);
+    }
+    if (nextValues.subtotalCents + nextValues.tpsCents + nextValues.tvqCents !== nextValues.totalCents) {
+      setCorrectionState("error");
+      setCorrectionMessage("Le total doit correspondre au sous-total plus la TPS et la TVQ.");
+      return;
+    }
+    setCorrectionState("saving");
+    setCorrectionMessage("");
+    try {
+      await correctPostedInvoice({
+        invoiceId: transaction.invoiceId,
+        transactionId: transaction.id,
+        fieldName: correctionField,
+        previousValue,
+        correctedValue,
+        note: correctionNote.trim(),
+        vendor: transaction.vendor,
+        invoiceNumber: transaction.invoiceNumber === "—" ? null : transaction.invoiceNumber,
+        invoiceDate: transaction.date,
+        ...nextValues,
+        lineItems: lineItemsJson,
+        category,
+        accountId,
+      });
+      setCorrectionState("saved");
+      setCorrectionMessage("Correction enregistrée avec la valeur précédente et la note d’audit.");
+      setCorrections((current) => [...current, { id: `local-${Date.now()}`, fieldName: correctionField, previousValue, correctedValue, note: correctionNote.trim(), createdAt: new Date().toISOString(), correctedBy: identity.user?.displayName ?? identity.user?.email ?? "Utilisateur autorisé" }]);
+      setCorrectionNote("");
+    } catch (error) {
+      setCorrectionState("error");
+      setCorrectionMessage(error instanceof Error ? error.message : "La correction n’a pas pu être enregistrée.");
+    }
+  };
   return <>
     <div className="detail-toolbar">
       <button className="back-button" onClick={onBack}>← <span>Transactions</span></button>
@@ -1814,11 +2098,13 @@ function TransactionDetail({ transaction, onBack }: { transaction: Transaction; 
       </section>
       <aside className="detail-form">
         <div className="form-section"><div className="section-heading"><span>01</span><div><p className="eyebrow">Provenance</p><h2>Source de la transaction</h2></div></div><div className="provenance-card"><div className="avatar avatar-blue">{transaction.person.slice(0, 1).toUpperCase()}</div><div><strong>{transaction.submittedBy}</strong><span>Transaction enregistrée le {formatDate(transaction.date)}</span></div><span className="verified-mark">✓</span></div><div className="field-grid"><Field label="Personne associée" value={transaction.person} /><Field label="Carte détectée" value={`•••• ${transaction.card}`} hint="Carte liée à l’écriture" tone="success" /><Field label="Dossier source" value={detailSource} /><Field label="Réception" value={transaction.receiptId ?? "Référence de dépôt non disponible"} /></div></div>
-         <div className="form-section"><div className="section-heading"><span>02</span><div><p className="eyebrow">Facture</p><h2>Données principales</h2></div></div><div className="field-grid"><Field label="Fournisseur" value={transaction.vendor} /><Field label="No facture" value={transaction.invoiceNumber} /><Field label="Date de facture" value={formatDate(transaction.date)} /><Field label="Chantier" value={transaction.project} /><Field label="Catégorie" value={transaction.category} /><Field label="Compte comptable" value={`${classification.code} · ${classification.category}`} invalid={transaction.correctionField === "account"} wide /></div></div>
+         <div className="form-section"><div className="section-heading"><span>02</span><div><p className="eyebrow">Facture</p><h2>Données principales</h2></div></div><div className="field-grid"><Field label="Fournisseur" value={transaction.vendor} /><Field label="No facture" value={transaction.invoiceNumber} /><Field label="Date de facture" value={formatDate(transaction.date)} /><Field label="Chantier" value={transaction.project} /><Field label="Catégorie" value={transaction.category} /><Field label="Compte comptable" value={`${accountDisplay.number} · ${accountDisplay.label}`} invalid={transaction.correctionField === "account"} wide /></div></div>
         {transaction.issue && <div className="detail-alert"><div className="detail-alert-icon">!</div><div><p className="eyebrow">Action requise avant validation</p><strong>{transaction.issue}</strong><span>{transaction.correction ?? "Correction humaine requise avant validation."}</span></div></div>}
          <div className="form-section"><div className="section-heading"><span>03</span><div><p className="eyebrow">Montants</p><h2>Contrôle comptable</h2></div><span className="control-ok">✓ Totaux persistés</span></div><div className="amount-card"><div><span>Sous-total</span><strong>{formatCurrency(transaction.subtotal)}</strong></div><div><span>TPS</span><strong>{formatCurrency(transaction.tps)}</strong></div><div><span>TVQ</span><strong>{formatCurrency(transaction.tvq)}</strong></div><div className="amount-total"><span>Total</span><strong>{formatCurrency(transaction.total)}</strong></div></div></div>
-        <div className="form-section"><div className="section-heading"><span>04</span><div><p className="eyebrow">Articles</p><h2>Détail des articles</h2></div></div><div className="line-items"><div className="line-item warning-line"><span>—</span><div><strong>Détail des articles non disponible</strong><small>La facture persistée contient les totaux, mais aucune ligne d’articles structurée.</small></div><strong>—</strong></div></div><div className="field-note">{transaction.note}</div></div>
-        <div className="audit-footer"><span>{accountingLabel} dans Data Connect</span><span>{transaction.invoiceId ? `Facture ${transaction.invoiceId}` : "Facture liée non disponible"}</span></div>
+        {canCorrect && <div className="form-section"><div className="section-heading"><span>05</span><div><p className="eyebrow">Correction contrôlée</p><h2>Corriger une écriture publiée</h2></div><span className="badge badge-warning">KIM / ADMIN</span></div><p className="muted">La valeur précédente reste dans TransactionCorrection; la facture et la transaction sont mises à jour dans la même transaction.</p><div className="field-grid"><label className="field"><span>Champ</span><select value={correctionField} onChange={(event) => { setCorrectionField(event.target.value); setCorrectionState("idle"); }}><option value="subtotalCents">Sous-total</option><option value="tpsCents">TPS</option><option value="tvqCents">TVQ</option><option value="totalCents">Total</option><option value="account">Compte / ventilation</option></select></label>{correctionField === "account" ? <label className="field"><span>Nouveau compte</span><select value={correctionAccountId} onChange={(event) => setCorrectionAccountId(event.target.value)}><option value="">Choisir le compte</option>{data.accounts.filter((account) => account.status !== "INACTIVE" && account.type === "EXPENSE").map((account) => <option value={account.id} key={account.id}>{account.number} · {account.label}</option>)}</select></label> : <label className="field"><span>Nouvelle valeur</span><input inputMode="decimal" value={correctionValue} onChange={(event) => setCorrectionValue(event.target.value)} /></label>}</div><label className="field wide"><span>Note obligatoire</span><textarea rows={2} value={correctionNote} onChange={(event) => setCorrectionNote(event.target.value)} placeholder="Pourquoi cette correction est-elle nécessaire?" /></label><button className="secondary-button" type="button" onClick={() => void savePostedCorrection()} disabled={correctionState === "saving"}>{correctionState === "saving" ? "Enregistrement…" : "Enregistrer la correction auditée"}</button>{correctionMessage && <p className={`intake-review-message ${correctionState}`}>{correctionMessage}</p>}</div>}
+        {corrections.length > 0 && <div className="form-section correction-history"><div className="section-heading"><span>06</span><div><p className="eyebrow">Piste de correction</p><h2>Valeurs originales conservées</h2></div><span className="badge badge-neutral">{corrections.length}</span></div><div className="settings-editor-list">{corrections.map((correction) => <div className="settings-inline-row" key={correction.id}><div><strong>{correction.fieldName}</strong><span>{correction.previousValue ?? "—"} → {correction.correctedValue}</span><small>{correction.note} · {correction.correctedBy ?? "Utilisateur autorisé"} · {formatDate(correction.createdAt)}</small></div></div>)}</div></div>}
+        <div className="form-section"><div className="section-heading"><span>04</span><div><p className="eyebrow">Articles</p><h2>Détail des articles</h2></div><span className={lineItems.length && Math.abs(lineDifferenceCents) <= 1 ? "control-ok" : "control-warning"}>{lineItems.length ? `${lineItems.length} ligne${lineItems.length > 1 ? "s" : ""}` : "Détail absent"}</span></div>{lineItems.length ? <><div className="line-items">{lineItems.map((item, index) => <div className="line-item" key={`${item.sequence}-${index}`}><span>{String(index + 1).padStart(2, "0")}</span><div><strong>{item.description || "Article à confirmer"}</strong><small>{item.quantity == null ? "Quantité à confirmer" : `Qté ${item.quantity}`}{item.sku ? ` · SKU ${item.sku}` : ""} · {item.category ?? "Catégorie à confirmer"} · Compte {item.accountCode ?? "à confirmer"}</small></div><strong>{item.amountCents == null ? "—" : formatCurrency(item.amountCents / 100)}</strong></div>)}</div><div className={`line-items-control ${Math.abs(lineDifferenceCents) <= 1 ? "success" : "warning"}`}><span>Total lignes {formatCurrency(lineSubtotalCents / 100)}</span><span>{Math.abs(lineDifferenceCents) <= 1 ? "✓ Concorde avec le sous-total" : `Écart avec le sous-total : ${formatCurrency(Math.abs(lineDifferenceCents) / 100)}`}</span></div></> : <div className="line-items"><div className="line-item warning-line"><span>—</span><div><strong>Détail des articles non disponible</strong><small>Cette facture a été persistée sans lignes structurées. Une nouvelle analyse ou une saisie manuelle est requise pour une classification fiable.</small></div><strong>—</strong></div></div>}<div className="field-note">{transaction.note}</div></div>
+        <div className="audit-footer"><span>{accountingLabel} dans Data Connect</span><span>{transaction.invoiceId ? `Facture ${transaction.invoiceId}` : "Facture liée non disponible"}</span><span>Référence technique {transaction.id}</span>{corrections.length > 0 && <span>{corrections.length} correction{corrections.length > 1 ? "s" : ""} auditée{corrections.length > 1 ? "s" : ""}</span>}</div>
       </aside>
     </div>
   </>;
@@ -2158,17 +2444,134 @@ function ReconciliationPage({ period, onPeriodChange, isProductionDataSource }: 
 function StatTile({ label, value, tone = "" }: { label: string; value: string; tone?: string }) { return <div className={`stat-tile ${tone}`}><span>{label}</span><strong>{value}</strong></div>; }
 
 function ReportsPage(props: { period: CardPeriod; onPeriodChange: (period: CardPeriod) => void }) {
-  return <KimAccountingReport {...props} />;
+  return <KimAccountingReport key={`${props.period.id}:${props.period.start}:${props.period.end}`} {...props} />;
+}
+
+type AccountingTemplateColumn = {
+  key: string;
+  code?: string;
+  label?: string;
+  width?: number;
+  spacer?: boolean;
+  hidden?: boolean;
+};
+
+type AccountingTemplateRow = {
+  transactionId: string;
+  date: string;
+  description: string;
+  attachment: string;
+  project: string;
+  totalCents: number;
+  tpsCents: number;
+  tvqCents: number;
+  subtotalCents: number;
+  accountCents: Record<string, number>;
+};
+
+type AccountingTemplateTotals = {
+  totalCents: number;
+  tpsCents: number;
+  tvqCents: number;
+  subtotalCents: number;
+  accountCents: Record<string, number>;
+};
+
+type AccountingTemplateReport = {
+  taxColumns: ReadonlyArray<{ key: string; code: string; label: string; header: string }>;
+  accountColumns: ReadonlyArray<AccountingTemplateColumn>;
+  sections: Array<{ cardKey: string; person: string; card: string; rows: AccountingTemplateRow[]; totals: AccountingTemplateTotals }>;
+  totals: AccountingTemplateTotals;
+  payableAfterAdjustmentsCents: number;
+  manualAdjustmentRows: ManualAdjustmentRow[];
+};
+
+function AccountingTemplatePreview({ report, manualAmountDrafts, canEditManualAdjustments, manualSaveDisabled, manualSaveState, manualSaveMessage, onManualDescriptionChange, onManualAmountChange, onSaveManualAdjustments }: {
+  report: AccountingTemplateReport;
+  manualAmountDrafts: Record<number, string>;
+  canEditManualAdjustments: boolean;
+  manualSaveDisabled: boolean;
+  manualSaveState: "idle" | "saving" | "saved" | "error";
+  manualSaveMessage: string;
+  onManualDescriptionChange: (index: number, value: string) => void;
+  onManualAmountChange: (index: number, value: string) => void;
+  onSaveManualAdjustments: () => void;
+}) {
+  const accountColumns = report.accountColumns ?? [];
+  const columnCount = 8 + accountColumns.length;
+  const accountValue = (row: AccountingTemplateRow, column: AccountingTemplateColumn) => column.spacer || !row.accountCents?.[column.key] ? "" : formatCurrency(Number(row.accountCents[column.key]) / 100);
+  const accountTotal = (values: Array<number | null>, index: number) => values[index] == null ? "" : formatCurrency(Number(values[index]) / 100);
+  const accountColumnClass = (column: AccountingTemplateColumn) => [column.spacer ? "template-spacer" : "", column.hidden ? "template-col-hidden" : ""].filter(Boolean).join(" ");
+  const totalAccountValues = (rows: AccountingTemplateRow[]) => {
+    const totals: Record<string, number> = {};
+    for (const row of rows) for (const column of accountColumns) if (!column.spacer && row.accountCents?.[column.key] != null) totals[column.key] = (totals[column.key] ?? 0) + Number(row.accountCents[column.key]);
+    return accountColumns.map((column) => column.spacer ? null : totals[column.key] ?? null);
+  };
+  const money = (value: number | null | undefined) => value == null ? "" : formatCurrency(Number(value) / 100);
+  return <section className="panel accounting-template-preview">
+    <div className="panel-header"><div><p className="eyebrow">Aperçu du template Excel</p><h2>Rapport comptable par carte</h2></div><div className="accounting-template-actions"><span className="badge badge-neutral">{report.sections.length} carte{report.sections.length === 1 ? "" : "s"}</span><button className="secondary-button" type="button" onClick={onSaveManualAdjustments} disabled={manualSaveDisabled || manualSaveState === "saving"}>{manualSaveState === "saving" ? "Enregistrement…" : "Enregistrer les lignes"}</button></div></div>
+    <div className="accounting-template-scroll"><table className="accounting-template-table"><colgroup><col className="template-col-date" /><col className="template-col-description" /><col className="template-col-attachment" /><col className="template-col-project" /><col className="template-col-money" /><col className="template-col-tax-tps" /><col className="template-col-tax-tvq" /><col className="template-col-money" />{accountColumns.map((column) => <col className={`${column.spacer ? "template-col-spacer" : "template-col-account"} ${column.hidden ? "template-col-hidden" : ""}`} style={{ width: `${(column.width ?? 11.42578125) * 8}px` }} key={`${column.key}-width`} />)}</colgroup><thead><tr><th rowSpan={2}>Date</th><th rowSpan={2}>Description</th><th rowSpan={2}>PJ</th><th rowSpan={2}># Projet</th><th rowSpan={2}>Total</th><th>{report.taxColumns?.[0]?.header ?? "21340"}</th><th>{report.taxColumns?.[1]?.header ?? "21370"}</th><th rowSpan={2}>Avant taxes</th>{accountColumns.map((column) => <th className={accountColumnClass(column)} key={`${column.key}-code`}>{column.spacer ? "" : column.code}</th>)}</tr><tr><th>{report.taxColumns?.[0]?.label ?? "TPS"}</th><th>{report.taxColumns?.[1]?.label ?? "TVQ"}</th>{accountColumns.map((column) => <th className={accountColumnClass(column)} key={`${column.key}-label`}>{column.spacer ? "" : column.label}</th>)}</tr></thead><tbody>
+      {report.sections.map((section) => <Fragment key={section.cardKey ?? section.person}><tr className="accounting-template-holder"><td>{section.person}</td><td><strong>{section.card}</strong></td><td colSpan={columnCount - 2}></td></tr><tr className="accounting-template-space"><td colSpan={columnCount}></td></tr><tr className="accounting-template-space"><td colSpan={columnCount}></td></tr>{section.rows.map((row) => <tr key={row.transactionId}><td>{row.date ? formatDate(row.date) : ""}</td><td>{row.description}</td><td>{row.attachment}</td><td>{row.project}</td><td>{money(row.totalCents)}</td><td>{money(row.tpsCents)}</td><td>{money(row.tvqCents)}</td><td>{money(row.subtotalCents)}</td>{accountColumns.map((column) => <td className={accountColumnClass(column)} key={`${row.transactionId}-${column.key}`}>{accountValue(row, column)}</td>)}</tr>)}<tr className="accounting-template-space"><td colSpan={columnCount}></td></tr><tr className="accounting-template-space"><td colSpan={columnCount}></td></tr><tr className="accounting-template-total"><td></td><td></td><td></td><td></td><td>{money(section.totals.totalCents)}</td><td>{money(section.totals.tpsCents)}</td><td>{money(section.totals.tvqCents)}</td><td>{money(section.totals.subtotalCents)}</td>{totalAccountValues(section.rows).map((value, index) => <td className={accountColumnClass(accountColumns[index])} key={`${section.cardKey ?? section.person}-total-${index}`}>{accountTotal([value], 0)}</td>)}</tr><tr className="accounting-template-space"><td colSpan={columnCount}></td></tr><tr className="accounting-template-space"><td colSpan={columnCount}></td></tr></Fragment>)}
+      <tr className="accounting-template-grand"><td></td><td>GRAND TOTAL</td><td></td><td></td><td>{money(report.totals.totalCents)}</td><td>{money(report.totals.tpsCents)}</td><td>{money(report.totals.tvqCents)}</td><td>{money(report.totals.subtotalCents)}</td>{totalAccountValues(report.sections.flatMap((section) => section.rows)).map((value, index) => <td className={accountColumnClass(accountColumns[index])} key={`grand-${index}`}>{accountTotal([value], 0)}</td>)}</tr>
+      <tr className="accounting-template-space"><td colSpan={columnCount}></td></tr><tr className="accounting-template-space"><td colSpan={columnCount}></td></tr><tr className="accounting-template-space"><td colSpan={columnCount}></td></tr>
+      <tr className="accounting-template-bottom"><td></td><td>Montant à payer</td><td></td><td></td><td>{money(report.payableAfterAdjustmentsCents)}</td><td colSpan={columnCount - 5}></td></tr>
+      <tr className="accounting-template-space"><td colSpan={columnCount}></td></tr>
+      {(report.manualAdjustmentRows ?? []).map((adjustment) => <tr className="accounting-template-manual" key={`manual-${adjustment.index}`}><td></td><td>{canEditManualAdjustments ? <input className="accounting-template-manual-input" aria-label={`Description de l’ajustement ${adjustment.index}`} maxLength={160} value={adjustment.description} onChange={(event) => onManualDescriptionChange(adjustment.index, event.target.value)} placeholder="Description" /> : adjustment.description}</td><td></td><td></td><td>{canEditManualAdjustments ? <input className="accounting-template-manual-input accounting-template-manual-amount" aria-label={`Montant de l’ajustement ${adjustment.index}`} inputMode="decimal" value={manualAmountDrafts[adjustment.index] ?? manualAmountDraft(adjustment.amountCents)} onChange={(event) => onManualAmountChange(adjustment.index, event.target.value)} placeholder="0,00" /> : money(adjustment.amountCents)}</td><td colSpan={columnCount - 5}></td></tr>)}
+      <tr className="accounting-template-space"><td colSpan={columnCount}></td></tr><tr className="accounting-template-space"><td colSpan={columnCount}></td></tr><tr className="accounting-template-space"><td colSpan={columnCount}></td></tr>
+      <tr className="accounting-template-bottom"><td></td><td>Montant à payer</td><td></td><td></td><td>{money(report.payableAfterAdjustmentsCents)}</td><td colSpan={columnCount - 5}></td></tr>
+    </tbody></table></div><p className="accounting-template-note">Les lignes libres sous « Montant à payer » servent aux ajustements manuels de Kim. Un paiement ou un crédit qui réduit le solde doit être saisi avec un signe négatif. {canEditManualAdjustments ? "Les changements sont enregistrés pour la période du relevé." : "Sélectionnez Tous les titulaires pour modifier les ajustements de la période."}</p>{manualSaveMessage && <p className={`accounting-template-save-message ${manualSaveState}`}>{manualSaveMessage}</p>}
+  </section>;
 }
 
 function KimAccountingReport({ period, onPeriodChange, embedded = false }: { period: CardPeriod; onPeriodChange: (period: CardPeriod) => void; embedded?: boolean }) {
   void DemoReportsPage;
-  const data = useAppData();
-  const { cards, transactions, accounts } = data;
+  const { cards, transactions, accounts, projects } = useAppData();
+  const identity = useFirebaseIdentity();
   const [selectedPerson, setSelectedPerson] = useState("TOUS");
   const [selectedProject, setSelectedProject] = useState("TOUS");
+  const [manualAdjustmentRows, setManualAdjustmentRows] = useState<ManualAdjustmentRow[]>(() => manualAdjustmentRowsForPeriod(period));
+  const [savedManualAdjustmentRows, setSavedManualAdjustmentRows] = useState<ManualAdjustmentRow[]>(() => manualAdjustmentRowsForPeriod(period));
+  const [manualAmountDrafts, setManualAmountDrafts] = useState<Record<number, string>>(() => Object.fromEntries(manualAdjustmentRowsForPeriod(period).map((row) => [row.index, manualAmountDraft(row.amountCents)])));
+  const [manualSaveState, setManualSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [manualSaveMessage, setManualSaveMessage] = useState("");
+  const manualAdjustmentScope = useMemo(() => ({
+    periodKey: period.id === "custom" ? `custom:${period.start}:${period.end}` : period.id,
+    periodStart: period.start,
+    periodEnd: period.end,
+    projectId: selectedProject === "TOUS" ? null : selectedProject,
+    holderId: selectedPerson === "TOUS" ? null : cards.find((card) => card.holder === selectedPerson)?.holderId ?? null,
+  }), [cards, period.end, period.id, period.start, selectedPerson, selectedProject]);
+  useEffect(() => {
+    let active = true;
+    const hasScopedFilter = manualAdjustmentScope.projectId !== null || manualAdjustmentScope.holderId !== null || period.id === "custom";
+    const fallbackRows = !hasScopedFilter ? manualAdjustmentRowsForPeriod(period) : normalizeManualAdjustmentRows([]);
+    if (!sqlConnectConfigured || !identity.user) {
+      const timer = window.setTimeout(() => {
+        if (!active) return;
+        setManualAdjustmentRows(fallbackRows);
+        setSavedManualAdjustmentRows(fallbackRows);
+        setManualAmountDrafts(Object.fromEntries(fallbackRows.map((row) => [row.index, manualAmountDraft(row.amountCents)])));
+      }, 0);
+      return () => { active = false; window.clearTimeout(timer); };
+    }
+    loadReportAdjustments(manualAdjustmentScope)
+      .then((rows) => {
+        if (!active) return;
+        const nextRows = rows.length || hasScopedFilter ? rows : fallbackRows;
+        setManualAdjustmentRows(nextRows);
+        setSavedManualAdjustmentRows(nextRows);
+        setManualAmountDrafts(Object.fromEntries(nextRows.map((row) => [row.index, manualAmountDraft(row.amountCents)])));
+        setManualSaveState("idle");
+        setManualSaveMessage("");
+      })
+      .catch((reason) => {
+        if (!active) return;
+        setManualSaveState("error");
+        setManualSaveMessage(reason instanceof Error ? reason.message : "Les ajustements persistés n’ont pas pu être chargés.");
+      });
+    return () => { active = false; };
+  }, [identity.user, manualAdjustmentScope, period, selectedProject]);
   const people = Array.from(new Set([...cards.map((card) => card.holder), ...transactions.map((transaction) => transaction.person).filter(Boolean)]));
-  const projects = data.projects;
   const periodTransactions = useMemo(() => transactions.filter((transaction) => {
     const matchesProject = selectedProject === "TOUS" || transaction.projectId === selectedProject || transaction.projectNumber === selectedProject;
     const matchesPeriod = isTransactionInPeriod(transaction, period);
@@ -2178,15 +2581,51 @@ function KimAccountingReport({ period, onPeriodChange, embedded = false }: { per
     return matchesProject && matchesPeriod && isIncludedStatus;
   }), [period, selectedProject, transactions]);
   const visibleTransactions = useMemo(() => periodTransactions.filter((transaction) => selectedPerson === "TOUS" || transaction.person === selectedPerson), [periodTransactions, selectedPerson]);
-  const normalizedTransactions = useMemo(() => visibleTransactions.map((transaction) => {
-    const classification = classifyTransaction(transaction, data);
-    return { ...transaction, accountNumber: transaction.accountNumber ?? classification.code, accountLabel: transaction.accountLabel ?? classification.category };
-  }), [data, visibleTransactions]);
-  const categorySummary = useMemo(() => buildAccountingCategorySummary({ transactions: normalizedTransactions, accounts }), [accounts, normalizedTransactions]);
-  const taxSummary = useMemo(() => buildTaxSummaryByHolder({ transactions: periodTransactions }), [periodTransactions]);
+  const taxSummary = useMemo(() => buildTaxSummaryByHolder({ transactions: visibleTransactions }), [visibleTransactions]);
+  const templateReport = useMemo(() => buildAccountingTemplateReport({ period, transactions: periodTransactions, selectedPerson, cards, manualAdjustmentRows }), [cards, manualAdjustmentRows, period, periodTransactions, selectedPerson]);
+  const manualAmountsAreValid = manualAdjustmentRows.every((row) => {
+    const draft = manualAmountDrafts[row.index] ?? manualAmountDraft(row.amountCents);
+    return !draft.trim() || manualAmountToCents(draft) != null;
+  });
+  const manualRowsAreDirty = serializeManualAdjustmentRows(manualAdjustmentRows) !== serializeManualAdjustmentRows(savedManualAdjustmentRows);
+  const canEditManualAdjustments = selectedPerson === "TOUS" || manualAdjustmentScope.holderId !== null;
+  const changeManualDescription = (index: number, value: string) => {
+    setManualAdjustmentRows((current) => current.map((row) => row.index === index ? { ...row, description: value } : row));
+    setManualSaveState("idle");
+    setManualSaveMessage("");
+  };
+  const changeManualAmount = (index: number, value: string) => {
+    setManualAmountDrafts((current) => ({ ...current, [index]: value }));
+    setManualAdjustmentRows((current) => current.map((row) => row.index === index ? { ...row, amountCents: manualAmountToCents(value) } : row));
+    setManualSaveState("idle");
+    setManualSaveMessage("");
+  };
+  const saveManualRows = async () => {
+    if (!canEditManualAdjustments || !manualAmountsAreValid || !manualRowsAreDirty) return;
+    const rows = normalizeManualAdjustmentRows(manualAdjustmentRows);
+    setManualSaveState("saving");
+    setManualSaveMessage("");
+    try {
+      const canSaveToFirebase = sqlConnectConfigured && Boolean(identity.user);
+      if (canSaveToFirebase) {
+        await saveReportAdjustments({ scope: manualAdjustmentScope, rows, auditDetails: auditDetails({ scope: manualAdjustmentScope, before: savedManualAdjustmentRows, after: rows, source: "KIM_ACCOUNTING_REPORT" }) });
+      } else {
+        throw new Error("Une session SQL Connect est requise pour persister les ajustements du rapport.");
+      }
+      setManualAdjustmentRows(rows);
+      setSavedManualAdjustmentRows(rows);
+      setManualAmountDrafts(Object.fromEntries(rows.map((row) => [row.index, manualAmountDraft(row.amountCents)])));
+      onPeriodChange({ ...period, manualAdjustmentRows: rows });
+      setManualSaveState("saved");
+      setManualSaveMessage("Lignes enregistrées dans SQL Connect avec leur période, projet et titulaire.");
+    } catch (reason) {
+      setManualSaveState("error");
+      setManualSaveMessage(reason instanceof Error ? reason.message : "Les lignes manuelles n’ont pas pu être enregistrées.");
+    }
+  };
   const downloadReport = () => {
-    const xml = buildAccountingReportExcelXml({ period, transactions: visibleTransactions, accounts });
-    const blob = new Blob([xml], { type: "application/vnd.ms-excel" });
+    const xlsx = buildAccountingReportXlsx({ period, transactions: periodTransactions, accounts, cards, selectedPerson, manualAdjustmentRows });
+    const blob = new Blob([xlsx], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
@@ -2195,19 +2634,14 @@ function KimAccountingReport({ period, onPeriodChange, embedded = false }: { per
     URL.revokeObjectURL(url);
   };
   return <>
-    {!embedded && <PageHeading eyebrow="Analyse" title="Rapports" description="Le tableau compact utilisé pour reporter les dépenses dans la comptabilité." action={<button className="primary-button" type="button" onClick={downloadReport}><span>⇩</span> Exporter en Excel</button>} />}
+    {embedded ? <div className="embedded-report-heading"><div><p className="eyebrow">Sortie comptable intégrée</p><h2>Tableau de Kim</h2><p className="muted">Les factures comptabilisées s’ajoutent ici automatiquement, par carte et par catégorie, dans l’ordre de date.</p></div><button className="primary-button" type="button" onClick={downloadReport}><span>⇩</span> Exporter le template Excel</button></div> : <PageHeading eyebrow="Analyse" title="Tableau de Kim" description="Le template Excel de Kim, avec toutes les transactions de la période classées par carte et par compte." action={<button className="primary-button" type="button" onClick={downloadReport}><span>⇩</span> Exporter le template Excel</button>} />}
     <div className="kim-report-toolbar">
-      {!embedded && <PeriodSelector period={period} onChange={onPeriodChange} />}
+      <PeriodSelector period={period} onChange={onPeriodChange} />
        <label><span>Titulaire de carte</span><select aria-label="Filtrer par titulaire de carte" value={selectedPerson} onChange={(event) => setSelectedPerson(event.target.value)}><option value="TOUS">Tous les titulaires</option>{people.map((person) => <option value={person} key={person}>{person}</option>)}</select></label>
        <label><span>Projet</span><select aria-label="Filtrer par projet" value={selectedProject} onChange={(event) => setSelectedProject(event.target.value)}><option value="TOUS">Tous les projets</option>{projects.map((project) => <option value={project.id} key={project.id}>{project.number} — {project.name}</option>)}</select></label>
-       <div className="kim-report-context"><span className="status-dot" /><span>{period.label}</span><small>{visibleTransactions.length} transaction{visibleTransactions.length === 1 ? "" : "s"} affichée{visibleTransactions.length === 1 ? "" : "s"} · taxes calculées sur {periodTransactions.length} transaction{periodTransactions.length === 1 ? "" : "s"}</small></div>
+       <div className="kim-report-context"><span className="status-dot" /><span>{period.label}</span><small>{visibleTransactions.length} transaction{visibleTransactions.length === 1 ? "" : "s"} affichée{visibleTransactions.length === 1 ? "" : "s"} · taxes calculées sur la sélection active</small></div>
     </div>
-    <section className="panel kim-report-table">
-      <div className="panel-header"><div><p className="eyebrow">Tableau comptable · {selectedPerson === "TOUS" ? "tous les titulaires" : selectedPerson}</p><h2>Répartition par compte et catégorie</h2></div><span className="badge badge-neutral">Avant taxes</span></div>
-       <div className="kim-report-head"><span>Compte</span><span>Catégorie</span><span>Total avant taxes</span><span>% du total catégorisé</span></div>
-       <div className="kim-report-rows">{categorySummary.rows.map((row) => <div key={row.accountNumber}><span><b>{row.accountNumber}</b></span><span>{row.category}</span><strong>{formatCurrency(row.subtotalCents / 100)}</strong><strong>{formatPercent(row.percent)}</strong></div>)}</div>
-       <div className="account-report-total"><strong>TOTAL CATÉGORIES</strong><span /><strong>{formatCurrency(categorySummary.totals.subtotalCents / 100)}</strong><strong>{formatPercent(categorySummary.totalBeforeTaxCents > 0 ? 100 : 0)}</strong></div>
-    </section>
+     <AccountingTemplatePreview report={templateReport as unknown as AccountingTemplateReport} manualAmountDrafts={manualAmountDrafts} canEditManualAdjustments={canEditManualAdjustments} manualSaveDisabled={!canEditManualAdjustments || !manualAmountsAreValid || !manualRowsAreDirty} manualSaveState={manualSaveState} manualSaveMessage={manualSaveMessage} onManualDescriptionChange={changeManualDescription} onManualAmountChange={changeManualAmount} onSaveManualAdjustments={() => void saveManualRows()} />
     <section className="panel kim-tax-table">
       <div className="panel-header"><div><p className="eyebrow">Récupération des taxes · {period.label}</p><h2>Taxes cumulées par titulaire</h2></div><div className="kim-tax-total"><span>Total à récupérer</span><strong>{formatCurrency(taxSummary.totals.taxesCents / 100)}</strong><small>TPS {formatCurrency(taxSummary.totals.tpsCents / 100)} · TVQ {formatCurrency(taxSummary.totals.tvqCents / 100)}</small></div></div>
       <div className="kim-tax-table-wrap"><div className="kim-tax-head"><span>Titulaire de carte</span><span>Avant taxes</span><span>TPS</span><span>TVQ</span><span>Taxes cumulées</span><span>Total période</span></div>

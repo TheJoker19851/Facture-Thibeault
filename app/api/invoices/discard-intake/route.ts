@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { firebaseAdminConfigured, getFirebaseAdminAuth, getFirebaseAdminDataConnect, getFirebaseAdminStorage } from "../../../../firebase/admin";
 import { clientUpdateRequiredResponse, isCurrentInvoiceClientVersion } from "../../../../lib/invoice-client-version.mjs";
+import { listAllInvoiceIntakes } from "../../../../firebase/accounting-pagination.server";
 import { AUDIT_ACTIONS, auditDetails, auditEventId } from "../../../../lib/audit-events.mjs";
 import { createClientId } from "../../../../lib/client-id.mjs";
 
@@ -61,8 +62,8 @@ export async function POST(request: Request) {
   if (!parsed.success) return Response.json({ error: "La demande de suppression est invalide." }, { status: 400 });
 
   const dataConnect = await getFirebaseAdminDataConnect();
-  const response = await dataConnect.executeQuery<IntakeData>("ListInvoiceIntakes");
-  const intake = response.data.invoiceIntakes.find((item) => item.receiptId === parsed.data.receiptId) ?? null;
+  const intakes = await listAllInvoiceIntakes(dataConnect);
+  const intake = intakes.find((item) => item.receiptId === parsed.data.receiptId) ?? null;
   if (!intake) return Response.json({ error: "Le dépôt de facture n'existe pas." }, { status: 404 });
   if (intake.accountingStatus === "POSTED") {
     return Response.json({ error: "Une facture comptabilisée ne peut pas être supprimée depuis cette file." }, { status: 409 });

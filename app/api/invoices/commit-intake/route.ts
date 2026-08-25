@@ -1,8 +1,10 @@
 import { z } from "zod";
 import { firebaseAdminConfigured, getFirebaseAdminAuth, getFirebaseAdminDataConnect } from "../../../../firebase/admin";
 import { materializeInvoiceIntake, readInvoiceIntakeStoragePhotos } from "../../../../firebase/invoice-intake-commit.server";
+import { listAllExpenseAccounts, listAllInvoiceIntakes } from "../../../../firebase/accounting-pagination.server";
 import { InvoiceStorageValidationError } from "../../../../lib/invoice-storage.mjs";
 import { clientUpdateRequiredResponse, isCurrentInvoiceClientVersion } from "../../../../lib/invoice-client-version.mjs";
+import { validateInvoiceLineItemsForCommit } from "../../../../lib/invoice-processing.mjs";
 
 export const runtime = "nodejs";
 
@@ -15,30 +17,16 @@ const commitSchema = z.object({
   tpsCents: z.number().int().nonnegative(),
   tvqCents: z.number().int().nonnegative(),
   totalCents: z.number().int().nonnegative(),
+  lineItems: z.string().trim().min(2),
   currency: z.string().trim().length(3),
   sku: z.string().nullable(),
   category: z.string().trim().min(1),
-  accountCode: z.string().trim().min(1),
+  accountCode: z.string().trim().min(1).nullable(),
   cardId: z.string().trim().min(1),
   statementPeriodId: z.string().trim().min(1).nullable(),
   projectId: z.string().trim().min(1),
   classificationNote: z.string().trim().min(1),
 });
-
-type IntakeData = {
-  invoiceIntakes: Array<{
-    receiptId: string;
-    uploaderUid: string;
-    storageFolder: string;
-    photoCount: number;
-    processingStatus?: string | null;
-    accountingStatus?: string | null;
-  }>;
-};
-
-type AccountData = {
-  expenseAccounts: Array<{ id: string; number: string; type: string; status: string }>;
-};
 
 async function privilegedIdentity(request: Request) {
   const token = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
@@ -67,8 +55,8 @@ export async function POST(request: Request) {
 
   const dataConnect = await getFirebaseAdminDataConnect();
   const readIntake = async () => {
-    const response = await dataConnect.executeQuery<IntakeData>("ListInvoiceIntakes");
-    return response.data.invoiceIntakes.find((item) => item.receiptId === parsed.data.receiptId) ?? null;
+    const intakes = await listAllInvoiceIntakes(dataConnect);
+    return intakes.find((item) => item.receiptId === parsed.data.receiptId) ?? null;
   };
   const intake = await readIntake();
   if (!intake) return Response.json({ error: "Le dépôt de facture n'existe pas." }, { status: 404 });
@@ -78,19 +66,39 @@ export async function POST(request: Request) {
   if (intake.processingStatus !== "VALIDATED" || intake.accountingStatus !== "NOT_POSTED") {
     return Response.json({ error: "L'intake n'est pas validée ou est déjà en cours de comptabilisation." }, { status: 409 });
   }
-  const accountResponse = await dataConnect.executeQuery<AccountData>("ListExpenseAccounts");
-  const account = accountResponse.data.expenseAccounts.find((candidate) =>
-    candidate.number === parsed.data.accountCode && candidate.type === "EXPENSE" && candidate.status === "ACTIVE",
-  );
-  if (!account) {
-    return Response.json({ error: "Le compte comptable sélectionné n'existe pas ou est inactif." }, { status: 422 });
+  const expenseAccounts = await listAllExpenseAccounts(dataConnect);
+  let rawLineItems: unknown;
+  try {
+    rawLineItems = JSON.parse(parsed.data.lineItems);
+  } catch {
+    return Response.json({ error: "Les lignes d’articles ne sont pas lisibles." }, { status: 422 });
   }
+  const lineValidation = validateInvoiceLineItemsForCommit(rawLineItems, parsed.data.subtotalCents);
+  if (!lineValidation.ok) {
+    return Response.json({ error: lineValidation.errors.join(" ") }, { status: 422 });
+  }
+  const activeExpenseAccounts = new Set(
+    expenseAccounts
+      .filter((candidate) => candidate.type === "EXPENSE" && candidate.status === "ACTIVE")
+      .map((candidate) => candidate.number),
+  );
+  if (lineValidation.lineItems.some((item) => !item.accountCode || !activeExpenseAccounts.has(item.accountCode))) {
+    return Response.json({ error: "Chaque ligne doit utiliser un compte de dépense actif." }, { status: 422 });
+  }
+  const lineAccountCodes = [...new Set(lineValidation.lineItems.map((item) => item.accountCode).filter((value): value is string => Boolean(value)))];
+  const summaryAccountCode = lineAccountCodes.length === 1 ? lineAccountCodes[0] : null;
+  if (parsed.data.accountCode && summaryAccountCode && parsed.data.accountCode !== summaryAccountCode) {
+    return Response.json({ error: "Le compte global ne correspond pas à la ventilation des lignes." }, { status: 422 });
+  }
+  const account = summaryAccountCode
+    ? expenseAccounts.find((candidate) => candidate.number === summaryAccountCode && candidate.type === "EXPENSE" && candidate.status === "ACTIVE") ?? null
+    : null;
 
   try {
     const photos = await readInvoiceIntakeStoragePhotos(intake);
     await materializeInvoiceIntake(dataConnect, intake, photos, {
       ...parsed.data,
-      accountId: account.id,
+      accountId: account?.id ?? null,
       actorUid: identity.uid,
       actorRole: identity.role,
     }, "HUMAN");

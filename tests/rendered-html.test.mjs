@@ -47,13 +47,15 @@ test("server-renders the Thibeault administration shell", async () => {
     return;
   }
 
-  assert.match(html, /Tableau de bord/);
+  assert.doesNotMatch(html, /Tableau de bord/);
   assert.match(html, /Données de démonstration|Connexion Firebase…/);
-  assert.match(html, /1 · Titulaires/);
-  assert.match(html, /2 · Transactions par personne/);
   assert.match(html, /Factures à vérifier/);
+  assert.match(html, /File de traitement/);
+  assert.match(html, /Tableau de Kim/);
+  assert.match(html, /Montant à payer/);
+  assert.match(html, /Les lignes libres/);
   assert.doesNotMatch(html, /Exceptions IA/);
-  assert.match(html, /4 · Tableau comptable/);
+  assert.doesNotMatch(html, /1 · Titulaires|4 · Tableau comptable/);
   assert.match(html, /Alice Démo/);
   assert.match(html, /Période des cartes/);
   assert.match(html, /manifest\.webmanifest/);
@@ -117,6 +119,12 @@ test("rejects unauthenticated direct access to privileged API routes", async () 
   }), context);
   assert.equal(aiResponse.status, 401);
 
+  const intakeStatusResponse = await worker.fetch(new Request("http://localhost/api/invoices/intake-status?receiptId=receipt-12345678", {
+    method: "GET",
+    headers: { "x-invoice-client-version": "invoice-photo-v2" },
+  }), context);
+  assert.equal(intakeStatusResponse.status, 403);
+
   const discardResponse = await worker.fetch(new Request("http://localhost/api/invoices/discard-intake", {
     method: "POST",
     headers: {
@@ -126,6 +134,11 @@ test("rejects unauthenticated direct access to privileged API routes", async () 
     body: JSON.stringify({ receiptId: "receipt-12345678", reason: "Facture personnelle envoyée par erreur." }),
   }), context);
   assert.equal(discardResponse.status, 403);
+
+  const cronResponse = await worker.fetch(new Request("http://localhost/api/cron/process-invoice-intakes", {
+    method: "GET",
+  }), context);
+  assert.equal(cronResponse.status, 401);
 });
 
 test("fails closed for an obsolete invoice client and exposes the current version", async () => {

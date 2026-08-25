@@ -33,3 +33,28 @@ test("le sommaire des taxes regroupe chaque titulaire et le total de période", 
   assert.equal(summary.totals.taxesCents, 5394);
   assert.equal(summary.totals.totalCents, 41418);
 });
+
+test("le résumé par compte répartit une facture selon ses lignes", () => {
+  const summary = buildAccountingCategorySummary({
+    accounts: [
+      ...accounts,
+      { number: "33500", label: "Matériaux divers", type: "EXPENSE" },
+    ],
+    transactions: [{
+      accountNumber: "33544",
+      category: "Essence",
+      subtotalCents: 15000,
+      tpsCents: 750,
+      tvqCents: 1496,
+      totalCents: 17246,
+      lineItems: [
+        { amountCents: 10000, accountCode: "33544", category: "Essence" },
+        { amountCents: 5000, accountCode: "33500", category: "Matériaux divers" },
+      ],
+    }],
+  });
+  assert.equal(summary.rows.find((row) => row.accountNumber === "33544")?.subtotalCents, 10000);
+  assert.equal(summary.rows.find((row) => row.accountNumber === "33500")?.subtotalCents, 5000);
+  assert.equal(summary.totals.subtotalCents, 15000);
+  assert.equal(summary.totals.taxesCents, 2246);
+});
