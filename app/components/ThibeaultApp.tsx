@@ -43,6 +43,25 @@ type DiagnosticSnapshot = {
   lastProcessingAt: string | null;
   lastApplicationError: { message: string; at: string | null } | null;
 };
+type ArchiveSummary = {
+  storageObjects: number;
+  storageBytes: number;
+  eligiblePhotos: number;
+  eligibleBytes: number;
+  eligibleInvoices: number;
+  eligibleReceipts: number;
+  unlinkedStorageObjects: number;
+  missingLinkedPhotos: number;
+  duplicateLinkedPaths: number;
+};
+type ArchiveApiResponse = {
+  ok?: boolean;
+  error?: string;
+  generatedAt?: string;
+  archiveId?: string;
+  manifestHash?: string;
+  summary?: ArchiveSummary;
+};
 type TransactionStatusFilter = "Toutes" | "À vérifier" | "À valider" | "Validées" | "Non rapprochées";
 type TransactionStatusCounts = Record<TransactionStatusFilter, number>;
 const transactionStatusFilters = TRANSACTION_STATUS_FILTERS as TransactionStatusFilter[];
@@ -456,6 +475,19 @@ function formatCurrency(value: number) {
 
 function formatDate(value: string) {
   return dateFormat.format(new Date(`${value}T12:00:00`));
+}
+
+function formatBytes(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) return "—";
+  if (value < 1024) return `${value} o`;
+  const units = ["Ko", "Mo", "Go", "To"];
+  let amount = value / 1024;
+  let unit = 0;
+  while (amount >= 1024 && unit < units.length - 1) {
+    amount /= 1024;
+    unit += 1;
+  }
+  return `${amount.toLocaleString("fr-CA", { maximumFractionDigits: 1 })} ${units[unit]}`;
 }
 
 function transactionAccountDisplay(transaction: Pick<Transaction, "lineItems" | "accountNumber" | "accountLabel">) {
@@ -1025,7 +1057,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
         <nav className="main-nav" aria-label="Navigation principale">
           {navItems.filter((item) => item.id !== "debug" || canUseDiagnostics).map((item) => <button key={item.id} className={`nav-item ${view === item.id ? "active" : ""}`} onClick={() => goTo(item.id)}><span className="nav-icon">{item.icon}</span><span>{item.label}</span>{item.id === "intakes" && appData.intakes.filter(isIntakeQueueItem).length > 0 && <span className="nav-count">{appData.intakes.filter(isIntakeQueueItem).length}</span>}</button>)}
         </nav>
-        <div className="sidebar-bottom"><div className="archive-mini"><span className="archive-icon">◷</span><div><strong>{isProductionDataSource ? "Archivage à configurer" : "Archivage recommandé"}</strong><span>{isProductionDataSource ? "Statistiques Storage à calculer" : "Statistiques non disponibles"}</span></div><span className="arrow">→</span></div>{canUseAccounting && <button className="worker-mode-button" onClick={() => goTo("capture")}><span>⌾</span> Ouvrir le mode dépôt</button>}<div className="user-footer"><span className="avatar avatar-gold">{accountRole === "ADMIN" ? "A" : "K"}</span><div><strong>{accountRole === "ADMIN" ? "Administration" : "Kim"}</strong><span>{accountRole === "KIM" ? "Contrôle comptable" : "Administrateur"}</span></div><button className="icon-button" aria-label="Options du compte">•••</button></div></div>
+        <div className="sidebar-bottom"><div className="archive-mini"><span className="archive-icon">◷</span><div><strong>{isProductionDataSource ? "Archivage Storage" : "Archivage recommandé"}</strong><span>{isProductionDataSource ? "Statistiques en direct" : "Statistiques non disponibles"}</span></div><span className="arrow">→</span></div>{canUseAccounting && <button className="worker-mode-button" onClick={() => goTo("capture")}><span>⌾</span> Ouvrir le mode dépôt</button>}<div className="user-footer"><span className="avatar avatar-gold">{accountRole === "ADMIN" ? "A" : "K"}</span><div><strong>{accountRole === "ADMIN" ? "Administration" : "Kim"}</strong><span>{accountRole === "KIM" ? "Contrôle comptable" : "Administrateur"}</span></div><button className="icon-button" aria-label="Options du compte">•••</button></div></div>
       </aside>
       <section className="content-area">
         <header className="topbar"><div className="breadcrumbs"><span>Maçonnerie Thibeault</span><span>/</span><strong>{navItems.find((item) => item.id === view)?.label ?? (view === "transaction" ? "Transaction" : "Factures à vérifier")}</strong></div><div className="topbar-actions"><span className="demo-note">{dataSourceLabel}</span><button className="icon-button" aria-label="Notifications">♧<span className="notification-dot" /></button><button className="avatar avatar-gold small" onClick={() => goTo("capture")} aria-label="Ouvrir le mode dépôt">{accountRole === "ADMIN" ? "A" : "K"}</button></div></header>
@@ -2770,8 +2802,108 @@ function DemoReportsPage({ period, onPeriodChange }: { period: CardPeriod; onPer
 }
 
 function ArchivesPage({ onNotify, isProductionDataSource }: { onNotify: (message: string) => void; isProductionDataSource: boolean }) {
+  const identity = useFirebaseIdentity();
+  const [summary, setSummary] = useState<ArchiveSummary | null>(null);
+  const [manifestHash, setManifestHash] = useState("");
+  const [generatedAt, setGeneratedAt] = useState("");
+  const [archiveState, setArchiveState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [actionState, setActionState] = useState<"idle" | "downloading" | "purging">("idle");
+  const [error, setError] = useState("");
+
+  const loadArchive = useCallback(async () => {
+    if (!identity.user || !isProductionDataSource) return;
+    setArchiveState("loading");
+    setError("");
+    try {
+      const response = await fetch("/api/admin/archive", {
+        cache: "no-store",
+        headers: { authorization: `Bearer ${await identity.user.getIdToken()}` },
+      });
+      const payload = await response.json().catch(() => ({})) as ArchiveApiResponse;
+      if (!response.ok || !payload.ok || !payload.summary) throw new Error(payload.error ?? "Les statistiques d’archives ne sont pas disponibles.");
+      setSummary(payload.summary);
+      setManifestHash(payload.manifestHash ?? "");
+      setGeneratedAt(payload.generatedAt ?? "");
+      setArchiveState("ready");
+    } catch (reason) {
+      setArchiveState("error");
+      setError(reason instanceof Error ? reason.message : "Les statistiques d’archives ne sont pas disponibles.");
+    }
+  }, [identity.user, isProductionDataSource]);
+
+  useEffect(() => {
+    if (!isProductionDataSource) return;
+    const timer = window.setTimeout(() => void loadArchive(), 0);
+    return () => window.clearTimeout(timer);
+  }, [isProductionDataSource, loadArchive]);
+
+  const downloadManifest = async () => {
+    if (!identity.user) return;
+    setActionState("downloading");
+    setError("");
+    try {
+      const response = await fetch("/api/admin/archive?include=manifest", {
+        cache: "no-store",
+        headers: { authorization: `Bearer ${await identity.user.getIdToken()}` },
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({})) as ArchiveApiResponse;
+        throw new Error(payload.error ?? "Le manifeste n’a pas pu être exporté.");
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `archive-manifest-${manifestHash.slice(0, 12) || "courant"}.json`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      onNotify("Manifeste Storage exporté. Il ne contient aucune clé secrète.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Le manifeste n’a pas pu être exporté.");
+    } finally {
+      setActionState("idle");
+    }
+  };
+
+  const purgeArchive = async () => {
+    if (!identity.user || !summary || !manifestHash || identity.role !== "ADMIN" || summary.eligiblePhotos === 0) return;
+    const exportReference = window.prompt("Référence de l’export vérifié (copie externe des photos) :")?.trim() ?? "";
+    if (!exportReference) return;
+    if (!window.confirm(`Supprimer ${summary.eligiblePhotos} photo${summary.eligiblePhotos > 1 ? "s" : ""} Storage admissible${summary.eligiblePhotos > 1 ? "s" : ""} (${formatBytes(summary.eligibleBytes)}) ? Les données comptables seront conservées.`)) return;
+    setActionState("purging");
+    setError("");
+    try {
+      const response = await fetch("/api/admin/archive", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${await identity.user.getIdToken()}`,
+        },
+        body: JSON.stringify({ manifestHash, confirmation: "ARCHIVE_PURGE", exportReference }),
+      });
+      const payload = await response.json().catch(() => ({})) as ArchiveApiResponse & { deletedCount?: number; deletedBytes?: number };
+      if (!response.ok || !payload.ok) throw new Error(payload.error ?? "La purge n’a pas pu être exécutée.");
+      onNotify(`${payload.deletedCount ?? 0} photo${payload.deletedCount === 1 ? "" : "s"} supprimée${payload.deletedCount === 1 ? "" : "s"} après audit.`);
+      await loadArchive();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "La purge n’a pas pu être exécutée.");
+    } finally {
+      setActionState("idle");
+    }
+  };
+
   if (isProductionDataSource) {
-    return <><PageHeading eyebrow="Conservation" title="Archives" description="Les données structurées restent accessibles; les photos ne seront purgées qu’après un export vérifié." action={<button className="secondary-button" onClick={() => onNotify("L’export d’archives doit encore être configuré avec le manifeste Storage.")}>Préparer un export</button>} /><section className="panel data-source-card"><p className="eyebrow">Préparation requise</p><h2>Archivage de production à configurer</h2><p className="muted">Les statistiques d’archives ne sont pas encore calculées depuis Storage. Aucun chiffre fictif ni aucune suppression automatique ne sont affichés dans ce mode.</p><button className="primary-button" onClick={() => onNotify("Le manifeste d’archive sera ajouté dans une prochaine étape.")}>Voir la prochaine étape</button></section></>;
+    const isBusy = archiveState === "loading" || actionState !== "idle";
+    return <>
+      <PageHeading eyebrow="Conservation" title="Archives" description="Les données structurées restent accessibles. Les photos ne sont admissibles qu’après comptabilisation et restent protégées jusqu’à un export externe vérifié." action={<button className="secondary-button" type="button" onClick={() => void loadArchive()} disabled={isBusy}>↻ Actualiser</button>} />
+      <section className="archive-production-grid">
+        <div className="panel archive-card"><div className="archive-card-icon">▣</div><p className="eyebrow">Objets Storage</p><strong>{summary?.storageObjects ?? "—"}</strong><span>{formatBytes(summary?.storageBytes)} utilisés sous receipts/</span></div>
+        <div className="panel archive-card"><div className="archive-card-icon">✓</div><p className="eyebrow">Photos admissibles</p><strong>{summary?.eligiblePhotos ?? "—"}</strong><span>{formatBytes(summary?.eligibleBytes)} · factures POSTED uniquement</span></div>
+        <div className="panel archive-card"><div className="archive-card-icon blue">⌁</div><p className="eyebrow">Factures liées</p><strong>{summary?.eligibleInvoices ?? "—"}</strong><span>{summary?.eligibleReceipts ?? "—"} dépôt{summary?.eligibleReceipts === 1 ? "" : "s"} concernés</span></div>
+        <div className="panel archive-card"><div className="archive-card-icon gold">!</div><p className="eyebrow">À conserver / vérifier</p><strong>{summary?.unlinkedStorageObjects ?? "—"}</strong><span>{summary ? `${summary.missingLinkedPhotos} photo${summary.missingLinkedPhotos === 1 ? "" : "s"} liée${summary.missingLinkedPhotos === 1 ? "" : "s"} absente${summary.missingLinkedPhotos === 1 ? "" : "s"}` : "Lecture Storage en cours"}</span></div>
+      </section>
+      <section className="panel archive-controls-panel"><div className="panel-header"><div><p className="eyebrow">Manifeste vérifiable</p><h2>Inventaire des photos</h2></div><span className="badge badge-neutral">{archiveState === "loading" ? "Lecture en cours" : archiveState === "ready" ? "À jour" : "Non chargé"}</span></div><div className="archive-controls"><button className="secondary-button" type="button" onClick={() => void downloadManifest()} disabled={isBusy || archiveState !== "ready"}>⇩ Télécharger le manifeste</button>{identity.role === "ADMIN" ? <button className="primary-button archive-danger-button" type="button" onClick={() => void purgeArchive()} disabled={isBusy || archiveState !== "ready" || !summary?.eligiblePhotos}>Purger après export vérifié</button> : <span className="archive-permission-note">La purge est réservée à ADMIN.</span>}</div><div className="archive-safety-note"><strong>Contrôle de sécurité.</strong><span>Le manifeste ne supprime rien. La purge exige une référence d’export externe, une confirmation exacte, un hash de manifeste encore à jour et une écriture d’audit avant la suppression.</span></div>{manifestHash && <small className="archive-manifest-meta">Manifeste {manifestHash.slice(0, 16)}… · lecture {generatedAt ? formatDate(generatedAt.slice(0, 10)) : "—"}</small>}{error && <div className="config-note archive-error"><span>!</span><p>{error}</p></div>}</section>
+    </>;
   }
   return <><PageHeading eyebrow="Conservation" title="Archives" description="Les données structurées restent accessibles; seules les photos admissibles peuvent être purgées." action={<button className="secondary-button" onClick={() => onNotify("La préparation d’archive sera disponible après la connexion Firebase.")}>Préparer un export</button>} /><div className="archive-banner"><span className="archive-icon large">◷</span><div><p className="eyebrow">Archivage recommandé</p><h2>842 photos de factures validées peuvent être archivées.</h2><p>Période: 1er juin au 31 août 2026 · aucune suppression automatique activée</p></div><button className="primary-button" onClick={() => onNotify("Rappel reporté de 30 jours.")}>Reporter</button></div><section className="archive-grid"><div className="panel archive-card"><div className="archive-card-icon">✓</div><p className="eyebrow">Photos admissibles</p><strong>842</strong><span>après contrôles d’intégrité</span><div className="progress"><span style={{ width: "72%" }} /></div><small>72% de la période est prête</small></div><div className="panel archive-card"><div className="archive-card-icon blue">▣</div><p className="eyebrow">Dernier export vérifié</p><strong>31 mai 2026</strong><span>Factures_2026-03_2026-05</span><button className="text-button">Ouvrir le manifeste →</button></div><div className="panel archive-card"><div className="archive-card-icon gold">⌁</div><p className="eyebrow">Politique</p><strong>Mode manuel</strong><span>La purge automatique est désactivée.</span><button className="text-button">Modifier dans Configuration →</button></div></section></>;
 }

@@ -144,6 +144,18 @@ export interface AdminListInvoicesVariables {
   offset: number;
 }
 
+export interface AdminRecordArchivePurgeData {
+  auditEvent_upsert: AuditEvent_Key;
+}
+
+export interface AdminRecordArchivePurgeVariables {
+  auditEventId: string;
+  actorUid: string;
+  actorRole: string;
+  archiveId: string;
+  auditDetails: string;
+}
+
 export interface AdminSeedCardStatementPeriodData {
   cardStatementPeriod_upsert: CardStatementPeriod_Key;
 }
@@ -2527,6 +2539,18 @@ export const adminListInvoicePhotosRef: AdminListInvoicePhotosRef;
 
 export function adminListInvoicePhotos(vars: AdminListInvoicePhotosVariables, options?: ExecuteQueryOptions): QueryPromise<AdminListInvoicePhotosData, AdminListInvoicePhotosVariables>;
 export function adminListInvoicePhotos(dc: DataConnect, vars: AdminListInvoicePhotosVariables, options?: ExecuteQueryOptions): QueryPromise<AdminListInvoicePhotosData, AdminListInvoicePhotosVariables>;
+
+interface AdminRecordArchivePurgeRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminRecordArchivePurgeVariables): MutationRef<AdminRecordArchivePurgeData, AdminRecordArchivePurgeVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AdminRecordArchivePurgeVariables): MutationRef<AdminRecordArchivePurgeData, AdminRecordArchivePurgeVariables>;
+  operationName: string;
+}
+export const adminRecordArchivePurgeRef: AdminRecordArchivePurgeRef;
+
+export function adminRecordArchivePurge(vars: AdminRecordArchivePurgeVariables): MutationPromise<AdminRecordArchivePurgeData, AdminRecordArchivePurgeVariables>;
+export function adminRecordArchivePurge(dc: DataConnect, vars: AdminRecordArchivePurgeVariables): MutationPromise<AdminRecordArchivePurgeData, AdminRecordArchivePurgeVariables>;
 
 interface UpsertUserProfileRef {
   /* Allow users to create refs without passing in DataConnect */

@@ -415,3 +415,21 @@ query AdminListInvoicePhotos($limit: Int!, $offset: Int!) @auth(level: NO_ACCESS
     sequence
   }
 }
+
+mutation AdminRecordArchivePurge(
+  $auditEventId: String!
+  $actorUid: String!
+  $actorRole: String!
+  $archiveId: String!
+  $auditDetails: String!
+) @auth(level: NO_ACCESS) {
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: "ARCHIVE_PURGE"
+    entityType: "ArchiveManifest"
+    entityId: $archiveId
+    details: $auditDetails
+  })
+}

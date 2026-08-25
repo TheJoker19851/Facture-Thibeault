@@ -72,6 +72,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*AdminSeedMerchantAlias*](#adminseedmerchantalias)
   - [*AdminDeleteCardStatementPeriod*](#admindeletecardstatementperiod)
   - [*AdminDeleteUserProfile*](#admindeleteuserprofile)
+  - [*AdminRecordArchivePurge*](#adminrecordarchivepurge)
   - [*UpsertUserProfile*](#upsertuserprofile)
   - [*UpsertCreditCard*](#upsertcreditcard)
   - [*UpsertProject*](#upsertproject)
@@ -7941,6 +7942,127 @@ console.log(data.userProfile_delete);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.userProfile_delete);
+});
+```
+
+## AdminRecordArchivePurge
+You can execute the `AdminRecordArchivePurge` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+adminRecordArchivePurge(vars: AdminRecordArchivePurgeVariables): MutationPromise<AdminRecordArchivePurgeData, AdminRecordArchivePurgeVariables>;
+
+interface AdminRecordArchivePurgeRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminRecordArchivePurgeVariables): MutationRef<AdminRecordArchivePurgeData, AdminRecordArchivePurgeVariables>;
+}
+export const adminRecordArchivePurgeRef: AdminRecordArchivePurgeRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+adminRecordArchivePurge(dc: DataConnect, vars: AdminRecordArchivePurgeVariables): MutationPromise<AdminRecordArchivePurgeData, AdminRecordArchivePurgeVariables>;
+
+interface AdminRecordArchivePurgeRef {
+  ...
+  (dc: DataConnect, vars: AdminRecordArchivePurgeVariables): MutationRef<AdminRecordArchivePurgeData, AdminRecordArchivePurgeVariables>;
+}
+export const adminRecordArchivePurgeRef: AdminRecordArchivePurgeRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminRecordArchivePurgeRef:
+```typescript
+const name = adminRecordArchivePurgeRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `AdminRecordArchivePurge` mutation requires an argument of type `AdminRecordArchivePurgeVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface AdminRecordArchivePurgeVariables {
+  auditEventId: string;
+  actorUid: string;
+  actorRole: string;
+  archiveId: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that executing the `AdminRecordArchivePurge` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `AdminRecordArchivePurgeData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface AdminRecordArchivePurgeData {
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+### Using `AdminRecordArchivePurge`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, adminRecordArchivePurge, AdminRecordArchivePurgeVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminRecordArchivePurge` mutation requires an argument of type `AdminRecordArchivePurgeVariables`:
+const adminRecordArchivePurgeVars: AdminRecordArchivePurgeVariables = {
+  auditEventId: ..., 
+  actorUid: ..., 
+  actorRole: ..., 
+  archiveId: ..., 
+  auditDetails: ..., 
+};
+
+// Call the `adminRecordArchivePurge()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await adminRecordArchivePurge(adminRecordArchivePurgeVars);
+// Variables can be defined inline as well.
+const { data } = await adminRecordArchivePurge({ auditEventId: ..., actorUid: ..., actorRole: ..., archiveId: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await adminRecordArchivePurge(dataConnect, adminRecordArchivePurgeVars);
+
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+adminRecordArchivePurge(adminRecordArchivePurgeVars).then((response) => {
+  const data = response.data;
+  console.log(data.auditEvent_upsert);
+});
+```
+
+### Using `AdminRecordArchivePurge`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, adminRecordArchivePurgeRef, AdminRecordArchivePurgeVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminRecordArchivePurge` mutation requires an argument of type `AdminRecordArchivePurgeVariables`:
+const adminRecordArchivePurgeVars: AdminRecordArchivePurgeVariables = {
+  auditEventId: ..., 
+  actorUid: ..., 
+  actorRole: ..., 
+  archiveId: ..., 
+  auditDetails: ..., 
+};
+
+// Call the `adminRecordArchivePurgeRef()` function to get a reference to the mutation.
+const ref = adminRecordArchivePurgeRef(adminRecordArchivePurgeVars);
+// Variables can be defined inline as well.
+const ref = adminRecordArchivePurgeRef({ auditEventId: ..., actorUid: ..., actorRole: ..., archiveId: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = adminRecordArchivePurgeRef(dataConnect, adminRecordArchivePurgeVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.auditEvent_upsert);
 });
 ```
 

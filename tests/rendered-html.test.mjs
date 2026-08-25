@@ -113,6 +113,16 @@ test("rejects unauthenticated direct access to privileged API routes", async () 
   }), context);
   assert.equal(adminResponse.status, 403);
 
+  const archiveResponse = await worker.fetch(new Request("http://localhost/api/admin/archive"), context);
+  assert.equal(archiveResponse.status, 403);
+
+  const archivePurgeResponse = await worker.fetch(new Request("http://localhost/api/admin/archive", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ confirmation: "ARCHIVE_PURGE" }),
+  }), context);
+  assert.equal(archivePurgeResponse.status, 403);
+
   const aiResponse = await worker.fetch(new Request("http://localhost/api/ai/process-invoice", {
     method: "POST",
     headers: { "x-invoice-client-version": "invoice-photo-v2" },

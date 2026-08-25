@@ -373,6 +373,20 @@ exports.adminListInvoicePhotos = function adminListInvoicePhotos(dcOrVars, varsO
 }
 ;
 
+const adminRecordArchivePurgeRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminRecordArchivePurge', inputVars);
+}
+adminRecordArchivePurgeRef.operationName = 'AdminRecordArchivePurge';
+exports.adminRecordArchivePurgeRef = adminRecordArchivePurgeRef;
+
+exports.adminRecordArchivePurge = function adminRecordArchivePurge(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminRecordArchivePurgeRef(dcInstance, inputVars));
+}
+;
+
 const upsertUserProfileRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
