@@ -223,7 +223,7 @@ async function extractInvoice(receiptId: string, files: File[], accountLabels: s
 
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) throw new Error("GOOGLE_GENERATIVE_AI_API_KEY est absent.");
-  const modelId = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const modelId = process.env.GEMINI_MODEL || "gemini-3.6-flash";
   const google = createGoogle({ apiKey });
   const imageParts = await Promise.all(files.map(async (file) => ({
     type: "file" as const,

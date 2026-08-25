@@ -71,7 +71,7 @@ test("production configuration requires live credentials", () => {
     NEXT_PUBLIC_FIREBASE_APP_ID: "1:000000000001:web:demo", NEXT_PUBLIC_FIREBASE_USE_EMULATORS: "false",
     NEXT_PUBLIC_SQL_CONNECT_SERVICE_ID: "facture-thibeault-service", NEXT_PUBLIC_SQL_CONNECT_LOCATION: "northamerica-northeast1", NEXT_PUBLIC_SQL_CONNECT_CONNECTOR_ID: "accounting",
     FIREBASE_ADMIN_PROJECT_ID: "facture-thibeault", FIREBASE_ADMIN_CLIENT_EMAIL: "runtime@facture-thibeault.iam.gserviceaccount.com", FIREBASE_ADMIN_PRIVATE_KEY: "DEMO-PRIVATE-KEY-NOT-A-SECRET",
-    GOOGLE_GENERATIVE_AI_API_KEY: "demo-gemini-key-not-a-secret", GEMINI_MODEL: "gemini-2.5-flash", INVOICE_AI_MODE: "live",
+    GOOGLE_GENERATIVE_AI_API_KEY: "demo-gemini-key-not-a-secret", GEMINI_MODEL: "gemini-3.6-flash", INVOICE_AI_MODE: "live",
   };
   assert.equal(configurationFrom(complete, { requireExplicit: true }).ok, true);
   const incomplete = configurationFrom({ ...complete, GOOGLE_GENERATIVE_AI_API_KEY: "" }, { requireExplicit: true });
