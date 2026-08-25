@@ -1,7 +1,13 @@
 import { firebaseAdminConfigured, getFirebaseAdminDataConnect } from "../../../../firebase/admin";
 import { listAllInvoiceIntakes } from "../../../../firebase/accounting-pagination.server";
 import { INVOICE_CLIENT_VERSION } from "../../../../lib/invoice-client-version.mjs";
-import { selectInvoiceIntakesForAutomaticProcessing } from "../../../../lib/invoice-queue.mjs";
+import { invoiceAiMaxAttempts } from "../../../../lib/gemini-retry.mjs";
+import { AUDIT_ACTIONS, auditDetails, auditEventId } from "../../../../lib/audit-events.mjs";
+import {
+  INVOICE_CRON_STALE_AFTER_MS,
+  selectInvoiceIntakesForAutomaticProcessing,
+  selectStaleInvoiceIntakes,
+} from "../../../../lib/invoice-queue.mjs";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -24,8 +30,33 @@ export async function GET(request: Request) {
   }
 
   const dataConnect = await getFirebaseAdminDataConnect();
+  const allIntakes = await listAllInvoiceIntakes(dataConnect);
+  const staleBefore = new Date(Date.now() - INVOICE_CRON_STALE_AFTER_MS).toISOString();
+  const stale = selectStaleInvoiceIntakes(allIntakes, Date.now(), INVOICE_CRON_STALE_AFTER_MS, invoiceAiMaxAttempts());
+  let requeued = 0;
+  for (const intake of stale) {
+    const maxAttempts = invoiceAiMaxAttempts();
+    const result = await dataConnect.executeMutation<{ invoiceIntake_updateMany: number }, {
+      receiptId: string;
+      staleBefore: string;
+      maxAttempts: number;
+      actorUid: string;
+      actorRole: string;
+      auditEventId: string;
+      auditDetails: string;
+    }>("RequeueStaleInvoiceIntake", {
+      receiptId: intake.receiptId,
+      staleBefore,
+      maxAttempts,
+      actorUid: "invoice-worker",
+      actorRole: "ADMIN",
+      auditEventId: auditEventId(intake.receiptId, AUDIT_ACTIONS.AI_PROCESSING_FAILED, "stale-requeue"),
+      auditDetails: auditDetails({ reason: "STALE_WORKER_REQUEUED", staleAfterMs: INVOICE_CRON_STALE_AFTER_MS }),
+    }).catch(() => null);
+    if (result?.data.invoiceIntake_updateMany === 1) requeued += 1;
+  }
   const queued = selectInvoiceIntakesForAutomaticProcessing(await listAllInvoiceIntakes(dataConnect));
-  console.info("[invoice-worker] phase=queue_selected", { count: queued.length });
+  console.info("[invoice-worker] phase=queue_selected", { count: queued.length, requeued });
   const results: Array<{ receiptId: string; status: number; body: unknown }> = [];
   for (const intake of queued) {
     console.info("[invoice-worker] phase=intake_start");

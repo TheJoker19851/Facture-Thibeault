@@ -675,6 +675,46 @@ mutation ClaimInvoiceIntakeProcessing(
   }) @include(if: $writeAudit)
 }
 
+# A Vercel timeout can leave a claimed intake in RUNNING after the function is
+# gone. Only a server-side worker may reopen it, and only after the lease has
+# expired; the timestamp predicate prevents a newer attempt from being reset.
+mutation RequeueStaleInvoiceIntake(
+  $receiptId: String!
+  $staleBefore: Timestamp!
+  $maxAttempts: Int!
+  $actorUid: String!
+  $actorRole: String!
+  $auditEventId: String!
+  $auditDetails: String!
+) @auth(level: NO_ACCESS) @transaction {
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      processingStatus: { eq: "PROCESSING" }
+      processingState: { eq: "RUNNING" }
+      processingAttempts: { lt: $maxAttempts }
+      accountingStatus: { eq: "NOT_POSTED" }
+      lastAttemptAt: { lt: $staleBefore }
+    }
+    data: {
+      processingState: "RETRY"
+      lastError: "Le traitement automatique précédent a dépassé son délai; une nouvelle tentative est planifiée."
+    }
+  )
+  query @redact @check(expr: "response.invoiceIntake_updateMany == 1", message: "L’intake n’est plus un traitement RUNNING expiré.") {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) { receiptId }
+  }
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: "AI_PROCESSING_FAILED"
+    entityType: "InvoiceIntake"
+    entityId: $receiptId
+    details: $auditDetails
+  })
+}
+
 # Server-only AI persistence. The Admin SDK verifies the Firebase token,
 # confirms ownership of the intake and performs deterministic classification
 # before executing this operation. Browser clients cannot call it directly.
@@ -716,7 +756,7 @@ mutation UpdateInvoiceIntakeAiResult(
     where: {
       receiptId: { eq: $receiptId }
       processingStatus: { eq: "PROCESSING" }
-      processingState: { in: ["QUEUED", "RUNNING"] }
+      processingState: { eq: "RUNNING" }
       accountingStatus: { eq: "NOT_POSTED" }
     }
     data: {
@@ -789,6 +829,7 @@ mutation MarkInvoiceIntakeAiError(
     where: {
       receiptId: { eq: $receiptId }
       processingStatus: { eq: "PROCESSING" }
+      processingState: { eq: "RUNNING" }
       accountingStatus: { eq: "NOT_POSTED" }
     }
     data: {
