@@ -1440,21 +1440,57 @@ function auditFieldLabel(field?: string) {
   return field ? labels[field] ?? field : "Champ";
 }
 
-function auditFieldValue(field: string | undefined, value: unknown) {
+type AuditReferenceData = {
+  cards?: CreditCard[];
+  projects?: ProjectReference[];
+};
+
+function parseAuditLineItems(value: unknown) {
+  if (Array.isArray(value)) return value as Array<{ amountCents?: unknown }>;
+  if (typeof value !== "string") return null;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed as Array<{ amountCents?: unknown }> : null;
+  } catch {
+    return null;
+  }
+}
+
+function auditLineItemsSummary(value: unknown) {
+  const lineItems = parseAuditLineItems(value);
+  if (!lineItems) return value == null || value === "" ? "Détail non renseigné" : "Détail non lisible";
+  const totalCents = lineItems.reduce((sum, item) => {
+    const amount = Number(item.amountCents);
+    return Number.isFinite(amount) ? sum + amount : sum;
+  }, 0);
+  const countLabel = `${lineItems.length} ligne${lineItems.length > 1 ? "s" : ""}`;
+  return `${countLabel} · ${formatCurrency(totalCents / 100)}`;
+}
+
+function auditFieldValue(field: string | undefined, value: unknown, references: AuditReferenceData = {}) {
   if (value == null || value === "") return "Non renseigné";
+  if (field === "lineItems") return auditLineItemsSummary(value);
   if (field?.endsWith("Cents")) {
     const cents = Number(value);
     if (Number.isFinite(cents)) return formatCurrency(cents / 100);
   }
   if (field === "accountCode") return `Compte ${String(value)}`;
+  if (field === "cardId") {
+    const card = references.cards?.find((candidate) => candidate.id === String(value));
+    return card ? `•••• ${card.lastFour} · ${card.holder}` : String(value);
+  }
+  if (field === "projectId") {
+    const project = references.projects?.find((candidate) => candidate.id === String(value));
+    return project ? `${project.number} · ${project.name}` : String(value);
+  }
   return String(value);
 }
 
 type AuditCorrection = { field?: string; previous?: unknown; corrected?: unknown };
 
-function meaningfulAuditCorrections(details: Record<string, unknown>) {
+function meaningfulAuditCorrections(details: Record<string, unknown>, references: AuditReferenceData = {}) {
   const corrections = Array.isArray(details.corrections) ? details.corrections as AuditCorrection[] : [];
-  return corrections.filter((correction) => auditFieldValue(correction.field, correction.previous) !== auditFieldValue(correction.field, correction.corrected));
+  return corrections.filter((correction) => auditFieldValue(correction.field, correction.previous, references) !== auditFieldValue(correction.field, correction.corrected, references));
 }
 
 function auditTimestamp(value: string) {
@@ -1463,10 +1499,11 @@ function auditTimestamp(value: string) {
   return new Intl.DateTimeFormat("fr-CA", { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
-function AuditTrailView({ events, role, state }: { events: AuditEventRecord[]; role: Role | null; state: "loading" | "ready" | "error" }) {
+function AuditTrailView({ events, role, state, cards, projects }: { events: AuditEventRecord[]; role: Role | null; state: "loading" | "ready" | "error"; cards?: CreditCard[]; projects?: ProjectReference[] }) {
   void AuditTrail;
+  const references = { cards, projects };
   events = events.filter((event) => !(event.action === "HUMAN_CORRECTION" && parseAuditDetails(event.details).source !== "HUMAN_EDIT"));
-  return <section className="audit-trail" aria-label="Piste d’audit"><div className="section-heading"><span>03</span><div><p className="eyebrow">Traçabilité</p><h2>Historique de la facture</h2><p className="section-help">Chaque étape indique ce qui s’est passé et qui l’a enregistrée.</p></div></div>{state === "loading" && <p className="muted">Chargement de l’historique…</p>}{state === "error" && <p className="intake-evidence-message error">La piste d’audit n’est pas disponible.</p>}{state === "ready" && !events.length && <p className="muted">Aucun événement d’audit enregistré.</p>}{events.length > 0 && <div className="audit-event-list">{events.map((event) => { const details = parseAuditDetails(event.details); const isLegacyCorrection = event.action === "HUMAN_CORRECTION" && details.source !== "HUMAN_EDIT"; const corrections = isLegacyCorrection ? [] : meaningfulAuditCorrections(details); const actor = event.actor?.displayName ?? (event.actorRole ? `Rôle ${event.actorRole}` : "Utilisateur authentifié"); const isUnconfirmedCorrection = event.action === "HUMAN_CORRECTION" && (isLegacyCorrection || corrections.length === 0); return <article className={`audit-event audit-event-${event.action.toLowerCase()}`} key={event.id}><div className="audit-event-heading"><div><strong>{isUnconfirmedCorrection ? "Revue enregistrée" : auditActionLabel(event.action)}</strong><p>{isLegacyCorrection ? "Cette revue provient d’une ancienne version de l’application; elle ne confirme pas une modification manuelle." : corrections.length === 0 && event.action === "HUMAN_CORRECTION" ? "La revue a été enregistrée sans modification de valeur." : auditActionDescription(event.action)}</p></div><small>{actor}<br />{auditTimestamp(event.createdAt)}</small></div>{role === "ADMIN" && event.action === "HUMAN_CORRECTION" && !isUnconfirmedCorrection && corrections.length > 0 && <div className="audit-corrections">{corrections.map((correction) => <span key={String(correction.field)}><b>{auditFieldLabel(correction.field)}</b><span>{auditFieldValue(correction.field, correction.previous)} <i aria-hidden="true">→</i> {auditFieldValue(correction.field, correction.corrected)}</span></span>)}</div>}</article>; })}</div>}</section>;
+  return <section className="audit-trail" aria-label="Piste d’audit"><div className="section-heading"><span>03</span><div><p className="eyebrow">Traçabilité</p><h2>Historique de la facture</h2><p className="section-help">Chaque étape indique ce qui s’est passé et qui l’a enregistrée.</p></div></div>{state === "loading" && <p className="muted">Chargement de l’historique…</p>}{state === "error" && <p className="intake-evidence-message error">La piste d’audit n’est pas disponible.</p>}{state === "ready" && !events.length && <p className="muted">Aucun événement d’audit enregistré.</p>}{events.length > 0 && <div className="audit-event-list">{events.map((event) => { const details = parseAuditDetails(event.details); const isLegacyCorrection = event.action === "HUMAN_CORRECTION" && details.source !== "HUMAN_EDIT"; const corrections = isLegacyCorrection ? [] : meaningfulAuditCorrections(details, references); const actor = event.actor?.displayName ?? (event.actorRole ? `Rôle ${event.actorRole}` : "Utilisateur authentifié"); const isUnconfirmedCorrection = event.action === "HUMAN_CORRECTION" && (isLegacyCorrection || corrections.length === 0); return <article className={`audit-event audit-event-${event.action.toLowerCase()}`} key={event.id}><div className="audit-event-heading"><div><strong>{isUnconfirmedCorrection ? "Revue enregistrée" : auditActionLabel(event.action)}</strong><p>{isLegacyCorrection ? "Cette revue provient d’une ancienne version de l’application; elle ne confirme pas une modification manuelle." : corrections.length === 0 && event.action === "HUMAN_CORRECTION" ? "La revue a été enregistrée sans modification de valeur." : auditActionDescription(event.action)}</p></div><small>{actor}<br />{auditTimestamp(event.createdAt)}</small></div>{role === "ADMIN" && event.action === "HUMAN_CORRECTION" && !isUnconfirmedCorrection && corrections.length > 0 && <div className="audit-corrections">{corrections.map((correction) => <span key={String(correction.field)}><b>{auditFieldLabel(correction.field)}</b><span>{auditFieldValue(correction.field, correction.previous, references)} <i aria-hidden="true">→</i> {auditFieldValue(correction.field, correction.corrected, references)}</span></span>)}</div>}</article>; })}</div>}</section>;
 }
 
 function AuditTrail({ events, role, state }: { events: AuditEventRecord[]; role: Role | null; state: "loading" | "ready" | "error" }) {
@@ -1639,6 +1676,7 @@ function IntakeQueuePage({ items, period, onPeriodChange, onSaved }: { items: In
       sku: selectedIntake.extractedSku ?? null,
       category: selectedIntake.extractedCategory ?? selectedIntake.classificationCategory ?? null,
       projectId: selectedIntake.extractedProjectId ?? null,
+      cardId: null,
       accountCode: selectedIntake.classificationAccountCode ?? null,
       lineItems: JSON.stringify(selectedIntake.lineItems ?? []),
     };
@@ -1653,6 +1691,7 @@ function IntakeQueuePage({ items, period, onPeriodChange, onSaved }: { items: In
       sku: draft.sku.trim() || null,
       category: draft.category.trim() || null,
       projectId: draft.projectId || null,
+      cardId: commitCardId || null,
       accountCode: summaryAccountCode,
       lineItems: JSON.stringify(preparedLineItems),
     };
@@ -1897,7 +1936,7 @@ function IntakeQueuePage({ items, period, onPeriodChange, onSaved }: { items: In
         <div className="panel-header"><div><p className="eyebrow">{processingStatusOf(selectedIntake) === "VALIDATED" ? "Prête pour comptabilisation" : "Exception à résoudre"}</p><h2>{draft.vendor || "Facture sélectionnée"}</h2></div><span className={intakeStatusClass(processingStatusOf(selectedIntake))}>{intakeQueueStatusLabel(selectedIntake)}</span></div>
         {visibleReviewMessages.length > 0 && <div className="detail-alert"><div className="detail-alert-icon">!</div><div><p className="eyebrow">À corriger</p>{visibleReviewMessages.map((message) => <span key={message}>{message}</span>)}</div></div>}
         <InvoiceIntakeEvidence key={selectedIntake.receiptId} intake={selectedIntake} />
-        <AuditTrailView events={auditEvents} role={identity.role} state={auditState} />
+        <AuditTrailView events={auditEvents} role={identity.role} state={auditState} cards={cards} projects={projects} />
         <div className="intake-review-form">
           <label className={`field wide ${needsCorrection("vendor") ? "needs-correction" : ""}`}><span>Fournisseur</span><input aria-invalid={needsCorrection("vendor")} value={draft.vendor} onChange={(event) => updateDraft("vendor", event.target.value)} /></label>
           <div className="field-grid"><label className={`field ${needsCorrection("invoiceNumber") ? "needs-correction" : ""}`}><span>No de facture</span><input aria-invalid={needsCorrection("invoiceNumber")} value={draft.invoiceNumber} onChange={(event) => updateDraft("invoiceNumber", event.target.value)} /></label><label className={`field ${needsCorrection("invoiceDate") ? "needs-correction" : ""}`}><span>Date</span><input aria-invalid={needsCorrection("invoiceDate")} type="date" value={draft.invoiceDate} onChange={(event) => updateDraft("invoiceDate", event.target.value)} /></label></div>
