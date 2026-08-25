@@ -84,6 +84,8 @@ export async function POST(request: Request) {
 
   await dataConnect.executeMutation("DiscardInvoiceIntake", {
     receiptId: intake.receiptId,
+    actorUid: identity.uid,
+    actorRole: identity.role,
     auditEventId: auditEventId(intake.receiptId, AUDIT_ACTIONS.INVOICE_DISCARDED, createClientId()),
     auditDetails: auditDetails({
       source: "USER_DISCARD",

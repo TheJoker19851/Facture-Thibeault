@@ -94,6 +94,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*CreateInvoiceIntake*](#createinvoiceintake)
   - [*CreateInvoiceIntakeV2*](#createinvoiceintakev2)
   - [*ClaimInvoiceIntakeProcessing*](#claiminvoiceintakeprocessing)
+  - [*RequeueStaleInvoiceIntake*](#requeuestaleinvoiceintake)
   - [*UpdateInvoiceIntakeAiResult*](#updateinvoiceintakeairesult)
   - [*MarkInvoiceIntakeAiError*](#markinvoiceintakeaierror)
   - [*MarkInvoiceIntakeAiMaxAttempts*](#markinvoiceintakeaimaxattempts)
@@ -11002,6 +11003,138 @@ executeMutation(ref).then((response) => {
 });
 ```
 
+## RequeueStaleInvoiceIntake
+You can execute the `RequeueStaleInvoiceIntake` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+requeueStaleInvoiceIntake(vars: RequeueStaleInvoiceIntakeVariables): MutationPromise<RequeueStaleInvoiceIntakeData, RequeueStaleInvoiceIntakeVariables>;
+
+interface RequeueStaleInvoiceIntakeRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: RequeueStaleInvoiceIntakeVariables): MutationRef<RequeueStaleInvoiceIntakeData, RequeueStaleInvoiceIntakeVariables>;
+}
+export const requeueStaleInvoiceIntakeRef: RequeueStaleInvoiceIntakeRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+requeueStaleInvoiceIntake(dc: DataConnect, vars: RequeueStaleInvoiceIntakeVariables): MutationPromise<RequeueStaleInvoiceIntakeData, RequeueStaleInvoiceIntakeVariables>;
+
+interface RequeueStaleInvoiceIntakeRef {
+  ...
+  (dc: DataConnect, vars: RequeueStaleInvoiceIntakeVariables): MutationRef<RequeueStaleInvoiceIntakeData, RequeueStaleInvoiceIntakeVariables>;
+}
+export const requeueStaleInvoiceIntakeRef: RequeueStaleInvoiceIntakeRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the requeueStaleInvoiceIntakeRef:
+```typescript
+const name = requeueStaleInvoiceIntakeRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `RequeueStaleInvoiceIntake` mutation requires an argument of type `RequeueStaleInvoiceIntakeVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface RequeueStaleInvoiceIntakeVariables {
+  receiptId: string;
+  staleBefore: TimestampString;
+  maxAttempts: number;
+  actorUid: string;
+  actorRole: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that executing the `RequeueStaleInvoiceIntake` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `RequeueStaleInvoiceIntakeData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface RequeueStaleInvoiceIntakeData {
+  invoiceIntake_updateMany: number;
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+### Using `RequeueStaleInvoiceIntake`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, requeueStaleInvoiceIntake, RequeueStaleInvoiceIntakeVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `RequeueStaleInvoiceIntake` mutation requires an argument of type `RequeueStaleInvoiceIntakeVariables`:
+const requeueStaleInvoiceIntakeVars: RequeueStaleInvoiceIntakeVariables = {
+  receiptId: ..., 
+  staleBefore: ..., 
+  maxAttempts: ..., 
+  actorUid: ..., 
+  actorRole: ..., 
+  auditEventId: ..., 
+  auditDetails: ..., 
+};
+
+// Call the `requeueStaleInvoiceIntake()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await requeueStaleInvoiceIntake(requeueStaleInvoiceIntakeVars);
+// Variables can be defined inline as well.
+const { data } = await requeueStaleInvoiceIntake({ receiptId: ..., staleBefore: ..., maxAttempts: ..., actorUid: ..., actorRole: ..., auditEventId: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await requeueStaleInvoiceIntake(dataConnect, requeueStaleInvoiceIntakeVars);
+
+console.log(data.invoiceIntake_updateMany);
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+requeueStaleInvoiceIntake(requeueStaleInvoiceIntakeVars).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
+  console.log(data.auditEvent_upsert);
+});
+```
+
+### Using `RequeueStaleInvoiceIntake`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, requeueStaleInvoiceIntakeRef, RequeueStaleInvoiceIntakeVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `RequeueStaleInvoiceIntake` mutation requires an argument of type `RequeueStaleInvoiceIntakeVariables`:
+const requeueStaleInvoiceIntakeVars: RequeueStaleInvoiceIntakeVariables = {
+  receiptId: ..., 
+  staleBefore: ..., 
+  maxAttempts: ..., 
+  actorUid: ..., 
+  actorRole: ..., 
+  auditEventId: ..., 
+  auditDetails: ..., 
+};
+
+// Call the `requeueStaleInvoiceIntakeRef()` function to get a reference to the mutation.
+const ref = requeueStaleInvoiceIntakeRef(requeueStaleInvoiceIntakeVars);
+// Variables can be defined inline as well.
+const ref = requeueStaleInvoiceIntakeRef({ receiptId: ..., staleBefore: ..., maxAttempts: ..., actorUid: ..., actorRole: ..., auditEventId: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = requeueStaleInvoiceIntakeRef(dataConnect, requeueStaleInvoiceIntakeVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.invoiceIntake_updateMany);
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
+  console.log(data.auditEvent_upsert);
+});
+```
+
 ## UpdateInvoiceIntakeAiResult
 You can execute the `UpdateInvoiceIntakeAiResult` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
 ```typescript
@@ -11847,6 +11980,8 @@ The `DiscardInvoiceIntake` mutation requires an argument of type `DiscardInvoice
 ```typescript
 export interface DiscardInvoiceIntakeVariables {
   receiptId: string;
+  actorUid: string;
+  actorRole: string;
   auditEventId: string;
   auditDetails: string;
 }
@@ -11870,6 +12005,8 @@ import { connectorConfig, discardInvoiceIntake, DiscardInvoiceIntakeVariables } 
 // The `DiscardInvoiceIntake` mutation requires an argument of type `DiscardInvoiceIntakeVariables`:
 const discardInvoiceIntakeVars: DiscardInvoiceIntakeVariables = {
   receiptId: ..., 
+  actorUid: ..., 
+  actorRole: ..., 
   auditEventId: ..., 
   auditDetails: ..., 
 };
@@ -11878,7 +12015,7 @@ const discardInvoiceIntakeVars: DiscardInvoiceIntakeVariables = {
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await discardInvoiceIntake(discardInvoiceIntakeVars);
 // Variables can be defined inline as well.
-const { data } = await discardInvoiceIntake({ receiptId: ..., auditEventId: ..., auditDetails: ..., });
+const { data } = await discardInvoiceIntake({ receiptId: ..., actorUid: ..., actorRole: ..., auditEventId: ..., auditDetails: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -11904,6 +12041,8 @@ import { connectorConfig, discardInvoiceIntakeRef, DiscardInvoiceIntakeVariables
 // The `DiscardInvoiceIntake` mutation requires an argument of type `DiscardInvoiceIntakeVariables`:
 const discardInvoiceIntakeVars: DiscardInvoiceIntakeVariables = {
   receiptId: ..., 
+  actorUid: ..., 
+  actorRole: ..., 
   auditEventId: ..., 
   auditDetails: ..., 
 };
@@ -11911,7 +12050,7 @@ const discardInvoiceIntakeVars: DiscardInvoiceIntakeVariables = {
 // Call the `discardInvoiceIntakeRef()` function to get a reference to the mutation.
 const ref = discardInvoiceIntakeRef(discardInvoiceIntakeVars);
 // Variables can be defined inline as well.
-const ref = discardInvoiceIntakeRef({ receiptId: ..., auditEventId: ..., auditDetails: ..., });
+const ref = discardInvoiceIntakeRef({ receiptId: ..., actorUid: ..., actorRole: ..., auditEventId: ..., auditDetails: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);

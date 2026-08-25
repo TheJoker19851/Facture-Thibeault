@@ -1052,9 +1052,11 @@ mutation UpdateInvoiceIntakeReview(
 # server route removes the associated Storage files after this guarded change.
 mutation DiscardInvoiceIntake(
   $receiptId: String!
+  $actorUid: String!
+  $actorRole: String!
   $auditEventId: String!
   $auditDetails: String!
-) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") @transaction {
+) @auth(level: NO_ACCESS) @transaction {
   invoiceIntake_updateMany(
     where: {
       receiptId: { eq: $receiptId }
@@ -1079,8 +1081,8 @@ mutation DiscardInvoiceIntake(
   }
   auditEvent_upsert(data: {
     id: $auditEventId
-    actorUid_expr: "auth.uid"
-    actorRole_expr: "auth.token.role"
+    actorUid: $actorUid
+    actorRole: $actorRole
     action: "INVOICE_DISCARDED"
     entityType: "InvoiceIntake"
     entityId: $receiptId

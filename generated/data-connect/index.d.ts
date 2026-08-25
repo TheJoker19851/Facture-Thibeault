@@ -620,6 +620,8 @@ export interface DiscardInvoiceIntakeData {
 
 export interface DiscardInvoiceIntakeVariables {
   receiptId: string;
+  actorUid: string;
+  actorRole: string;
   auditEventId: string;
   auditDetails: string;
 }
@@ -1846,6 +1848,21 @@ export interface ReportAdjustmentSet_Key {
   __typename?: 'ReportAdjustmentSet_Key';
 }
 
+export interface RequeueStaleInvoiceIntakeData {
+  invoiceIntake_updateMany: number;
+  auditEvent_upsert: AuditEvent_Key;
+}
+
+export interface RequeueStaleInvoiceIntakeVariables {
+  receiptId: string;
+  staleBefore: TimestampString;
+  maxAttempts: number;
+  actorUid: string;
+  actorRole: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+
 export interface ResolveReconciliationOutsideControlData {
   reconciliationOutsideControl_update?: ReconciliationOutsideControl_Key | null;
   auditEvent_upsert: AuditEvent_Key;
@@ -2754,6 +2771,18 @@ export const claimInvoiceIntakeProcessingRef: ClaimInvoiceIntakeProcessingRef;
 
 export function claimInvoiceIntakeProcessing(vars: ClaimInvoiceIntakeProcessingVariables): MutationPromise<ClaimInvoiceIntakeProcessingData, ClaimInvoiceIntakeProcessingVariables>;
 export function claimInvoiceIntakeProcessing(dc: DataConnect, vars: ClaimInvoiceIntakeProcessingVariables): MutationPromise<ClaimInvoiceIntakeProcessingData, ClaimInvoiceIntakeProcessingVariables>;
+
+interface RequeueStaleInvoiceIntakeRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: RequeueStaleInvoiceIntakeVariables): MutationRef<RequeueStaleInvoiceIntakeData, RequeueStaleInvoiceIntakeVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: RequeueStaleInvoiceIntakeVariables): MutationRef<RequeueStaleInvoiceIntakeData, RequeueStaleInvoiceIntakeVariables>;
+  operationName: string;
+}
+export const requeueStaleInvoiceIntakeRef: RequeueStaleInvoiceIntakeRef;
+
+export function requeueStaleInvoiceIntake(vars: RequeueStaleInvoiceIntakeVariables): MutationPromise<RequeueStaleInvoiceIntakeData, RequeueStaleInvoiceIntakeVariables>;
+export function requeueStaleInvoiceIntake(dc: DataConnect, vars: RequeueStaleInvoiceIntakeVariables): MutationPromise<RequeueStaleInvoiceIntakeData, RequeueStaleInvoiceIntakeVariables>;
 
 interface UpdateInvoiceIntakeAiResultRef {
   /* Allow users to create refs without passing in DataConnect */

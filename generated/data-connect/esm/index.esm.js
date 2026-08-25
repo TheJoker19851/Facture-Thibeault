@@ -583,6 +583,18 @@ export function claimInvoiceIntakeProcessing(dcOrVars, vars) {
   return executeMutation(claimInvoiceIntakeProcessingRef(dcInstance, inputVars));
 }
 
+export const requeueStaleInvoiceIntakeRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'RequeueStaleInvoiceIntake', inputVars);
+}
+requeueStaleInvoiceIntakeRef.operationName = 'RequeueStaleInvoiceIntake';
+
+export function requeueStaleInvoiceIntake(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(requeueStaleInvoiceIntakeRef(dcInstance, inputVars));
+}
+
 export const updateInvoiceIntakeAiResultRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
