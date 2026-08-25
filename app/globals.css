@@ -214,12 +214,12 @@ h2 { margin-bottom: 0; font-size: 17px; letter-spacing: -.02em; }
 .accounting-template-table th { background: #fff; color: #0000c8; font-weight: 800; text-align: center; vertical-align: middle; }
 .accounting-template-table thead tr:first-child th { height: 25px; border-bottom: 0; }
 .accounting-template-table thead tr:last-child th { height: 36px; font-size: 8px; }
-.accounting-template-table th:nth-child(1), .accounting-template-table td:nth-child(1) { width: 120px; }
-.accounting-template-table th:nth-child(2), .accounting-template-table td:nth-child(2) { width: 170px; }
-.accounting-template-table th:nth-child(3), .accounting-template-table td:nth-child(3) { width: 38px; text-align: center; }
-.accounting-template-table th:nth-child(4), .accounting-template-table td:nth-child(4) { width: 55px; text-align: center; }
+.accounting-template-table td:nth-child(1) { width: 120px; }
+.accounting-template-table td:nth-child(2) { width: 170px; }
+.accounting-template-table td:nth-child(3) { width: 38px; text-align: center; }
+.accounting-template-table td:nth-child(4) { width: 55px; text-align: center; }
 .accounting-template-table td:nth-child(1), .accounting-template-table td:nth-child(2) { text-align: left; }
-.accounting-template-table th:nth-child(1), .accounting-template-table th:nth-child(2) { text-align: left; }
+.accounting-template-table thead tr:first-child th:nth-child(1), .accounting-template-table thead tr:first-child th:nth-child(2) { text-align: left; }
 .accounting-template-table th:nth-child(n+5) { text-align: center; }
 .accounting-template-table td:nth-child(n+5) { text-align: right; }
 .accounting-template-table .template-col-date { width: 120px; }
