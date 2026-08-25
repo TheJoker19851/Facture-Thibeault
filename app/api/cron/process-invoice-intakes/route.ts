@@ -55,7 +55,11 @@ export async function GET(request: Request) {
     }).catch(() => null);
     if (result?.data.invoiceIntake_updateMany === 1) requeued += 1;
   }
-  const queued = selectInvoiceIntakesForAutomaticProcessing(await listAllInvoiceIntakes(dataConnect));
+  const queued = selectInvoiceIntakesForAutomaticProcessing(
+    await listAllInvoiceIntakes(dataConnect),
+    undefined,
+    invoiceAiMaxAttempts(),
+  );
   console.info("[invoice-worker] phase=queue_selected", { count: queued.length, requeued });
   const results: Array<{ receiptId: string; status: number; body: unknown }> = [];
   for (const intake of queued) {

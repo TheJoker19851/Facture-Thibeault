@@ -24,6 +24,29 @@ test("le cron limite à dix intakes et exclut le maximum atteint", () => {
   assert.equal(selectInvoiceIntakesForAutomaticProcessing([]).length, 0);
 });
 
+test("le cron reprend une revue bloquée par un délai Gemini", () => {
+  const transientReview = {
+    receiptId: "TRANSIENT-001",
+    processingStatus: "NEEDS_REVIEW",
+    processingState: "FAILED",
+    processingAttempts: 1,
+    aiErrorCode: "GEMINI_TRANSIENT",
+    aiModel: null,
+    accountingStatus: "NOT_POSTED",
+    decisionExceptions: JSON.stringify([{
+      code: "AI_PROCESSING_ERROR",
+      message: "Gemini n’a pas répondu dans le délai de 90 secondes.",
+    }]),
+  };
+  const maxedReview = { ...transientReview, receiptId: "TRANSIENT-MAXED", processingAttempts: 5 };
+
+  assert.deepEqual(
+    selectInvoiceIntakesForAutomaticProcessing([transientReview, maxedReview], 10, 5)
+      .map((intake) => intake.receiptId),
+    ["TRANSIENT-001"],
+  );
+});
+
 test("le cron repère un traitement RUNNING expiré sans reprendre une tentative récente ou maximale", () => {
   const now = Date.parse("2026-08-25T13:00:00.000Z");
   const stale = {
