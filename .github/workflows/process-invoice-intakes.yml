@@ -1,0 +1,27 @@
+name: Process invoice intakes
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: invoice-intake-worker
+  cancel-in-progress: false
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Call the production invoice worker
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          test -n "$CRON_SECRET"
+          curl --fail-with-body --silent --show-error --max-time 240 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "https://facture-thibeault.vercel.app/api/cron/process-invoice-intakes"
