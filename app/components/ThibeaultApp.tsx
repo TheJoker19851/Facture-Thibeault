@@ -442,6 +442,7 @@ function useAppData() {
 const navItems: Array<{ id: View; label: string; icon: string }> = [
   { id: "intakes", label: "Factures à vérifier", icon: "!" },
   { id: "transactions", label: "Transactions", icon: "▤" },
+  { id: "reports", label: "Tableau de Kim", icon: "▥" },
   { id: "archives", label: "Archives", icon: "▣" },
   { id: "settings", label: "Configuration", icon: "⚙" },
   { id: "debug", label: "Diagnostic", icon: "⌁" },
@@ -941,7 +942,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
   };
 
   const goTo = (nextView: View) => {
-    const resolvedView: View = nextView === "dashboard" || nextView === "reconciliation" || nextView === "reports" ? "intakes" : nextView;
+    const resolvedView: View = nextView === "dashboard" || nextView === "reconciliation" ? "intakes" : nextView;
     if (resolvedView === "debug" && !canUseDiagnostics) return;
     if (resolvedView !== "capture" && !canUseAccounting) return;
     setView(resolvedView);
@@ -1030,9 +1031,10 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
         <header className="topbar"><div className="breadcrumbs"><span>Maçonnerie Thibeault</span><span>/</span><strong>{navItems.find((item) => item.id === view)?.label ?? (view === "transaction" ? "Transaction" : "Factures à vérifier")}</strong></div><div className="topbar-actions"><span className="demo-note">{dataSourceLabel}</span><button className="icon-button" aria-label="Notifications">♧<span className="notification-dot" /></button><button className="avatar avatar-gold small" onClick={() => goTo("capture")} aria-label="Ouvrir le mode dépôt">{accountRole === "ADMIN" ? "A" : "K"}</button></div></header>
         <div className="page-content">
           {view === "transactions" && <TransactionsPage items={filteredTransactions} query={query} setQuery={setQuery} statusFilter={statusFilter} statusCounts={transactionStatusCounts} setStatusFilter={setStatusFilter} onOpen={(id) => { setSelectedId(id); setView("transaction" as View); }} />}
+          {view === "reports" && canUseAccounting && <KimAccountingReport key={`${selectedPeriod.id}:${selectedPeriod.start}:${selectedPeriod.end}`} period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
           {view === "archives" && <ArchivesPage onNotify={notify} isProductionDataSource={isProductionDataSource} />}
           {view === "settings" && <AdminDirectoryPage onDataChange={(patch) => setAppData((current) => ({ ...current, ...patch }))} role={accountRole ?? "ADMIN"} />}
-          {view === "intakes" && canUseAccounting && <IntakeQueuePage period={selectedPeriod} onPeriodChange={setSelectedPeriod} items={appData.intakes.filter(isIntakeQueueItem)} onSaved={(receiptId, patch) => { setAppData((current) => ({ ...current, intakes: current.intakes.map((intake) => intake.receiptId === receiptId ? { ...intake, ...patch } : intake) })); if (patch.accountingStatus === "POSTED") retryAccounting(); }} />}
+          {view === "intakes" && canUseAccounting && <IntakeQueuePage period={selectedPeriod} items={appData.intakes.filter(isIntakeQueueItem)} onSaved={(receiptId, patch) => { setAppData((current) => ({ ...current, intakes: current.intakes.map((intake) => intake.receiptId === receiptId ? { ...intake, ...patch } : intake) })); if (patch.accountingStatus === "POSTED") retryAccounting(); }} />}
           {view === "debug" && canUseDiagnostics && <DebugPage dataSourceState={dataSourceState} onRetry={retryAccounting} role={accountRole ?? "ADMIN"} />}
           {(view as string) === "transaction" && selected && <TransactionDetail transaction={selected} onBack={() => setView("transactions")} onDeleted={(transactionId) => { setAppData((current) => ({ ...current, transactions: current.transactions.filter((item) => item.id !== transactionId) })); setSelectedId(""); setView("transactions"); setToast("Facture et écriture supprimées; les totaux ont été recalculés."); setLoadAttempt((current) => current + 1); }} />}
         </div>
@@ -1510,7 +1512,7 @@ function AuditTrail({ events, role, state }: { events: AuditEventRecord[]; role:
   return <section className="audit-trail" aria-label="Piste d’audit"><div className="section-heading"><span>03</span><div><p className="eyebrow">Traçabilité</p><h2>Historique de la facture</h2><p className="section-help">Chaque étape indique ce qui s’est passé et qui l’a enregistrée.</p></div></div>{state === "loading" && <p className="muted">Chargement de l’historique…</p>}{state === "error" && <p className="intake-evidence-message error">La piste d’audit n’est pas disponible.</p>}{state === "ready" && !events.length && <p className="muted">Aucun événement d’audit enregistré.</p>}{events.length > 0 && <div className="audit-event-list">{events.map((event) => { const details = parseAuditDetails(event.details); const corrections = meaningfulAuditCorrections(details); const actor = event.actor?.displayName ?? (event.actorRole ? `Rôle ${event.actorRole}` : "Utilisateur authentifié"); const isEmptyCorrection = event.action === "HUMAN_CORRECTION" && corrections.length === 0; return <article className={`audit-event audit-event-${event.action.toLowerCase()}`} key={event.id}><div className="audit-event-heading"><div><strong>{isEmptyCorrection ? "Revue enregistrée" : auditActionLabel(event.action)}</strong><p>{isEmptyCorrection ? "La revue a été enregistrée sans modification de valeur." : auditActionDescription(event.action)}</p></div><small>{actor}<br />{auditTimestamp(event.createdAt)}</small></div>{role === "ADMIN" && event.action === "HUMAN_CORRECTION" && corrections.length > 0 && <div className="audit-corrections">{corrections.map((correction) => <span key={String(correction.field)}><b>{auditFieldLabel(correction.field)}</b><span>{auditFieldValue(correction.field, correction.previous)} <i aria-hidden="true">→</i> {auditFieldValue(correction.field, correction.corrected)}</span></span>)}</div>}</article>; })}</div>}</section>;
 }
 
-function IntakeQueuePage({ items, period, onPeriodChange, onSaved }: { items: InvoiceIntake[]; period: CardPeriod; onPeriodChange: (period: CardPeriod) => void; onSaved: (receiptId: string, patch: Partial<InvoiceIntake>) => void }) {
+function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; period: CardPeriod; onSaved: (receiptId: string, patch: Partial<InvoiceIntake>) => void }) {
   const { accounts, cards, periods, projects, skuReferences, users } = useAppData();
   const identity = useFirebaseIdentity();
   const sortedItems = [...items].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
@@ -1959,9 +1961,6 @@ function IntakeQueuePage({ items, period, onPeriodChange, onSaved }: { items: In
           <div className="intake-review-actions"><button className="text-button danger-text" type="button" onClick={() => void discardReview()} disabled={saveState === "saving" || commitState === "saving"}>Supprimer la facture</button><div className="intake-review-primary-actions">{isReadyForAccounting && <button className="primary-button" type="button" onClick={() => void saveReview(undefined, "commit")} disabled={saveState === "saving" || commitState === "saving"}>{commitState === "saving" ? "Enregistrement et comptabilisation…" : "Enregistrer et comptabiliser"}</button>}<button className={isReadyForAccounting ? "secondary-button" : "primary-button"} type="submit" disabled={saveState === "saving" || commitState === "saving"}>{saveState === "saving" ? "Enregistrement…" : isReadyForAccounting ? "Enregistrer pour plus tard" : "Enregistrer la correction"}</button></div><span className="data-source-help">La suppression et la création comptable sont réservées aux personnes autorisées; les opérations sont idempotentes.</span></div>
         </div>
       </form> : <div className="panel empty-state"><span>◌</span><strong>Sélectionnez un dépôt</strong><p>La proposition Gemini et les corrections manuelles apparaîtront ici.</p></div>}
-    </section>
-    <section className="invoice-workflow-accounting">
-      <KimAccountingReport key={`${period.id}:${period.start}:${period.end}`} period={period} onPeriodChange={onPeriodChange} embedded />
     </section>
   </>;
 }
