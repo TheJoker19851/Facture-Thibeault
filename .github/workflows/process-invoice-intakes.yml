@@ -24,4 +24,4 @@ jobs:
           test -n "$CRON_SECRET"
           curl --fail-with-body --silent --show-error --max-time 240 \
             -H "Authorization: Bearer ${CRON_SECRET}" \
-            "https://facture-thibeault.vercel.app/api/cron/process-invoice-intakes"
+            "https://facture-thibeault-psi.vercel.app/api/cron/process-invoice-intakes"
