@@ -101,6 +101,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*MarkInvoiceIntakeAutoPostingError*](#markinvoiceintakeautopostingerror)
   - [*UpdateInvoiceIntakeReview*](#updateinvoiceintakereview)
   - [*DiscardInvoiceIntake*](#discardinvoiceintake)
+  - [*DeletePostedInvoice*](#deletepostedinvoice)
   - [*MarkInvoiceIntakePostingError*](#markinvoiceintakepostingerror)
   - [*RetryInvoiceIntakeAi*](#retryinvoiceintakeai)
   - [*RetryInvoiceIntakeAiTransient*](#retryinvoiceintakeaitransient)
@@ -204,6 +205,7 @@ export interface AdminListInvoicesData {
     id: string;
     intake?: {
       receiptId: string;
+      storageFolder: string;
     } & InvoiceIntake_Key;
     invoiceNumber?: string | null;
     processingStatus: string;
@@ -12066,6 +12068,154 @@ console.log(data.auditEvent_upsert);
 // Or, you can use the `Promise` API.
 executeMutation(ref).then((response) => {
   const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
+  console.log(data.auditEvent_upsert);
+});
+```
+
+## DeletePostedInvoice
+You can execute the `DeletePostedInvoice` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+deletePostedInvoice(vars: DeletePostedInvoiceVariables): MutationPromise<DeletePostedInvoiceData, DeletePostedInvoiceVariables>;
+
+interface DeletePostedInvoiceRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: DeletePostedInvoiceVariables): MutationRef<DeletePostedInvoiceData, DeletePostedInvoiceVariables>;
+}
+export const deletePostedInvoiceRef: DeletePostedInvoiceRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+deletePostedInvoice(dc: DataConnect, vars: DeletePostedInvoiceVariables): MutationPromise<DeletePostedInvoiceData, DeletePostedInvoiceVariables>;
+
+interface DeletePostedInvoiceRef {
+  ...
+  (dc: DataConnect, vars: DeletePostedInvoiceVariables): MutationRef<DeletePostedInvoiceData, DeletePostedInvoiceVariables>;
+}
+export const deletePostedInvoiceRef: DeletePostedInvoiceRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the deletePostedInvoiceRef:
+```typescript
+const name = deletePostedInvoiceRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `DeletePostedInvoice` mutation requires an argument of type `DeletePostedInvoiceVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface DeletePostedInvoiceVariables {
+  invoiceId: string;
+  transactionId: string;
+  receiptId: string;
+  writeIntake: boolean;
+  reason: string;
+  actorUid: string;
+  actorRole: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that executing the `DeletePostedInvoice` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `DeletePostedInvoiceData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface DeletePostedInvoiceData {
+  invoice_updateMany: number;
+  expenseTransaction_updateMany: number;
+  invoiceIntake_updateMany: number;
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+### Using `DeletePostedInvoice`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, deletePostedInvoice, DeletePostedInvoiceVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `DeletePostedInvoice` mutation requires an argument of type `DeletePostedInvoiceVariables`:
+const deletePostedInvoiceVars: DeletePostedInvoiceVariables = {
+  invoiceId: ..., 
+  transactionId: ..., 
+  receiptId: ..., 
+  writeIntake: ..., 
+  reason: ..., 
+  actorUid: ..., 
+  actorRole: ..., 
+  auditEventId: ..., 
+  auditDetails: ..., 
+};
+
+// Call the `deletePostedInvoice()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await deletePostedInvoice(deletePostedInvoiceVars);
+// Variables can be defined inline as well.
+const { data } = await deletePostedInvoice({ invoiceId: ..., transactionId: ..., receiptId: ..., writeIntake: ..., reason: ..., actorUid: ..., actorRole: ..., auditEventId: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await deletePostedInvoice(dataConnect, deletePostedInvoiceVars);
+
+console.log(data.invoice_updateMany);
+console.log(data.expenseTransaction_updateMany);
+console.log(data.invoiceIntake_updateMany);
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+deletePostedInvoice(deletePostedInvoiceVars).then((response) => {
+  const data = response.data;
+  console.log(data.invoice_updateMany);
+  console.log(data.expenseTransaction_updateMany);
+  console.log(data.invoiceIntake_updateMany);
+  console.log(data.auditEvent_upsert);
+});
+```
+
+### Using `DeletePostedInvoice`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, deletePostedInvoiceRef, DeletePostedInvoiceVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `DeletePostedInvoice` mutation requires an argument of type `DeletePostedInvoiceVariables`:
+const deletePostedInvoiceVars: DeletePostedInvoiceVariables = {
+  invoiceId: ..., 
+  transactionId: ..., 
+  receiptId: ..., 
+  writeIntake: ..., 
+  reason: ..., 
+  actorUid: ..., 
+  actorRole: ..., 
+  auditEventId: ..., 
+  auditDetails: ..., 
+};
+
+// Call the `deletePostedInvoiceRef()` function to get a reference to the mutation.
+const ref = deletePostedInvoiceRef(deletePostedInvoiceVars);
+// Variables can be defined inline as well.
+const ref = deletePostedInvoiceRef({ invoiceId: ..., transactionId: ..., receiptId: ..., writeIntake: ..., reason: ..., actorUid: ..., actorRole: ..., auditEventId: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = deletePostedInvoiceRef(dataConnect, deletePostedInvoiceVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.invoice_updateMany);
+console.log(data.expenseTransaction_updateMany);
+console.log(data.invoiceIntake_updateMany);
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.invoice_updateMany);
+  console.log(data.expenseTransaction_updateMany);
   console.log(data.invoiceIntake_updateMany);
   console.log(data.auditEvent_upsert);
 });

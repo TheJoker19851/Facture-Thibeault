@@ -1090,6 +1090,78 @@ mutation DiscardInvoiceIntake(
   })
 }
 
+# A posted invoice can be removed from operational views only through this
+# server-controlled transition. The rows remain for audit/history, while all
+# active reads exclude the DELETED processing state.
+mutation DeletePostedInvoice(
+  $invoiceId: String!
+  $transactionId: String!
+  $receiptId: String!
+  $writeIntake: Boolean!
+  $reason: String!
+  $actorUid: String!
+  $actorRole: String!
+  $auditEventId: String!
+  $auditDetails: String!
+) @auth(level: NO_ACCESS) @transaction {
+  invoice_updateMany(
+    where: {
+      id: { eq: $invoiceId }
+      accountingStatus: { eq: "POSTED" }
+      processingStatus: { in: ["VALIDATED", "AUTO_APPROVED"] }
+      transaction: { id: { eq: $transactionId } }
+    }
+    data: {
+      processingStatus: "DELETED"
+      accountingStatus: "DELETED"
+      reviewStatus: "DELETED"
+    }
+  )
+  expenseTransaction_updateMany(
+    where: {
+      id: { eq: $transactionId }
+      accountingStatus: { eq: "POSTED" }
+      processingStatus: { in: ["VALIDATED", "AUTO_APPROVED"] }
+    }
+    data: {
+      status: "DELETED"
+      processingStatus: "DELETED"
+      accountingStatus: "DELETED"
+      issue: $reason
+    }
+  )
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      accountingStatus: { eq: "POSTED" }
+      processingStatus: { in: ["VALIDATED", "AUTO_APPROVED"] }
+    }
+    data: {
+      status: "DELETED"
+      processingStatus: "DELETED"
+      processingState: "DELETED"
+      accountingStatus: "NOT_POSTED"
+      lastError: $reason
+    }
+  ) @include(if: $writeIntake)
+  query @redact @check(
+    expr: "response.invoice_updateMany == 1 && response.expenseTransaction_updateMany == 1 && (!vars.writeIntake || response.invoiceIntake_updateMany == 1)"
+    message: "La facture n’est plus une écriture publiée supprimable."
+  ) {
+    invoices(where: { id: { eq: $invoiceId } }, limit: 1) { id processingStatus accountingStatus }
+    expenseTransactions(where: { id: { eq: $transactionId } }, limit: 1) { id processingStatus accountingStatus }
+  }
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: "POSTED_INVOICE_DELETED"
+    entityType: "Invoice"
+    entityId: $invoiceId
+    details: $auditDetails
+  })
+}
+
 mutation MarkInvoiceIntakePostingError($receiptId: String!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
   # Client-side KIM commits use this compensating transition only after the
   # transactional posting mutation fails. It cannot create or post anything.

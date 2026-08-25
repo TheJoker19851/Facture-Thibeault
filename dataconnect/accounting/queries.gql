@@ -225,7 +225,7 @@ query ListMerchantAliasesPage($limit: Int!, $offset: Int!) @auth(expr: "auth.tok
 }
 
 query ListReconciliationMatches($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  reconciliationMatches(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+  reconciliationMatches(where: { expenseTransaction: { processingStatus: { ne: "DELETED" } } }, orderBy: [{ createdAt: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     statementLine { id statement { id } sequence }
     expenseTransaction { id }
@@ -243,7 +243,7 @@ query ListReconciliationMatches($limit: Int!, $offset: Int!) @auth(expr: "auth.t
 }
 
 query ListReconciliationMatchesPage($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  reconciliationMatches(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+  reconciliationMatches(where: { expenseTransaction: { processingStatus: { ne: "DELETED" } } }, orderBy: [{ createdAt: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     statementLine { id statement { id } sequence }
     expenseTransaction { id }
@@ -288,7 +288,7 @@ query ListSkuReferences @auth(expr: "auth.token.role == 'KIM' || auth.token.role
 }
 
 query ListExpenseTransactions($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  expenseTransactions(orderBy: [{ transactionDate: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+  expenseTransactions(where: { processingStatus: { ne: "DELETED" } }, orderBy: [{ transactionDate: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     transactionDate
     vendor
@@ -337,7 +337,7 @@ query ListExpenseTransactions($limit: Int!, $offset: Int!) @auth(expr: "auth.tok
 }
 
 query ListExpenseTransactionsPage($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  expenseTransactions(orderBy: [{ transactionDate: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+  expenseTransactions(where: { processingStatus: { ne: "DELETED" } }, orderBy: [{ transactionDate: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     transactionDate
     vendor
@@ -365,7 +365,7 @@ query ListExpenseTransactionsPage($limit: Int!, $offset: Int!) @auth(expr: "auth
 }
 
 query ListInvoicesToReview($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  invoices(orderBy: [{ invoiceDate: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+  invoices(where: { processingStatus: { ne: "DELETED" } }, orderBy: [{ invoiceDate: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     intake {
       receiptId
@@ -400,7 +400,7 @@ query ListInvoicesToReview($limit: Int!, $offset: Int!) @auth(expr: "auth.token.
 }
 
 query ListInvoicesToReviewPage($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  invoices(orderBy: [{ invoiceDate: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+  invoices(where: { processingStatus: { ne: "DELETED" } }, orderBy: [{ invoiceDate: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     intake { receiptId uploaderUid storageFolder photoCount }
     vendor
@@ -505,7 +505,7 @@ query ListInvoiceIntakesPage($limit: Int!, $offset: Int!) @auth(expr: "auth.toke
 }
 
 query ListInvoicesForReconciliation($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  invoices(orderBy: [{ invoiceDate: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+  invoices(where: { processingStatus: { ne: "DELETED" } }, orderBy: [{ invoiceDate: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     vendor
     invoiceNumber
@@ -519,7 +519,7 @@ query ListInvoicesForReconciliation($limit: Int!, $offset: Int!) @auth(expr: "au
 }
 
 query ListInvoicesForReconciliationPage($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  invoices(orderBy: [{ invoiceDate: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+  invoices(where: { processingStatus: { ne: "DELETED" } }, orderBy: [{ invoiceDate: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     vendor
     invoiceNumber
@@ -585,7 +585,7 @@ query ListAuditEvents($entityType: String!, $entityId: String!, $limit: Int!, $o
 }
 
 query ListReconciliationOutsideControls($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  reconciliationOutsideControls(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+  reconciliationOutsideControls(where: { expenseTransaction: { processingStatus: { ne: "DELETED" } } }, orderBy: [{ createdAt: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     statement { id }
     expenseTransaction { id transactionDate vendor totalCents card { id } }
@@ -600,7 +600,7 @@ query ListReconciliationOutsideControls($limit: Int!, $offset: Int!) @auth(expr:
 }
 
 query ListReconciliationOutsideControlsPage($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  reconciliationOutsideControls(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+  reconciliationOutsideControls(where: { expenseTransaction: { processingStatus: { ne: "DELETED" } } }, orderBy: [{ createdAt: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     statement { id }
     expenseTransaction { id transactionDate vendor totalCents card { id } }

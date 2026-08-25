@@ -2,7 +2,7 @@
 
 import { ChangeEvent, createContext, FormEvent, Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getDownloadURL, ref } from "firebase/storage";
-import { accountingReadSource, commitInvoiceIntake, correctPostedInvoice, createFirebaseUser, deleteExpenseAccount, deleteProject, discardInvoiceIntake, loadAccountingSnapshot, loadReportAdjustments, loadTransactionCorrections, mapAccountingSnapshot, removeDemoAccountingData, saveCreditCard, saveExpenseAccount, saveInvoiceIntakeReview, saveProject, saveReportAdjustments, saveStatementPeriod, saveUserProfile, type AccountingLineItem, type ManualAdjustmentRow } from "../../firebase/accounting";
+import { accountingReadSource, commitInvoiceIntake, correctPostedInvoice, createFirebaseUser, deleteExpenseAccount, deleteProject, deletePostedInvoice, discardInvoiceIntake, loadAccountingSnapshot, loadReportAdjustments, loadTransactionCorrections, mapAccountingSnapshot, removeDemoAccountingData, saveCreditCard, saveExpenseAccount, saveInvoiceIntakeReview, saveProject, saveReportAdjustments, saveStatementPeriod, saveUserProfile, type AccountingLineItem, type ManualAdjustmentRow } from "../../firebase/accounting";
 import { getInvoiceIntakeStatus, type InvoiceIntakeStatus } from "../../firebase/ai";
 import { appCheckConfigured, firebaseAuth, firebaseConfigured, firebaseStorage } from "../../firebase/client";
 import { sqlConnectConfigured } from "../../firebase/data-connect";
@@ -1034,7 +1034,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
           {view === "settings" && <AdminDirectoryPage onDataChange={(patch) => setAppData((current) => ({ ...current, ...patch }))} role={accountRole ?? "ADMIN"} />}
           {view === "intakes" && canUseAccounting && <IntakeQueuePage period={selectedPeriod} onPeriodChange={setSelectedPeriod} items={appData.intakes.filter(isIntakeQueueItem)} onSaved={(receiptId, patch) => { setAppData((current) => ({ ...current, intakes: current.intakes.map((intake) => intake.receiptId === receiptId ? { ...intake, ...patch } : intake) })); if (patch.accountingStatus === "POSTED") retryAccounting(); }} />}
           {view === "debug" && canUseDiagnostics && <DebugPage dataSourceState={dataSourceState} onRetry={retryAccounting} role={accountRole ?? "ADMIN"} />}
-          {(view as string) === "transaction" && selected && <TransactionDetail transaction={selected} onBack={() => setView("transactions")} />}
+          {(view as string) === "transaction" && selected && <TransactionDetail transaction={selected} onBack={() => setView("transactions")} onDeleted={(transactionId) => { setAppData((current) => ({ ...current, transactions: current.transactions.filter((item) => item.id !== transactionId) })); setSelectedId(""); setView("transactions"); setToast("Facture et écriture supprimées; les totaux ont été recalculés."); setLoadAttempt((current) => current + 1); }} />}
         </div>
       </section>
       {toast && <div className="toast">{toast}</div>}
@@ -1400,6 +1400,7 @@ function auditActionLabel(action: string) {
     HUMAN_VALIDATION: "Validation humaine",
     TRANSACTION_CREATED: "Transaction créée",
     INVOICE_DISCARDED: "Facture supprimée",
+    POSTED_INVOICE_DELETED: "Écriture publiée supprimée",
     RECONCILIATION_UPDATED: "Rapprochement mis à jour",
     STATEMENT_ADJUSTMENTS_UPDATED: "Ajustements de relevé enregistrés",
   };
@@ -1415,6 +1416,7 @@ function auditActionDescription(action: string) {
     HUMAN_VALIDATION: "Les informations obligatoires ont été confirmées par un membre autorisé.",
     TRANSACTION_CREATED: "La facture a été transformée en écriture comptable.",
     INVOICE_DISCARDED: "La facture a été retirée de la file et sa photo Storage a été supprimée.",
+    POSTED_INVOICE_DELETED: "L’écriture publiée a été retirée des vues opérationnelles; la trace d’audit est conservée.",
     RECONCILIATION_UPDATED: "Le lien entre la facture et le relevé de carte a été mis à jour.",
     STATEMENT_ADJUSTMENTS_UPDATED: "Les lignes manuelles du relevé ont été enregistrées pour la période.",
   };
@@ -1980,7 +1982,7 @@ function TransactionTable({ items, compact = false, onOpen }: { items: Transacti
   return <div className={`table-wrap ${compact ? "compact" : ""}`}><table><thead><tr><th>Dépense</th><th>Date</th><th>Fournisseur</th><th>Titulaire / carte</th><th>Projet</th><th>Compte</th><th>Sous-total</th><th>TPS</th><th>TVQ</th><th>Total</th><th>État / rapprochement</th><th /></tr></thead><tbody>{items.map((item) => { const fallbackClassification = classifyTransaction(item, data); const account = transactionAccountDisplay(item); const accountNumber = account.number === "—" ? fallbackClassification.code : account.number; const accountLabel = account.label === "Compte à confirmer" ? fallbackClassification.category : account.label; const invoiceLabel = item.invoiceNumber ? `Facture ${item.invoiceNumber}` : "Facture sans numéro"; return <tr key={item.id} onClick={() => onOpen?.(item.id)}><td><div className="transaction-id"><span className="receipt-icon">▧</span><span><strong>{item.vendor}</strong><small>{invoiceLabel} · {item.imageCount} photo{item.imageCount > 1 ? "s" : ""}</small></span></div></td><td>{formatDate(item.date)}</td><td>{item.vendor}</td><td>{item.person}<small>•••• {item.card}</small></td><td><strong>{item.projectNumber ?? "—"}</strong><small>{item.projectName ?? item.project}</small></td><td><strong>{accountNumber}</strong><small>{accountLabel}</small></td><td>{formatCurrency(item.subtotal)}</td><td>{formatCurrency(item.tps)}</td><td>{formatCurrency(item.tvq)}</td><td><strong>{formatCurrency(item.total)}</strong></td><td><span className={statusClass(item.status)}>{item.status}</span><small className="table-substatus">{item.reconciliation}</small></td><td><button className="row-menu" onClick={(event) => { event.stopPropagation(); onOpen?.(item.id); }} aria-label={`Ouvrir ${item.vendor}${item.invoiceNumber ? `, facture ${item.invoiceNumber}` : ""}`}>→</button></td></tr>; })}</tbody></table>{items.length === 0 && <div className="empty-state"><span>⌕</span><strong>Aucune transaction trouvée</strong><p>Modifiez vos filtres pour élargir la recherche.</p></div>}</div>;
 }
 
-function TransactionDetail({ transaction, onBack }: { transaction: Transaction; onBack: () => void }) {
+function TransactionDetail({ transaction, onBack, onDeleted }: { transaction: Transaction; onBack: () => void; onDeleted: (transactionId: string) => void }) {
   const data = useAppData();
   const identity = useFirebaseIdentity();
   const accountDisplay = transactionAccountDisplay(transaction);
@@ -1990,12 +1992,16 @@ function TransactionDetail({ transaction, onBack }: { transaction: Transaction; 
   const lineSubtotalCents = invoiceLineItemsSubtotalCents(lineItems);
   const lineDifferenceCents = lineSubtotalCents - Math.round(transaction.subtotal * 100);
   const canCorrect = transaction.accountingStatus === "POSTED" && Boolean(transaction.invoiceId) && (identity.role === "KIM" || identity.role === "ADMIN");
+  const canDelete = transaction.accountingStatus === "POSTED" && Boolean(transaction.invoiceId) && (identity.role === "KIM" || identity.role === "ADMIN");
   const [correctionField, setCorrectionField] = useState("subtotalCents");
   const [correctionValue, setCorrectionValue] = useState(String(transaction.subtotal.toFixed(2)));
   const [correctionAccountId, setCorrectionAccountId] = useState(transaction.accountId ?? "");
   const [correctionNote, setCorrectionNote] = useState("");
   const [correctionState, setCorrectionState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [correctionMessage, setCorrectionMessage] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteState, setDeleteState] = useState<"idle" | "saving" | "error">("idle");
+  const [deleteMessage, setDeleteMessage] = useState("");
   const [corrections, setCorrections] = useState<Array<{ id: string; fieldName: string; previousValue?: string | null; correctedValue: string; note: string; createdAt: string; correctedBy?: string }>>([]);
   useEffect(() => {
     if (!transaction.id || transaction.accountingStatus !== "POSTED") return;
@@ -2083,6 +2089,29 @@ function TransactionDetail({ transaction, onBack }: { transaction: Transaction; 
       setCorrectionMessage(error instanceof Error ? error.message : "La correction n’a pas pu être enregistrée.");
     }
   };
+  const deletePosted = async () => {
+    if (!canDelete || !transaction.invoiceId) return;
+    if (!deleteReason.trim()) {
+      setDeleteState("error");
+      setDeleteMessage("Une raison est obligatoire pour supprimer une écriture publiée.");
+      return;
+    }
+    if (!window.confirm(`Retirer ${transaction.vendor}${transaction.invoiceNumber !== "—" ? ` · facture ${transaction.invoiceNumber}` : ""} des transactions et des rapports ? La trace d’audit sera conservée.`)) return;
+    setDeleteState("saving");
+    setDeleteMessage("");
+    try {
+      await deletePostedInvoice({
+        invoiceId: transaction.invoiceId,
+        transactionId: transaction.id,
+        receiptId: transaction.receiptId,
+        reason: deleteReason.trim(),
+      });
+      onDeleted(transaction.id);
+    } catch (error) {
+      setDeleteState("error");
+      setDeleteMessage(error instanceof Error ? error.message : "La facture publiée n’a pas pu être supprimée.");
+    }
+  };
   return <>
     <div className="detail-toolbar">
       <button className="back-button" onClick={onBack}>← <span>Transactions</span></button>
@@ -2103,6 +2132,7 @@ function TransactionDetail({ transaction, onBack }: { transaction: Transaction; 
          <div className="form-section"><div className="section-heading"><span>03</span><div><p className="eyebrow">Montants</p><h2>Contrôle comptable</h2></div><span className="control-ok">✓ Totaux persistés</span></div><div className="amount-card"><div><span>Sous-total</span><strong>{formatCurrency(transaction.subtotal)}</strong></div><div><span>TPS</span><strong>{formatCurrency(transaction.tps)}</strong></div><div><span>TVQ</span><strong>{formatCurrency(transaction.tvq)}</strong></div><div className="amount-total"><span>Total</span><strong>{formatCurrency(transaction.total)}</strong></div></div></div>
         {canCorrect && <div className="form-section"><div className="section-heading"><span>05</span><div><p className="eyebrow">Correction contrôlée</p><h2>Corriger une écriture publiée</h2></div><span className="badge badge-warning">KIM / ADMIN</span></div><p className="muted">La valeur précédente reste dans TransactionCorrection; la facture et la transaction sont mises à jour dans la même transaction.</p><div className="field-grid"><label className="field"><span>Champ</span><select value={correctionField} onChange={(event) => { setCorrectionField(event.target.value); setCorrectionState("idle"); }}><option value="subtotalCents">Sous-total</option><option value="tpsCents">TPS</option><option value="tvqCents">TVQ</option><option value="totalCents">Total</option><option value="account">Compte / ventilation</option></select></label>{correctionField === "account" ? <label className="field"><span>Nouveau compte</span><select value={correctionAccountId} onChange={(event) => setCorrectionAccountId(event.target.value)}><option value="">Choisir le compte</option>{data.accounts.filter((account) => account.status !== "INACTIVE" && account.type === "EXPENSE").map((account) => <option value={account.id} key={account.id}>{account.number} · {account.label}</option>)}</select></label> : <label className="field"><span>Nouvelle valeur</span><input inputMode="decimal" value={correctionValue} onChange={(event) => setCorrectionValue(event.target.value)} /></label>}</div><label className="field wide"><span>Note obligatoire</span><textarea rows={2} value={correctionNote} onChange={(event) => setCorrectionNote(event.target.value)} placeholder="Pourquoi cette correction est-elle nécessaire?" /></label><button className="secondary-button" type="button" onClick={() => void savePostedCorrection()} disabled={correctionState === "saving"}>{correctionState === "saving" ? "Enregistrement…" : "Enregistrer la correction auditée"}</button>{correctionMessage && <p className={`intake-review-message ${correctionState}`}>{correctionMessage}</p>}</div>}
         {corrections.length > 0 && <div className="form-section correction-history"><div className="section-heading"><span>06</span><div><p className="eyebrow">Piste de correction</p><h2>Valeurs originales conservées</h2></div><span className="badge badge-neutral">{corrections.length}</span></div><div className="settings-editor-list">{corrections.map((correction) => <div className="settings-inline-row" key={correction.id}><div><strong>{correction.fieldName}</strong><span>{correction.previousValue ?? "—"} → {correction.correctedValue}</span><small>{correction.note} · {correction.correctedBy ?? "Utilisateur autorisé"} · {formatDate(correction.createdAt)}</small></div></div>)}</div></div>}
+        {canDelete && <div className="form-section correction-editor correction-editor-danger"><div className="section-heading"><span>07</span><div><p className="eyebrow">Suppression contrôlée</p><h2>Retirer de la comptabilité</h2></div><span className="badge badge-danger">KIM / ADMIN</span></div><p className="muted">La facture et l’écriture disparaîtront des transactions, rapprochements et rapports. L’action est auditée et les totaux seront recalculés après actualisation.</p><label className="field wide"><span>Raison obligatoire</span><textarea rows={2} value={deleteReason} onChange={(event) => { setDeleteReason(event.target.value); setDeleteState("idle"); }} placeholder="Ex. facture test envoyée par erreur" /></label><button className="danger-button" type="button" onClick={() => void deletePosted()} disabled={deleteState === "saving"}>{deleteState === "saving" ? "Suppression…" : "Supprimer la facture et l’écriture"}</button>{deleteMessage && <p className={`intake-review-message ${deleteState}`}>{deleteMessage}</p>}</div>}
         <div className="form-section"><div className="section-heading"><span>04</span><div><p className="eyebrow">Articles</p><h2>Détail des articles</h2></div><span className={lineItems.length && Math.abs(lineDifferenceCents) <= 1 ? "control-ok" : "control-warning"}>{lineItems.length ? `${lineItems.length} ligne${lineItems.length > 1 ? "s" : ""}` : "Détail absent"}</span></div>{lineItems.length ? <><div className="line-items">{lineItems.map((item, index) => <div className="line-item" key={`${item.sequence}-${index}`}><span>{String(index + 1).padStart(2, "0")}</span><div><strong>{item.description || "Article à confirmer"}</strong><small>{item.quantity == null ? "Quantité à confirmer" : `Qté ${item.quantity}`}{item.sku ? ` · SKU ${item.sku}` : ""} · {item.category ?? "Catégorie à confirmer"} · Compte {item.accountCode ?? "à confirmer"}</small></div><strong>{item.amountCents == null ? "—" : formatCurrency(item.amountCents / 100)}</strong></div>)}</div><div className={`line-items-control ${Math.abs(lineDifferenceCents) <= 1 ? "success" : "warning"}`}><span>Total lignes {formatCurrency(lineSubtotalCents / 100)}</span><span>{Math.abs(lineDifferenceCents) <= 1 ? "✓ Concorde avec le sous-total" : `Écart avec le sous-total : ${formatCurrency(Math.abs(lineDifferenceCents) / 100)}`}</span></div></> : <div className="line-items"><div className="line-item warning-line"><span>—</span><div><strong>Détail des articles non disponible</strong><small>Cette facture a été persistée sans lignes structurées. Une nouvelle analyse ou une saisie manuelle est requise pour une classification fiable.</small></div><strong>—</strong></div></div>}<div className="field-note">{transaction.note}</div></div>
         <div className="audit-footer"><span>{accountingLabel} dans Data Connect</span><span>{transaction.invoiceId ? `Facture ${transaction.invoiceId}` : "Facture liée non disponible"}</span><span>Référence technique {transaction.id}</span>{corrections.length > 0 && <span>{corrections.length} correction{corrections.length > 1 ? "s" : ""} auditée{corrections.length > 1 ? "s" : ""}</span>}</div>
       </aside>

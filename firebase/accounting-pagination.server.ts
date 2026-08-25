@@ -47,6 +47,16 @@ export type ServerInvoice = {
   [key: string]: unknown;
 };
 
+export type ServerAdminInvoice = {
+  id: string;
+  processingStatus?: string | null;
+  accountingStatus?: string | null;
+  storageFolder?: string | null;
+  intake?: { receiptId: string; storageFolder?: string | null } | null;
+  transaction?: { id: string; vendor?: string | null; invoiceNumber?: string | null } | null;
+  invoicePhotos_on_invoice?: Array<{ id: string; storagePath: string; contentType: string; sequence: number }>;
+};
+
 export type ServerExpenseAccount = {
   id: string;
   number: string;
@@ -97,6 +107,13 @@ export async function listAllExpenseTransactions(dataConnect: DataConnect) {
 export async function listAllInvoicesToReview(dataConnect: DataConnect) {
   return collectPagedRows(async (variables) => {
     const result = await dataConnect.executeQuery<{ invoices: ServerInvoice[] }, { limit: number; offset: number }>("ListInvoicesToReviewPage", variables);
+    return result.data.invoices;
+  }, { pageSize: DATA_CONNECT_PAGE_SIZE });
+}
+
+export async function listAllAdminInvoices(dataConnect: DataConnect) {
+  return collectPagedRows(async (variables) => {
+    const result = await dataConnect.executeQuery<{ invoices: ServerAdminInvoice[] }, { limit: number; offset: number }>("AdminListInvoices", variables);
     return result.data.invoices;
   }, { pageSize: DATA_CONNECT_PAGE_SIZE });
 }

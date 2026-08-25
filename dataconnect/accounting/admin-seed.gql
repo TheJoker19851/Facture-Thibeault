@@ -378,6 +378,7 @@ query AdminListInvoices($limit: Int!, $offset: Int!) @auth(level: NO_ACCESS) {
     id
     intake {
       receiptId
+      storageFolder
     }
     invoiceNumber
     processingStatus

@@ -108,6 +108,7 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*MarkInvoiceIntakeAutoPostingError*](#markinvoiceintakeautopostingerror)
   - [*UpdateInvoiceIntakeReview*](#updateinvoiceintakereview)
   - [*DiscardInvoiceIntake*](#discardinvoiceintake)
+  - [*DeletePostedInvoice*](#deletepostedinvoice)
   - [*MarkInvoiceIntakePostingError*](#markinvoiceintakepostingerror)
   - [*RetryInvoiceIntakeAi*](#retryinvoiceintakeai)
   - [*RetryInvoiceIntakeAiTransient*](#retryinvoiceintakeaitransient)
@@ -240,6 +241,7 @@ export interface AdminListInvoicesData {
     id: string;
     intake?: {
       receiptId: string;
+      storageFolder: string;
     } & InvoiceIntake_Key;
     invoiceNumber?: string | null;
     processingStatus: string;
@@ -9824,6 +9826,122 @@ export default function DiscardInvoiceIntakeComponent() {
 
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
+    console.log(mutation.data.invoiceIntake_updateMany);
+    console.log(mutation.data.auditEvent_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## DeletePostedInvoice
+You can execute the `DeletePostedInvoice` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useDeletePostedInvoice(options?: useDataConnectMutationOptions<DeletePostedInvoiceData, FirebaseError, DeletePostedInvoiceVariables>): UseDataConnectMutationResult<DeletePostedInvoiceData, DeletePostedInvoiceVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useDeletePostedInvoice(dc: DataConnect, options?: useDataConnectMutationOptions<DeletePostedInvoiceData, FirebaseError, DeletePostedInvoiceVariables>): UseDataConnectMutationResult<DeletePostedInvoiceData, DeletePostedInvoiceVariables>;
+```
+
+### Variables
+The `DeletePostedInvoice` Mutation requires an argument of type `DeletePostedInvoiceVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface DeletePostedInvoiceVariables {
+  invoiceId: string;
+  transactionId: string;
+  receiptId: string;
+  writeIntake: boolean;
+  reason: string;
+  actorUid: string;
+  actorRole: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that calling the `DeletePostedInvoice` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `DeletePostedInvoice` Mutation is of type `DeletePostedInvoiceData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface DeletePostedInvoiceData {
+  invoice_updateMany: number;
+  expenseTransaction_updateMany: number;
+  invoiceIntake_updateMany: number;
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `DeletePostedInvoice`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, DeletePostedInvoiceVariables } from '@factures-thibeault/data-connect-generated';
+import { useDeletePostedInvoice } from '@factures-thibeault/data-connect-generated/react'
+
+export default function DeletePostedInvoiceComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useDeletePostedInvoice();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useDeletePostedInvoice(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useDeletePostedInvoice(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useDeletePostedInvoice(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useDeletePostedInvoice` Mutation requires an argument of type `DeletePostedInvoiceVariables`:
+  const deletePostedInvoiceVars: DeletePostedInvoiceVariables = {
+    invoiceId: ..., 
+    transactionId: ..., 
+    receiptId: ..., 
+    writeIntake: ..., 
+    reason: ..., 
+    actorUid: ..., 
+    actorRole: ..., 
+    auditEventId: ..., 
+    auditDetails: ..., 
+  };
+  mutation.mutate(deletePostedInvoiceVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ invoiceId: ..., transactionId: ..., receiptId: ..., writeIntake: ..., reason: ..., actorUid: ..., actorRole: ..., auditEventId: ..., auditDetails: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(deletePostedInvoiceVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.invoice_updateMany);
+    console.log(mutation.data.expenseTransaction_updateMany);
     console.log(mutation.data.invoiceIntake_updateMany);
     console.log(mutation.data.auditEvent_upsert);
   }

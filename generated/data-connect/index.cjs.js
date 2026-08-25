@@ -779,6 +779,20 @@ exports.discardInvoiceIntake = function discardInvoiceIntake(dcOrVars, vars) {
 }
 ;
 
+const deletePostedInvoiceRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'DeletePostedInvoice', inputVars);
+}
+deletePostedInvoiceRef.operationName = 'DeletePostedInvoice';
+exports.deletePostedInvoiceRef = deletePostedInvoiceRef;
+
+exports.deletePostedInvoice = function deletePostedInvoice(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(deletePostedInvoiceRef(dcInstance, inputVars));
+}
+;
+
 const markInvoiceIntakePostingErrorRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();

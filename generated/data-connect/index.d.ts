@@ -114,6 +114,7 @@ export interface AdminListInvoicesData {
     id: string;
     intake?: {
       receiptId: string;
+      storageFolder: string;
     } & InvoiceIntake_Key;
     invoiceNumber?: string | null;
     processingStatus: string;
@@ -598,6 +599,25 @@ export interface DeleteExpenseAccountData {
 
 export interface DeleteExpenseAccountVariables {
   id: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+
+export interface DeletePostedInvoiceData {
+  invoice_updateMany: number;
+  expenseTransaction_updateMany: number;
+  invoiceIntake_updateMany: number;
+  auditEvent_upsert: AuditEvent_Key;
+}
+
+export interface DeletePostedInvoiceVariables {
+  invoiceId: string;
+  transactionId: string;
+  receiptId: string;
+  writeIntake: boolean;
+  reason: string;
+  actorUid: string;
+  actorRole: string;
   auditEventId: string;
   auditDetails: string;
 }
@@ -2855,6 +2875,18 @@ export const discardInvoiceIntakeRef: DiscardInvoiceIntakeRef;
 
 export function discardInvoiceIntake(vars: DiscardInvoiceIntakeVariables): MutationPromise<DiscardInvoiceIntakeData, DiscardInvoiceIntakeVariables>;
 export function discardInvoiceIntake(dc: DataConnect, vars: DiscardInvoiceIntakeVariables): MutationPromise<DiscardInvoiceIntakeData, DiscardInvoiceIntakeVariables>;
+
+interface DeletePostedInvoiceRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: DeletePostedInvoiceVariables): MutationRef<DeletePostedInvoiceData, DeletePostedInvoiceVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: DeletePostedInvoiceVariables): MutationRef<DeletePostedInvoiceData, DeletePostedInvoiceVariables>;
+  operationName: string;
+}
+export const deletePostedInvoiceRef: DeletePostedInvoiceRef;
+
+export function deletePostedInvoice(vars: DeletePostedInvoiceVariables): MutationPromise<DeletePostedInvoiceData, DeletePostedInvoiceVariables>;
+export function deletePostedInvoice(dc: DataConnect, vars: DeletePostedInvoiceVariables): MutationPromise<DeletePostedInvoiceData, DeletePostedInvoiceVariables>;
 
 interface MarkInvoiceIntakePostingErrorRef {
   /* Allow users to create refs without passing in DataConnect */
