@@ -12,6 +12,7 @@ export const maxDuration = 300;
  * and never depend on the browser remaining open after Storage upload.
  */
 export async function GET(request: Request) {
+  console.info("[invoice-worker] phase=cron_start");
   const expected = process.env.CRON_SECRET;
   const workerSecret = process.env.INVOICE_WORKER_SECRET || expected;
   const authorization = request.headers.get("authorization");
@@ -24,8 +25,10 @@ export async function GET(request: Request) {
 
   const dataConnect = await getFirebaseAdminDataConnect();
   const queued = selectInvoiceIntakesForAutomaticProcessing(await listAllInvoiceIntakes(dataConnect));
+  console.info("[invoice-worker] phase=queue_selected", { count: queued.length });
   const results: Array<{ receiptId: string; status: number; body: unknown }> = [];
   for (const intake of queued) {
+    console.info("[invoice-worker] phase=intake_start");
     const formData = new FormData();
     formData.append("receiptId", intake.receiptId);
     const response = await POST_PROCESSING(new Request(new URL("/api/ai/process-invoice", request.url), {
@@ -37,7 +40,9 @@ export async function GET(request: Request) {
       body: formData,
     }));
     results.push({ receiptId: intake.receiptId, status: response.status, body: await response.json().catch(() => null) });
+    console.info("[invoice-worker] phase=intake_finished", { status: response.status });
   }
+  console.info("[invoice-worker] phase=cron_finished", { count: results.length });
   return Response.json({ ok: true, queued: queued.length, results });
 }
 

@@ -37,6 +37,7 @@ import {
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
+const GEMINI_TIMEOUT_MS = 90_000;
 
 const ALLOWED_ROLES = new Set(["WORKER", "KIM", "ADMIN"]);
 
@@ -229,23 +230,33 @@ async function extractInvoice(receiptId: string, files: File[], accountLabels: s
     data: Buffer.from(await file.arrayBuffer()),
     mediaType: file.type,
   })));
-  const result = await generateText({
-    model: google(modelId),
-    instructions: invoiceInstructions(accountLabels),
-    output: Output.object({
-      name: "invoice_extraction",
-      description: "Structured OCR result for one Canadian invoice.",
-      schema: invoiceExtractionSchema,
-    }),
-    messages: [{
-      role: "user",
-      content: [{
-        type: "text",
-        text: `Receipt ID ${receiptId}. These are ${files.length} page(s) of the same invoice. Extract the invoice now.`,
-      }, ...imageParts],
-    }],
-  });
-  return { model: modelId, extraction: result.output };
+  try {
+    const result = await generateText({
+      model: google(modelId),
+      instructions: invoiceInstructions(accountLabels),
+      output: Output.object({
+        name: "invoice_extraction",
+        description: "Structured OCR result for one Canadian invoice.",
+        schema: invoiceExtractionSchema,
+      }),
+      messages: [{
+        role: "user",
+        content: [{
+          type: "text",
+          text: `Receipt ID ${receiptId}. These are ${files.length} page(s) of the same invoice. Extract the invoice now.`,
+        }, ...imageParts],
+      }],
+      abortSignal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
+    });
+    return { model: modelId, extraction: result.output };
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      const timeoutError = new Error(`Gemini n’a pas répondu dans le délai de ${GEMINI_TIMEOUT_MS / 1000} secondes.`);
+      Object.assign(timeoutError, { isRetryable: true });
+      throw timeoutError;
+    }
+    throw error;
+  }
 }
 
 export async function POST(request: Request) {
@@ -274,11 +285,13 @@ export async function POST(request: Request) {
     receiptIdForLog = receiptId;
 
     dataConnect = await getFirebaseAdminDataConnect();
+    console.info("[invoice-ai] phase=data_connect_ready");
     const readIntake = async () => {
       const intakes = await listAllInvoiceIntakes(dataConnect!);
       return intakes.find((item) => item.receiptId === receiptId) ?? null;
     };
     const intake = await readIntake();
+    console.info("[invoice-ai] phase=intake_read", { found: Boolean(intake) });
     if (!intake) return Response.json({ error: "Le dépôt de facture n'existe pas." }, { status: 404 });
     if (!identity.internal && intake.uploaderUid !== identity.uid) {
       return Response.json({ error: "Ce dépôt appartient à un autre utilisateur." }, { status: 403 });
@@ -358,6 +371,7 @@ export async function POST(request: Request) {
       "ClaimInvoiceIntakeProcessing",
       { receiptId, processingAttempts: Number(intake.processingAttempts ?? 0) + 1, maxAttempts },
     ).catch(() => null);
+    console.info("[invoice-ai] phase=claim_finished", { claimed: Boolean(claim?.data.invoiceIntake_updateMany === 1) });
     if (!claim || claim.data.invoiceIntake_updateMany !== 1) {
       const latest = await readIntake();
       if (latest) return existingIntakeResponse(receiptId, latest);
@@ -376,6 +390,7 @@ export async function POST(request: Request) {
         listAllExpenseTransactions(dataConnect),
       ]),
     ]);
+    console.info("[invoice-ai] phase=references_and_storage_ready", { photoCount: storedPhotos.length });
     const accountLabels = expenseAccounts
       .filter((account) => account.type === "EXPENSE" && account.status === "ACTIVE")
       .map((account) => account.label);
@@ -383,6 +398,7 @@ export async function POST(request: Request) {
       transientGeminiFailure = transientGeminiErrorCode("GEMINI", error) === "GEMINI_TRANSIENT";
       throw error;
     });
+    console.info("[invoice-ai] phase=gemini_finished");
     const validation = validateInvoiceExtraction(extraction);
     const classification = classifyInvoice({
       vendor: extraction?.vendor,
