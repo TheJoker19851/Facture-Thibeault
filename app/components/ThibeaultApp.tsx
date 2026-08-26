@@ -2,7 +2,7 @@
 
 import { ChangeEvent, createContext, FormEvent, Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getDownloadURL, ref } from "firebase/storage";
-import { AdminUserActionError, accountingReadSource, commitInvoiceIntake, correctPostedInvoice, deleteExpenseAccount, deleteProject, deletePostedInvoice, discardInvoiceIntake, loadAccountingSnapshot, loadAdminUserAccess, loadReportAdjustments, loadTransactionCorrections, mapAccountingSnapshot, removeDemoAccountingData, runAdminUserAction, saveCreditCard, saveExpenseAccount, saveInvoiceIntakeReview, saveProject, saveReportAdjustments, saveStatementPeriod, type AccountingLineItem, type ManualAdjustmentRow } from "../../firebase/accounting";
+import { AdminUserActionError, accountingReadSource, commitInvoiceIntake, correctPostedInvoice, deleteAdminUserProfile, deleteCreditCard, deleteExpenseAccount, deleteProject, deletePostedInvoice, discardInvoiceIntake, loadAccountingSnapshot, loadAdminUserAccess, loadReportAdjustments, loadTransactionCorrections, mapAccountingSnapshot, removeDemoAccountingData, runAdminUserAction, saveCreditCard, saveExpenseAccount, saveInvoiceIntakeReview, saveProject, saveReportAdjustments, saveStatementPeriod, type AccountingLineItem, type ManualAdjustmentRow } from "../../firebase/accounting";
 import { getInvoiceIntakeStatus, type InvoiceIntakeStatus } from "../../firebase/ai";
 import { appCheckConfigured, firebaseAuth, firebaseConfigured, firebaseStorage } from "../../firebase/client";
 import { sqlConnectConfigured } from "../../firebase/data-connect";
@@ -1060,7 +1060,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
       <main className="app-shell">
       <aside className="sidebar">
         <div className="brand-block brand-block-logo"><div className="brand-logo-frame"><img className="brand-logo" src="/brand-mbj-thibeault.png" alt="MBJ Thibeault" /></div></div>
-        <div className="workspace-switcher"><span className="avatar avatar-blue">K</span><div><strong>Kim / Administration</strong><span>Équipe dépenses</span></div><span className="chevron">⌄</span></div>
+        <div className="workspace-switcher"><span className="avatar avatar-blue">{accountRole === "ADMIN" ? "A" : "K"}</span><div><strong>{accountRole === "ADMIN" ? "Administration" : "Kim"}</strong><span>{accountRole === "ADMIN" ? "Espace administrateur" : "Équipe dépenses"}</span></div><span className="chevron">⌄</span></div>
         <nav className="main-nav" aria-label="Navigation principale">
           {navItems.filter((item) => item.id !== "debug" || canUseDiagnostics).map((item) => <button key={item.id} className={`nav-item ${view === item.id ? "active" : ""}`} onClick={() => goTo(item.id)}><span className="nav-icon">{item.icon}</span><span>{item.label}</span>{item.id === "intakes" && appData.intakes.filter(isIntakeQueueItem).length > 0 && <span className="nav-count">{appData.intakes.filter(isIntakeQueueItem).length}</span>}</button>)}
         </nav>
@@ -1453,6 +1453,8 @@ function auditActionLabel(action: string) {
     PASSWORD_RESET_FAILED: "Réinitialisation échouée",
     USER_EMAIL_UPDATED: "Email utilisateur mis à jour",
     USER_ACTIVATED: "Compte utilisateur activé",
+    USER_DELETED: "Profil utilisateur supprimé",
+    CREDIT_CARD_DELETED: "Carte supprimée",
     ACCOUNT_DEACTIVATED: "Compte utilisateur désactivé",
   };
   return labels[action] ?? action;
@@ -1479,6 +1481,8 @@ function auditActionDescription(action: string) {
     PASSWORD_RESET_FAILED: "Le lien de réinitialisation n’a pas pu être envoyé.",
     USER_EMAIL_UPDATED: "L’email local et le compte Firebase ont été synchronisés.",
     USER_ACTIVATED: "L’activation du compte a été détectée ou le compte a été réactivé.",
+    USER_DELETED: "Le profil et le compte Firebase ont été supprimés définitivement.",
+    CREDIT_CARD_DELETED: "La carte a été supprimée définitivement du référentiel.",
     ACCOUNT_DEACTIVATED: "Le profil et le compte Firebase ont été désactivés par un administrateur.",
   };
   return descriptions[action] ?? "Cette étape a été enregistrée dans la piste d’audit.";
@@ -3052,6 +3056,33 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
     }
   };
 
+  const deleteUser = async (user: UserProfile) => {
+    if (!canCreateUsers || !persistenceReady) return;
+    if (user.firebaseUid && user.firebaseUid === identity.user?.uid) {
+      setError("Vous ne pouvez pas supprimer votre propre compte administrateur.");
+      return;
+    }
+    if (cards.some((card) => card.holderId === user.id)) {
+      setError("Supprimez ou désactivez d’abord les cartes associées à ce profil.");
+      return;
+    }
+    if (!window.confirm(`Supprimer définitivement ${user.displayName} ? Le profil et son compte Firebase seront supprimés. Cette action est irréversible.`)) return;
+    setBusyKey(`user-delete-${user.id}`);
+    setError("");
+    setNotice("");
+    try {
+      await deleteAdminUserProfile(user.id, await getAdminToken());
+      const nextUsers = users.filter((candidate) => candidate.id !== user.id);
+      setUsers(nextUsers);
+      onDataChange({ users: nextUsers });
+      setNotice(`${user.displayName} a été supprimé définitivement.`);
+    } catch (reason) {
+      showError(reason);
+    } finally {
+      setBusyKey("");
+    }
+  };
+
   const runUserAccessAction = async (user: UserProfile, action: "invite" | "reset") => {
     if (!canCreateUsers || !persistenceReady) return;
     setBusyKey(`${action}-${user.id}`);
@@ -3167,6 +3198,30 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
       setCards(nextCards);
       onDataChange({ cards: nextCards });
       setNotice(`Carte •••• ${card.lastFour} ${nextStatus === "Actif" ? "réactivée" : "désactivée"}.`);
+    } catch (reason) {
+      showError(reason);
+    } finally {
+      setBusyKey("");
+    }
+  };
+
+  const deleteCardReference = async (card: CreditCard) => {
+    if (!canEditReferences || !persistenceReady) return;
+    if (!window.confirm(`Supprimer définitivement la carte •••• ${card.lastFour} ? Cette action est irréversible.`)) return;
+    setBusyKey(`card-delete-${card.id}`);
+    setError("");
+    setNotice("");
+    try {
+      await deleteCreditCard({ id: card.id, auditDetails: auditDetails({ before: card, source: "admin_directory" }) });
+      const nextCards = cards.filter((candidate) => candidate.id !== card.id);
+      setCards(nextCards);
+      setCardHolderDrafts((current) => {
+        const next = { ...current };
+        delete next[card.id];
+        return next;
+      });
+      onDataChange({ cards: nextCards });
+      setNotice(`La carte •••• ${card.lastFour} a été supprimée définitivement.`);
     } catch (reason) {
       showError(reason);
     } finally {
@@ -3522,12 +3577,12 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
            const invitationLabel = accountActive ? "Compte actif" : user.invitationStatus === "INVITED" ? "Invitation envoyée" : user.invitationStatus === "INVITATION_FAILED" ? "Échec d’envoi" : user.authAccount ? "À inviter" : user.email ? "À inviter · Auth absent" : "Email manquant";
            const invitationClass = accountActive ? "badge-success" : user.invitationStatus === "INVITATION_FAILED" ? "badge-danger" : user.invitationStatus === "INVITED" ? "badge-warning" : "badge-neutral";
            const action = accountActive ? "reset" : "invite";
-           return <div className="directory-row" key={user.id}><div><strong>{user.displayName}</strong>{editingEmailUserId === user.id ? <div className="directory-email-editor"><input type="email" value={emailDraft} onChange={(event) => setEmailDraft(event.target.value)} aria-label={`Email de ${user.displayName}`} /><button className="text-button" type="button" disabled={busyKey === `email-${user.id}`} onClick={() => void saveUserEmail(user)}>{busyKey === `email-${user.id}` ? "…" : "Enregistrer"}</button><button className="text-button" type="button" onClick={() => setEditingEmailUserId("")}>Annuler</button></div> : <small>{user.email ?? "Courriel non renseigné"} · {user.jobTitle ?? "Fonction non renseignée"}</small>}</div><span className="badge badge-neutral">{user.role}</span><span className={`badge ${invitationClass}`}>{invitationLabel}</span>{canCreateUsers && <div className="directory-actions"><button className="secondary-button" type="button" disabled={!persistenceReady || busyKey === `${action}-${user.id}` || (!accountActive && !user.email)} onClick={() => void runUserAccessAction(user, action)}>{busyKey === `${action}-${user.id}` ? "…" : accountActive ? "Réinitialiser le mot de passe" : user.invitationStatus === "INVITED" ? "Renvoyer l’invitation" : "Envoyer l’invitation"}</button><button className="text-button" type="button" disabled={!persistenceReady} onClick={() => { setEditingEmailUserId(user.id); setEmailDraft(user.email ?? ""); setError(""); setNotice(""); }}>Modifier l’email</button><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `user-${user.id}`} onClick={() => void toggleUser(user)}>{busyKey === `user-${user.id}` ? "…" : user.status === "ACTIVE" ? "Désactiver" : "Réactiver"}</button></div>}</div>;
+           return <div className="directory-row" key={user.id}><div><strong>{user.displayName}</strong>{editingEmailUserId === user.id ? <div className="directory-email-editor"><input type="email" value={emailDraft} onChange={(event) => setEmailDraft(event.target.value)} aria-label={`Email de ${user.displayName}`} /><button className="text-button" type="button" disabled={busyKey === `email-${user.id}`} onClick={() => void saveUserEmail(user)}>{busyKey === `email-${user.id}` ? "…" : "Enregistrer"}</button><button className="text-button" type="button" onClick={() => setEditingEmailUserId("")}>Annuler</button></div> : <small>{user.email ?? "Courriel non renseigné"} · {user.jobTitle ?? "Fonction non renseignée"}</small>}</div><span className="badge badge-neutral">{user.role}</span><span className={`badge ${invitationClass}`}>{invitationLabel}</span>{canCreateUsers && <div className="directory-actions"><button className="secondary-button" type="button" disabled={!persistenceReady || busyKey === `${action}-${user.id}` || (!accountActive && !user.email)} onClick={() => void runUserAccessAction(user, action)}>{busyKey === `${action}-${user.id}` ? "…" : accountActive ? "Réinitialiser le mot de passe" : user.invitationStatus === "INVITED" ? "Renvoyer l’invitation" : "Envoyer l’invitation"}</button><button className="text-button" type="button" disabled={!persistenceReady} onClick={() => { setEditingEmailUserId(user.id); setEmailDraft(user.email ?? ""); setError(""); setNotice(""); }}>Modifier l’email</button><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `user-${user.id}`} onClick={() => void toggleUser(user)}>{busyKey === `user-${user.id}` ? "…" : user.status === "ACTIVE" ? "Désactiver" : "Réactiver"}</button><button className="text-button danger-text" type="button" disabled={!persistenceReady || busyKey === `user-delete-${user.id}`} onClick={() => void deleteUser(user)}>{busyKey === `user-delete-${user.id}` ? "Suppression…" : "Supprimer définitivement"}</button></div>}</div>;
          })}</div>
        </>}
       {selectedSection === "cards" && <>
         <form className="directory-form" onSubmit={addCard}><div className="field-grid"><label className="field"><span>Quatre derniers chiffres</span><input required inputMode="numeric" maxLength={4} value={cardForm.lastFour} onChange={(event) => setCardForm((current) => ({ ...current, lastFour: event.target.value.replace(/\D/g, "") }))} placeholder="9001" /></label><label className="field"><span>Titulaire</span><select required value={cardForm.holderId} onChange={(event) => setCardForm((current) => ({ ...current, holderId: event.target.value }))}><option value="">Sélectionner le profil</option>{users.filter((user) => user.status === "ACTIVE").map((user) => <option key={user.id} value={user.id}>{user.displayName} · {user.jobTitle ?? user.role}</option>)}</select></label></div><div className="field-grid"><label className="field"><span>Fonction de la carte</span><input value={cardForm.cardFunction} onChange={(event) => setCardForm((current) => ({ ...current, cardFunction: event.target.value }))} placeholder="Fonction démo" /></label><div className="directory-help">Seuls les quatre derniers chiffres sont conservés. Le numéro complet de la carte ne passe jamais dans l&apos;application.</div></div><button className="primary-button" type="submit" disabled={!persistenceReady || busyKey === "add-card"}>{busyKey === "add-card" ? "Enregistrement…" : "Ajouter et associer la carte"}</button></form>
-        <div className="directory-list">{visibleCards.map((card) => <div className="directory-row card-directory-row" key={card.id}><div><strong>•••• {card.lastFour}</strong><small>{card.function} · {card.status} · {card.startDate || "date inconnue"}</small></div><select value={cardHolderDrafts[card.id] ?? card.holderId ?? ""} onChange={(event) => setCardHolderDrafts((current) => ({ ...current, [card.id]: event.target.value }))} aria-label={`Titulaire de la carte ${card.lastFour}`}><option value="">Titulaire à choisir</option>{users.map((user) => <option key={user.id} value={user.id}>{user.displayName}</option>)}</select><button className="secondary-button" type="button" disabled={!persistenceReady || busyKey === `card-${card.id}`} onClick={() => void saveCardAssignment(card)}>{busyKey === `card-${card.id}` ? "…" : "Enregistrer"}</button><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `toggle-card-${card.id}`} onClick={() => void toggleCard(card)}>{card.status === "Actif" ? "Désactiver" : "Réactiver"}</button></div>)}</div>
+        <div className="directory-list">{visibleCards.map((card) => <div className="directory-row card-directory-row" key={card.id}><div><strong>•••• {card.lastFour}</strong><small>{card.function} · {card.status} · {card.startDate || "date inconnue"}</small></div><select value={cardHolderDrafts[card.id] ?? card.holderId ?? ""} onChange={(event) => setCardHolderDrafts((current) => ({ ...current, [card.id]: event.target.value }))} aria-label={`Titulaire de la carte ${card.lastFour}`}><option value="">Titulaire à choisir</option>{users.map((user) => <option key={user.id} value={user.id}>{user.displayName}</option>)}</select><button className="secondary-button" type="button" disabled={!persistenceReady || busyKey === `card-${card.id}`} onClick={() => void saveCardAssignment(card)}>{busyKey === `card-${card.id}` ? "…" : "Enregistrer"}</button><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `toggle-card-${card.id}`} onClick={() => void toggleCard(card)}>{card.status === "Actif" ? "Désactiver" : "Réactiver"}</button>{canEditReferences && <button className="text-button danger-text" type="button" disabled={!persistenceReady || busyKey === `card-delete-${card.id}`} onClick={() => void deleteCardReference(card)}>{busyKey === `card-delete-${card.id}` ? "Suppression…" : "Supprimer définitivement"}</button>}</div>)}</div>
       </>}
        {selectedSection === "accounts" && <>
          {canEditReferences ? <form className="directory-form" onSubmit={saveAccountReference}><div className="field-grid"><label className="field"><span>Numéro de compte</span><input required inputMode="numeric" value={accountForm.number} onChange={(event) => setAccountForm((current) => ({ ...current, number: event.target.value }))} placeholder="33544" /></label><label className="field"><span>Libellé / catégorie</span><input required value={accountForm.label} onChange={(event) => setAccountForm((current) => ({ ...current, label: event.target.value }))} placeholder="Matériaux divers" /></label></div><div className="field-grid"><label className="field"><span>Type</span><select value={accountForm.type} onChange={(event) => setAccountForm((current) => ({ ...current, type: event.target.value }))}><option value="EXPENSE">Dépense</option><option value="TAX">Taxe</option></select></label><div className="directory-help">Le numéro est stocké comme texte afin de préserver les zéros initiaux. L’identifiant interne ne change pas lors d’une correction.</div></div><button className="primary-button" type="submit" disabled={!persistenceReady || busyKey.startsWith("account-")}>{busyKey.startsWith("account-") ? "Enregistrement…" : accountForm.id ? "Enregistrer la modification" : "Ajouter le compte"}</button></form> : <div className="config-note"><span>i</span><p>Le contrôle comptable peut consulter et sélectionner les comptes. La gestion du référentiel est réservée à ADMIN.</p></div>}

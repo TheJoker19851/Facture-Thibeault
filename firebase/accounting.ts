@@ -12,6 +12,7 @@ import {
   listUserProfiles,
   deleteExpenseAccount as deleteExpenseAccountMutation,
   deleteProject as deleteProjectMutation,
+  adminHardDeleteCreditCard as deleteCreditCardMutation,
   upsertCardStatementPeriod,
   upsertCreditCard,
   upsertExpenseAccount,
@@ -442,6 +443,15 @@ export async function saveStatementPeriod(input: StatementPeriodInput) {
   await upsertCardStatementPeriod(firebaseDataConnect, input);
 }
 
+export async function deleteCreditCard(input: { id: string; auditDetails?: string }) {
+  if (!firebaseDataConnect || !sqlConnectConfigured) throw new Error("SQL Connect est requis pour supprimer la carte.");
+  await deleteCreditCardMutation(firebaseDataConnect, {
+    id: input.id,
+    auditEventId: auditEventId(input.id, AUDIT_ACTIONS.CREDIT_CARD_DELETED, createClientId()),
+    auditDetails: input.auditDetails ?? auditDetails({ action: AUDIT_ACTIONS.CREDIT_CARD_DELETED }),
+  });
+}
+
 export async function saveStatementManualAdjustments(input: { id: string; rows: ManualAdjustmentRow[]; auditDetails?: string }) {
   if (!firebaseDataConnect || !sqlConnectConfigured) throw new Error("SQL Connect est requis pour enregistrer les ajustements de période.");
   const rows = normalizeManualAdjustmentRows(input.rows);
@@ -585,6 +595,22 @@ export async function runAdminUserAction(input: AdminUserAction, idToken: string
     throw new AdminUserActionError(body.error ?? "L’opération d’accès utilisateur a échoué.", body.profile);
   }
   return body.profile;
+}
+
+export async function deleteAdminUserProfile(profileId: string, idToken: string) {
+  const response = await fetch("/api/admin/invitations", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify({ action: "delete", profileId }),
+  });
+  const body = await response.json().catch(() => ({})) as { error?: string; deletedProfileId?: string };
+  if (!response.ok || body.deletedProfileId !== profileId) {
+    throw new AdminUserActionError(body.error ?? "L’utilisateur n’a pas pu être supprimé définitivement.");
+  }
+  return body.deletedProfileId;
 }
 
 export async function loadAdminUserAccess(idToken: string) {

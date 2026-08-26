@@ -443,6 +443,34 @@ exports.adminRecordUserAudit = function adminRecordUserAudit(dcOrVars, vars) {
 }
 ;
 
+const adminHardDeleteUserProfileRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminHardDeleteUserProfile', inputVars);
+}
+adminHardDeleteUserProfileRef.operationName = 'AdminHardDeleteUserProfile';
+exports.adminHardDeleteUserProfileRef = adminHardDeleteUserProfileRef;
+
+exports.adminHardDeleteUserProfile = function adminHardDeleteUserProfile(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminHardDeleteUserProfileRef(dcInstance, inputVars));
+}
+;
+
+const adminHardDeleteCreditCardRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminHardDeleteCreditCard', inputVars);
+}
+adminHardDeleteCreditCardRef.operationName = 'AdminHardDeleteCreditCard';
+exports.adminHardDeleteCreditCardRef = adminHardDeleteCreditCardRef;
+
+exports.adminHardDeleteCreditCard = function adminHardDeleteCreditCard(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminHardDeleteCreditCardRef(dcInstance, inputVars));
+}
+;
+
 const upsertProjectRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();

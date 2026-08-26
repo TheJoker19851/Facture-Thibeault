@@ -42,6 +42,9 @@ workspace, while assigned workers can only submit invoice photos.
   successful send clears the invoice tray for the next receipt
 - `vercel.json` builds vinext through Nitro's Vercel preset; the production
   deployment is protected by Firebase Authentication and uses no custom domain
+- `app/api/admin/invitations/route.ts` sends invitations and password resets
+  through Firebase Authentication / Identity Toolkit; use `IDENTITY_TOOLKIT_API_KEY`
+  server-side when the existing Firebase Web API key is not sufficient
 - `docs/EFVP-Quebec.md` records the Québec privacy and data-transfer checklist
 - `app/components/FirebaseShell.tsx` gates the production application behind
   Firebase Authentication and a `WORKER`, `KIM` or `ADMIN`

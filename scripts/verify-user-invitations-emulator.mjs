@@ -89,10 +89,11 @@ export async function verifyUserInvitationsEmulator() {
     assert.equal(createdUser.customClaims?.role, "WORKER");
     assert.equal(profile.invitationStatus, INVITATION_STATUS.INVITED);
     assert.equal(sentEmails.length, 1);
-    assert.match(sentEmails[0].html, /Facture Thibeault/);
-    assert.doesNotMatch(sentEmails[0].html, /mot de passe temporaire/i);
+    assert.equal(sentEmails[0].to, email);
+    assert.equal(sentEmails[0].continueUrl, "http://127.0.0.1:3000/installer");
+    assert.equal(sentEmails[0].kind, "invitation");
 
-    const resend = await sendInvitationForProfile({
+    const resentInvitation = await sendInvitationForProfile({
       profile,
       profiles: [profile],
       auth,
@@ -105,9 +106,10 @@ export async function verifyUserInvitationsEmulator() {
     });
     const resentUser = await auth.getUserByEmail(email);
     assert.equal(resentUser.uid, createdUser.uid);
-    assert.equal(resend.user.uid, createdUser.uid);
+    assert.equal(resentInvitation.user.uid, createdUser.uid);
     assert.equal(sentEmails.length, 2);
-    assert.equal(resend.profile.invitationStatus, INVITATION_STATUS.INVITED);
+    assert.equal(sentEmails[1].kind, "invitation");
+    assert.equal(resentInvitation.profile.invitationStatus, INVITATION_STATUS.INVITED);
 
     const stored = await dataConnect.executeQuery("ListUserProfiles", { limit: 100, offset: 0 }, {
       impersonate: { authClaims: { sub: actorUid, role: "ADMIN" } },

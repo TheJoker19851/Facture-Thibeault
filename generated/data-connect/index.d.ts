@@ -91,6 +91,30 @@ export interface AdminDeleteUserProfileVariables {
   id: string;
 }
 
+export interface AdminHardDeleteCreditCardData {
+  creditCard_delete?: CreditCard_Key | null;
+  auditEvent_upsert: AuditEvent_Key;
+}
+
+export interface AdminHardDeleteCreditCardVariables {
+  id: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+
+export interface AdminHardDeleteUserProfileData {
+  userProfile_delete?: UserProfile_Key | null;
+  auditEvent_upsert: AuditEvent_Key;
+}
+
+export interface AdminHardDeleteUserProfileVariables {
+  id: string;
+  auditEventId: string;
+  actorUid: string;
+  actorRole: string;
+  auditDetails: string;
+}
+
 export interface AdminListInvoicePhotosData {
   invoicePhotos: ({
     id: string;
@@ -2642,6 +2666,30 @@ export const adminRecordUserAuditRef: AdminRecordUserAuditRef;
 
 export function adminRecordUserAudit(vars: AdminRecordUserAuditVariables): MutationPromise<AdminRecordUserAuditData, AdminRecordUserAuditVariables>;
 export function adminRecordUserAudit(dc: DataConnect, vars: AdminRecordUserAuditVariables): MutationPromise<AdminRecordUserAuditData, AdminRecordUserAuditVariables>;
+
+interface AdminHardDeleteUserProfileRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminHardDeleteUserProfileVariables): MutationRef<AdminHardDeleteUserProfileData, AdminHardDeleteUserProfileVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AdminHardDeleteUserProfileVariables): MutationRef<AdminHardDeleteUserProfileData, AdminHardDeleteUserProfileVariables>;
+  operationName: string;
+}
+export const adminHardDeleteUserProfileRef: AdminHardDeleteUserProfileRef;
+
+export function adminHardDeleteUserProfile(vars: AdminHardDeleteUserProfileVariables): MutationPromise<AdminHardDeleteUserProfileData, AdminHardDeleteUserProfileVariables>;
+export function adminHardDeleteUserProfile(dc: DataConnect, vars: AdminHardDeleteUserProfileVariables): MutationPromise<AdminHardDeleteUserProfileData, AdminHardDeleteUserProfileVariables>;
+
+interface AdminHardDeleteCreditCardRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminHardDeleteCreditCardVariables): MutationRef<AdminHardDeleteCreditCardData, AdminHardDeleteCreditCardVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AdminHardDeleteCreditCardVariables): MutationRef<AdminHardDeleteCreditCardData, AdminHardDeleteCreditCardVariables>;
+  operationName: string;
+}
+export const adminHardDeleteCreditCardRef: AdminHardDeleteCreditCardRef;
+
+export function adminHardDeleteCreditCard(vars: AdminHardDeleteCreditCardVariables): MutationPromise<AdminHardDeleteCreditCardData, AdminHardDeleteCreditCardVariables>;
+export function adminHardDeleteCreditCard(dc: DataConnect, vars: AdminHardDeleteCreditCardVariables): MutationPromise<AdminHardDeleteCreditCardData, AdminHardDeleteCreditCardVariables>;
 
 interface UpsertProjectRef {
   /* Allow users to create refs without passing in DataConnect */

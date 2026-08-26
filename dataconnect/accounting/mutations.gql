@@ -107,6 +107,62 @@ mutation AdminRecordUserAudit(
   })
 }
 
+mutation AdminHardDeleteUserProfile(
+  $id: String!
+  $auditEventId: String!
+  $actorUid: String!
+  $actorRole: String!
+  $auditDetails: String!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact @check(
+    expr: "response.query.creditCards.size() == 0 && response.query.invoices.size() == 0 && response.query.transactionCorrections.size() == 0 && response.query.creditCardStatements.size() == 0 && response.query.creditCardHolderHistories.size() == 0 && response.query.reconciliationMatches.size() == 0 && response.query.merchantAliases.size() == 0"
+    message: "Ce profil possède un historique ou une carte associée et ne peut pas être supprimé définitivement."
+  ) {
+    creditCards(where: { holder: { id: { eq: $id } } }, limit: 1) { id }
+    invoices(where: { createdBy: { id: { eq: $id } } }, limit: 1) { id }
+    transactionCorrections(where: { correctedBy: { id: { eq: $id } } }, limit: 1) { id }
+    creditCardStatements(where: { importedBy: { id: { eq: $id } } }, limit: 1) { id }
+    creditCardHolderHistories(where: { holder: { id: { eq: $id } } }, limit: 1) { id }
+    reconciliationMatches(where: { confirmedBy: { id: { eq: $id } } }, limit: 1) { id }
+    merchantAliases(where: { createdBy: { id: { eq: $id } } }, limit: 1) { id }
+  }
+  userProfile_delete(key: { id: $id })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: "USER_DELETED"
+    entityType: "UserProfile"
+    entityId: $id
+    details: $auditDetails
+  })
+}
+
+mutation AdminHardDeleteCreditCard(
+  $id: String!
+  $auditEventId: String!
+  $auditDetails: String!
+) @auth(expr: "auth.token.role == 'ADMIN'") @transaction {
+  query @redact @check(
+    expr: "response.query.expenseTransactions.size() == 0 && response.query.creditCardStatements.size() == 0 && response.query.creditCardHolderHistories.size() == 0"
+    message: "Cette carte possède un historique et ne peut pas être supprimée définitivement. Désactivez-la plutôt."
+  ) {
+    expenseTransactions(where: { card: { id: { eq: $id } } }, limit: 1) { id }
+    creditCardStatements(where: { card: { id: { eq: $id } } }, limit: 1) { id }
+    creditCardHolderHistories(where: { card: { id: { eq: $id } } }, limit: 1) { id }
+  }
+  creditCard_delete(key: { id: $id })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid_expr: "auth.uid"
+    actorRole_expr: "auth.token.role"
+    action: "CREDIT_CARD_DELETED"
+    entityType: "CreditCard"
+    entityId: $id
+    details: $auditDetails
+  })
+}
+
 mutation UpsertProject(
   $id: String!
   $number: String!

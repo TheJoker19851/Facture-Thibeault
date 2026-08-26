@@ -77,6 +77,8 @@ This README will guide you through the process of using the generated JavaScript
   - [*UpsertCreditCard*](#upsertcreditcard)
   - [*AdminUpsertUserProfileWithAudit*](#adminupsertuserprofilewithaudit)
   - [*AdminRecordUserAudit*](#adminrecorduseraudit)
+  - [*AdminHardDeleteUserProfile*](#adminharddeleteuserprofile)
+  - [*AdminHardDeleteCreditCard*](#adminharddeletecreditcard)
   - [*UpsertProject*](#upsertproject)
   - [*UpsertExpenseAccount*](#upsertexpenseaccount)
   - [*DeleteProject*](#deleteproject)
@@ -8609,6 +8611,252 @@ console.log(data.auditEvent_upsert);
 // Or, you can use the `Promise` API.
 executeMutation(ref).then((response) => {
   const data = response.data;
+  console.log(data.auditEvent_upsert);
+});
+```
+
+## AdminHardDeleteUserProfile
+You can execute the `AdminHardDeleteUserProfile` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+adminHardDeleteUserProfile(vars: AdminHardDeleteUserProfileVariables): MutationPromise<AdminHardDeleteUserProfileData, AdminHardDeleteUserProfileVariables>;
+
+interface AdminHardDeleteUserProfileRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminHardDeleteUserProfileVariables): MutationRef<AdminHardDeleteUserProfileData, AdminHardDeleteUserProfileVariables>;
+}
+export const adminHardDeleteUserProfileRef: AdminHardDeleteUserProfileRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+adminHardDeleteUserProfile(dc: DataConnect, vars: AdminHardDeleteUserProfileVariables): MutationPromise<AdminHardDeleteUserProfileData, AdminHardDeleteUserProfileVariables>;
+
+interface AdminHardDeleteUserProfileRef {
+  ...
+  (dc: DataConnect, vars: AdminHardDeleteUserProfileVariables): MutationRef<AdminHardDeleteUserProfileData, AdminHardDeleteUserProfileVariables>;
+}
+export const adminHardDeleteUserProfileRef: AdminHardDeleteUserProfileRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminHardDeleteUserProfileRef:
+```typescript
+const name = adminHardDeleteUserProfileRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `AdminHardDeleteUserProfile` mutation requires an argument of type `AdminHardDeleteUserProfileVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface AdminHardDeleteUserProfileVariables {
+  id: string;
+  auditEventId: string;
+  actorUid: string;
+  actorRole: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that executing the `AdminHardDeleteUserProfile` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `AdminHardDeleteUserProfileData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface AdminHardDeleteUserProfileData {
+  userProfile_delete?: UserProfile_Key | null;
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+### Using `AdminHardDeleteUserProfile`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, adminHardDeleteUserProfile, AdminHardDeleteUserProfileVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminHardDeleteUserProfile` mutation requires an argument of type `AdminHardDeleteUserProfileVariables`:
+const adminHardDeleteUserProfileVars: AdminHardDeleteUserProfileVariables = {
+  id: ..., 
+  auditEventId: ..., 
+  actorUid: ..., 
+  actorRole: ..., 
+  auditDetails: ..., 
+};
+
+// Call the `adminHardDeleteUserProfile()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await adminHardDeleteUserProfile(adminHardDeleteUserProfileVars);
+// Variables can be defined inline as well.
+const { data } = await adminHardDeleteUserProfile({ id: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await adminHardDeleteUserProfile(dataConnect, adminHardDeleteUserProfileVars);
+
+console.log(data.userProfile_delete);
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+adminHardDeleteUserProfile(adminHardDeleteUserProfileVars).then((response) => {
+  const data = response.data;
+  console.log(data.userProfile_delete);
+  console.log(data.auditEvent_upsert);
+});
+```
+
+### Using `AdminHardDeleteUserProfile`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, adminHardDeleteUserProfileRef, AdminHardDeleteUserProfileVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminHardDeleteUserProfile` mutation requires an argument of type `AdminHardDeleteUserProfileVariables`:
+const adminHardDeleteUserProfileVars: AdminHardDeleteUserProfileVariables = {
+  id: ..., 
+  auditEventId: ..., 
+  actorUid: ..., 
+  actorRole: ..., 
+  auditDetails: ..., 
+};
+
+// Call the `adminHardDeleteUserProfileRef()` function to get a reference to the mutation.
+const ref = adminHardDeleteUserProfileRef(adminHardDeleteUserProfileVars);
+// Variables can be defined inline as well.
+const ref = adminHardDeleteUserProfileRef({ id: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = adminHardDeleteUserProfileRef(dataConnect, adminHardDeleteUserProfileVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.userProfile_delete);
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.userProfile_delete);
+  console.log(data.auditEvent_upsert);
+});
+```
+
+## AdminHardDeleteCreditCard
+You can execute the `AdminHardDeleteCreditCard` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+adminHardDeleteCreditCard(vars: AdminHardDeleteCreditCardVariables): MutationPromise<AdminHardDeleteCreditCardData, AdminHardDeleteCreditCardVariables>;
+
+interface AdminHardDeleteCreditCardRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminHardDeleteCreditCardVariables): MutationRef<AdminHardDeleteCreditCardData, AdminHardDeleteCreditCardVariables>;
+}
+export const adminHardDeleteCreditCardRef: AdminHardDeleteCreditCardRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+adminHardDeleteCreditCard(dc: DataConnect, vars: AdminHardDeleteCreditCardVariables): MutationPromise<AdminHardDeleteCreditCardData, AdminHardDeleteCreditCardVariables>;
+
+interface AdminHardDeleteCreditCardRef {
+  ...
+  (dc: DataConnect, vars: AdminHardDeleteCreditCardVariables): MutationRef<AdminHardDeleteCreditCardData, AdminHardDeleteCreditCardVariables>;
+}
+export const adminHardDeleteCreditCardRef: AdminHardDeleteCreditCardRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminHardDeleteCreditCardRef:
+```typescript
+const name = adminHardDeleteCreditCardRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `AdminHardDeleteCreditCard` mutation requires an argument of type `AdminHardDeleteCreditCardVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface AdminHardDeleteCreditCardVariables {
+  id: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that executing the `AdminHardDeleteCreditCard` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `AdminHardDeleteCreditCardData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface AdminHardDeleteCreditCardData {
+  creditCard_delete?: CreditCard_Key | null;
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+### Using `AdminHardDeleteCreditCard`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, adminHardDeleteCreditCard, AdminHardDeleteCreditCardVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminHardDeleteCreditCard` mutation requires an argument of type `AdminHardDeleteCreditCardVariables`:
+const adminHardDeleteCreditCardVars: AdminHardDeleteCreditCardVariables = {
+  id: ..., 
+  auditEventId: ..., 
+  auditDetails: ..., 
+};
+
+// Call the `adminHardDeleteCreditCard()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await adminHardDeleteCreditCard(adminHardDeleteCreditCardVars);
+// Variables can be defined inline as well.
+const { data } = await adminHardDeleteCreditCard({ id: ..., auditEventId: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await adminHardDeleteCreditCard(dataConnect, adminHardDeleteCreditCardVars);
+
+console.log(data.creditCard_delete);
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+adminHardDeleteCreditCard(adminHardDeleteCreditCardVars).then((response) => {
+  const data = response.data;
+  console.log(data.creditCard_delete);
+  console.log(data.auditEvent_upsert);
+});
+```
+
+### Using `AdminHardDeleteCreditCard`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, adminHardDeleteCreditCardRef, AdminHardDeleteCreditCardVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminHardDeleteCreditCard` mutation requires an argument of type `AdminHardDeleteCreditCardVariables`:
+const adminHardDeleteCreditCardVars: AdminHardDeleteCreditCardVariables = {
+  id: ..., 
+  auditEventId: ..., 
+  auditDetails: ..., 
+};
+
+// Call the `adminHardDeleteCreditCardRef()` function to get a reference to the mutation.
+const ref = adminHardDeleteCreditCardRef(adminHardDeleteCreditCardVars);
+// Variables can be defined inline as well.
+const ref = adminHardDeleteCreditCardRef({ id: ..., auditEventId: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = adminHardDeleteCreditCardRef(dataConnect, adminHardDeleteCreditCardVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.creditCard_delete);
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.creditCard_delete);
   console.log(data.auditEvent_upsert);
 });
 ```

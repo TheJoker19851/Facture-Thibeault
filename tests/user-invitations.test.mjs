@@ -55,9 +55,6 @@ function fakeAuth(initialUsers = []) {
       if (!user) throw authNotFound();
       user.customClaims = customClaims;
     },
-    async generatePasswordResetLink(email) {
-      return `https://example.test/reset?email=${encodeURIComponent(email)}&token=one-time`;
-    },
   };
 }
 
@@ -150,8 +147,9 @@ test("E: utilisateur actif reçoit un lien de reset sans mot de passe exposé", 
   const sent = [];
   await sendPasswordResetForProfile({ profile, profiles: store.profiles, auth, persistProfile: store.persistProfile, recordAudit: store.recordAudit, sendEmail: mailer(sent), ...common });
   assert.equal(sent.length, 1);
-  assert.match(sent[0].subject, /Réinitialiser/);
-  assert.doesNotMatch(sent[0].html, /mot de passe temporaire/i);
+  assert.equal(sent[0].to, "eve@example.test");
+  assert.equal(sent[0].continueUrl, "https://facture.example.test/installer");
+  assert.equal(sent[0].kind, "password-reset");
   assert.ok(store.audits.some((audit) => audit.action === USER_AUDIT_ACTION.PASSWORD_RESET_REQUESTED));
 });
 

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { firebaseAdminConfigured, getFirebaseAdminAuth, getFirebaseAdminDataConnect } from "../../../../firebase/admin";
 import { listAllUserProfiles } from "../../../../firebase/accounting-pagination.server";
 import { auditDetails, auditEventId } from "../../../../lib/audit-events.mjs";
-import { sendTransactionalEmail } from "../../../../lib/transactional-email.mjs";
+import { sendFirebasePasswordSetupEmail } from "../../../../lib/firebase-auth-email.mjs";
 import {
   createUserProfile,
   effectiveInvitationStatus,
@@ -31,7 +31,7 @@ const createAction = z.object({
   sendInvitation: z.boolean().default(true),
 });
 const profileAction = z.object({
-  action: z.enum(["invite", "reset", "update-email", "status"]),
+  action: z.enum(["invite", "reset", "update-email", "status", "delete"]),
   profileId: z.string().trim().min(1).max(128),
   email: z.string().trim().max(254).optional(),
   status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
@@ -182,6 +182,31 @@ async function recordAudit(
   });
 }
 
+async function deleteAuthAccountForProfile(auth: Awaited<ReturnType<typeof getFirebaseAdminAuth>>, profile: UserProfileRow) {
+  let authUser: AuthUserRecord | null = null;
+  if (profile.firebaseUid) {
+    try {
+      authUser = await auth.getUser(profile.firebaseUid) as unknown as AuthUserRecord;
+    } catch (error) {
+      if (errorCode(error) !== "auth/user-not-found") throw error;
+    }
+  } else if (profile.email) {
+    const email = normalizeEmail(profile.email, { required: false });
+    if (!email) return;
+    try {
+      authUser = await auth.getUserByEmail(email) as unknown as AuthUserRecord;
+    } catch (error) {
+      if (errorCode(error) !== "auth/user-not-found") throw error;
+    }
+  }
+  if (!authUser) return;
+  try {
+    await auth.deleteUser(authUser.uid);
+  } catch (error) {
+    if (errorCode(error) !== "auth/user-not-found") throw error;
+  }
+}
+
 function errorCode(error: unknown) {
   return error && typeof error === "object" && "code" in error ? String(error.code) : "";
 }
@@ -241,7 +266,7 @@ export async function POST(request: Request) {
       auth,
       persistProfile: persist,
       recordAudit: audit,
-      sendEmail: sendTransactionalEmail,
+      sendEmail: sendFirebasePasswordSetupEmail,
       baseUrl: baseUrlForRequest(request),
       actorUid: identity.uid,
       actorRole: identity.role,
@@ -262,6 +287,20 @@ export async function POST(request: Request) {
     if (input.action === "invite") {
       const result = await sendInvitationForProfile({ profile, ...common });
       return Response.json({ ok: true, profile: result.profile, invitationSent: true });
+    }
+    if (input.action === "delete") {
+      if (profile.firebaseUid === identity.uid) {
+        throw new UserInvitationError("SELF_DELETE_FORBIDDEN", "Vous ne pouvez pas supprimer votre propre compte administrateur.", { status: 409 });
+      }
+      await dataConnect.executeMutation("AdminHardDeleteUserProfile", {
+        id: profile.id,
+        auditEventId: auditEventId(profile.id, USER_AUDIT_ACTION.USER_DELETED, randomUUID()),
+        actorUid: identity.uid,
+        actorRole: identity.role,
+        auditDetails: auditDetails({ before: profile, source: "admin_user_directory" }),
+      });
+      await deleteAuthAccountForProfile(auth, profile);
+      return Response.json({ ok: true, deletedProfileId: profile.id });
     }
     if (input.action === "reset") {
       const result = await sendPasswordResetForProfile({ profile, ...common });
