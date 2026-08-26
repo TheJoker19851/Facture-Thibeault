@@ -11,6 +11,11 @@ query ListUserProfiles($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role
     jobTitle
     role
     status
+    invitationStatus
+    invitationSentAt
+    invitationSentBy
+    lastInvitationError
+    activatedAt
   }
 }
 

@@ -6,12 +6,17 @@
 
 type UserProfile @table(name: "user_profiles", key: "id") {
   id: String!
-  firebaseUid: String! @unique
+  firebaseUid: String @unique
   displayName: String!
-  email: String
+  email: String @unique
   jobTitle: String
   role: String! @default(value: "WORKER")
   status: String! @default(value: "ACTIVE")
+  invitationStatus: String! @default(value: "NOT_INVITED")
+  invitationSentAt: Timestamp
+  invitationSentBy: String
+  lastInvitationError: String
+  activatedAt: Timestamp
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }

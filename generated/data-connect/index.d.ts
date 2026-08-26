@@ -128,7 +128,7 @@ export interface AdminListInvoicesData {
     } & ExpenseTransaction_Key;
     createdBy?: {
       id: string;
-      firebaseUid: string;
+      firebaseUid?: string | null;
     } & UserProfile_Key;
     invoicePhotos_on_invoice: ({
       id: string;
@@ -153,6 +153,19 @@ export interface AdminRecordArchivePurgeVariables {
   actorUid: string;
   actorRole: string;
   archiveId: string;
+  auditDetails: string;
+}
+
+export interface AdminRecordUserAuditData {
+  auditEvent_upsert: AuditEvent_Key;
+}
+
+export interface AdminRecordUserAuditVariables {
+  auditEventId: string;
+  actorUid: string;
+  actorRole: string;
+  auditAction: string;
+  entityId: string;
   auditDetails: string;
 }
 
@@ -396,6 +409,31 @@ export interface AdminSeedUserProfileVariables {
   jobTitle?: string | null;
   role: string;
   status: string;
+}
+
+export interface AdminUpsertUserProfileWithAuditData {
+  userProfile_upsert: UserProfile_Key;
+  auditEvent_upsert: AuditEvent_Key;
+}
+
+export interface AdminUpsertUserProfileWithAuditVariables {
+  id: string;
+  firebaseUid?: string | null;
+  displayName: string;
+  email?: string | null;
+  jobTitle?: string | null;
+  role: string;
+  status: string;
+  invitationStatus: string;
+  invitationSentAt?: TimestampString | null;
+  invitationSentBy?: string | null;
+  lastInvitationError?: string | null;
+  activatedAt?: TimestampString | null;
+  auditEventId: string;
+  actorUid: string;
+  actorRole: string;
+  auditAction: string;
+  auditDetails: string;
 }
 
 export interface AuditEvent_Key {
@@ -1636,12 +1674,17 @@ export interface ListTransactionCorrectionsVariables {
 export interface ListUserProfilesData {
   userProfiles: ({
     id: string;
-    firebaseUid: string;
+    firebaseUid?: string | null;
     displayName: string;
     email?: string | null;
     jobTitle?: string | null;
     role: string;
     status: string;
+    invitationStatus: string;
+    invitationSentAt?: TimestampString | null;
+    invitationSentBy?: string | null;
+    lastInvitationError?: string | null;
+    activatedAt?: TimestampString | null;
   } & UserProfile_Key)[];
 }
 
@@ -2215,7 +2258,7 @@ export interface UpsertUserProfileData {
 
 export interface UpsertUserProfileVariables {
   id: string;
-  firebaseUid: string;
+  firebaseUid?: string | null;
   displayName: string;
   email?: string | null;
   jobTitle?: string | null;
@@ -2575,6 +2618,30 @@ export const upsertCreditCardRef: UpsertCreditCardRef;
 
 export function upsertCreditCard(vars: UpsertCreditCardVariables): MutationPromise<UpsertCreditCardData, UpsertCreditCardVariables>;
 export function upsertCreditCard(dc: DataConnect, vars: UpsertCreditCardVariables): MutationPromise<UpsertCreditCardData, UpsertCreditCardVariables>;
+
+interface AdminUpsertUserProfileWithAuditRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminUpsertUserProfileWithAuditVariables): MutationRef<AdminUpsertUserProfileWithAuditData, AdminUpsertUserProfileWithAuditVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AdminUpsertUserProfileWithAuditVariables): MutationRef<AdminUpsertUserProfileWithAuditData, AdminUpsertUserProfileWithAuditVariables>;
+  operationName: string;
+}
+export const adminUpsertUserProfileWithAuditRef: AdminUpsertUserProfileWithAuditRef;
+
+export function adminUpsertUserProfileWithAudit(vars: AdminUpsertUserProfileWithAuditVariables): MutationPromise<AdminUpsertUserProfileWithAuditData, AdminUpsertUserProfileWithAuditVariables>;
+export function adminUpsertUserProfileWithAudit(dc: DataConnect, vars: AdminUpsertUserProfileWithAuditVariables): MutationPromise<AdminUpsertUserProfileWithAuditData, AdminUpsertUserProfileWithAuditVariables>;
+
+interface AdminRecordUserAuditRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminRecordUserAuditVariables): MutationRef<AdminRecordUserAuditData, AdminRecordUserAuditVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AdminRecordUserAuditVariables): MutationRef<AdminRecordUserAuditData, AdminRecordUserAuditVariables>;
+  operationName: string;
+}
+export const adminRecordUserAuditRef: AdminRecordUserAuditRef;
+
+export function adminRecordUserAudit(vars: AdminRecordUserAuditVariables): MutationPromise<AdminRecordUserAuditData, AdminRecordUserAuditVariables>;
+export function adminRecordUserAudit(dc: DataConnect, vars: AdminRecordUserAuditVariables): MutationPromise<AdminRecordUserAuditData, AdminRecordUserAuditVariables>;
 
 interface UpsertProjectRef {
   /* Allow users to create refs without passing in DataConnect */

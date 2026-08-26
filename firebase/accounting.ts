@@ -88,12 +88,17 @@ function parseInvoiceLineItems(value: string | null | undefined): AccountingLine
 export type AppAccountingData = {
   users: Array<{
     id: string;
-    firebaseUid: string;
+    firebaseUid?: string | null;
     displayName: string;
-    email?: string;
-    jobTitle?: string;
+    email?: string | null;
+    jobTitle?: string | null;
     role: string;
     status: string;
+    invitationStatus?: string | null;
+    invitationSentAt?: string | null;
+    invitationSentBy?: string | null;
+    lastInvitationError?: string | null;
+    activatedAt?: string | null;
   }>;
   accounts: Array<{ id: string; number: string; code: string; label: string; type: string; status?: string }>;
   cards: Array<{
@@ -358,7 +363,7 @@ export type ReportAdjustmentScope = {
 
 export type UserProfileInput = {
   id: string;
-  firebaseUid: string;
+  firebaseUid: string | null;
   displayName: string;
   email: string | null;
   jobTitle: string | null;
@@ -540,8 +545,34 @@ export async function loadTransactionCorrections(transactionId: string) {
   });
 }
 
-export async function createFirebaseUser(input: { displayName: string; email: string; password: string; jobTitle: string; role: string }, idToken: string) {
-  const response = await fetch("/api/admin/users", {
+export type AdminUserAction =
+  | { action: "create"; displayName: string; email: string; jobTitle: string; role: string; sendInvitation: boolean }
+  | { action: "invite" | "reset"; profileId: string }
+  | { action: "status"; profileId: string; status: "ACTIVE" | "INACTIVE" }
+  | { action: "update-email"; profileId: string; email: string };
+
+export type AdminUserActionProfile = AppAccountingData["users"][number] & {
+  invitationStatus?: string | null;
+  invitationSentAt?: string | null;
+  invitationSentBy?: string | null;
+  lastInvitationError?: string | null;
+  activatedAt?: string | null;
+  authAccount?: boolean;
+  authState?: string;
+};
+
+export class AdminUserActionError extends Error {
+  profile?: AdminUserActionProfile;
+
+  constructor(message: string, profile?: AdminUserActionProfile) {
+    super(message);
+    this.name = "AdminUserActionError";
+    this.profile = profile;
+  }
+}
+
+export async function runAdminUserAction(input: AdminUserAction, idToken: string) {
+  const response = await fetch("/api/admin/invitations", {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -549,11 +580,21 @@ export async function createFirebaseUser(input: { displayName: string; email: st
     },
     body: JSON.stringify(input),
   });
-  const body = await response.json().catch(() => ({})) as { error?: string; uid?: string; role?: string };
-  if (!response.ok || !body.uid) {
-    throw new Error(body.error ?? "Le compte Firebase n'a pas pu être créé.");
+  const body = await response.json().catch(() => ({})) as { error?: string; profile?: AdminUserActionProfile };
+  if (!response.ok || !body.profile) {
+    throw new AdminUserActionError(body.error ?? "L’opération d’accès utilisateur a échoué.", body.profile);
   }
-  return { uid: body.uid, role: body.role ?? input.role };
+  return body.profile;
+}
+
+export async function loadAdminUserAccess(idToken: string) {
+  const response = await fetch("/api/admin/invitations", {
+    headers: { authorization: `Bearer ${idToken}` },
+    cache: "no-store",
+  });
+  const body = await response.json().catch(() => ({})) as { error?: string; users?: AdminUserActionProfile[] };
+  if (!response.ok || !body.users) throw new Error(body.error ?? "La liste des accès utilisateur est indisponible.");
+  return body.users;
 }
 
 export async function setFirebaseUserDisabled(uid: string, disabled: boolean, idToken: string) {
@@ -736,12 +777,17 @@ export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccounti
   return {
     users: snapshot.users.map((user) => ({
       id: user.id,
-      firebaseUid: user.firebaseUid,
+      firebaseUid: user.firebaseUid ?? null,
       displayName: user.displayName,
       ...(user.email ? { email: user.email } : {}),
       ...(user.jobTitle ? { jobTitle: user.jobTitle } : {}),
       role: user.role,
       status: user.status,
+      invitationStatus: user.invitationStatus ?? "NOT_INVITED",
+      invitationSentAt: user.invitationSentAt ?? null,
+      invitationSentBy: user.invitationSentBy ?? null,
+      lastInvitationError: user.lastInvitationError ?? null,
+      activatedAt: user.activatedAt ?? null,
     })),
     accounts: snapshot.accounts.map((account) => ({ id: account.id, number: account.number, code: account.number, label: account.label, type: account.type, status: account.status })),
     cards: snapshot.cards.map((card) => ({

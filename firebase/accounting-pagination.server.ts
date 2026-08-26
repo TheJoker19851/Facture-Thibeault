@@ -83,8 +83,17 @@ export type ServerCreditCard = {
 
 export type ServerUserProfile = {
   id: string;
-  firebaseUid: string;
+  firebaseUid?: string | null;
   displayName: string;
+  email?: string | null;
+  jobTitle?: string | null;
+  role?: string;
+  status?: string;
+  invitationStatus?: string | null;
+  invitationSentAt?: string | null;
+  invitationSentBy?: string | null;
+  lastInvitationError?: string | null;
+  activatedAt?: string | null;
 };
 
 export type ServerProject = { id: string; number: string; name: string; status: string };

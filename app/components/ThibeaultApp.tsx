@@ -2,7 +2,7 @@
 
 import { ChangeEvent, createContext, FormEvent, Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getDownloadURL, ref } from "firebase/storage";
-import { accountingReadSource, commitInvoiceIntake, correctPostedInvoice, createFirebaseUser, deleteExpenseAccount, deleteProject, deletePostedInvoice, discardInvoiceIntake, loadAccountingSnapshot, loadReportAdjustments, loadTransactionCorrections, mapAccountingSnapshot, removeDemoAccountingData, saveCreditCard, saveExpenseAccount, saveInvoiceIntakeReview, saveProject, saveReportAdjustments, saveStatementPeriod, saveUserProfile, type AccountingLineItem, type ManualAdjustmentRow } from "../../firebase/accounting";
+import { AdminUserActionError, accountingReadSource, commitInvoiceIntake, correctPostedInvoice, deleteExpenseAccount, deleteProject, deletePostedInvoice, discardInvoiceIntake, loadAccountingSnapshot, loadAdminUserAccess, loadReportAdjustments, loadTransactionCorrections, mapAccountingSnapshot, removeDemoAccountingData, runAdminUserAction, saveCreditCard, saveExpenseAccount, saveInvoiceIntakeReview, saveProject, saveReportAdjustments, saveStatementPeriod, type AccountingLineItem, type ManualAdjustmentRow } from "../../firebase/accounting";
 import { getInvoiceIntakeStatus, type InvoiceIntakeStatus } from "../../firebase/ai";
 import { appCheckConfigured, firebaseAuth, firebaseConfigured, firebaseStorage } from "../../firebase/client";
 import { sqlConnectConfigured } from "../../firebase/data-connect";
@@ -137,12 +137,19 @@ type CreditCard = {
 
 type UserProfile = {
   id: string;
-  firebaseUid: string;
+  firebaseUid?: string | null;
   displayName: string;
-  email?: string;
-  jobTitle?: string;
+  email?: string | null;
+  jobTitle?: string | null;
   role: string;
   status: string;
+  invitationStatus?: string | null;
+  invitationSentAt?: string | null;
+  invitationSentBy?: string | null;
+  lastInvitationError?: string | null;
+  activatedAt?: string | null;
+  authAccount?: boolean;
+  authState?: string;
 };
 
 type CardPeriod = {
@@ -1437,6 +1444,16 @@ function auditActionLabel(action: string) {
     POSTED_INVOICE_DELETED: "Écriture publiée supprimée",
     RECONCILIATION_UPDATED: "Rapprochement mis à jour",
     STATEMENT_ADJUSTMENTS_UPDATED: "Ajustements de relevé enregistrés",
+    USER_CREATED: "Profil utilisateur créé",
+    ROLE_ASSIGNED: "Rôle attribué",
+    INVITATION_SENT: "Invitation envoyée",
+    INVITATION_RESENT: "Invitation renvoyée",
+    INVITATION_FAILED: "Invitation échouée",
+    PASSWORD_RESET_REQUESTED: "Réinitialisation demandée",
+    PASSWORD_RESET_FAILED: "Réinitialisation échouée",
+    USER_EMAIL_UPDATED: "Email utilisateur mis à jour",
+    USER_ACTIVATED: "Compte utilisateur activé",
+    ACCOUNT_DEACTIVATED: "Compte utilisateur désactivé",
   };
   return labels[action] ?? action;
 }
@@ -1453,6 +1470,16 @@ function auditActionDescription(action: string) {
     POSTED_INVOICE_DELETED: "L’écriture publiée a été retirée des vues opérationnelles; la trace d’audit est conservée.",
     RECONCILIATION_UPDATED: "Le lien entre la facture et le relevé de carte a été mis à jour.",
     STATEMENT_ADJUSTMENTS_UPDATED: "Les lignes manuelles du relevé ont été enregistrées pour la période.",
+    USER_CREATED: "Le profil et son rôle ont été enregistrés par un administrateur.",
+    ROLE_ASSIGNED: "Le rôle applicatif a été appliqué au compte Firebase.",
+    INVITATION_SENT: "Un lien personnel de création de mot de passe a été envoyé.",
+    INVITATION_RESENT: "Un nouveau lien personnel de création de mot de passe a été envoyé.",
+    INVITATION_FAILED: "Le profil est conservé et doit être réessayé après correction de l’envoi email.",
+    PASSWORD_RESET_REQUESTED: "Un lien Firebase de réinitialisation a été envoyé; aucun mot de passe n’a été exposé.",
+    PASSWORD_RESET_FAILED: "Le lien de réinitialisation n’a pas pu être envoyé.",
+    USER_EMAIL_UPDATED: "L’email local et le compte Firebase ont été synchronisés.",
+    USER_ACTIVATED: "L’activation du compte a été détectée ou le compte a été réactivé.",
+    ACCOUNT_DEACTIVATED: "Le profil et le compte Firebase ont été désactivés par un administrateur.",
   };
   return descriptions[action] ?? "Cette étape a été enregistrée dans la piste d’audit.";
 }
@@ -2930,9 +2957,11 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
   const [projects, setProjects] = useState(data.projects);
   const [periods, setPeriods] = useState(data.periods);
   const [cardHolderDrafts, setCardHolderDrafts] = useState<Record<string, string>>(() => Object.fromEntries(data.cards.map((card) => [card.id, card.holderId ?? ""])));
-  const [userForm, setUserForm] = useState({ displayName: "", email: "", jobTitle: "Contremaître", role: "WORKER", password: "" });
+  const [userForm, setUserForm] = useState({ displayName: "", email: "", jobTitle: "Contremaître", role: "WORKER", sendInvitation: true });
   const [cardForm, setCardForm] = useState({ lastFour: "", holderId: "", cardFunction: "" });
   const [busyKey, setBusyKey] = useState("");
+  const [editingEmailUserId, setEditingEmailUserId] = useState("");
+  const [emailDraft, setEmailDraft] = useState("");
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [directoryQuery, setDirectoryQuery] = useState("");
@@ -2956,6 +2985,18 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
     return identity.user.getIdToken();
   };
 
+  useEffect(() => {
+    let active = true;
+    if (!canCreateUsers || !persistenceReady || !identity.user) return () => { active = false; };
+    void identity.user.getIdToken()
+      .then((token) => loadAdminUserAccess(token))
+      .then((nextUsers) => {
+        if (active) setUsers(nextUsers);
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [canCreateUsers, identity.user, persistenceReady]);
+
   const createUser = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
@@ -2971,35 +3012,20 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
     setBusyKey("create-user");
     try {
       const token = await getAdminToken();
-      const account = await createFirebaseUser(userForm, token);
-      const profile: UserProfile = {
-        id: account.uid,
-        firebaseUid: account.uid,
-        displayName: userForm.displayName.trim(),
-        email: userForm.email.trim().toLowerCase(),
-        jobTitle: userForm.jobTitle.trim() || undefined,
-        role: userForm.role,
-        status: "ACTIVE",
-      };
-      try {
-        await saveUserProfile({
-          id: profile.id,
-          firebaseUid: profile.firebaseUid,
-          displayName: profile.displayName,
-          email: profile.email ?? null,
-          jobTitle: profile.jobTitle ?? null,
-          role: profile.role,
-          status: profile.status,
-        });
-      } catch (profileError) {
-        throw new Error(`Compte Firebase créé, mais le profil SQL n'a pas été enregistré : ${profileError instanceof Error ? profileError.message : "erreur inconnue"}. UID : ${account.uid}`);
-      }
+      const profile = await runAdminUserAction({ action: "create", displayName: userForm.displayName, email: userForm.email, jobTitle: userForm.jobTitle, role: userForm.role, sendInvitation: userForm.sendInvitation }, token);
       const nextUsers = [...users, profile];
       setUsers(nextUsers);
       onDataChange({ users: nextUsers });
-      setUserForm({ displayName: "", email: "", jobTitle: "Contremaître", role: "WORKER", password: "" });
-      setNotice(`Compte créé pour ${profile.displayName}. Il peut maintenant se connecter avec son courriel et son mot de passe temporaire.`);
+      setUserForm({ displayName: "", email: "", jobTitle: "Contremaître", role: "WORKER", sendInvitation: true });
+      setNotice(profile.invitationStatus === "INVITED" ? `Profil créé et invitation envoyée à ${profile.email}.` : `Profil créé pour ${profile.displayName}. Il pourra être invité depuis cette liste.`);
     } catch (reason) {
+      if (reason instanceof AdminUserActionError && reason.profile) {
+        const nextUsers = users.some((candidate) => candidate.id === reason.profile?.id)
+          ? users.map((candidate) => candidate.id === reason.profile?.id ? reason.profile as UserProfile : candidate)
+          : [...users, reason.profile as UserProfile];
+        setUsers(nextUsers);
+        onDataChange({ users: nextUsers });
+      }
       showError(reason);
     } finally {
       setBusyKey("");
@@ -3014,18 +3040,53 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
     setNotice("");
     try {
       const token = await getAdminToken();
-      const response = await fetch("/api/admin/users", {
-        method: "PATCH",
-        headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-        body: JSON.stringify({ uid: user.firebaseUid, disabled: nextStatus === "INACTIVE" }),
-      });
-      const responseBody = await response.json().catch(() => ({})) as { error?: string };
-      if (!response.ok) throw new Error(responseBody.error ?? "Le statut Firebase n'a pas pu être modifié.");
-      await saveUserProfile({ id: user.id, firebaseUid: user.firebaseUid, displayName: user.displayName, email: user.email ?? null, jobTitle: user.jobTitle ?? null, role: user.role, status: nextStatus });
-      const nextUsers = users.map((candidate) => candidate.id === user.id ? { ...candidate, status: nextStatus } : candidate);
+      const updated = await runAdminUserAction({ action: "status", profileId: user.id, status: nextStatus }, token);
+      const nextUsers = users.map((candidate) => candidate.id === user.id ? { ...candidate, ...updated } : candidate);
       setUsers(nextUsers);
       onDataChange({ users: nextUsers });
       setNotice(`${user.displayName} est maintenant ${nextStatus === "ACTIVE" ? "actif" : "désactivé"}.`);
+    } catch (reason) {
+      showError(reason);
+    } finally {
+      setBusyKey("");
+    }
+  };
+
+  const runUserAccessAction = async (user: UserProfile, action: "invite" | "reset") => {
+    if (!canCreateUsers || !persistenceReady) return;
+    setBusyKey(`${action}-${user.id}`);
+    setError("");
+    setNotice("");
+    try {
+      const profile = await runAdminUserAction({ action, profileId: user.id }, await getAdminToken());
+      const nextUsers = users.map((candidate) => candidate.id === user.id ? { ...candidate, ...profile } : candidate);
+      setUsers(nextUsers);
+      onDataChange({ users: nextUsers });
+      setNotice(action === "reset" ? `Le lien de réinitialisation a été envoyé à ${profile.email}.` : `L’invitation a été envoyée à ${profile.email}.`);
+    } catch (reason) {
+      if (reason instanceof AdminUserActionError && reason.profile) {
+        const nextUsers = users.map((candidate) => candidate.id === user.id ? { ...candidate, ...reason.profile } : candidate);
+        setUsers(nextUsers);
+        onDataChange({ users: nextUsers });
+      }
+      showError(reason);
+    } finally {
+      setBusyKey("");
+    }
+  };
+
+  const saveUserEmail = async (user: UserProfile) => {
+    if (!canCreateUsers || !persistenceReady) return;
+    setBusyKey(`email-${user.id}`);
+    setError("");
+    setNotice("");
+    try {
+      const profile = await runAdminUserAction({ action: "update-email", profileId: user.id, email: emailDraft }, await getAdminToken());
+      const nextUsers = users.map((candidate) => candidate.id === user.id ? { ...candidate, ...profile } : candidate);
+      setUsers(nextUsers);
+      onDataChange({ users: nextUsers });
+      setEditingEmailUserId("");
+      setNotice(`L’email de ${profile.displayName} a été synchronisé.`);
     } catch (reason) {
       showError(reason);
     } finally {
@@ -3449,15 +3510,21 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
        <label className="directory-search"><span>Rechercher dans ce référentiel</span><input value={directoryQuery} onChange={(event) => setDirectoryQuery(event.target.value)} placeholder="Nom, numéro, carte ou période" /></label>
        {selectedSection === "accounts" && <div className="field-grid"><label className="field"><span>Statut</span><select value={accountStatusFilter} onChange={(event) => setAccountStatusFilter(event.target.value)}><option value="ALL">Tous</option><option value="ACTIVE">Actifs</option><option value="INACTIVE">Inactifs</option></select></label><label className="field"><span>Type</span><select value={accountTypeFilter} onChange={(event) => setAccountTypeFilter(event.target.value)}><option value="ALL">Tous</option><option value="EXPENSE">Dépense</option><option value="TAX">Taxe</option></select></label></div>}
        {selectedSection === "projects" && <label className="field"><span>Statut</span><select value={projectStatusFilter} onChange={(event) => setProjectStatusFilter(event.target.value)}><option value="ALL">Tous</option><option value="ACTIVE">Actifs</option><option value="INACTIVE">Inactifs</option></select></label>}
-      {selectedSection === "users" && <>
-        {canCreateUsers ? <form className="directory-form" onSubmit={createUser}>
-          <div className="field-grid"><label className="field"><span>Nom complet</span><input required value={userForm.displayName} onChange={(event) => setUserForm((current) => ({ ...current, displayName: event.target.value }))} placeholder="Personne Démo" /></label><label className="field"><span>Courriel</span><input required type="email" value={userForm.email} onChange={(event) => setUserForm((current) => ({ ...current, email: event.target.value }))} placeholder="personne@example.test" /></label></div>
-          <div className="field-grid"><label className="field"><span>Fonction</span><input value={userForm.jobTitle} onChange={(event) => setUserForm((current) => ({ ...current, jobTitle: event.target.value }))} placeholder="Contremaître" /></label><label className="field"><span>Rôle applicatif</span><select value={userForm.role} onChange={(event) => setUserForm((current) => ({ ...current, role: event.target.value }))}><option value="WORKER">WORKER · dépôt seulement</option><option value="KIM">KIM · contrôle comptable</option><option value="ADMIN">ADMIN · administration</option></select></label></div>
-          <div className="field-grid"><label className="field"><span>Mot de passe temporaire</span><input required minLength={12} type="password" value={userForm.password} onChange={(event) => setUserForm((current) => ({ ...current, password: event.target.value }))} placeholder="12 caractères minimum" /></label><div className="directory-help">Le mot de passe est envoyé une seule fois à Firebase Admin et n&apos;est jamais enregistré dans SQL Connect.</div></div>
-          <button className="primary-button" type="submit" disabled={!persistenceReady || busyKey === "create-user"}>{busyKey === "create-user" ? "Création…" : "Créer le compte et le profil"}</button>
-        </form> : <div className="config-note"><span>i</span><p>Le contrôle comptable peut consulter les profils et gérer les cartes. La création et la désactivation des comptes sont réservées à ADMIN.</p></div>}
-        <div className="directory-list">{visibleUsers.map((user) => <div className="directory-row" key={user.id}><div><strong>{user.displayName}</strong><small>{user.email ?? "Courriel non renseigné"} · {user.jobTitle ?? "Fonction non renseignée"}</small></div><span className="badge badge-neutral">{user.role}</span><span className={`badge ${user.status === "ACTIVE" ? "badge-success" : "badge-danger"}`}>{user.status === "ACTIVE" ? "Actif" : "Désactivé"}</span>{canCreateUsers && <button className="secondary-button" type="button" disabled={!persistenceReady || busyKey === `user-${user.id}`} onClick={() => void toggleUser(user)}>{busyKey === `user-${user.id}` ? "…" : user.status === "ACTIVE" ? "Désactiver" : "Réactiver"}</button>}</div>)}</div>
-      </>}
+       {selectedSection === "users" && <>
+         {canCreateUsers ? <form className="directory-form" onSubmit={createUser}>
+           <div className="field-grid"><label className="field"><span>Nom complet</span><input required value={userForm.displayName} onChange={(event) => setUserForm((current) => ({ ...current, displayName: event.target.value }))} placeholder="Personne Démo" /></label><label className="field"><span>Courriel {userForm.sendInvitation ? "" : "(facultatif)"}</span><input required={userForm.sendInvitation} type="email" value={userForm.email} onChange={(event) => setUserForm((current) => ({ ...current, email: event.target.value }))} placeholder="personne@example.test" /></label></div>
+           <div className="field-grid"><label className="field"><span>Fonction</span><input value={userForm.jobTitle} onChange={(event) => setUserForm((current) => ({ ...current, jobTitle: event.target.value }))} placeholder="Contremaître" /></label><label className="field"><span>Rôle applicatif</span><select value={userForm.role} onChange={(event) => setUserForm((current) => ({ ...current, role: event.target.value }))}><option value="WORKER">WORKER · dépôt seulement</option><option value="KIM">KIM · contrôle comptable</option><option value="ADMIN">ADMIN · administration</option></select></label></div>
+            <div className="directory-invitation-option"><input id="send-user-invitation" type="checkbox" aria-describedby="send-user-invitation-help" checked={userForm.sendInvitation} onChange={(event) => setUserForm((current) => ({ ...current, sendInvitation: event.target.checked }))} /><div><label className="directory-invitation-label" htmlFor="send-user-invitation">Envoyer une invitation par email</label><small id="send-user-invitation-help">L’utilisateur crée lui-même son mot de passe avec le lien Firebase sécurisé.</small></div></div>
+           <button className="primary-button" type="submit" disabled={!persistenceReady || busyKey === "create-user"}>{busyKey === "create-user" ? "Création…" : userForm.sendInvitation ? "Créer le profil et envoyer l’invitation" : "Créer le profil"}</button>
+         </form> : <div className="config-note"><span>i</span><p>Le contrôle comptable peut consulter les profils et gérer les cartes. La création et la désactivation des comptes sont réservées à ADMIN.</p></div>}
+         <div className="directory-list">{visibleUsers.map((user) => {
+           const accountActive = user.authState === "ACTIVE" || user.invitationStatus === "ACTIVE";
+           const invitationLabel = accountActive ? "Compte actif" : user.invitationStatus === "INVITED" ? "Invitation envoyée" : user.invitationStatus === "INVITATION_FAILED" ? "Échec d’envoi" : user.authAccount ? "À inviter" : user.email ? "À inviter · Auth absent" : "Email manquant";
+           const invitationClass = accountActive ? "badge-success" : user.invitationStatus === "INVITATION_FAILED" ? "badge-danger" : user.invitationStatus === "INVITED" ? "badge-warning" : "badge-neutral";
+           const action = accountActive ? "reset" : "invite";
+           return <div className="directory-row" key={user.id}><div><strong>{user.displayName}</strong>{editingEmailUserId === user.id ? <div className="directory-email-editor"><input type="email" value={emailDraft} onChange={(event) => setEmailDraft(event.target.value)} aria-label={`Email de ${user.displayName}`} /><button className="text-button" type="button" disabled={busyKey === `email-${user.id}`} onClick={() => void saveUserEmail(user)}>{busyKey === `email-${user.id}` ? "…" : "Enregistrer"}</button><button className="text-button" type="button" onClick={() => setEditingEmailUserId("")}>Annuler</button></div> : <small>{user.email ?? "Courriel non renseigné"} · {user.jobTitle ?? "Fonction non renseignée"}</small>}</div><span className="badge badge-neutral">{user.role}</span><span className={`badge ${invitationClass}`}>{invitationLabel}</span>{canCreateUsers && <div className="directory-actions"><button className="secondary-button" type="button" disabled={!persistenceReady || busyKey === `${action}-${user.id}` || (!accountActive && !user.email)} onClick={() => void runUserAccessAction(user, action)}>{busyKey === `${action}-${user.id}` ? "…" : accountActive ? "Réinitialiser le mot de passe" : user.invitationStatus === "INVITED" ? "Renvoyer l’invitation" : "Envoyer l’invitation"}</button><button className="text-button" type="button" disabled={!persistenceReady} onClick={() => { setEditingEmailUserId(user.id); setEmailDraft(user.email ?? ""); setError(""); setNotice(""); }}>Modifier l’email</button><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `user-${user.id}`} onClick={() => void toggleUser(user)}>{busyKey === `user-${user.id}` ? "…" : user.status === "ACTIVE" ? "Désactiver" : "Réactiver"}</button></div>}</div>;
+         })}</div>
+       </>}
       {selectedSection === "cards" && <>
         <form className="directory-form" onSubmit={addCard}><div className="field-grid"><label className="field"><span>Quatre derniers chiffres</span><input required inputMode="numeric" maxLength={4} value={cardForm.lastFour} onChange={(event) => setCardForm((current) => ({ ...current, lastFour: event.target.value.replace(/\D/g, "") }))} placeholder="9001" /></label><label className="field"><span>Titulaire</span><select required value={cardForm.holderId} onChange={(event) => setCardForm((current) => ({ ...current, holderId: event.target.value }))}><option value="">Sélectionner le profil</option>{users.filter((user) => user.status === "ACTIVE").map((user) => <option key={user.id} value={user.id}>{user.displayName} · {user.jobTitle ?? user.role}</option>)}</select></label></div><div className="field-grid"><label className="field"><span>Fonction de la carte</span><input value={cardForm.cardFunction} onChange={(event) => setCardForm((current) => ({ ...current, cardFunction: event.target.value }))} placeholder="Fonction démo" /></label><div className="directory-help">Seuls les quatre derniers chiffres sont conservés. Le numéro complet de la carte ne passe jamais dans l&apos;application.</div></div><button className="primary-button" type="submit" disabled={!persistenceReady || busyKey === "add-card"}>{busyKey === "add-card" ? "Enregistrement…" : "Ajouter et associer la carte"}</button></form>
         <div className="directory-list">{visibleCards.map((card) => <div className="directory-row card-directory-row" key={card.id}><div><strong>•••• {card.lastFour}</strong><small>{card.function} · {card.status} · {card.startDate || "date inconnue"}</small></div><select value={cardHolderDrafts[card.id] ?? card.holderId ?? ""} onChange={(event) => setCardHolderDrafts((current) => ({ ...current, [card.id]: event.target.value }))} aria-label={`Titulaire de la carte ${card.lastFour}`}><option value="">Titulaire à choisir</option>{users.map((user) => <option key={user.id} value={user.id}>{user.displayName}</option>)}</select><button className="secondary-button" type="button" disabled={!persistenceReady || busyKey === `card-${card.id}`} onClick={() => void saveCardAssignment(card)}>{busyKey === `card-${card.id}` ? "…" : "Enregistrer"}</button><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `toggle-card-${card.id}`} onClick={() => void toggleCard(card)}>{card.status === "Actif" ? "Désactiver" : "Réactiver"}</button></div>)}</div>

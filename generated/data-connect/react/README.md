@@ -82,6 +82,8 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*AdminRecordArchivePurge*](#adminrecordarchivepurge)
   - [*UpsertUserProfile*](#upsertuserprofile)
   - [*UpsertCreditCard*](#upsertcreditcard)
+  - [*AdminUpsertUserProfileWithAudit*](#adminupsertuserprofilewithaudit)
+  - [*AdminRecordUserAudit*](#adminrecorduseraudit)
   - [*UpsertProject*](#upsertproject)
   - [*UpsertExpenseAccount*](#upsertexpenseaccount)
   - [*DeleteProject*](#deleteproject)
@@ -256,7 +258,7 @@ export interface AdminListInvoicesData {
     } & ExpenseTransaction_Key;
     createdBy?: {
       id: string;
-      firebaseUid: string;
+      firebaseUid?: string | null;
     } & UserProfile_Key;
     invoicePhotos_on_invoice: ({
       id: string;
@@ -443,12 +445,17 @@ To access the data returned by a Query, use the `UseQueryResult.data` field. The
 export interface ListUserProfilesData {
   userProfiles: ({
     id: string;
-    firebaseUid: string;
+    firebaseUid?: string | null;
     displayName: string;
     email?: string | null;
     jobTitle?: string | null;
     role: string;
     status: string;
+    invitationStatus: string;
+    invitationSentAt?: TimestampString | null;
+    invitationSentBy?: string | null;
+    lastInvitationError?: string | null;
+    activatedAt?: TimestampString | null;
   } & UserProfile_Key)[];
 }
 ```
@@ -6622,7 +6629,7 @@ The `UpsertUserProfile` Mutation requires an argument of type `UpsertUserProfile
 ```javascript
 export interface UpsertUserProfileVariables {
   id: string;
-  firebaseUid: string;
+  firebaseUid?: string | null;
   displayName: string;
   email?: string | null;
   jobTitle?: string | null;
@@ -6678,7 +6685,7 @@ export default function UpsertUserProfileComponent() {
   // The `useUpsertUserProfile` Mutation requires an argument of type `UpsertUserProfileVariables`:
   const upsertUserProfileVars: UpsertUserProfileVariables = {
     id: ..., 
-    firebaseUid: ..., 
+    firebaseUid: ..., // optional
     displayName: ..., 
     email: ..., // optional
     jobTitle: ..., // optional
@@ -6813,6 +6820,238 @@ export default function UpsertCreditCardComponent() {
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
     console.log(mutation.data.creditCard_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## AdminUpsertUserProfileWithAudit
+You can execute the `AdminUpsertUserProfileWithAudit` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useAdminUpsertUserProfileWithAudit(options?: useDataConnectMutationOptions<AdminUpsertUserProfileWithAuditData, FirebaseError, AdminUpsertUserProfileWithAuditVariables>): UseDataConnectMutationResult<AdminUpsertUserProfileWithAuditData, AdminUpsertUserProfileWithAuditVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useAdminUpsertUserProfileWithAudit(dc: DataConnect, options?: useDataConnectMutationOptions<AdminUpsertUserProfileWithAuditData, FirebaseError, AdminUpsertUserProfileWithAuditVariables>): UseDataConnectMutationResult<AdminUpsertUserProfileWithAuditData, AdminUpsertUserProfileWithAuditVariables>;
+```
+
+### Variables
+The `AdminUpsertUserProfileWithAudit` Mutation requires an argument of type `AdminUpsertUserProfileWithAuditVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface AdminUpsertUserProfileWithAuditVariables {
+  id: string;
+  firebaseUid?: string | null;
+  displayName: string;
+  email?: string | null;
+  jobTitle?: string | null;
+  role: string;
+  status: string;
+  invitationStatus: string;
+  invitationSentAt?: TimestampString | null;
+  invitationSentBy?: string | null;
+  lastInvitationError?: string | null;
+  activatedAt?: TimestampString | null;
+  auditEventId: string;
+  actorUid: string;
+  actorRole: string;
+  auditAction: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that calling the `AdminUpsertUserProfileWithAudit` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminUpsertUserProfileWithAudit` Mutation is of type `AdminUpsertUserProfileWithAuditData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface AdminUpsertUserProfileWithAuditData {
+  userProfile_upsert: UserProfile_Key;
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `AdminUpsertUserProfileWithAudit`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, AdminUpsertUserProfileWithAuditVariables } from '@factures-thibeault/data-connect-generated';
+import { useAdminUpsertUserProfileWithAudit } from '@factures-thibeault/data-connect-generated/react'
+
+export default function AdminUpsertUserProfileWithAuditComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useAdminUpsertUserProfileWithAudit();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useAdminUpsertUserProfileWithAudit(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminUpsertUserProfileWithAudit(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminUpsertUserProfileWithAudit(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useAdminUpsertUserProfileWithAudit` Mutation requires an argument of type `AdminUpsertUserProfileWithAuditVariables`:
+  const adminUpsertUserProfileWithAuditVars: AdminUpsertUserProfileWithAuditVariables = {
+    id: ..., 
+    firebaseUid: ..., // optional
+    displayName: ..., 
+    email: ..., // optional
+    jobTitle: ..., // optional
+    role: ..., 
+    status: ..., 
+    invitationStatus: ..., 
+    invitationSentAt: ..., // optional
+    invitationSentBy: ..., // optional
+    lastInvitationError: ..., // optional
+    activatedAt: ..., // optional
+    auditEventId: ..., 
+    actorUid: ..., 
+    actorRole: ..., 
+    auditAction: ..., 
+    auditDetails: ..., 
+  };
+  mutation.mutate(adminUpsertUserProfileWithAuditVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., firebaseUid: ..., displayName: ..., email: ..., jobTitle: ..., role: ..., status: ..., invitationStatus: ..., invitationSentAt: ..., invitationSentBy: ..., lastInvitationError: ..., activatedAt: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., auditDetails: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(adminUpsertUserProfileWithAuditVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.userProfile_upsert);
+    console.log(mutation.data.auditEvent_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## AdminRecordUserAudit
+You can execute the `AdminRecordUserAudit` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useAdminRecordUserAudit(options?: useDataConnectMutationOptions<AdminRecordUserAuditData, FirebaseError, AdminRecordUserAuditVariables>): UseDataConnectMutationResult<AdminRecordUserAuditData, AdminRecordUserAuditVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useAdminRecordUserAudit(dc: DataConnect, options?: useDataConnectMutationOptions<AdminRecordUserAuditData, FirebaseError, AdminRecordUserAuditVariables>): UseDataConnectMutationResult<AdminRecordUserAuditData, AdminRecordUserAuditVariables>;
+```
+
+### Variables
+The `AdminRecordUserAudit` Mutation requires an argument of type `AdminRecordUserAuditVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface AdminRecordUserAuditVariables {
+  auditEventId: string;
+  actorUid: string;
+  actorRole: string;
+  auditAction: string;
+  entityId: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that calling the `AdminRecordUserAudit` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `AdminRecordUserAudit` Mutation is of type `AdminRecordUserAuditData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface AdminRecordUserAuditData {
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `AdminRecordUserAudit`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, AdminRecordUserAuditVariables } from '@factures-thibeault/data-connect-generated';
+import { useAdminRecordUserAudit } from '@factures-thibeault/data-connect-generated/react'
+
+export default function AdminRecordUserAuditComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useAdminRecordUserAudit();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useAdminRecordUserAudit(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminRecordUserAudit(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useAdminRecordUserAudit(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useAdminRecordUserAudit` Mutation requires an argument of type `AdminRecordUserAuditVariables`:
+  const adminRecordUserAuditVars: AdminRecordUserAuditVariables = {
+    auditEventId: ..., 
+    actorUid: ..., 
+    actorRole: ..., 
+    auditAction: ..., 
+    entityId: ..., 
+    auditDetails: ..., 
+  };
+  mutation.mutate(adminRecordUserAuditVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., entityId: ..., auditDetails: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(adminRecordUserAuditVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.auditEvent_upsert);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
 }

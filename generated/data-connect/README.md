@@ -75,6 +75,8 @@ This README will guide you through the process of using the generated JavaScript
   - [*AdminRecordArchivePurge*](#adminrecordarchivepurge)
   - [*UpsertUserProfile*](#upsertuserprofile)
   - [*UpsertCreditCard*](#upsertcreditcard)
+  - [*AdminUpsertUserProfileWithAudit*](#adminupsertuserprofilewithaudit)
+  - [*AdminRecordUserAudit*](#adminrecorduseraudit)
   - [*UpsertProject*](#upsertproject)
   - [*UpsertExpenseAccount*](#upsertexpenseaccount)
   - [*DeleteProject*](#deleteproject)
@@ -220,7 +222,7 @@ export interface AdminListInvoicesData {
     } & ExpenseTransaction_Key;
     createdBy?: {
       id: string;
-      firebaseUid: string;
+      firebaseUid?: string | null;
     } & UserProfile_Key;
     invoicePhotos_on_invoice: ({
       id: string;
@@ -463,12 +465,17 @@ The `data` property is an object of type `ListUserProfilesData`, which is define
 export interface ListUserProfilesData {
   userProfiles: ({
     id: string;
-    firebaseUid: string;
+    firebaseUid?: string | null;
     displayName: string;
     email?: string | null;
     jobTitle?: string | null;
     role: string;
     status: string;
+    invitationStatus: string;
+    invitationSentAt?: TimestampString | null;
+    invitationSentBy?: string | null;
+    lastInvitationError?: string | null;
+    activatedAt?: TimestampString | null;
   } & UserProfile_Key)[];
 }
 ```
@@ -8101,7 +8108,7 @@ The `UpsertUserProfile` mutation requires an argument of type `UpsertUserProfile
 ```typescript
 export interface UpsertUserProfileVariables {
   id: string;
-  firebaseUid: string;
+  firebaseUid?: string | null;
   displayName: string;
   email?: string | null;
   jobTitle?: string | null;
@@ -8127,7 +8134,7 @@ import { connectorConfig, upsertUserProfile, UpsertUserProfileVariables } from '
 // The `UpsertUserProfile` mutation requires an argument of type `UpsertUserProfileVariables`:
 const upsertUserProfileVars: UpsertUserProfileVariables = {
   id: ..., 
-  firebaseUid: ..., 
+  firebaseUid: ..., // optional
   displayName: ..., 
   email: ..., // optional
   jobTitle: ..., // optional
@@ -8163,7 +8170,7 @@ import { connectorConfig, upsertUserProfileRef, UpsertUserProfileVariables } fro
 // The `UpsertUserProfile` mutation requires an argument of type `UpsertUserProfileVariables`:
 const upsertUserProfileVars: UpsertUserProfileVariables = {
   id: ..., 
-  firebaseUid: ..., 
+  firebaseUid: ..., // optional
   displayName: ..., 
   email: ..., // optional
   jobTitle: ..., // optional
@@ -8317,6 +8324,292 @@ console.log(data.creditCard_upsert);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.creditCard_upsert);
+});
+```
+
+## AdminUpsertUserProfileWithAudit
+You can execute the `AdminUpsertUserProfileWithAudit` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+adminUpsertUserProfileWithAudit(vars: AdminUpsertUserProfileWithAuditVariables): MutationPromise<AdminUpsertUserProfileWithAuditData, AdminUpsertUserProfileWithAuditVariables>;
+
+interface AdminUpsertUserProfileWithAuditRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminUpsertUserProfileWithAuditVariables): MutationRef<AdminUpsertUserProfileWithAuditData, AdminUpsertUserProfileWithAuditVariables>;
+}
+export const adminUpsertUserProfileWithAuditRef: AdminUpsertUserProfileWithAuditRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+adminUpsertUserProfileWithAudit(dc: DataConnect, vars: AdminUpsertUserProfileWithAuditVariables): MutationPromise<AdminUpsertUserProfileWithAuditData, AdminUpsertUserProfileWithAuditVariables>;
+
+interface AdminUpsertUserProfileWithAuditRef {
+  ...
+  (dc: DataConnect, vars: AdminUpsertUserProfileWithAuditVariables): MutationRef<AdminUpsertUserProfileWithAuditData, AdminUpsertUserProfileWithAuditVariables>;
+}
+export const adminUpsertUserProfileWithAuditRef: AdminUpsertUserProfileWithAuditRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminUpsertUserProfileWithAuditRef:
+```typescript
+const name = adminUpsertUserProfileWithAuditRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `AdminUpsertUserProfileWithAudit` mutation requires an argument of type `AdminUpsertUserProfileWithAuditVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface AdminUpsertUserProfileWithAuditVariables {
+  id: string;
+  firebaseUid?: string | null;
+  displayName: string;
+  email?: string | null;
+  jobTitle?: string | null;
+  role: string;
+  status: string;
+  invitationStatus: string;
+  invitationSentAt?: TimestampString | null;
+  invitationSentBy?: string | null;
+  lastInvitationError?: string | null;
+  activatedAt?: TimestampString | null;
+  auditEventId: string;
+  actorUid: string;
+  actorRole: string;
+  auditAction: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that executing the `AdminUpsertUserProfileWithAudit` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `AdminUpsertUserProfileWithAuditData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface AdminUpsertUserProfileWithAuditData {
+  userProfile_upsert: UserProfile_Key;
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+### Using `AdminUpsertUserProfileWithAudit`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, adminUpsertUserProfileWithAudit, AdminUpsertUserProfileWithAuditVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminUpsertUserProfileWithAudit` mutation requires an argument of type `AdminUpsertUserProfileWithAuditVariables`:
+const adminUpsertUserProfileWithAuditVars: AdminUpsertUserProfileWithAuditVariables = {
+  id: ..., 
+  firebaseUid: ..., // optional
+  displayName: ..., 
+  email: ..., // optional
+  jobTitle: ..., // optional
+  role: ..., 
+  status: ..., 
+  invitationStatus: ..., 
+  invitationSentAt: ..., // optional
+  invitationSentBy: ..., // optional
+  lastInvitationError: ..., // optional
+  activatedAt: ..., // optional
+  auditEventId: ..., 
+  actorUid: ..., 
+  actorRole: ..., 
+  auditAction: ..., 
+  auditDetails: ..., 
+};
+
+// Call the `adminUpsertUserProfileWithAudit()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await adminUpsertUserProfileWithAudit(adminUpsertUserProfileWithAuditVars);
+// Variables can be defined inline as well.
+const { data } = await adminUpsertUserProfileWithAudit({ id: ..., firebaseUid: ..., displayName: ..., email: ..., jobTitle: ..., role: ..., status: ..., invitationStatus: ..., invitationSentAt: ..., invitationSentBy: ..., lastInvitationError: ..., activatedAt: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await adminUpsertUserProfileWithAudit(dataConnect, adminUpsertUserProfileWithAuditVars);
+
+console.log(data.userProfile_upsert);
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+adminUpsertUserProfileWithAudit(adminUpsertUserProfileWithAuditVars).then((response) => {
+  const data = response.data;
+  console.log(data.userProfile_upsert);
+  console.log(data.auditEvent_upsert);
+});
+```
+
+### Using `AdminUpsertUserProfileWithAudit`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, adminUpsertUserProfileWithAuditRef, AdminUpsertUserProfileWithAuditVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminUpsertUserProfileWithAudit` mutation requires an argument of type `AdminUpsertUserProfileWithAuditVariables`:
+const adminUpsertUserProfileWithAuditVars: AdminUpsertUserProfileWithAuditVariables = {
+  id: ..., 
+  firebaseUid: ..., // optional
+  displayName: ..., 
+  email: ..., // optional
+  jobTitle: ..., // optional
+  role: ..., 
+  status: ..., 
+  invitationStatus: ..., 
+  invitationSentAt: ..., // optional
+  invitationSentBy: ..., // optional
+  lastInvitationError: ..., // optional
+  activatedAt: ..., // optional
+  auditEventId: ..., 
+  actorUid: ..., 
+  actorRole: ..., 
+  auditAction: ..., 
+  auditDetails: ..., 
+};
+
+// Call the `adminUpsertUserProfileWithAuditRef()` function to get a reference to the mutation.
+const ref = adminUpsertUserProfileWithAuditRef(adminUpsertUserProfileWithAuditVars);
+// Variables can be defined inline as well.
+const ref = adminUpsertUserProfileWithAuditRef({ id: ..., firebaseUid: ..., displayName: ..., email: ..., jobTitle: ..., role: ..., status: ..., invitationStatus: ..., invitationSentAt: ..., invitationSentBy: ..., lastInvitationError: ..., activatedAt: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = adminUpsertUserProfileWithAuditRef(dataConnect, adminUpsertUserProfileWithAuditVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.userProfile_upsert);
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.userProfile_upsert);
+  console.log(data.auditEvent_upsert);
+});
+```
+
+## AdminRecordUserAudit
+You can execute the `AdminRecordUserAudit` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+adminRecordUserAudit(vars: AdminRecordUserAuditVariables): MutationPromise<AdminRecordUserAuditData, AdminRecordUserAuditVariables>;
+
+interface AdminRecordUserAuditRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminRecordUserAuditVariables): MutationRef<AdminRecordUserAuditData, AdminRecordUserAuditVariables>;
+}
+export const adminRecordUserAuditRef: AdminRecordUserAuditRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+adminRecordUserAudit(dc: DataConnect, vars: AdminRecordUserAuditVariables): MutationPromise<AdminRecordUserAuditData, AdminRecordUserAuditVariables>;
+
+interface AdminRecordUserAuditRef {
+  ...
+  (dc: DataConnect, vars: AdminRecordUserAuditVariables): MutationRef<AdminRecordUserAuditData, AdminRecordUserAuditVariables>;
+}
+export const adminRecordUserAuditRef: AdminRecordUserAuditRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminRecordUserAuditRef:
+```typescript
+const name = adminRecordUserAuditRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `AdminRecordUserAudit` mutation requires an argument of type `AdminRecordUserAuditVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface AdminRecordUserAuditVariables {
+  auditEventId: string;
+  actorUid: string;
+  actorRole: string;
+  auditAction: string;
+  entityId: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that executing the `AdminRecordUserAudit` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `AdminRecordUserAuditData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface AdminRecordUserAuditData {
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+### Using `AdminRecordUserAudit`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, adminRecordUserAudit, AdminRecordUserAuditVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminRecordUserAudit` mutation requires an argument of type `AdminRecordUserAuditVariables`:
+const adminRecordUserAuditVars: AdminRecordUserAuditVariables = {
+  auditEventId: ..., 
+  actorUid: ..., 
+  actorRole: ..., 
+  auditAction: ..., 
+  entityId: ..., 
+  auditDetails: ..., 
+};
+
+// Call the `adminRecordUserAudit()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await adminRecordUserAudit(adminRecordUserAuditVars);
+// Variables can be defined inline as well.
+const { data } = await adminRecordUserAudit({ auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., entityId: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await adminRecordUserAudit(dataConnect, adminRecordUserAuditVars);
+
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+adminRecordUserAudit(adminRecordUserAuditVars).then((response) => {
+  const data = response.data;
+  console.log(data.auditEvent_upsert);
+});
+```
+
+### Using `AdminRecordUserAudit`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, adminRecordUserAuditRef, AdminRecordUserAuditVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminRecordUserAudit` mutation requires an argument of type `AdminRecordUserAuditVariables`:
+const adminRecordUserAuditVars: AdminRecordUserAuditVariables = {
+  auditEventId: ..., 
+  actorUid: ..., 
+  actorRole: ..., 
+  auditAction: ..., 
+  entityId: ..., 
+  auditDetails: ..., 
+};
+
+// Call the `adminRecordUserAuditRef()` function to get a reference to the mutation.
+const ref = adminRecordUserAuditRef(adminRecordUserAuditVars);
+// Variables can be defined inline as well.
+const ref = adminRecordUserAuditRef({ auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., entityId: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = adminRecordUserAuditRef(dataConnect, adminRecordUserAuditVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.auditEvent_upsert);
 });
 ```
 

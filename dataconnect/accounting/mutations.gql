@@ -4,7 +4,7 @@
 
 mutation UpsertUserProfile(
   $id: String!
-  $firebaseUid: String!
+  $firebaseUid: String
   $displayName: String!
   $email: String
   $jobTitle: String
@@ -39,6 +39,71 @@ mutation UpsertCreditCard(
     status: $status
     activeFrom: $activeFrom
     inactiveFrom: $inactiveFrom
+  })
+}
+
+# User access operations are server-only. The API authenticates the ADMIN
+# caller with Firebase Admin before invoking these NO_ACCESS mutations.
+mutation AdminUpsertUserProfileWithAudit(
+  $id: String!
+  $firebaseUid: String
+  $displayName: String!
+  $email: String
+  $jobTitle: String
+  $role: String!
+  $status: String!
+  $invitationStatus: String!
+  $invitationSentAt: Timestamp
+  $invitationSentBy: String
+  $lastInvitationError: String
+  $activatedAt: Timestamp
+  $auditEventId: String!
+  $actorUid: String!
+  $actorRole: String!
+  $auditAction: String!
+  $auditDetails: String!
+) @auth(level: NO_ACCESS) @transaction {
+  userProfile_upsert(data: {
+    id: $id
+    firebaseUid: $firebaseUid
+    displayName: $displayName
+    email: $email
+    jobTitle: $jobTitle
+    role: $role
+    status: $status
+    invitationStatus: $invitationStatus
+    invitationSentAt: $invitationSentAt
+    invitationSentBy: $invitationSentBy
+    lastInvitationError: $lastInvitationError
+    activatedAt: $activatedAt
+  })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: $auditAction
+    entityType: "UserProfile"
+    entityId: $id
+    details: $auditDetails
+  })
+}
+
+mutation AdminRecordUserAudit(
+  $auditEventId: String!
+  $actorUid: String!
+  $actorRole: String!
+  $auditAction: String!
+  $entityId: String!
+  $auditDetails: String!
+) @auth(level: NO_ACCESS) {
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: $auditAction
+    entityType: "UserProfile"
+    entityId: $entityId
+    details: $auditDetails
   })
 }
 

@@ -70,6 +70,7 @@ export function FirebaseShell({ children }: { children: ReactNode }) {
 
   if (previewMode || !firebaseConfigured) return children;
   if (!hydrated) return children;
+  if (typeof window !== "undefined" && window.location.pathname === "/installer") return children;
   if (!firebaseAuth) return children;
   if (loading) return <div className="firebase-gate">Vérification de la session…</div>;
   if (!user) return <FirebaseSignIn />;

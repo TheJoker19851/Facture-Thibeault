@@ -231,6 +231,11 @@ async function createIntake(
   }, { impersonate: { authClaims: workerClaims } });
 }
 
+async function claimIntake(dataConnect, receiptId, processingAttempts = 1) {
+  const result = await dataConnect.executeMutation("ClaimInvoiceIntakeProcessing", { receiptId, processingAttempts });
+  assert.equal(result.data.invoiceIntake_updateMany, 1);
+}
+
 async function assertOneConcurrentWinner(tasks) {
   const results = await Promise.allSettled(tasks);
   const winners = results.filter((result) => result.status === "fulfilled" && result.value.data?.invoiceIntake_updateMany === 1);
@@ -247,6 +252,8 @@ export async function verifyInvoiceIdempotence() {
     import("firebase-admin/storage"),
   ]);
   const app = initializeApp({ projectId: LOCAL_FIREBASE_PROJECT_ID }, `idempotence-${Date.now()}`);
+  const runTag = String(Date.now());
+  const testId = (label) => `IDEMP-${runTag}-${label}`;
 
   try {
     const auth = getAuth(app);
@@ -265,7 +272,7 @@ export async function verifyInvoiceIdempotence() {
     // Full local E2E: a real private Storage object is acknowledged into an
     // intake, processed through the guarded AI/review states, posted once with
     // its structured line and photo, then corrected with an auditable snapshot.
-    const completeE2eId = "IDEMP-E2E-COMPLETE-001";
+    const completeE2eId = testId("E2E-COMPLETE");
     const completeE2ePath = `receipts/demo/${completeE2eId}/original-01.png`;
     const completeE2eFile = bucket.file(completeE2ePath);
     await completeE2eFile.save(Buffer.from("PNG-DEMO-E2E"), {
@@ -351,7 +358,7 @@ export async function verifyInvoiceIdempotence() {
     // Simulate a client that disappears immediately after upload. The queued
     // intake is selected and completed by the server-owned worker path; no
     // browser AI call is made in this scenario.
-    const lostClientId = "IDEMP-E2E-CLIENT-LOST-001";
+    const lostClientId = testId("E2E-CLIENT-LOST");
     const lostClientPath = `receipts/demo/${lostClientId}/original-01.png`;
     const lostClientFile = bucket.file(lostClientPath);
     await lostClientFile.save(Buffer.from("PNG-DEMO-CLIENT-LOST"), {
@@ -370,8 +377,9 @@ export async function verifyInvoiceIdempotence() {
     assert.equal((await queryAllData(dataConnect, "AdminListInvoices", "invoices")).data.invoices.filter((invoice) => invoice.id === `INV-${lostClientId}`).length, 1);
     await lostClientFile.delete().catch(() => undefined);
 
-    const sequentialId = "IDEMP-SEQUENTIAL-001";
+    const sequentialId = testId("SEQUENTIAL");
     await createIntake(dataConnect, workerClaims, sequentialId);
+    await claimIntake(dataConnect, sequentialId);
     const sequentialFirst = await dataConnect.executeMutation("UpdateInvoiceIntakeAiResult", aiVariables(sequentialId, "NEEDS_REVIEW"));
     assert.equal(sequentialFirst.data.invoiceIntake_updateMany, 1);
     await assert.rejects(
@@ -381,16 +389,18 @@ export async function verifyInvoiceIdempotence() {
     await assert.rejects(() => dataConnect.executeMutation("MaterializeInvoiceIntakeV2", autoPostingVariables(sequentialId)));
     assert.equal((await readIntake(dataConnect, sequentialId)).accountingStatus, "NOT_POSTED");
 
-    const concurrentId = "IDEMP-CONCURRENT-001";
+    const concurrentId = testId("CONCURRENT");
     await createIntake(dataConnect, workerClaims, concurrentId);
+    await claimIntake(dataConnect, concurrentId);
     await assertOneConcurrentWinner([
       dataConnect.executeMutation("UpdateInvoiceIntakeAiResult", aiVariables(concurrentId, "NEEDS_REVIEW", "Premier traitement")),
       dataConnect.executeMutation("UpdateInvoiceIntakeAiResult", aiVariables(concurrentId, "NEEDS_REVIEW", "Second traitement")),
     ]);
     assert.equal((await readIntake(dataConnect, concurrentId)).processingStatus, "NEEDS_REVIEW");
 
-    const autoId = "IDEMP-AUTO-001";
+    const autoId = testId("AUTO");
     await createIntake(dataConnect, workerClaims, autoId, 5);
+    await claimIntake(dataConnect, autoId);
     const autoResult = await dataConnect.executeMutation("UpdateInvoiceIntakeAiResult", aiVariables(autoId, "AUTO_APPROVED"));
     assert.equal(autoResult.data.invoiceIntake_updateMany, 1);
     await assert.rejects(() => dataConnect.executeMutation("AutoCommitInvoiceIntake", legacyPostingVariables(autoId)));
@@ -436,8 +446,9 @@ export async function verifyInvoiceIdempotence() {
       sequence: 1,
     }));
 
-    const photoMismatchId = "IDEMP-PHOTO-MISMATCH-001";
+    const photoMismatchId = testId("PHOTO-MISMATCH");
     await createIntake(dataConnect, workerClaims, photoMismatchId, 2);
+    await claimIntake(dataConnect, photoMismatchId);
     assert.equal((await dataConnect.executeMutation("UpdateInvoiceIntakeAiResult", aiVariables(photoMismatchId, "AUTO_APPROVED"))).data.invoiceIntake_updateMany, 1);
     await assert.rejects(() => dataConnect.executeMutation("MaterializeInvoiceIntakeV2", autoPostingVariables(photoMismatchId, 1)));
     const photoMismatchIntake = await readIntake(dataConnect, photoMismatchId);
@@ -450,8 +461,9 @@ export async function verifyInvoiceIdempotence() {
     assert.equal(transactionsAfterMismatch.data.expenseTransactions.some((transaction) => transaction.id === `TX-${photoMismatchId}`), false);
     assert.equal(photosAfterMismatch.data.invoicePhotos.some((photo) => photo.invoice.id === `INV-${photoMismatchId}`), false);
 
-    const transientRetryId = "IDEMP-TRANSIENT-RETRY-001";
+    const transientRetryId = testId("TRANSIENT-RETRY");
     await createIntake(dataConnect, workerClaims, transientRetryId);
+    await claimIntake(dataConnect, transientRetryId);
     await dataConnect.executeMutation("MarkInvoiceIntakeAiError", {
       receiptId: transientRetryId,
       error: "Le traitement IA a échoué; la facture doit être vérifiée manuellement.",
@@ -478,7 +490,7 @@ export async function verifyInvoiceIdempotence() {
     assert.equal(transientRetried.accountingStatus, "NOT_POSTED");
     assert.equal(transientRetried.aiErrorCode, null);
 
-    const maxAttemptsId = "IDEMP-MAX-ATTEMPTS-001";
+    const maxAttemptsId = testId("MAX-ATTEMPTS");
     const maxAttempts = 5;
     const transientError = {
       error: "Le traitement IA a échoué; la facture doit être vérifiée manuellement.",
@@ -573,8 +585,9 @@ export async function verifyInvoiceIdempotence() {
     assert.equal(maxInvoices.data.invoices.some((invoice) => invoice.intake?.receiptId === maxAttemptsId), false);
     assert.equal(maxTransactions.data.expenseTransactions.some((transaction) => transaction.id === `TX-${maxAttemptsId}`), false);
 
-    const existingInvoiceRetryId = "IDEMP-EXISTING-INVOICE-001";
+    const existingInvoiceRetryId = testId("EXISTING-INVOICE");
     await createIntake(dataConnect, workerClaims, existingInvoiceRetryId, 1, `receipts/demo/${autoId}`);
+    await claimIntake(dataConnect, existingInvoiceRetryId);
     await dataConnect.executeMutation("MarkInvoiceIntakeAiError", {
       receiptId: existingInvoiceRetryId,
       error: "Le traitement IA a échoué; la facture doit être vérifiée manuellement.",
@@ -592,8 +605,9 @@ export async function verifyInvoiceIdempotence() {
     assert.equal(existingInvoiceRetry.accountingStatus, "NOT_POSTED");
     assert.equal(existingInvoiceRetry.aiErrorCode, "GEMINI_TRANSIENT");
 
-    const businessExceptionId = "IDEMP-BUSINESS-EXCEPTION-001";
+    const businessExceptionId = testId("BUSINESS-EXCEPTION");
     await createIntake(dataConnect, workerClaims, businessExceptionId);
+    await claimIntake(dataConnect, businessExceptionId);
     await dataConnect.executeMutation("UpdateInvoiceIntakeAiResult", {
       ...aiVariables(businessExceptionId, "NEEDS_REVIEW"),
       extractedProjectId: null,
@@ -610,8 +624,9 @@ export async function verifyInvoiceIdempotence() {
     assert.equal(businessException.accountingStatus, "NOT_POSTED");
     assert.equal(businessException.aiErrorCode, null);
 
-    const kimId = "IDEMP-KIM-001";
+    const kimId = testId("KIM");
     await createIntake(dataConnect, workerClaims, kimId, 5);
+    await claimIntake(dataConnect, kimId);
     assert.equal((await dataConnect.executeMutation("UpdateInvoiceIntakeAiResult", aiVariables(kimId, "NEEDS_REVIEW", "Ancienne IA"))).data.invoiceIntake_updateMany, 1);
     await assertOneConcurrentWinner([
       dataConnect.executeMutation("UpdateInvoiceIntakeReview", reviewVariables(kimId), { impersonate: { authClaims: kimClaims } }),
@@ -641,8 +656,9 @@ export async function verifyInvoiceIdempotence() {
     const kimPhotosAfterReplay = await queryAllData(dataConnect, "AdminListInvoicePhotos", "invoicePhotos");
     assert.equal(kimPhotosAfterReplay.data.invoicePhotos.filter((photo) => photo.invoice.id === `INV-${kimId}`).length, 5);
 
-    const humanMismatchId = "IDEMP-HUMAN-PHOTO-MISMATCH-001";
+    const humanMismatchId = testId("HUMAN-PHOTO-MISMATCH");
     await createIntake(dataConnect, workerClaims, humanMismatchId, 2);
+    await claimIntake(dataConnect, humanMismatchId);
     assert.equal((await dataConnect.executeMutation("UpdateInvoiceIntakeAiResult", aiVariables(humanMismatchId, "NEEDS_REVIEW"))).data.invoiceIntake_updateMany, 1);
     assert.equal((await dataConnect.executeMutation("UpdateInvoiceIntakeReview", reviewVariables(humanMismatchId), { impersonate: { authClaims: kimClaims } })).data.invoiceIntake_updateMany, 1);
     await assert.rejects(() => dataConnect.executeMutation("MaterializeInvoiceIntakeV2", humanPostingVariables(humanMismatchId, 1)));
@@ -656,15 +672,17 @@ export async function verifyInvoiceIdempotence() {
     assert.equal(humanMismatchTransactions.data.expenseTransactions.some((transaction) => transaction.id === `TX-${humanMismatchId}`), false);
     assert.equal(humanMismatchPhotos.data.invoicePhotos.some((photo) => photo.invoice.id === `INV-${humanMismatchId}`), false);
 
-    const humanWithoutProjectId = "IDEMP-HUMAN-NO-PROJECT-001";
+    const humanWithoutProjectId = testId("HUMAN-NO-PROJECT");
     await createIntake(dataConnect, workerClaims, humanWithoutProjectId);
+    await claimIntake(dataConnect, humanWithoutProjectId);
     assert.equal((await dataConnect.executeMutation("UpdateInvoiceIntakeAiResult", aiVariables(humanWithoutProjectId, "NEEDS_REVIEW"))).data.invoiceIntake_updateMany, 1);
     assert.equal((await dataConnect.executeMutation("UpdateInvoiceIntakeReview", { ...reviewVariables(humanWithoutProjectId), extractedProjectId: null }, { impersonate: { authClaims: kimClaims } })).data.invoiceIntake_updateMany, 1);
     await assert.rejects(() => dataConnect.executeMutation("MaterializeInvoiceIntakeV2", humanPostingVariables(humanWithoutProjectId, 1, null)));
     assert.equal((await readIntake(dataConnect, humanWithoutProjectId)).accountingStatus, "NOT_POSTED");
 
-    const humanVsAutoId = "IDEMP-HUMAN-VS-AUTO-001";
+    const humanVsAutoId = testId("HUMAN-VS-AUTO");
     await createIntake(dataConnect, workerClaims, humanVsAutoId);
+    await claimIntake(dataConnect, humanVsAutoId);
     assert.equal((await dataConnect.executeMutation("UpdateInvoiceIntakeAiResult", aiVariables(humanVsAutoId, "AUTO_APPROVED"))).data.invoiceIntake_updateMany, 1);
     await assertOneConcurrentWinner([
       dataConnect.executeMutation("MaterializeInvoiceIntakeV2", autoPostingVariables(humanVsAutoId)),
@@ -677,8 +695,9 @@ export async function verifyInvoiceIdempotence() {
     assert.equal(humanVsAutoTransactions.data.expenseTransactions.filter((transaction) => transaction.id === `TX-${humanVsAutoId}`).length, 1);
     assert.equal(humanVsAutoPhotos.data.invoicePhotos.filter((photo) => photo.invoice.id === `INV-${humanVsAutoId}`).length, 1);
 
-    const errorId = "IDEMP-ERROR-001";
+    const errorId = testId("ERROR");
     await createIntake(dataConnect, workerClaims, errorId);
+    await claimIntake(dataConnect, errorId);
     assert.equal((await dataConnect.executeMutation("UpdateInvoiceIntakeAiResult", aiVariables(errorId, "AUTO_APPROVED"))).data.invoiceIntake_updateMany, 1);
     await assert.rejects(() => dataConnect.executeMutation("MaterializeInvoiceIntakeV2", { ...autoPostingVariables(errorId), account: { id: "DOES-NOT-EXIST" } }));
     await dataConnect.executeMutation("MarkInvoiceIntakeAutoPostingError", {

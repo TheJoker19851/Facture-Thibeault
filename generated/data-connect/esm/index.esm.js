@@ -355,6 +355,30 @@ export function upsertCreditCard(dcOrVars, vars) {
   return executeMutation(upsertCreditCardRef(dcInstance, inputVars));
 }
 
+export const adminUpsertUserProfileWithAuditRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminUpsertUserProfileWithAudit', inputVars);
+}
+adminUpsertUserProfileWithAuditRef.operationName = 'AdminUpsertUserProfileWithAudit';
+
+export function adminUpsertUserProfileWithAudit(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminUpsertUserProfileWithAuditRef(dcInstance, inputVars));
+}
+
+export const adminRecordUserAuditRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminRecordUserAudit', inputVars);
+}
+adminRecordUserAuditRef.operationName = 'AdminRecordUserAudit';
+
+export function adminRecordUserAudit(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminRecordUserAuditRef(dcInstance, inputVars));
+}
+
 export const upsertProjectRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();

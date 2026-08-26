@@ -88,6 +88,15 @@ test("exposes a direct mobile capture route and PWA manifest", async () => {
   assert.match(manifest, /"icons"/);
 });
 
+test("exposes the public installer route with the branded PWA icon", async () => {
+  const response = await render("/installer");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Installer l’application/);
+  assert.match(html, /Facture Thibeault/);
+  assert.match(html, /icons\/thibeault-192\.png/);
+});
+
 test("does not retain the starter preview skeleton", async () => {
   let previewFiles = [];
   try {
@@ -112,6 +121,9 @@ test("rejects unauthenticated direct access to privileged API routes", async () 
     body: "{}",
   }), context);
   assert.equal(adminResponse.status, 403);
+
+  const invitationsResponse = await worker.fetch(new Request("http://localhost/api/admin/invitations"), context);
+  assert.equal(invitationsResponse.status, 403);
 
   const archiveResponse = await worker.fetch(new Request("http://localhost/api/admin/archive"), context);
   assert.equal(archiveResponse.status, 403);
