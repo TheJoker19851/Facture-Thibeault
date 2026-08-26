@@ -7,8 +7,13 @@ export const metadata: Metadata = {
   description: "Capture mobile et contrôle administratif des dépenses de Maçonnerie Thibeault.",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: [
+      { url: "/icons/thibeault-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/thibeault-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/icons/thibeault-192.png",
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
 
