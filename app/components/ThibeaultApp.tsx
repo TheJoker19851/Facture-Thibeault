@@ -23,6 +23,7 @@ import { buildAccountingTemplateReport } from "../../lib/accounting-template-rep
 import { normalizeManualAdjustmentRows, serializeManualAdjustmentRows } from "../../lib/manual-adjustments.mjs";
 import { buildTaxSummaryByHolder } from "../../lib/accounting-report.mjs";
 import { createClientId } from "../../lib/client-id.mjs";
+import { ARCHIVE_CAPACITY_STATUS, ARCHIVE_RECOMMENDATION_STATUS, ARCHIVE_STORAGE_TARGET_BYTES, archiveCapacityBand, buildArchiveRecommendation } from "../../lib/archive-policy.mjs";
 import { useFirebaseIdentity, type AppRole } from "./FirebaseShell";
 
 type Role = AppRole;
@@ -2925,8 +2926,31 @@ function ArchivesPage({ onNotify, isProductionDataSource }: { onNotify: (message
 
   if (isProductionDataSource) {
     const isBusy = archiveState === "loading" || actionState !== "idle";
+    const recommendation = summary ? buildArchiveRecommendation(summary) : null;
+    const capacity = summary ? archiveCapacityBand(summary.storageBytes) : null;
+    const recommendationClass = recommendation?.status.toLowerCase() ?? "loading";
+    const recommendationBadge = recommendation?.status === ARCHIVE_RECOMMENDATION_STATUS.REVIEW
+      ? "badge-warning"
+      : recommendation?.status === ARCHIVE_RECOMMENDATION_STATUS.PLAN
+        ? "badge-neutral"
+        : "badge-success";
+    const recommendationDetail = recommendation
+      ? `${recommendation.eligiblePhotos} photo${recommendation.eligiblePhotos === 1 ? "" : "s"} · ${formatBytes(recommendation.eligibleBytes)}${recommendation.verificationItems ? ` · ${recommendation.verificationItems} élément${recommendation.verificationItems === 1 ? "" : "s"} à vérifier` : ""}`
+      : archiveState === "loading"
+        ? "Lecture des statistiques Storage en cours."
+        : "Les statistiques Storage n’ont pas pu être calculées.";
+    const capacityBadge = capacity?.status === ARCHIVE_CAPACITY_STATUS.PRIORITY
+      ? "badge-danger"
+      : capacity?.status === ARCHIVE_CAPACITY_STATUS.RECOMMENDED
+        ? "badge-warning"
+        : capacity?.status === ARCHIVE_CAPACITY_STATUS.PLAN
+          ? "badge-neutral"
+          : "badge-success";
+    const capacityWidth = capacity ? Math.min(capacity.percentage, 100) : 0;
     return <>
       <PageHeading eyebrow="Conservation" title="Archives" description="Les données structurées restent accessibles. Les photos ne sont admissibles qu’après comptabilisation et restent protégées jusqu’à un export externe vérifié." action={<button className="secondary-button" type="button" onClick={() => void loadArchive()} disabled={isBusy}>↻ Actualiser</button>} />
+      <section className={`archive-advisory archive-advisory-${recommendationClass}`} aria-live="polite"><div><p className="eyebrow">Indicateur d’archivage manuel</p><strong>{recommendation?.title ?? (archiveState === "loading" ? "Calcul en cours" : "Indicateur indisponible")}</strong><span>{recommendation?.description ?? "Actualisez les statistiques pour obtenir une recommandation."}</span><small>{recommendationDetail}</small></div>{recommendation && <span className={`badge ${recommendationBadge}`}>{recommendation.status === ARCHIVE_RECOMMENDATION_STATUS.NONE ? "Aucune action" : recommendation.status === ARCHIVE_RECOMMENDATION_STATUS.REVIEW ? "À vérifier" : "À planifier"}</span>}</section>
+      {identity.role === "ADMIN" && <section className="panel archive-policy-panel"><div className="panel-header"><div><p className="eyebrow">Barème administrateur</p><h2>Capacité Storage</h2></div><span className={`badge ${capacityBadge}`}>{capacity?.label ?? "Lecture en cours"}</span></div><div className="archive-capacity-summary"><strong>{capacity ? `${capacity.percentage} %` : "—"}</strong><span>{capacity ? `${formatBytes(capacity.usedBytes)} utilisés sur une cible de ${formatBytes(ARCHIVE_STORAGE_TARGET_BYTES)}.` : "La cible et les seuils sont prêts; les statistiques sont en cours de lecture."}</span></div><div className="archive-capacity-meter" aria-label="Pourcentage de la cible Storage utilisée"><span style={{ width: `${capacityWidth}%` }} /></div><div className="archive-policy-scale"><div><strong>0–50 %</strong><span>Normal</span></div><div><strong>50–75 %</strong><span>À planifier</span></div><div><strong>75–90 %</strong><span>Recommandé</span></div><div><strong>90 % et plus</strong><span>Prioritaire</span></div></div><p className="archive-policy-note">Repère opérationnel, pas une limite Firebase. L’archivage demeure manuel et aucune suppression n’est déclenchée par cette jauge.</p></section>}
       <section className="archive-production-grid">
         <div className="panel archive-card"><div className="archive-card-icon">▣</div><p className="eyebrow">Objets Storage</p><strong>{summary?.storageObjects ?? "—"}</strong><span>{formatBytes(summary?.storageBytes)} utilisés sous receipts/</span></div>
         <div className="panel archive-card"><div className="archive-card-icon">✓</div><p className="eyebrow">Photos admissibles</p><strong>{summary?.eligiblePhotos ?? "—"}</strong><span>{formatBytes(summary?.eligibleBytes)} · factures POSTED uniquement</span></div>
