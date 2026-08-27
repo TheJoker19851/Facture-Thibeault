@@ -60,6 +60,7 @@ type AuthUserRecord = {
   disabled?: boolean;
   passwordHash?: string;
   providerData?: Array<{ providerId?: string }>;
+  metadata?: { lastSignInTime?: string | null };
   customClaims?: Record<string, unknown>;
 };
 
