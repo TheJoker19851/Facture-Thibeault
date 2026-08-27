@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   createUserProfile,
+  effectiveInvitationStatus,
   isAdminRole,
+  isAuthUserActive,
   sendInvitationForProfile,
   sendPasswordResetForProfile,
   UserInvitationError,
@@ -157,6 +159,13 @@ test("F: un WORKER n’est pas administrateur", () => {
   assert.equal(isAdminRole("WORKER"), false);
   assert.equal(isAdminRole("KIM"), false);
   assert.equal(isAdminRole("ADMIN"), true);
+});
+
+test("un compte password connecté reste actif si Firebase omet passwordHash", () => {
+  const authUser = { uid: "auth-password", email: "password@example.test", providerData: [{ providerId: "password" }], metadata: { lastSignInTime: "2026-08-27T15:07:05.000Z" } };
+  const profile = { id: "PROFILE-PASSWORD", invitationStatus: INVITATION_STATUS.INVITED };
+  assert.equal(isAuthUserActive(authUser), true);
+  assert.equal(effectiveInvitationStatus(profile, authUser), INVITATION_STATUS.ACTIVE);
 });
 
 test("G: deux invitations simultanées réutilisent le même compte Auth", async () => {
