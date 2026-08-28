@@ -342,7 +342,7 @@ export type InvoiceIntakeCommitInput = {
   accountCode: string | null;
   cardId: string;
   statementPeriodId: string | null;
-  projectId: string;
+  projectId: string | null;
   classificationNote: string;
   lineItems: string;
 };

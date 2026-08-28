@@ -566,7 +566,7 @@ function parseIntakeExceptions(intake: InvoiceIntake): IntakeDecisionException[]
 }
 
 function isOptionalReviewException(exception: IntakeDecisionException) {
-  return exception.code === "MISSING_REQUIRED_FIELD" && exception.fieldName === "statementPeriodId";
+  return (exception.code === "MISSING_REQUIRED_FIELD" && exception.fieldName === "statementPeriodId") || exception.fieldName === "projectId";
 }
 
 function intakeCorrectionFields(intake: InvoiceIntake) {
@@ -1586,7 +1586,8 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
   const cardSuggestionFor = (intake: InvoiceIntake | null) => {
     if (!intake) return "";
     const uploader = users.find((user) => user.firebaseUid === intake.uploaderUid);
-    return cards.find((card) => card.status === "Actif" && card.holderId === uploader?.id)?.id ?? "";
+    const matches = cards.filter((card) => card.status === "Actif" && card.holderId === uploader?.id);
+    return matches.length === 1 ? matches[0].id : "";
   };
   const [commitCardId, setCommitCardId] = useState(() => cardSuggestionFor(selectedIntake));
   const [commitPeriodId, setCommitPeriodId] = useState(() => period.id === "custom" ? "" : period.id);
@@ -1678,14 +1679,18 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
   const classificationCategory = draft.category || inferredClassification.category;
   const classificationSource = allLineAccountsConfirmed ? "KIM_LINE_REVIEW" : draft.accountCode ? "KIM_REVIEW" : inferredClassification.source;
   const classificationConfidence = allLineAccountsConfirmed ? 1 : draft.accountCode ? 1 : inferredClassification.confidence;
-  const isReadyForAccounting = Boolean(draft.vendor.trim() && draft.invoiceDate && draft.projectId && commitCardId && lineItemsReady && allLineAccountsConfirmed);
+  const isReadyForAccounting = Boolean(draft.vendor.trim() && draft.invoiceDate && commitCardId && lineItemsReady && allLineAccountsConfirmed);
   const messageState = commitState === "error" || commitState === "saved" ? commitState : saveState;
+  const suggestedCardId = selectedIntake ? cardSuggestionFor(selectedIntake) : "";
+  const cardAutomaticallyResolved = Boolean(suggestedCardId && commitCardId === suggestedCardId);
   const suggestedCard = cards.find((card) => card.id === commitCardId);
   const suggestedUploader = selectedIntake ? users.find((user) => user.firebaseUid === selectedIntake.uploaderUid) : undefined;
-  const selectedReviewMessages = selectedIntake ? intakeReviewMessages(selectedIntake) : [];
+  const selectedReviewMessages = selectedIntake
+    ? intakeReviewMessages(selectedIntake).filter((message) => !(cardAutomaticallyResolved && message.toLowerCase().includes("carte")))
+    : [];
   const selectedCorrectionFields = selectedIntake ? intakeCorrectionFields(selectedIntake) : new Set<string>();
   const needsCorrection = (...fieldNames: string[]) => fieldNames.some((fieldName) => selectedCorrectionFields.has(fieldName));
-  const cardNeedsCorrection = needsCorrection("cardId") || !commitCardId;
+  const cardNeedsCorrection = !commitCardId || (needsCorrection("cardId") && !cardAutomaticallyResolved);
   const cardReviewMessage = "Carte utilisée non détectée ou non sélectionnée — si votre carte personnelle n’apparaît pas, ajoutez-la dans Configuration.";
   const visibleReviewMessages = selectedIntake && cardNeedsCorrection && !selectedReviewMessages.some((message) => message.toLowerCase().includes("carte"))
     ? [...selectedReviewMessages, cardReviewMessage]
@@ -1710,7 +1715,7 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
     }
     if (action === "commit" && !isReadyForAccounting) {
       setSaveState("error");
-      setSaveMessage("Le fournisseur, la date, les montants, chaque compte de ligne, le projet et la carte sont requis avant la comptabilisation.");
+      setSaveMessage("Le fournisseur, la date, les montants, chaque compte de ligne et la carte sont requis avant la comptabilisation.");
       return;
     }
     if (action === "commit" && !window.confirm(`Enregistrer la correction et créer immédiatement l’écriture comptable pour ${draft.vendor.trim()} (${formatCurrency(totalCents / 100)}) ?`)) {
@@ -1723,7 +1728,6 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
     const classificationStatus = isReadyForAccounting ? "RESOLVED" : inferredClassification.resolution;
     const decisionExceptions: Array<{ code: string; fieldName: string; message: string; aiValue: string | null; suggestedValue: string | null; status: string }> = isReadyForAccounting ? [] : [
       ...(!allLineAccountsConfirmed ? [{ code: "MISSING_ACCOUNT", fieldName: "accountCode", message: "Chaque ligne doit avoir un compte comptable confirmé.", aiValue: null, suggestedValue: inferredClassification.accountCode, status: "OPEN" }] : []),
-      ...(!draft.projectId ? [{ code: "UNKNOWN_PROJECT", fieldName: "projectId", message: "Projet introuvable — sélectionnez le chantier correspondant.", aiValue: null, suggestedValue: null, status: "OPEN" }] : []),
       ...(!commitCardId ? [{ code: "UNKNOWN_CARD", fieldName: "cardId", message: "Carte utilisée non détectée ou non sélectionnée.", aiValue: null, suggestedValue: null, status: "OPEN" }] : []),
     ];
     const previousValues = {
@@ -1772,7 +1776,7 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
       accountCode: summaryAccountCode,
       cardId: commitCardId,
       statementPeriodId: commitPeriodId || null,
-      projectId: draft.projectId,
+      projectId: draft.projectId || null,
       classificationNote: draft.notes.trim() || "Revue confirmée.",
       lineItems: JSON.stringify(preparedLineItems),
     };
@@ -1799,7 +1803,7 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
         currency: draft.currency.trim().toUpperCase() || "CAD",
         sku: draft.sku.trim() || null,
         category: draft.category.trim() || null,
-        projectId: draft.projectId,
+        projectId: draft.projectId || null,
         accountCode: summaryAccountCode,
         classificationCategory: classificationCategory || null,
         classificationSource,
@@ -1869,11 +1873,9 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
           ? "Revue enregistrée; prête pour la création comptable."
           : !allLineAccountsConfirmed
             ? "Correction enregistrée; chaque ligne doit encore recevoir un compte comptable."
-            : !draft.projectId
-              ? "Correction enregistrée; il manque encore un projet actif."
-              : !commitCardId
-                ? "Correction enregistrée; la carte utilisée doit être confirmée avant la création."
-                : "Correction enregistrée; certains contrôles doivent encore être confirmés.",
+            : !commitCardId
+              ? "Correction enregistrée; la carte utilisée doit être confirmée avant la création."
+              : "Correction enregistrée; certains contrôles doivent encore être confirmés.",
       );
     } catch (error) {
       setSaveState(reviewSaved ? "saved" : "error");
@@ -1893,9 +1895,9 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
     const tpsCents = dollarsToCents(draft.tps);
     const tvqCents = dollarsToCents(draft.tvq);
     const totalCents = dollarsToCents(draft.total);
-    if (!draft.vendor.trim() || !draft.invoiceDate || subtotalCents == null || tpsCents == null || tvqCents == null || totalCents == null || !allLineAccountsConfirmed || !draft.projectId || !commitCardId) {
+    if (!draft.vendor.trim() || !draft.invoiceDate || subtotalCents == null || tpsCents == null || tvqCents == null || totalCents == null || !allLineAccountsConfirmed || !commitCardId) {
       setCommitState("error");
-      setSaveMessage("Le fournisseur, la date, les montants, chaque compte de ligne, le projet et la carte sont requis. La période du relevé est facultative.");
+      setSaveMessage("Le fournisseur, la date, les montants, chaque compte de ligne et la carte sont requis. Le projet et la période du relevé sont facultatifs.");
       return;
     }
     if (!window.confirm(`Créer l’écriture comptable pour ${draft.vendor.trim()} (${formatCurrency(totalCents / 100)}) ?`)) return;
@@ -1917,7 +1919,7 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
         accountCode: summaryAccountCode,
         cardId: commitCardId,
         statementPeriodId: commitPeriodId || null,
-        projectId: draft.projectId,
+        projectId: draft.projectId || null,
         classificationNote: draft.notes.trim() || "Revue confirmée.",
         lineItems: JSON.stringify(preparedLineItems),
       });
@@ -2004,7 +2006,7 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
           <div className="field-grid"><label className={`field ${needsCorrection("subtotalCents") ? "needs-correction" : ""}`}><span>Sous-total</span><input aria-invalid={needsCorrection("subtotalCents")} inputMode="decimal" value={draft.subtotal} onChange={(event) => updateDraft("subtotal", event.target.value)} /></label><label className={`field ${needsCorrection("totalCents") ? "needs-correction" : ""}`}><span>Total</span><input aria-invalid={needsCorrection("totalCents")} inputMode="decimal" value={draft.total} onChange={(event) => updateDraft("total", event.target.value)} /></label><label className={`field ${needsCorrection("tpsCents") ? "needs-correction" : ""}`}><span>TPS</span><input aria-invalid={needsCorrection("tpsCents")} inputMode="decimal" value={draft.tps} onChange={(event) => updateDraft("tps", event.target.value)} /></label><label className={`field ${needsCorrection("tvqCents") ? "needs-correction" : ""}`}><span>TVQ</span><input aria-invalid={needsCorrection("tvqCents")} inputMode="decimal" value={draft.tvq} onChange={(event) => updateDraft("tvq", event.target.value)} /></label></div>
           <InvoiceLineItemsReview items={draft.lineItems} vendor={draft.vendor} subtotalCents={draftSubtotalCents} accounts={accounts} skuReferences={skuReferences} onUpdate={updateLineItem} onAdd={addLineItem} onRemove={removeLineItem} />
           <div className={`field wide ${needsCorrection("accountCode") || !allLineAccountsConfirmed ? "needs-correction" : ""}`}><span>Compte résumé (facultatif)</span><div className="field-value">{summaryAccountCode ? `${summaryAccountCode} · ventilation uniforme` : lineAccountCodes.length > 1 ? "Ventilation multi-comptes — voir les lignes" : "Aucun compte de ligne confirmé"}</div><small>La ventilation des lignes est la source de vérité. Le compte résumé n’est affiché que lorsque toutes les lignes utilisent le même compte.</small></div>
-          <label className={`field wide ${needsCorrection("projectId") ? "needs-correction" : ""}`}><span>Chantier / projet</span><select aria-invalid={needsCorrection("projectId")} value={draft.projectId} onChange={(event) => updateDraft("projectId", event.target.value)}><option value="">Projet introuvable — sélectionnez le chantier correspondant</option>{projects.filter((project) => project.status !== "INACTIVE").map((project) => <option key={project.id} value={project.id}>{project.number} · {project.name}</option>)}</select><small>Un projet actif est obligatoire avant la création de l’écriture, mais la correction peut être enregistrée avant son choix.</small></label>
+          <label className="field wide"><span>Chantier / projet (facultatif)</span><select value={draft.projectId} onChange={(event) => updateDraft("projectId", event.target.value)}><option value="">Ajouter le projet plus tard</option>{projects.filter((project) => project.status !== "INACTIVE").map((project) => <option key={project.id} value={project.id}>{project.number} · {project.name}</option>)}</select><small>Le projet est temporairement retiré des conditions d’acceptation. Vous pouvez l’ajouter maintenant ou plus tard.</small></label>
           <label className="field wide"><span>Note de revue (facultative)</span><textarea rows={3} value={draft.notes} onChange={(event) => updateDraft("notes", event.target.value)} /><small>Expliquez brièvement ce qui reste incertain ou la décision prise. Laissez ce champ vide si aucune précision n’est nécessaire.</small></label>
           <section className="intake-commit-card">
             <div><p className="eyebrow">Création comptable</p><h3>Références comptables</h3><p className="muted">Choisissez la carte utilisée et le cycle comptable. Ces informations alimentent directement le tableau de Kim après la comptabilisation.</p></div>

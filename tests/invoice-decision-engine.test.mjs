@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { classifyInvoice, classifyInvoiceLineItems, validateInvoiceLineItemsForCommit } from "../lib/invoice-processing.mjs";
-import { decideInvoice, findPotentialDuplicates } from "../lib/invoice-decision-engine.mjs";
+import { decideInvoice, findPotentialDuplicates, resolveUploaderCards } from "../lib/invoice-decision-engine.mjs";
 
 const accounts = [{ code: "90001", label: "Matériaux" }];
 const skuReferences = [{ merchant: "Quincaillerie", sku: "SKU-1", category: "Matériaux", accountCode: "90001", status: "VALIDATED" }];
@@ -103,6 +103,26 @@ test("bloque carte ambiguë, projet inconnu et confiance insuffisante", () => {
   assert.ok(codes(result).includes("AMBIGUOUS_CARD"));
   assert.ok(codes(result).includes("UNKNOWN_PROJECT"));
   assert.ok(codes(result).includes("LOW_CONFIDENCE"));
+});
+
+test("associe une carte active au profil réel de l’uploader", () => {
+  const result = resolveUploaderCards({
+    uploaderUid: "firebase-uploader-reel",
+    uploaderUserId: "U-1",
+    cards: [{ id: "CARD-1", lastFour: "0001", status: "ACTIVE", holderId: "U-1" }],
+  });
+  assert.equal(result.status, "RESOLVED");
+  assert.equal(result.card?.id, "CARD-1");
+});
+
+test("accepte temporairement une facture sans bloquer sur le projet", () => {
+  const result = decision(
+    { projectId: "P-INCONNU" },
+    { context: { ...baseContext, requireProject: false } },
+  );
+  assert.equal(result.decision, "AUTO_APPROVED");
+  assert.ok(!codes(result).includes("UNKNOWN_PROJECT"));
+  assert.equal(result.resolutions.projectId, null);
 });
 
 test("signale un doublon potentiel sans confondre fournisseur et montant seuls", () => {

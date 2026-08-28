@@ -175,7 +175,8 @@ function confidenceThreshold() {
 function matchingStatementPeriod(invoiceDate: string | null, periods: Array<{ id: string; startDate: string; endDate: string; status: string }>) {
   if (!invoiceDate) return null;
   const matches = periods.filter((period) =>
-    period.status === "OPEN" && period.startDate <= invoiceDate && invoiceDate <= period.endDate,
+    ["OPEN", "ACTIVE"].includes(String(period.status ?? "").trim().toUpperCase()) &&
+      period.startDate <= invoiceDate && invoiceDate <= period.endDate,
   );
   return matches.length === 1 ? matches[0] : null;
 }
@@ -425,7 +426,10 @@ export async function POST(request: Request) {
     });
     const extractionWithLineItems = { ...extraction, lineItems };
 
-    const uploader = userProfiles.find((user) => user.firebaseUid === identity.uid);
+    // The cron worker authenticates with a technical identity. Card ownership
+    // must always be resolved from the intake uploader, not from that worker.
+    const uploaderUid = intake.uploaderUid;
+    const uploader = userProfiles.find((user) => user.firebaseUid === uploaderUid);
     const cards = creditCards.map((card) => ({
       id: card.id,
       lastFour: card.lastFour,
@@ -434,7 +438,7 @@ export async function POST(request: Request) {
     }));
     const cardResolution = resolveUploaderCards({
       cards,
-      uploaderUid: identity.uid,
+      uploaderUid,
       uploaderUserId: uploader?.id,
     });
     const statementPeriod = matchingStatementPeriod(
@@ -453,14 +457,14 @@ export async function POST(request: Request) {
         cardResolution.card?.id ?? null,
       ),
       context: {
-        uploaderUid: identity.uid,
+        uploaderUid,
         uploaderUserId: uploader?.id,
         cards,
         cardResolution,
         projects,
         statementPeriodId: statementPeriod?.id ?? null,
         requireStatementPeriod: true,
-        allowMissingProject: false,
+        requireProject: false,
       },
     });
 
@@ -531,8 +535,8 @@ export async function POST(request: Request) {
     }
 
     if (decision.decision === "AUTO_APPROVED") {
-      const { accountCode, cardId, statementPeriodId, projectId } = decision.resolutions;
-      if (!accountCode || !cardId || !statementPeriodId || !projectId || !normalized.invoiceDate) {
+      const { accountCode, cardId, statementPeriodId } = decision.resolutions;
+      if (!accountCode || !cardId || !statementPeriodId || !normalized.invoiceDate) {
         throw new Error("La décision automatique ne contient pas toutes les références comptables requises.");
       }
       const account = expenseAccounts.find((candidate) =>

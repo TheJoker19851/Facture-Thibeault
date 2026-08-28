@@ -24,7 +24,7 @@ const commitSchema = z.object({
   accountCode: z.string().trim().min(1).nullable(),
   cardId: z.string().trim().min(1),
   statementPeriodId: z.string().trim().min(1).nullable(),
-  projectId: z.string().trim().min(1),
+  projectId: z.string().trim().min(1).nullable(),
   classificationNote: z.string().trim().min(1),
 });
 
