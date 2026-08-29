@@ -40,12 +40,14 @@ export const maxDuration = 120;
 const GEMINI_TIMEOUT_MS = 90_000;
 
 const ALLOWED_ROLES = new Set(["WORKER", "KIM", "ADMIN"]);
+const AI_PROCESSING_ERROR_MESSAGE = "Le traitement IA a échoué; la facture doit être vérifiée manuellement.";
 
 const invoiceLineItemSchema = z.object({
   description: z.string().trim().min(1),
   quantity: z.number().positive(),
-  unitPriceCents: z.number().int().nonnegative().nullable(),
-  amountCents: z.number().int().nonnegative(),
+  // A coupon, rebate, credit or return is represented as a signed line.
+  unitPriceCents: z.number().int().nullable(),
+  amountCents: z.number().int(),
   sku: z.string().trim().nullable(),
   category: z.string().trim().nullable(),
 });
@@ -135,7 +137,7 @@ Never invent a value: use null for a missing invoice number, date, SKU or projec
 Return monetary values as integer Canadian cents. Use ISO date YYYY-MM-DD when the date is readable.
 The subtotal plus TPS plus TVQ must equal the total; if a value is unclear, lower confidence and explain it in notes.
 Read every visible line item. Return its description, quantity, unit price when visible, amount before tax, SKU/code when visible, and a category suggestion only when the document supports it.
-The line amounts must add up to the invoice subtotal. If no line detail is visible, return an empty lineItems array and explain that limitation in notes.
+Represent discounts, coupons, rebates, credits and returns as visible lines with negative unitPriceCents and amountCents; never omit them or turn them into positive amounts. The signed line amounts must add up to the net invoice subtotal after those adjustments. If no line detail is visible, return an empty lineItems array and explain that limitation in notes.
 Use category only as a suggestion. Do not invent an accounting account or approve the invoice.
 Keep vendor names and invoice numbers faithful to the document, including accents and punctuation.`;
 
@@ -208,6 +210,23 @@ function isStableIntakeState(intake: IntakeData["invoiceIntakes"][number]) {
     intake.processingStatus !== "PROCESSING" &&
     intake.accountingStatus !== "POSTING_ERROR"
   );
+}
+
+function hasManualAiRetryableError(intake: IntakeData["invoiceIntakes"][number], maxAttempts: number) {
+  if (
+    intake.processingStatus !== "NEEDS_REVIEW" ||
+    intake.processingState !== "FAILED" ||
+    intake.accountingStatus !== "NOT_POSTED" ||
+    intake.lastError !== AI_PROCESSING_ERROR_MESSAGE ||
+    intake.aiModel ||
+    Number(intake.processingAttempts ?? 0) >= maxAttempts
+  ) return false;
+  try {
+    const exceptions = JSON.parse(intake.decisionExceptions ?? "[]");
+    return Array.isArray(exceptions) && exceptions.some((exception) => exception?.code === "AI_PROCESSING_ERROR");
+  } catch {
+    return false;
+  }
 }
 
 async function extractInvoice(receiptId: string, files: File[], accountLabels: string[] = []) {
@@ -294,7 +313,8 @@ export async function POST(request: Request) {
     const intake = await readIntake();
     console.info("[invoice-ai] phase=intake_read", { found: Boolean(intake) });
     if (!intake) return Response.json({ error: "Le dépôt de facture n'existe pas." }, { status: 404 });
-    if (!identity.internal && intake.uploaderUid !== identity.uid) {
+    const canReview = identity.role === "KIM" || identity.role === "ADMIN";
+    if (!identity.internal && !canReview && intake.uploaderUid !== identity.uid) {
       return Response.json({ error: "Ce dépôt appartient à un autre utilisateur." }, { status: 403 });
     }
     ownedIntake = true;
@@ -304,7 +324,8 @@ export async function POST(request: Request) {
     // result. Only a verified transient Gemini error or POSTING_ERROR can be
     // deliberately reopened, and each reopen is a database compare-and-set.
     const transientGeminiRetry = isTransientGeminiCapacityRetry(intake);
-    if (isStableIntakeState(intake) && !transientGeminiRetry) return existingIntakeResponse(receiptId, intake);
+    const manualAiRetry = !identity.internal && canReview && hasManualAiRetryableError(intake, maxAttempts);
+    if (isStableIntakeState(intake) && !transientGeminiRetry && !manualAiRetry) return existingIntakeResponse(receiptId, intake);
     if (transientGeminiRetry && hasReachedInvoiceAiMaxAttempts(intake, maxAttempts)) {
       const currentAttempts = Number(intake.processingAttempts ?? 0);
       const decisionExceptions = decisionExceptionsAtMaxAttempts(intake.decisionExceptions, maxAttempts);
@@ -344,6 +365,32 @@ export async function POST(request: Request) {
         maxAttempts,
         state: stateOf(finalized ?? intake),
       }, { status: 422 });
+    }
+    if (manualAiRetry) {
+      let retry: { data: IntakeMutationData };
+      try {
+        retry = await dataConnect.executeMutation<IntakeMutationData, {
+          receiptId: string;
+          currentAttempts: number;
+          maxAttempts: number;
+        }>(
+          "RetryInvoiceIntakeAiReviewV2",
+          {
+            receiptId,
+            currentAttempts: Number(intake.processingAttempts ?? 0),
+            maxAttempts,
+          },
+        );
+      } catch (error) {
+        const latest = await readIntake();
+        if (latest) return existingIntakeResponse(receiptId, latest);
+        throw error;
+      }
+      if (retry.data.invoiceIntake_updateMany !== 1) {
+        const latest = await readIntake();
+        if (latest) return existingIntakeResponse(receiptId, latest);
+        throw new Error("Le dépôt de facture n'existe plus pendant le retry manuel.");
+      }
     }
     if (transientGeminiRetry || intake.accountingStatus === "POSTING_ERROR") {
       let retry: { data: IntakeMutationData };
@@ -629,7 +676,7 @@ export async function POST(request: Request) {
       } else {
         await dataConnect.executeMutation("MarkInvoiceIntakeAiError", {
           receiptId: receiptIdForLog,
-          error: "Le traitement IA a échoué; la facture doit être vérifiée manuellement.",
+          error: AI_PROCESSING_ERROR_MESSAGE,
           aiErrorCode: maxAttemptsReached ? AI_MAX_ATTEMPTS_REACHED : transientGeminiFailure ? "GEMINI_TRANSIENT" : null,
           decisionExceptions: persistedDecisionExceptions,
           decisionChecks: persistedDecisionChecks,

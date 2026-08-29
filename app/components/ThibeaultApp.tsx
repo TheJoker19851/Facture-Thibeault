@@ -1236,7 +1236,7 @@ function intakeToReviewDraft(intake: InvoiceIntake): IntakeReviewDraft {
 
 function dollarsToCents(value: string) {
   const parsed = Number(value.replace(",", "."));
-  return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed * 100) : null;
+  return Number.isFinite(parsed) ? Math.round(parsed * 100) : null;
 }
 
 type IntakeEvidencePhoto = { sequence: number; url: string };

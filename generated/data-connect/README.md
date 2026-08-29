@@ -109,6 +109,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*RetryInvoiceIntakeAi*](#retryinvoiceintakeai)
   - [*RetryInvoiceIntakeAiTransient*](#retryinvoiceintakeaitransient)
   - [*RetryInvoiceIntakeAiTransientV2*](#retryinvoiceintakeaitransientv2)
+  - [*RetryInvoiceIntakeAiReviewV2*](#retryinvoiceintakeaireviewv2)
   - [*MaterializeInvoiceIntakeV2*](#materializeinvoiceintakev2)
   - [*CorrectPostedInvoice*](#correctpostedinvoice)
   - [*CommitInvoiceIntake*](#commitinvoiceintake)
@@ -13078,6 +13079,121 @@ executeMutation(ref).then((response) => {
 });
 ```
 
+## RetryInvoiceIntakeAiReviewV2
+You can execute the `RetryInvoiceIntakeAiReviewV2` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+retryInvoiceIntakeAiReviewV2(vars: RetryInvoiceIntakeAiReviewV2Variables): MutationPromise<RetryInvoiceIntakeAiReviewV2Data, RetryInvoiceIntakeAiReviewV2Variables>;
+
+interface RetryInvoiceIntakeAiReviewV2Ref {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: RetryInvoiceIntakeAiReviewV2Variables): MutationRef<RetryInvoiceIntakeAiReviewV2Data, RetryInvoiceIntakeAiReviewV2Variables>;
+}
+export const retryInvoiceIntakeAiReviewV2Ref: RetryInvoiceIntakeAiReviewV2Ref;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+retryInvoiceIntakeAiReviewV2(dc: DataConnect, vars: RetryInvoiceIntakeAiReviewV2Variables): MutationPromise<RetryInvoiceIntakeAiReviewV2Data, RetryInvoiceIntakeAiReviewV2Variables>;
+
+interface RetryInvoiceIntakeAiReviewV2Ref {
+  ...
+  (dc: DataConnect, vars: RetryInvoiceIntakeAiReviewV2Variables): MutationRef<RetryInvoiceIntakeAiReviewV2Data, RetryInvoiceIntakeAiReviewV2Variables>;
+}
+export const retryInvoiceIntakeAiReviewV2Ref: RetryInvoiceIntakeAiReviewV2Ref;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the retryInvoiceIntakeAiReviewV2Ref:
+```typescript
+const name = retryInvoiceIntakeAiReviewV2Ref.operationName;
+console.log(name);
+```
+
+### Variables
+The `RetryInvoiceIntakeAiReviewV2` mutation requires an argument of type `RetryInvoiceIntakeAiReviewV2Variables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface RetryInvoiceIntakeAiReviewV2Variables {
+  receiptId: string;
+  currentAttempts: number;
+  maxAttempts: number;
+}
+```
+### Return Type
+Recall that executing the `RetryInvoiceIntakeAiReviewV2` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `RetryInvoiceIntakeAiReviewV2Data`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface RetryInvoiceIntakeAiReviewV2Data {
+  invoiceIntake_updateMany: number;
+}
+```
+### Using `RetryInvoiceIntakeAiReviewV2`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, retryInvoiceIntakeAiReviewV2, RetryInvoiceIntakeAiReviewV2Variables } from '@factures-thibeault/data-connect-generated';
+
+// The `RetryInvoiceIntakeAiReviewV2` mutation requires an argument of type `RetryInvoiceIntakeAiReviewV2Variables`:
+const retryInvoiceIntakeAiReviewV2Vars: RetryInvoiceIntakeAiReviewV2Variables = {
+  receiptId: ...,
+  currentAttempts: ...,
+  maxAttempts: ...,
+};
+
+// Call the `retryInvoiceIntakeAiReviewV2()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await retryInvoiceIntakeAiReviewV2(retryInvoiceIntakeAiReviewV2Vars);
+// Variables can be defined inline as well.
+const { data } = await retryInvoiceIntakeAiReviewV2({ receiptId: ..., currentAttempts: ..., maxAttempts: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await retryInvoiceIntakeAiReviewV2(dataConnect, retryInvoiceIntakeAiReviewV2Vars);
+
+console.log(data.invoiceIntake_updateMany);
+
+// Or, you can use the `Promise` API.
+retryInvoiceIntakeAiReviewV2(retryInvoiceIntakeAiReviewV2Vars).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
+});
+```
+
+### Using `RetryInvoiceIntakeAiReviewV2`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, retryInvoiceIntakeAiReviewV2Ref, RetryInvoiceIntakeAiReviewV2Variables } from '@factures-thibeault/data-connect-generated';
+
+// The `RetryInvoiceIntakeAiReviewV2` mutation requires an argument of type `RetryInvoiceIntakeAiReviewV2Variables`:
+const retryInvoiceIntakeAiReviewV2Vars: RetryInvoiceIntakeAiReviewV2Variables = {
+  receiptId: ...,
+  currentAttempts: ...,
+  maxAttempts: ...,
+};
+
+// Call the `retryInvoiceIntakeAiReviewV2Ref()` function to get a reference to the mutation.
+const ref = retryInvoiceIntakeAiReviewV2Ref(retryInvoiceIntakeAiReviewV2Vars);
+// Variables can be defined inline as well.
+const ref = retryInvoiceIntakeAiReviewV2Ref({ receiptId: ..., currentAttempts: ..., maxAttempts: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = retryInvoiceIntakeAiReviewV2Ref(dataConnect, retryInvoiceIntakeAiReviewV2Vars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.invoiceIntake_updateMany);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
+});
+```
+
 ## MaterializeInvoiceIntakeV2
 You can execute the `MaterializeInvoiceIntakeV2` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
 ```typescript
@@ -14084,4 +14200,3 @@ executeMutation(ref).then((response) => {
   console.log(data.invoiceIntake_update);
 });
 ```
-

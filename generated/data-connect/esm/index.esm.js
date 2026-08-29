@@ -763,6 +763,18 @@ export function retryInvoiceIntakeAiTransientV2(dcOrVars, vars) {
   return executeMutation(retryInvoiceIntakeAiTransientV2Ref(dcInstance, inputVars));
 }
 
+export const retryInvoiceIntakeAiReviewV2Ref = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'RetryInvoiceIntakeAiReviewV2', inputVars);
+}
+retryInvoiceIntakeAiReviewV2Ref.operationName = 'RetryInvoiceIntakeAiReviewV2';
+
+export function retryInvoiceIntakeAiReviewV2(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(retryInvoiceIntakeAiReviewV2Ref(dcInstance, inputVars));
+}
+
 export const materializeInvoiceIntakeV2Ref = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();

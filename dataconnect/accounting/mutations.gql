@@ -1338,6 +1338,43 @@ mutation RetryInvoiceIntakeAiTransientV2(
   }
 }
 
+# A privileged reviewer may reopen only a failed AI attempt that persisted no
+# extraction. This is intentionally narrower than a normal manual review:
+# once an AI model or business decision exists, the intake remains in review.
+mutation RetryInvoiceIntakeAiReviewV2(
+  $receiptId: String!
+  $currentAttempts: Int!
+  $maxAttempts: Int!
+) @auth(level: NO_ACCESS) @transaction {
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      processingStatus: { eq: "NEEDS_REVIEW" }
+      processingState: { eq: "FAILED" }
+      processingAttempts: { eq: $currentAttempts }
+      accountingStatus: { eq: "NOT_POSTED" }
+      lastError: { eq: "Le traitement IA a échoué; la facture doit être vérifiée manuellement." }
+      aiModel: { isNull: true }
+    }
+    data: {
+      status: "PROCESSING"
+      processingStatus: "PROCESSING"
+      processingState: "RETRY"
+      accountingStatus: "NOT_POSTED"
+      lastError: null
+      aiErrorCode: null
+      decisionExceptions: "[]"
+      decisionChecks: "[]"
+    }
+  )
+  query @redact @check(
+    expr: "response.invoiceIntake_updateMany == 1 && vars.currentAttempts < vars.maxAttempts"
+    message: "Aucune erreur IA sans extraction à relancer, ou limite de tentatives atteinte."
+  ) {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) { receiptId }
+  }
+}
+
 # One server-only materialization path is shared by automatic and human
 # decisions. The API routes authenticate the caller and validate Storage; this
 # transaction owns every final SQL invariant and is inaccessible to clients.

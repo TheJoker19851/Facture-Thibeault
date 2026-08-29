@@ -1958,6 +1958,16 @@ export interface RetryInvoiceIntakeAiData {
   invoiceIntake_updateMany: number;
 }
 
+export interface RetryInvoiceIntakeAiReviewV2Data {
+  invoiceIntake_updateMany: number;
+}
+
+export interface RetryInvoiceIntakeAiReviewV2Variables {
+  receiptId: string;
+  currentAttempts: number;
+  maxAttempts: number;
+}
+
 export interface RetryInvoiceIntakeAiTransientData {
   invoiceIntake_updateMany: number;
 }
@@ -3026,6 +3036,18 @@ export const retryInvoiceIntakeAiTransientV2Ref: RetryInvoiceIntakeAiTransientV2
 
 export function retryInvoiceIntakeAiTransientV2(vars: RetryInvoiceIntakeAiTransientV2Variables): MutationPromise<RetryInvoiceIntakeAiTransientV2Data, RetryInvoiceIntakeAiTransientV2Variables>;
 export function retryInvoiceIntakeAiTransientV2(dc: DataConnect, vars: RetryInvoiceIntakeAiTransientV2Variables): MutationPromise<RetryInvoiceIntakeAiTransientV2Data, RetryInvoiceIntakeAiTransientV2Variables>;
+
+interface RetryInvoiceIntakeAiReviewV2Ref {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: RetryInvoiceIntakeAiReviewV2Variables): MutationRef<RetryInvoiceIntakeAiReviewV2Data, RetryInvoiceIntakeAiReviewV2Variables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: RetryInvoiceIntakeAiReviewV2Variables): MutationRef<RetryInvoiceIntakeAiReviewV2Data, RetryInvoiceIntakeAiReviewV2Variables>;
+  operationName: string;
+}
+export const retryInvoiceIntakeAiReviewV2Ref: RetryInvoiceIntakeAiReviewV2Ref;
+
+export function retryInvoiceIntakeAiReviewV2(vars: RetryInvoiceIntakeAiReviewV2Variables): MutationPromise<RetryInvoiceIntakeAiReviewV2Data, RetryInvoiceIntakeAiReviewV2Variables>;
+export function retryInvoiceIntakeAiReviewV2(dc: DataConnect, vars: RetryInvoiceIntakeAiReviewV2Variables): MutationPromise<RetryInvoiceIntakeAiReviewV2Data, RetryInvoiceIntakeAiReviewV2Variables>;
 
 interface MaterializeInvoiceIntakeV2Ref {
   /* Allow users to create refs without passing in DataConnect */
