@@ -3,7 +3,7 @@
 import { ChangeEvent, createContext, FormEvent, Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getDownloadURL, ref } from "firebase/storage";
 import { AdminUserActionError, accountingReadSource, commitInvoiceIntake, correctPostedInvoice, deleteExpenseAccount, deleteProject, deletePostedInvoice, discardInvoiceIntake, loadAccountingSnapshot, loadAdminUserAccess, loadReportAdjustments, loadTransactionCorrections, mapAccountingSnapshot, removeDemoAccountingData, runAdminUserAction, saveCreditCard, saveExpenseAccount, saveInvoiceIntakeReview, saveProject, saveReportAdjustments, saveStatementPeriod, type AccountingLineItem, type ManualAdjustmentRow } from "../../firebase/accounting";
-import { getInvoiceIntakeStatus, type InvoiceIntakeStatus } from "../../firebase/ai";
+import { getInvoiceIntakeStatus, retryInvoiceIntakeAi, type InvoiceIntakeStatus } from "../../firebase/ai";
 import { appCheckConfigured, firebaseAuth, firebaseConfigured, firebaseStorage } from "../../firebase/client";
 import { sqlConnectConfigured } from "../../firebase/data-connect";
 import { invoicePhotoFileError, uploadInvoicePhotos } from "../../firebase/uploads";
@@ -1582,6 +1582,8 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
   });
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveMessage, setSaveMessage] = useState("");
+  const [retryState, setRetryState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [retryMessage, setRetryMessage] = useState("");
   const [draftDirty, setDraftDirty] = useState(false);
   const cardSuggestionFor = (intake: InvoiceIntake | null) => {
     if (!intake) return "";
@@ -1633,6 +1635,8 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
     setDraft(intakeToReviewDraft(intake));
     setSaveState("idle");
     setSaveMessage("");
+    setRetryState("idle");
+    setRetryMessage("");
     setDraftDirty(false);
     setCommitCardId(cardSuggestionFor(intake));
     setCommitPeriodId(period.id === "custom" ? "" : period.id);
@@ -1695,6 +1699,30 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
   const visibleReviewMessages = selectedIntake && cardNeedsCorrection && !selectedReviewMessages.some((message) => message.toLowerCase().includes("carte"))
     ? [...selectedReviewMessages, cardReviewMessage]
     : selectedReviewMessages;
+  const canRetryAi = Boolean(
+    selectedIntake &&
+    (identity.role === "KIM" || identity.role === "ADMIN") &&
+    selectedIntake.processingStatus === "NEEDS_REVIEW" &&
+    selectedIntake.processingState === "FAILED" &&
+    !selectedIntake.aiModel &&
+    parseIntakeExceptions(selectedIntake).some((exception) => exception.code === "AI_PROCESSING_ERROR"),
+  );
+
+  const retryAi = async () => {
+    if (!selectedIntake || !canRetryAi) return;
+    if (!window.confirm("Relancer l’analyse IA de cette facture maintenant ? La facture sera retraitée et pourra revenir en revue manuelle si une incohérence subsiste.")) return;
+    setRetryState("saving");
+    setRetryMessage("");
+    try {
+      await retryInvoiceIntakeAi(selectedIntake.receiptId);
+      setRetryState("saved");
+      setRetryMessage("Analyse relancée; actualisation de la facture…");
+      window.setTimeout(() => window.location.reload(), 500);
+    } catch (error) {
+      setRetryState("error");
+      setRetryMessage(error instanceof Error ? error.message : "La nouvelle analyse n'a pas pu être lancée.");
+    }
+  };
 
   const saveReview = async (event?: FormEvent<HTMLFormElement>, action: "save" | "commit" = "save") => {
     event?.preventDefault();
@@ -1997,6 +2025,7 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
       </section>
       {selectedIntake ? <form className="panel intake-review" onSubmit={(event) => void saveReview(event, "save")}>
         <div className="panel-header"><div><p className="eyebrow">{processingStatusOf(selectedIntake) === "VALIDATED" ? "Prête pour comptabilisation" : "Exception à résoudre"}</p><h2>{draft.vendor || "Facture sélectionnée"}</h2></div><span className={intakeStatusClass(processingStatusOf(selectedIntake))}>{intakeQueueStatusLabel(selectedIntake)}</span></div>
+        {canRetryAi && <div className="detail-alert"><div><p className="eyebrow">Erreur technique sans extraction</p><span>La lecture IA n’a enregistré aucune donnée; vous pouvez relancer l’analyse après correction du traitement.</span><button className="secondary-button" type="button" onClick={() => void retryAi()} disabled={retryState === "saving"}>{retryState === "saving" ? "Nouvelle analyse…" : "Relancer l’analyse IA"}</button>{retryMessage && <p className={`intake-review-message ${retryState}`}>{retryMessage}</p>}</div></div>}
         {visibleReviewMessages.length > 0 && <div className="detail-alert"><div className="detail-alert-icon">!</div><div><p className="eyebrow">À corriger</p>{visibleReviewMessages.map((message) => <span key={message}>{message}</span>)}</div></div>}
         <InvoiceIntakeEvidence key={selectedIntake.receiptId} intake={selectedIntake} />
         <AuditTrailView events={auditEvents} role={identity.role} state={auditState} cards={cards} projects={projects} />
