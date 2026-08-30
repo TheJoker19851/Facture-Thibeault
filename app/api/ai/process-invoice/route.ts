@@ -10,7 +10,6 @@ import {
   listAllInvoiceIntakes,
   listAllProjects,
   listAllSkuReferences,
-  listAllStatementPeriods,
   listAllUserProfiles,
 } from "../../../../firebase/accounting-pagination.server";
 import { inferApplicationEnvironment } from "../../../../lib/environment.mjs";
@@ -172,15 +171,6 @@ function localMockExtraction(receiptId: string) {
 function confidenceThreshold() {
   const configured = Number(process.env.INVOICE_AI_MIN_CONFIDENCE ?? DEFAULT_INVOICE_AI_MIN_CONFIDENCE);
   return Number.isFinite(configured) ? Math.min(1, Math.max(0, configured)) : DEFAULT_INVOICE_AI_MIN_CONFIDENCE;
-}
-
-function matchingStatementPeriod(invoiceDate: string | null, periods: Array<{ id: string; startDate: string; endDate: string; status: string }>) {
-  if (!invoiceDate) return null;
-  const matches = periods.filter((period) =>
-    ["OPEN", "ACTIVE"].includes(String(period.status ?? "").trim().toUpperCase()) &&
-      period.startDate <= invoiceDate && invoiceDate <= period.endDate,
-  );
-  return matches.length === 1 ? matches[0] : null;
 }
 
 function stateOf(intake: IntakeData["invoiceIntakes"][number]) {
@@ -426,7 +416,7 @@ export async function POST(request: Request) {
       throw new Error("Le traitement serveur n’a pas pu prendre en charge l’intake.");
     }
 
-    const [storedPhotos, [skuReferences, expenseAccounts, creditCards, userProfiles, projects, statementPeriods, transactionResponse]] = await Promise.all([
+    const [storedPhotos, [skuReferences, expenseAccounts, creditCards, userProfiles, projects, transactionResponse]] = await Promise.all([
       readInvoiceIntakeStoragePhotos(intake),
       Promise.all([
         listAllSkuReferences(dataConnect),
@@ -434,7 +424,6 @@ export async function POST(request: Request) {
         listAllCreditCards(dataConnect),
         listAllUserProfiles(dataConnect),
         listAllProjects(dataConnect),
-        listAllStatementPeriods(dataConnect),
         listAllExpenseTransactions(dataConnect),
       ]),
     ]);
@@ -488,10 +477,6 @@ export async function POST(request: Request) {
       uploaderUid,
       uploaderUserId: uploader?.id,
     });
-    const statementPeriod = matchingStatementPeriod(
-      typeof extraction?.invoiceDate === "string" ? extraction.invoiceDate : null,
-      statementPeriods,
-    );
     const decision = decideInvoice({
       extraction: extractionWithLineItems,
       extractionValidation: validation,
@@ -509,9 +494,6 @@ export async function POST(request: Request) {
         cards,
         cardResolution,
         projects,
-        statementPeriodId: statementPeriod?.id ?? null,
-        // La période sert au reporting; elle ne doit pas bloquer l’acceptation.
-        requireStatementPeriod: false,
         requireProject: false,
       },
     });
@@ -583,7 +565,7 @@ export async function POST(request: Request) {
     }
 
     if (decision.decision === "AUTO_APPROVED") {
-      const { accountCode, cardId, statementPeriodId } = decision.resolutions;
+      const { accountCode, cardId } = decision.resolutions;
       if (!accountCode || !cardId || !normalized.invoiceDate) {
         throw new Error("La décision automatique ne contient pas toutes les références comptables requises.");
       }
@@ -606,7 +588,7 @@ export async function POST(request: Request) {
           category: classification.category,
           accountId: account.id,
           cardId,
-          statementPeriodId,
+          statementPeriodId: null,
           projectId,
           lineItems: JSON.stringify(lineItems),
           classificationNote: `${extraction.notes} ${classification.note}`.trim(),
