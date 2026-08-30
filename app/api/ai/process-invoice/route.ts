@@ -510,7 +510,8 @@ export async function POST(request: Request) {
         cardResolution,
         projects,
         statementPeriodId: statementPeriod?.id ?? null,
-        requireStatementPeriod: true,
+        // La période sert au reporting; elle ne doit pas bloquer l’acceptation.
+        requireStatementPeriod: false,
         requireProject: false,
       },
     });
@@ -583,7 +584,7 @@ export async function POST(request: Request) {
 
     if (decision.decision === "AUTO_APPROVED") {
       const { accountCode, cardId, statementPeriodId } = decision.resolutions;
-      if (!accountCode || !cardId || !statementPeriodId || !normalized.invoiceDate) {
+      if (!accountCode || !cardId || !normalized.invoiceDate) {
         throw new Error("La décision automatique ne contient pas toutes les références comptables requises.");
       }
       const account = expenseAccounts.find((candidate) =>

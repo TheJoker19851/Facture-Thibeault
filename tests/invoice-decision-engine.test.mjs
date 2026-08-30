@@ -125,6 +125,16 @@ test("accepte temporairement une facture sans bloquer sur le projet", () => {
   assert.equal(result.resolutions.projectId, null);
 });
 
+test("accepte automatiquement une facture sans période de relevé", () => {
+  const result = decision(
+    {},
+    { context: { ...baseContext, statementPeriodId: null, requireStatementPeriod: false } },
+  );
+  assert.equal(result.decision, "AUTO_APPROVED");
+  assert.ok(!codes(result).includes("MISSING_REQUIRED_FIELD"));
+  assert.equal(result.resolutions.statementPeriodId, null);
+});
+
 test("signale un doublon potentiel sans confondre fournisseur et montant seuls", () => {
   const duplicate = [{ id: "TX-1", transactionDate: "2026-08-17", vendor: "Quincaillerie", invoiceNumber: "F-1", totalCents: "11498", card: { id: "CARD-1" } }];
   assert.equal(findPotentialDuplicates(baseExtraction, duplicate, "CARD-1").length, 1);
