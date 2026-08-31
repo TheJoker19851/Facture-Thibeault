@@ -169,6 +169,22 @@ export interface AdminRecordUserAuditVariables {
   auditDetails: string;
 }
 
+export interface AdminReprocessInvoiceIntakeAiData {
+  invoiceIntake_updateMany: number;
+  auditEvent_upsert: AuditEvent_Key;
+}
+
+export interface AdminReprocessInvoiceIntakeAiVariables {
+  receiptId: string;
+  currentProcessingStatus: string;
+  currentProcessingState: string;
+  currentProcessingAttempts: number;
+  actorUid: string;
+  actorRole: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+
 export interface AdminSeedCardStatementPeriodData {
   cardStatementPeriod_upsert: CardStatementPeriod_Key;
 }
@@ -3051,6 +3067,18 @@ export const retryInvoiceIntakeAiReviewV2Ref: RetryInvoiceIntakeAiReviewV2Ref;
 
 export function retryInvoiceIntakeAiReviewV2(vars: RetryInvoiceIntakeAiReviewV2Variables): MutationPromise<RetryInvoiceIntakeAiReviewV2Data, RetryInvoiceIntakeAiReviewV2Variables>;
 export function retryInvoiceIntakeAiReviewV2(dc: DataConnect, vars: RetryInvoiceIntakeAiReviewV2Variables): MutationPromise<RetryInvoiceIntakeAiReviewV2Data, RetryInvoiceIntakeAiReviewV2Variables>;
+
+interface AdminReprocessInvoiceIntakeAiRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminReprocessInvoiceIntakeAiVariables): MutationRef<AdminReprocessInvoiceIntakeAiData, AdminReprocessInvoiceIntakeAiVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AdminReprocessInvoiceIntakeAiVariables): MutationRef<AdminReprocessInvoiceIntakeAiData, AdminReprocessInvoiceIntakeAiVariables>;
+  operationName: string;
+}
+export const adminReprocessInvoiceIntakeAiRef: AdminReprocessInvoiceIntakeAiRef;
+
+export function adminReprocessInvoiceIntakeAi(vars: AdminReprocessInvoiceIntakeAiVariables): MutationPromise<AdminReprocessInvoiceIntakeAiData, AdminReprocessInvoiceIntakeAiVariables>;
+export function adminReprocessInvoiceIntakeAi(dc: DataConnect, vars: AdminReprocessInvoiceIntakeAiVariables): MutationPromise<AdminReprocessInvoiceIntakeAiData, AdminReprocessInvoiceIntakeAiVariables>;
 
 interface MaterializeInvoiceIntakeV2Ref {
   /* Allow users to create refs without passing in DataConnect */

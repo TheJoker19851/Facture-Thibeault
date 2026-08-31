@@ -219,6 +219,14 @@ function hasManualAiRetryableError(intake: IntakeData["invoiceIntakes"][number],
   }
 }
 
+function canAdminForceReprocess(intake: IntakeData["invoiceIntakes"][number]) {
+  return Boolean(
+    intake.accountingStatus === "NOT_POSTED" &&
+    (intake.processingStatus === "NEEDS_REVIEW" || intake.processingStatus === "FAILED") &&
+    intake.processingState !== "RUNNING",
+  );
+}
+
 async function extractInvoice(receiptId: string, files: File[], accountLabels: string[] = []) {
   const environment = inferApplicationEnvironment({
     appEnvironment: process.env.APP_ENV ?? process.env.NEXT_PUBLIC_APP_ENV,
@@ -289,6 +297,7 @@ export async function POST(request: Request) {
 
     const formData = await request.formData();
     const receiptId = formData.get("receiptId");
+    const forceReprocess = formData.get("forceReprocess") === "ADMIN_TEST";
     if (typeof receiptId !== "string" || !/^[a-zA-Z0-9_-]{8,128}$/.test(receiptId)) {
       return Response.json({ error: "Identifiant de facture invalide." }, { status: 400 });
     }
@@ -304,18 +313,64 @@ export async function POST(request: Request) {
     console.info("[invoice-ai] phase=intake_read", { found: Boolean(intake) });
     if (!intake) return Response.json({ error: "Le dépôt de facture n'existe pas." }, { status: 404 });
     const canReview = identity.role === "KIM" || identity.role === "ADMIN";
+    if (forceReprocess && (identity.internal || identity.role !== "ADMIN")) {
+      return Response.json({ error: "La réanalyse forcée est réservée à un administrateur authentifié." }, { status: 403 });
+    }
     if (!identity.internal && !canReview && intake.uploaderUid !== identity.uid) {
       return Response.json({ error: "Ce dépôt appartient à un autre utilisateur." }, { status: 403 });
     }
     ownedIntake = true;
     const maxAttempts = invoiceAiMaxAttempts();
 
+    if (forceReprocess) {
+      if (!canAdminForceReprocess(intake)) {
+        return Response.json({ error: "Seule une facture en revue, non comptabilisée et non en cours de traitement peut être réanalysée." }, { status: 409 });
+      }
+      if (Number(intake.processingAttempts ?? 0) >= maxAttempts) {
+        return Response.json({ error: "La facture a atteint la limite de tentatives IA." }, { status: 422 });
+      }
+      let reprocess: { data: IntakeMutationData };
+      try {
+        reprocess = await dataConnect.executeMutation<IntakeMutationData, {
+          receiptId: string;
+          currentProcessingStatus: string;
+          currentProcessingState: string;
+          currentProcessingAttempts: number;
+          actorUid: string;
+          actorRole: string;
+          auditEventId: string;
+          auditDetails: string;
+        }>(
+          "AdminReprocessInvoiceIntakeAi",
+          {
+            receiptId,
+            currentProcessingStatus: intake.processingStatus ?? "NEEDS_REVIEW",
+            currentProcessingState: intake.processingState ?? "COMPLETED",
+            currentProcessingAttempts: Number(intake.processingAttempts ?? 0),
+            actorUid: identity.uid,
+            actorRole: identity.role,
+            auditEventId: auditEventId(receiptId, AUDIT_ACTIONS.AI_REANALYSIS_REQUESTED, String(Date.now())),
+            auditDetails: auditDetails({ source: "ADMIN_TEST", previousProcessingStatus: intake.processingStatus ?? null, previousProcessingState: intake.processingState ?? null }),
+          },
+        );
+      } catch (error) {
+        const latest = await readIntake();
+        if (latest) return existingIntakeResponse(receiptId, latest);
+        throw error;
+      }
+      if (reprocess.data.invoiceIntake_updateMany !== 1) {
+        const latest = await readIntake();
+        if (latest) return existingIntakeResponse(receiptId, latest);
+        throw new Error("Le dépôt de facture n'existe plus pendant la réanalyse ADMIN.");
+      }
+    }
+
     // A posted/validated/reviewed intake is already owned by the existing
     // result. Only a verified transient Gemini error or POSTING_ERROR can be
     // deliberately reopened, and each reopen is a database compare-and-set.
-    const transientGeminiRetry = isTransientGeminiCapacityRetry(intake);
-    const manualAiRetry = !identity.internal && canReview && hasManualAiRetryableError(intake, maxAttempts);
-    if (isStableIntakeState(intake) && !transientGeminiRetry && !manualAiRetry) return existingIntakeResponse(receiptId, intake);
+    const transientGeminiRetry = !forceReprocess && isTransientGeminiCapacityRetry(intake);
+    const manualAiRetry = !forceReprocess && !identity.internal && canReview && hasManualAiRetryableError(intake, maxAttempts);
+    if (!forceReprocess && isStableIntakeState(intake) && !transientGeminiRetry && !manualAiRetry) return existingIntakeResponse(receiptId, intake);
     if (transientGeminiRetry && hasReachedInvoiceAiMaxAttempts(intake, maxAttempts)) {
       const currentAttempts = Number(intake.processingAttempts ?? 0);
       const decisionExceptions = decisionExceptionsAtMaxAttempts(intake.decisionExceptions, maxAttempts);

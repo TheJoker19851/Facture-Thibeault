@@ -41,13 +41,14 @@ export async function getInvoiceIntakeStatus(receiptId: string): Promise<Invoice
   return payload as InvoiceIntakeStatus;
 }
 
-/** Relance une erreur IA sans extraction, uniquement pour KIM/ADMIN côté serveur. */
-export async function retryInvoiceIntakeAi(receiptId: string): Promise<InvoiceIntakeRetryResponse> {
+/** Relance une analyse IA; le mode forcé est réservé au test ADMIN côté serveur. */
+export async function retryInvoiceIntakeAi(receiptId: string, options: { forceReprocess?: boolean } = {}): Promise<InvoiceIntakeRetryResponse> {
   const user = firebaseAuth?.currentUser;
   if (!user) throw new Error("Une session Firebase Authentication est requise pour relancer l'analyse.");
 
   const form = new FormData();
   form.append("receiptId", receiptId);
+  if (options.forceReprocess) form.append("forceReprocess", "ADMIN_TEST");
   const response = await fetch("/api/ai/process-invoice", {
     method: "POST",
     headers: {

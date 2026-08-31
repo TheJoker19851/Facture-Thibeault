@@ -1398,6 +1398,75 @@ mutation RetryInvoiceIntakeAiReviewV2(
   }
 }
 
+# An ADMIN may deliberately rerun the AI against an unposted intake while
+# testing extraction/decision behavior. The compare-and-set protects against
+# a concurrent reviewer or worker and clears the previous AI proposal so a
+# failed test cannot leave stale values looking current.
+mutation AdminReprocessInvoiceIntakeAi(
+  $receiptId: String!
+  $currentProcessingStatus: String!
+  $currentProcessingState: String!
+  $currentProcessingAttempts: Int!
+  $actorUid: String!
+  $actorRole: String!
+  $auditEventId: String!
+  $auditDetails: String!
+) @auth(level: NO_ACCESS) @transaction {
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      processingStatus: { eq: $currentProcessingStatus }
+      processingState: { eq: $currentProcessingState }
+      processingAttempts: { eq: $currentProcessingAttempts }
+      accountingStatus: { eq: "NOT_POSTED" }
+    }
+    data: {
+      status: "PROCESSING"
+      processingStatus: "PROCESSING"
+      processingState: "RETRY"
+      lastError: null
+      aiErrorCode: null
+      aiModel: null
+      aiConfidence: null
+      extractedVendor: null
+      extractedInvoiceNumber: null
+      extractedInvoiceDate: null
+      extractedSubtotalCents: null
+      extractedTpsCents: null
+      extractedTvqCents: null
+      extractedTotalCents: null
+      extractedLineItems: null
+      extractedCurrency: null
+      extractedSku: null
+      extractedCategory: null
+      extractedProjectId: null
+      classificationAccountCode: null
+      classificationCategory: null
+      classificationSource: null
+      classificationConfidence: null
+      classificationStatus: null
+      aiNotes: null
+      decisionExceptions: "[]"
+      decisionChecks: "[]"
+    }
+  )
+  query @redact @check(
+    expr: "response.invoiceIntake_updateMany == 1"
+    message: "La facture a changé d’état; actualisez avant de relancer l’analyse."
+  ) {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }) { receiptId }
+  }
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: "AI_REANALYSIS_REQUESTED"
+    entityType: "InvoiceIntake"
+    entityId: $receiptId
+    details: $auditDetails
+  })
+}
+
 # One server-only materialization path is shared by automatic and human
 # decisions. The API routes authenticate the caller and validate Storage; this
 # transaction owns every final SQL invariant and is inaccessible to clients.

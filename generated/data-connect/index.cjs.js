@@ -905,6 +905,20 @@ exports.retryInvoiceIntakeAiReviewV2 = function retryInvoiceIntakeAiReviewV2(dcO
 }
 ;
 
+const adminReprocessInvoiceIntakeAiRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AdminReprocessInvoiceIntakeAi', inputVars);
+}
+adminReprocessInvoiceIntakeAiRef.operationName = 'AdminReprocessInvoiceIntakeAi';
+exports.adminReprocessInvoiceIntakeAiRef = adminReprocessInvoiceIntakeAiRef;
+
+exports.adminReprocessInvoiceIntakeAi = function adminReprocessInvoiceIntakeAi(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(adminReprocessInvoiceIntakeAiRef(dcInstance, inputVars));
+}
+;
+
 const materializeInvoiceIntakeV2Ref = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();

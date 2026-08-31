@@ -110,6 +110,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*RetryInvoiceIntakeAiTransient*](#retryinvoiceintakeaitransient)
   - [*RetryInvoiceIntakeAiTransientV2*](#retryinvoiceintakeaitransientv2)
   - [*RetryInvoiceIntakeAiReviewV2*](#retryinvoiceintakeaireviewv2)
+  - [*AdminReprocessInvoiceIntakeAi*](#adminreprocessinvoiceintakeai)
   - [*MaterializeInvoiceIntakeV2*](#materializeinvoiceintakev2)
   - [*CorrectPostedInvoice*](#correctpostedinvoice)
   - [*CommitInvoiceIntake*](#commitinvoiceintake)
@@ -13146,9 +13147,9 @@ import { connectorConfig, retryInvoiceIntakeAiReviewV2, RetryInvoiceIntakeAiRevi
 
 // The `RetryInvoiceIntakeAiReviewV2` mutation requires an argument of type `RetryInvoiceIntakeAiReviewV2Variables`:
 const retryInvoiceIntakeAiReviewV2Vars: RetryInvoiceIntakeAiReviewV2Variables = {
-  receiptId: ...,
-  currentAttempts: ...,
-  maxAttempts: ...,
+  receiptId: ..., 
+  currentAttempts: ..., 
+  maxAttempts: ..., 
 };
 
 // Call the `retryInvoiceIntakeAiReviewV2()` function to execute the mutation.
@@ -13178,9 +13179,9 @@ import { connectorConfig, retryInvoiceIntakeAiReviewV2Ref, RetryInvoiceIntakeAiR
 
 // The `RetryInvoiceIntakeAiReviewV2` mutation requires an argument of type `RetryInvoiceIntakeAiReviewV2Variables`:
 const retryInvoiceIntakeAiReviewV2Vars: RetryInvoiceIntakeAiReviewV2Variables = {
-  receiptId: ...,
-  currentAttempts: ...,
-  maxAttempts: ...,
+  receiptId: ..., 
+  currentAttempts: ..., 
+  maxAttempts: ..., 
 };
 
 // Call the `retryInvoiceIntakeAiReviewV2Ref()` function to get a reference to the mutation.
@@ -13202,6 +13203,141 @@ console.log(data.invoiceIntake_updateMany);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.invoiceIntake_updateMany);
+});
+```
+
+## AdminReprocessInvoiceIntakeAi
+You can execute the `AdminReprocessInvoiceIntakeAi` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+adminReprocessInvoiceIntakeAi(vars: AdminReprocessInvoiceIntakeAiVariables): MutationPromise<AdminReprocessInvoiceIntakeAiData, AdminReprocessInvoiceIntakeAiVariables>;
+
+interface AdminReprocessInvoiceIntakeAiRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AdminReprocessInvoiceIntakeAiVariables): MutationRef<AdminReprocessInvoiceIntakeAiData, AdminReprocessInvoiceIntakeAiVariables>;
+}
+export const adminReprocessInvoiceIntakeAiRef: AdminReprocessInvoiceIntakeAiRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+adminReprocessInvoiceIntakeAi(dc: DataConnect, vars: AdminReprocessInvoiceIntakeAiVariables): MutationPromise<AdminReprocessInvoiceIntakeAiData, AdminReprocessInvoiceIntakeAiVariables>;
+
+interface AdminReprocessInvoiceIntakeAiRef {
+  ...
+  (dc: DataConnect, vars: AdminReprocessInvoiceIntakeAiVariables): MutationRef<AdminReprocessInvoiceIntakeAiData, AdminReprocessInvoiceIntakeAiVariables>;
+}
+export const adminReprocessInvoiceIntakeAiRef: AdminReprocessInvoiceIntakeAiRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the adminReprocessInvoiceIntakeAiRef:
+```typescript
+const name = adminReprocessInvoiceIntakeAiRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `AdminReprocessInvoiceIntakeAi` mutation requires an argument of type `AdminReprocessInvoiceIntakeAiVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface AdminReprocessInvoiceIntakeAiVariables {
+  receiptId: string;
+  currentProcessingStatus: string;
+  currentProcessingState: string;
+  currentProcessingAttempts: number;
+  actorUid: string;
+  actorRole: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that executing the `AdminReprocessInvoiceIntakeAi` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `AdminReprocessInvoiceIntakeAiData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface AdminReprocessInvoiceIntakeAiData {
+  invoiceIntake_updateMany: number;
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+### Using `AdminReprocessInvoiceIntakeAi`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, adminReprocessInvoiceIntakeAi, AdminReprocessInvoiceIntakeAiVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminReprocessInvoiceIntakeAi` mutation requires an argument of type `AdminReprocessInvoiceIntakeAiVariables`:
+const adminReprocessInvoiceIntakeAiVars: AdminReprocessInvoiceIntakeAiVariables = {
+  receiptId: ..., 
+  currentProcessingStatus: ..., 
+  currentProcessingState: ..., 
+  currentProcessingAttempts: ..., 
+  actorUid: ..., 
+  actorRole: ..., 
+  auditEventId: ..., 
+  auditDetails: ..., 
+};
+
+// Call the `adminReprocessInvoiceIntakeAi()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await adminReprocessInvoiceIntakeAi(adminReprocessInvoiceIntakeAiVars);
+// Variables can be defined inline as well.
+const { data } = await adminReprocessInvoiceIntakeAi({ receiptId: ..., currentProcessingStatus: ..., currentProcessingState: ..., currentProcessingAttempts: ..., actorUid: ..., actorRole: ..., auditEventId: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await adminReprocessInvoiceIntakeAi(dataConnect, adminReprocessInvoiceIntakeAiVars);
+
+console.log(data.invoiceIntake_updateMany);
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+adminReprocessInvoiceIntakeAi(adminReprocessInvoiceIntakeAiVars).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
+  console.log(data.auditEvent_upsert);
+});
+```
+
+### Using `AdminReprocessInvoiceIntakeAi`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, adminReprocessInvoiceIntakeAiRef, AdminReprocessInvoiceIntakeAiVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `AdminReprocessInvoiceIntakeAi` mutation requires an argument of type `AdminReprocessInvoiceIntakeAiVariables`:
+const adminReprocessInvoiceIntakeAiVars: AdminReprocessInvoiceIntakeAiVariables = {
+  receiptId: ..., 
+  currentProcessingStatus: ..., 
+  currentProcessingState: ..., 
+  currentProcessingAttempts: ..., 
+  actorUid: ..., 
+  actorRole: ..., 
+  auditEventId: ..., 
+  auditDetails: ..., 
+};
+
+// Call the `adminReprocessInvoiceIntakeAiRef()` function to get a reference to the mutation.
+const ref = adminReprocessInvoiceIntakeAiRef(adminReprocessInvoiceIntakeAiVars);
+// Variables can be defined inline as well.
+const ref = adminReprocessInvoiceIntakeAiRef({ receiptId: ..., currentProcessingStatus: ..., currentProcessingState: ..., currentProcessingAttempts: ..., actorUid: ..., actorRole: ..., auditEventId: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = adminReprocessInvoiceIntakeAiRef(dataConnect, adminReprocessInvoiceIntakeAiVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.invoiceIntake_updateMany);
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.invoiceIntake_updateMany);
+  console.log(data.auditEvent_upsert);
 });
 ```
 
@@ -14211,3 +14347,4 @@ executeMutation(ref).then((response) => {
   console.log(data.invoiceIntake_update);
 });
 ```
+

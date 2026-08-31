@@ -539,7 +539,7 @@ function processingStatusOf(intake: InvoiceIntake) {
 }
 
 function isIntakeException(intake: InvoiceIntake) {
-  return processingStatusOf(intake) === "NEEDS_REVIEW" || intake.accountingStatus === "POSTING_ERROR";
+  return processingStatusOf(intake) === "NEEDS_REVIEW" || processingStatusOf(intake) === "FAILED" || intake.accountingStatus === "POSTING_ERROR";
 }
 
 function isIntakeQueueItem(intake: InvoiceIntake) {
@@ -1436,6 +1436,7 @@ function TransactionEvidence({ transaction }: { transaction: Transaction }) {
 function auditActionLabel(action: string) {
   const labels: Record<string, string> = {
     DEPOSIT_CREATED: "Dépôt créé",
+    AI_REANALYSIS_REQUESTED: "Réanalyse IA demandée",
     AI_EXTRACTION_COMPLETED: "Extraction IA terminée",
     AI_PROCESSING_FAILED: "Traitement échoué",
     HUMAN_CORRECTION: "Correction humaine",
@@ -1462,6 +1463,7 @@ function auditActionLabel(action: string) {
 function auditActionDescription(action: string) {
   const descriptions: Record<string, string> = {
     DEPOSIT_CREATED: "La photo a été reçue et conservée dans le stockage sécurisé.",
+    AI_REANALYSIS_REQUESTED: "Un administrateur a relancé l’analyse IA à des fins de test; la facture n’était pas comptabilisée.",
     AI_EXTRACTION_COMPLETED: "L’IA a rempli les champs visibles. Les valeurs incertaines doivent être confirmées avant la création de l’écriture.",
     AI_PROCESSING_FAILED: "Le traitement automatique a rencontré une erreur; une revue manuelle est nécessaire.",
     HUMAN_CORRECTION: "Un membre autorisé a modifié les champs indiqués avant la création de l’écriture.",
@@ -1710,6 +1712,13 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
     !selectedIntake.aiModel &&
     parseIntakeExceptions(selectedIntake).some((exception) => exception.code === "AI_PROCESSING_ERROR"),
   );
+  const canAdminReanalyze = Boolean(
+    selectedIntake &&
+    identity.role === "ADMIN" &&
+    selectedIntake.accountingStatus === "NOT_POSTED" &&
+    (selectedIntake.processingStatus === "NEEDS_REVIEW" || selectedIntake.processingStatus === "FAILED") &&
+    selectedIntake.processingState !== "RUNNING",
+  );
 
   const retryAi = async () => {
     if (!selectedIntake || !canRetryAi) return;
@@ -1724,6 +1733,22 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
     } catch (error) {
       setRetryState("error");
       setRetryMessage(error instanceof Error ? error.message : "La nouvelle analyse n'a pas pu être lancée.");
+    }
+  };
+
+  const reanalyzeAsAdmin = async () => {
+    if (!selectedIntake || !canAdminReanalyze) return;
+    if (!window.confirm("Réanalyser cette facture avec l’IA ? Cette action de test effacera la proposition IA actuelle et ne sera disponible que tant que la facture n’est pas comptabilisée.")) return;
+    setRetryState("saving");
+    setRetryMessage("");
+    try {
+      await retryInvoiceIntakeAi(selectedIntake.receiptId, { forceReprocess: true });
+      setRetryState("saved");
+      setRetryMessage("Réanalyse IA lancée; actualisation de la facture…");
+      window.setTimeout(() => window.location.reload(), 500);
+    } catch (error) {
+      setRetryState("error");
+      setRetryMessage(error instanceof Error ? error.message : "La réanalyse IA n'a pas pu être lancée.");
     }
   };
 
@@ -2028,7 +2053,8 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
       </section>
       {selectedIntake ? <form className="panel intake-review" onSubmit={(event) => void saveReview(event, "save")}>
         <div className="panel-header"><div><p className="eyebrow">{processingStatusOf(selectedIntake) === "VALIDATED" ? "Prête pour comptabilisation" : "Exception à résoudre"}</p><h2>{draft.vendor || "Facture sélectionnée"}</h2></div><span className={intakeStatusClass(processingStatusOf(selectedIntake))}>{intakeQueueStatusLabel(selectedIntake)}</span></div>
-        {canRetryAi && <div className="detail-alert"><div><p className="eyebrow">Erreur technique sans extraction</p><span>La lecture IA n’a enregistré aucune donnée; vous pouvez relancer l’analyse après correction du traitement.</span><button className="secondary-button" type="button" onClick={() => void retryAi()} disabled={retryState === "saving"}>{retryState === "saving" ? "Nouvelle analyse…" : "Relancer l’analyse IA"}</button>{retryMessage && <p className={`intake-review-message ${retryState}`}>{retryMessage}</p>}</div></div>}
+        {canRetryAi && !canAdminReanalyze && <div className="detail-alert"><div><p className="eyebrow">Erreur technique sans extraction</p><span>La lecture IA n’a enregistré aucune donnée; vous pouvez relancer l’analyse après correction du traitement.</span><button className="secondary-button" type="button" onClick={() => void retryAi()} disabled={retryState === "saving"}>{retryState === "saving" ? "Nouvelle analyse…" : "Relancer l’analyse IA"}</button>{retryMessage && <p className={`intake-review-message ${retryState}`}>{retryMessage}</p>}</div></div>}
+        {canAdminReanalyze && <div className="detail-alert"><div><p className="eyebrow">Test ADMIN</p><span>Relance l’analyse IA sur cette facture non comptabilisée, même si une extraction existe déjà. La proposition actuelle sera remplacée.</span><button className="secondary-button" type="button" onClick={() => void reanalyzeAsAdmin()} disabled={retryState === "saving"}>{retryState === "saving" ? "Réanalyse en cours…" : "Réanalyser avec l’IA"}</button>{retryMessage && <p className={`intake-review-message ${retryState}`}>{retryMessage}</p>}</div></div>}
         {visibleReviewMessages.length > 0 && <div className="detail-alert"><div className="detail-alert-icon">!</div><div><p className="eyebrow">À corriger</p>{visibleReviewMessages.map((message) => <span key={message}>{message}</span>)}</div></div>}
         <InvoiceIntakeEvidence key={selectedIntake.receiptId} intake={selectedIntake} />
         <AuditTrailView events={auditEvents} role={identity.role} state={auditState} cards={cards} projects={projects} />
