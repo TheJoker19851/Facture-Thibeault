@@ -52,7 +52,7 @@ export async function retryInvoiceIntakeAi(receiptId: string, options: { forceRe
   const response = await fetch("/api/ai/process-invoice", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${await user.getIdToken()}`,
+      Authorization: `Bearer ${await user.getIdToken(true)}`,
       "x-invoice-client-version": INVOICE_CLIENT_VERSION,
     },
     body: form,

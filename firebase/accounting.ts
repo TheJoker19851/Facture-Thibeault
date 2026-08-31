@@ -666,7 +666,8 @@ export async function commitInvoiceIntake(input: InvoiceIntakeCommitInput) {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${await user.getIdToken()}`,
+      // Commit is privileged; refresh custom claims after a role change.
+      authorization: `Bearer ${await user.getIdToken(true)}`,
       "x-invoice-client-version": INVOICE_CLIENT_VERSION,
     },
     body: JSON.stringify(input),

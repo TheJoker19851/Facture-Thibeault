@@ -56,7 +56,10 @@ export function FirebaseShell({ children }: { children: ReactNode }) {
       }
 
       setLoading(true);
-      nextUser.getIdTokenResult()
+      // Custom role claims are not necessarily propagated to the cached ID
+      // token immediately after an admin changes an account. Refresh here so
+      // the role displayed by the shell matches the token sent to APIs.
+      nextUser.getIdTokenResult(true)
         .then((token) => {
           setRole(readRoleClaim(token.claims.role));
         })
