@@ -2,7 +2,7 @@
 
 import { ChangeEvent, createContext, FormEvent, Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getDownloadURL, ref } from "firebase/storage";
-import { AdminUserActionError, accountingReadSource, commitInvoiceIntake, correctPostedInvoice, deleteExpenseAccount, deleteProject, deletePostedInvoice, discardInvoiceIntake, loadAccountingSnapshot, loadAdminUserAccess, loadReportAdjustments, loadTransactionCorrections, mapAccountingSnapshot, removeDemoAccountingData, runAdminUserAction, saveCreditCard, saveExpenseAccount, saveInvoiceIntakeReview, saveProject, saveReportAdjustments, saveStatementPeriod, type AccountingLineItem, type ManualAdjustmentRow } from "../../firebase/accounting";
+import { AdminUserActionError, accountingReadSource, commitInvoiceIntake, correctPostedInvoice, deleteCreditCard, deleteCreditCardAndHolder, deleteExpenseAccount, deleteProject, deletePostedInvoice, discardInvoiceIntake, loadAccountingSnapshot, loadAdminUserAccess, loadReportAdjustments, loadTransactionCorrections, mapAccountingSnapshot, removeDemoAccountingData, runAdminUserAction, saveCreditCard, saveExpenseAccount, saveInvoiceIntakeReview, saveProject, saveReportAdjustments, saveStatementPeriod, type AccountingLineItem, type ManualAdjustmentRow } from "../../firebase/accounting";
 import { getInvoiceIntakeStatus, retryInvoiceIntakeAi, type InvoiceIntakeStatus } from "../../firebase/ai";
 import { appCheckConfigured, firebaseAuth, firebaseConfigured, firebaseStorage } from "../../firebase/client";
 import { sqlConnectConfigured } from "../../firebase/data-connect";
@@ -3218,6 +3218,62 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
     }
   };
 
+  const deleteCard = async (card: CreditCard) => {
+    if (!ensureAdminPersistence()) return;
+    if (!window.confirm(`Supprimer la carte •••• ${card.lastFour} ? L’historique comptable, s’il existe, empêchera la suppression.`)) return;
+    setBusyKey(`delete-card-only-${card.id}`);
+    setError("");
+    setNotice("");
+    try {
+      await deleteCreditCard({ id: card.id, auditDetails: auditDetails({ source: "admin_card_directory", card: { id: card.id, lastFour: card.lastFour, holderId: card.holderId } }) });
+      const nextCards = cards.filter((candidate) => candidate.id !== card.id);
+      setCards(nextCards);
+      setCardHolderDrafts((current) => {
+        const next = { ...current };
+        delete next[card.id];
+        return next;
+      });
+      onDataChange({ cards: nextCards });
+      setNotice(`Carte •••• ${card.lastFour} supprimée. Le titulaire est conservé.`);
+    } catch (reason) {
+      showError(reason);
+    } finally {
+      setBusyKey("");
+    }
+  };
+
+  const deleteCardAndHolder = async (card: CreditCard) => {
+    if (!ensureAdminPersistence()) return;
+    const holderId = card.holderId ?? "";
+    const holder = users.find((user) => user.id === holderId);
+    if (!holder) {
+      setError("Le titulaire associé à cette carte est introuvable; aucune suppression n’a été effectuée.");
+      return;
+    }
+    if (!window.confirm(`Supprimer la carte •••• ${card.lastFour} et le titulaire ${holder.displayName} ? Cette action est irréversible si aucun historique n’est présent.`)) return;
+    setBusyKey(`delete-card-${card.id}`);
+    setError("");
+    setNotice("");
+    try {
+      const result = await deleteCreditCardAndHolder({ cardId: card.id, holderId });
+      const nextCards = cards.filter((candidate) => candidate.id !== card.id);
+      const nextUsers = users.filter((candidate) => candidate.id !== holderId);
+      setCards(nextCards);
+      setUsers(nextUsers);
+      setCardHolderDrafts((current) => {
+        const next = { ...current };
+        delete next[card.id];
+        return next;
+      });
+      onDataChange({ cards: nextCards, users: nextUsers });
+      setNotice(result.warning ?? `Carte •••• ${card.lastFour} et titulaire ${holder.displayName} supprimés.`);
+    } catch (reason) {
+      showError(reason);
+    } finally {
+      setBusyKey("");
+    }
+  };
+
   const ensureAdminPersistence = () => {
     if (role !== "ADMIN") {
       setError("Seul un administrateur peut modifier ce référentiel.");
@@ -3571,7 +3627,7 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
        </>}
       {selectedSection === "cards" && <>
         <form className="directory-form" onSubmit={addCard}><div className="field-grid"><label className="field"><span>Quatre derniers chiffres</span><input required inputMode="numeric" maxLength={4} value={cardForm.lastFour} onChange={(event) => setCardForm((current) => ({ ...current, lastFour: event.target.value.replace(/\D/g, "") }))} placeholder="9001" /></label><label className="field"><span>Titulaire</span><select required value={cardForm.holderId} onChange={(event) => setCardForm((current) => ({ ...current, holderId: event.target.value }))}><option value="">Sélectionner le profil</option>{users.filter((user) => user.status === "ACTIVE").map((user) => <option key={user.id} value={user.id}>{user.displayName} · {user.jobTitle ?? user.role}</option>)}</select></label></div><div className="field-grid"><label className="field"><span>Fonction de la carte</span><input value={cardForm.cardFunction} onChange={(event) => setCardForm((current) => ({ ...current, cardFunction: event.target.value }))} placeholder="Fonction démo" /></label><div className="directory-help">Seuls les quatre derniers chiffres sont conservés. Le numéro complet de la carte ne passe jamais dans l&apos;application.</div></div><button className="primary-button" type="submit" disabled={!persistenceReady || busyKey === "add-card"}>{busyKey === "add-card" ? "Enregistrement…" : "Ajouter et associer la carte"}</button></form>
-        <div className="directory-list">{visibleCards.map((card) => <div className="directory-row card-directory-row" key={card.id}><div><strong>•••• {card.lastFour}</strong><small>{card.function} · {card.status} · {card.startDate || "date inconnue"}</small></div><select value={cardHolderDrafts[card.id] ?? card.holderId ?? ""} onChange={(event) => setCardHolderDrafts((current) => ({ ...current, [card.id]: event.target.value }))} aria-label={`Titulaire de la carte ${card.lastFour}`}><option value="">Titulaire à choisir</option>{users.filter((user) => user.status === "ACTIVE").map((user) => <option key={user.id} value={user.id}>{user.displayName}</option>)}</select><button className="secondary-button" type="button" disabled={!persistenceReady || busyKey === `card-${card.id}`} onClick={() => void saveCardAssignment(card)}>{busyKey === `card-${card.id}` ? "…" : "Enregistrer"}</button><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `toggle-card-${card.id}`} onClick={() => void toggleCard(card)}>{card.status === "Actif" ? "Désactiver" : "Réactiver"}</button></div>)}</div>
+        <div className="directory-list">{visibleCards.map((card) => <div className="directory-row card-directory-row" key={card.id}><div><strong>•••• {card.lastFour}</strong><small>{card.function} · {card.status} · {card.startDate || "date inconnue"}</small></div><select value={cardHolderDrafts[card.id] ?? card.holderId ?? ""} onChange={(event) => setCardHolderDrafts((current) => ({ ...current, [card.id]: event.target.value }))} aria-label={`Titulaire de la carte ${card.lastFour}`}><option value="">Titulaire à choisir</option>{users.filter((user) => user.status === "ACTIVE").map((user) => <option key={user.id} value={user.id}>{user.displayName}</option>)}</select><div className="directory-actions card-directory-actions"><button className="secondary-button" type="button" disabled={!persistenceReady || busyKey === `card-${card.id}`} onClick={() => void saveCardAssignment(card)}>{busyKey === `card-${card.id}` ? "…" : "Enregistrer"}</button><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `toggle-card-${card.id}`} onClick={() => void toggleCard(card)}>{card.status === "Actif" ? "Désactiver" : "Réactiver"}</button>{canEditReferences && <><button className="text-button danger-text" type="button" disabled={!persistenceReady || busyKey === `delete-card-only-${card.id}`} onClick={() => void deleteCard(card)}>{busyKey === `delete-card-only-${card.id}` ? "…" : "Supprimer la carte"}</button><button className="text-button danger-text" type="button" disabled={!persistenceReady || busyKey === `delete-card-${card.id}` || users.find((user) => user.id === card.holderId)?.role === "ADMIN"} title={users.find((user) => user.id === card.holderId)?.role === "ADMIN" ? "Un profil ADMIN doit être conservé." : undefined} onClick={() => void deleteCardAndHolder(card)}>{busyKey === `delete-card-${card.id}` ? "…" : "Supprimer carte + titulaire"}</button></>}</div></div>)}</div>
       </>}
        {selectedSection === "accounts" && <>
          {canEditReferences ? <form className="directory-form" onSubmit={saveAccountReference}><div className="field-grid"><label className="field"><span>Numéro de compte</span><input required inputMode="numeric" value={accountForm.number} onChange={(event) => setAccountForm((current) => ({ ...current, number: event.target.value }))} placeholder="33544" /></label><label className="field"><span>Libellé / catégorie</span><input required value={accountForm.label} onChange={(event) => setAccountForm((current) => ({ ...current, label: event.target.value }))} placeholder="Matériaux divers" /></label></div><div className="field-grid"><label className="field"><span>Type</span><select value={accountForm.type} onChange={(event) => setAccountForm((current) => ({ ...current, type: event.target.value }))}><option value="EXPENSE">Dépense</option><option value="TAX">Taxe</option></select></label><div className="directory-help">Le numéro est stocké comme texte afin de préserver les zéros initiaux. L’identifiant interne ne change pas lors d’une correction.</div></div><button className="primary-button" type="submit" disabled={!persistenceReady || busyKey.startsWith("account-")}>{busyKey.startsWith("account-") ? "Enregistrement…" : accountForm.id ? "Enregistrer la modification" : "Ajouter le compte"}</button></form> : <div className="config-note"><span>i</span><p>Le contrôle comptable peut consulter et sélectionner les comptes. La gestion du référentiel est réservée à ADMIN.</p></div>}

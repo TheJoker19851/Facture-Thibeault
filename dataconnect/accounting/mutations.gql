@@ -220,6 +220,65 @@ mutation DeleteExpenseAccount(
   })
 }
 
+mutation DeleteCreditCard(
+  $id: String!
+  $auditEventId: String!
+  $auditDetails: String!
+) @auth(expr: "auth.token.role == 'ADMIN'") @transaction {
+  query @redact @check(
+    expr: "response.query.card.size() == 1 && response.query.cardStatements.size() == 0 && response.query.cardHolderHistory.size() == 0 && response.query.cardTransactions.size() == 0"
+    message: "Cette carte possède un historique comptable et ne peut pas être supprimée. Désactivez-la plutôt."
+  ) {
+    card: creditCards(where: { id: { eq: $id } }, limit: 1) { id }
+    cardStatements: creditCardStatements(where: { card: { id: { eq: $id } } }, limit: 1) { id }
+    cardHolderHistory: creditCardHolderHistories(where: { card: { id: { eq: $id } } }, limit: 1) { id }
+    cardTransactions: expenseTransactions(where: { card: { id: { eq: $id } } }, limit: 1) { id }
+  }
+  creditCard_delete(key: { id: $id })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid_expr: "auth.uid"
+    actorRole_expr: "auth.token.role"
+    action: "CARD_DELETED"
+    entityType: "CreditCard"
+    entityId: $id
+    details: $auditDetails
+  })
+}
+
+mutation DeleteCreditCardAndHolder(
+  $cardId: String!
+  $holderId: String!
+  $auditEventId: String!
+  $auditDetails: String!
+) @auth(expr: "auth.token.role == 'ADMIN'") @transaction {
+  query @redact @check(
+    expr: "response.query.card.size() == 1 && response.query.holderCards.size() == 1 && response.query.cardStatements.size() == 0 && response.query.cardHolderHistory.size() == 0 && response.query.cardTransactions.size() == 0 && response.query.holderStatements.size() == 0 && response.query.holderHistory.size() == 0 && response.query.holderCorrections.size() == 0 && response.query.holderInvoices.size() == 0"
+    message: "Cette carte ou ce titulaire possède un historique ou une autre association et ne peut pas être supprimé. Désactivez la carte plutôt."
+  ) {
+    card: creditCards(where: { id: { eq: $cardId }, holder: { id: { eq: $holderId } } }, limit: 1) { id }
+    holderCards: creditCards(where: { holder: { id: { eq: $holderId } } }, limit: 2) { id }
+    cardStatements: creditCardStatements(where: { card: { id: { eq: $cardId } } }, limit: 1) { id }
+    cardHolderHistory: creditCardHolderHistories(where: { card: { id: { eq: $cardId } } }, limit: 1) { id }
+    cardTransactions: expenseTransactions(where: { card: { id: { eq: $cardId } } }, limit: 1) { id }
+    holderStatements: creditCardStatements(where: { holderIdSnapshot: { eq: $holderId } }, limit: 1) { id }
+    holderHistory: creditCardHolderHistories(where: { holder: { id: { eq: $holderId } } }, limit: 1) { id }
+    holderCorrections: transactionCorrections(where: { correctedBy: { id: { eq: $holderId } } }, limit: 1) { id }
+    holderInvoices: invoices(where: { createdBy: { id: { eq: $holderId } } }, limit: 1) { id }
+  }
+  creditCard_delete(key: { id: $cardId })
+  userProfile_delete(key: { id: $holderId })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid_expr: "auth.uid"
+    actorRole_expr: "auth.token.role"
+    action: "CARD_AND_HOLDER_DELETED"
+    entityType: "CreditCard"
+    entityId: $cardId
+    details: $auditDetails
+  })
+}
+
 mutation UpsertCardStatementPeriod(
   $id: String!
   $label: String!

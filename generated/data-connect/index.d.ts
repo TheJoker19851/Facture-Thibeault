@@ -645,6 +645,30 @@ export interface CreditCard_Key {
   __typename?: 'CreditCard_Key';
 }
 
+export interface DeleteCreditCardAndHolderData {
+  creditCard_delete?: CreditCard_Key | null;
+  userProfile_delete?: UserProfile_Key | null;
+  auditEvent_upsert: AuditEvent_Key;
+}
+
+export interface DeleteCreditCardAndHolderVariables {
+  cardId: string;
+  holderId: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+
+export interface DeleteCreditCardData {
+  creditCard_delete?: CreditCard_Key | null;
+  auditEvent_upsert: AuditEvent_Key;
+}
+
+export interface DeleteCreditCardVariables {
+  id: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+
 export interface DeleteExpenseAccountData {
   expenseAccount_delete?: ExpenseAccount_Key | null;
   auditEvent_upsert: AuditEvent_Key;
@@ -2703,6 +2727,30 @@ export const deleteExpenseAccountRef: DeleteExpenseAccountRef;
 
 export function deleteExpenseAccount(vars: DeleteExpenseAccountVariables): MutationPromise<DeleteExpenseAccountData, DeleteExpenseAccountVariables>;
 export function deleteExpenseAccount(dc: DataConnect, vars: DeleteExpenseAccountVariables): MutationPromise<DeleteExpenseAccountData, DeleteExpenseAccountVariables>;
+
+interface DeleteCreditCardRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: DeleteCreditCardVariables): MutationRef<DeleteCreditCardData, DeleteCreditCardVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: DeleteCreditCardVariables): MutationRef<DeleteCreditCardData, DeleteCreditCardVariables>;
+  operationName: string;
+}
+export const deleteCreditCardRef: DeleteCreditCardRef;
+
+export function deleteCreditCard(vars: DeleteCreditCardVariables): MutationPromise<DeleteCreditCardData, DeleteCreditCardVariables>;
+export function deleteCreditCard(dc: DataConnect, vars: DeleteCreditCardVariables): MutationPromise<DeleteCreditCardData, DeleteCreditCardVariables>;
+
+interface DeleteCreditCardAndHolderRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: DeleteCreditCardAndHolderVariables): MutationRef<DeleteCreditCardAndHolderData, DeleteCreditCardAndHolderVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: DeleteCreditCardAndHolderVariables): MutationRef<DeleteCreditCardAndHolderData, DeleteCreditCardAndHolderVariables>;
+  operationName: string;
+}
+export const deleteCreditCardAndHolderRef: DeleteCreditCardAndHolderRef;
+
+export function deleteCreditCardAndHolder(vars: DeleteCreditCardAndHolderVariables): MutationPromise<DeleteCreditCardAndHolderData, DeleteCreditCardAndHolderVariables>;
+export function deleteCreditCardAndHolder(dc: DataConnect, vars: DeleteCreditCardAndHolderVariables): MutationPromise<DeleteCreditCardAndHolderData, DeleteCreditCardAndHolderVariables>;
 
 interface UpsertCardStatementPeriodRef {
   /* Allow users to create refs without passing in DataConnect */

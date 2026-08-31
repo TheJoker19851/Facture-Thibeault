@@ -4,10 +4,12 @@ import { verifyInvoiceIdempotence } from "./verify-invoice-idempotence.mjs";
 import { verifyEmulatorPermissions } from "./verify-emulator.mjs";
 import { verifyReconciliationEmulator } from "./verify-reconciliation-emulator.mjs";
 import { verifyUserInvitationsEmulator } from "./verify-user-invitations-emulator.mjs";
+import { verifyCardHolderDeletionEmulator } from "./verify-card-holder-deletion-emulator.mjs";
 
 Object.assign(process.env, localEmulatorEnvironment(process.env));
 await seedDemo("local");
 await verifyEmulatorPermissions();
+await verifyCardHolderDeletionEmulator();
 await verifyInvoiceIdempotence();
 await verifyReconciliationEmulator();
 await verifyUserInvitationsEmulator();

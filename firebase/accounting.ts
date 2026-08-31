@@ -10,6 +10,7 @@ import {
   listProjectsPage,
   listSkuReferencesPage,
   listUserProfiles,
+  deleteCreditCard as deleteCreditCardMutation,
   deleteExpenseAccount as deleteExpenseAccountMutation,
   deleteProject as deleteProjectMutation,
   upsertCardStatementPeriod,
@@ -435,6 +436,31 @@ export async function deleteExpenseAccount(input: { id: string; auditDetails?: s
     auditEventId: auditEventId(input.id, AUDIT_ACTIONS.EXPENSE_ACCOUNT_DELETED, createClientId()),
     auditDetails: input.auditDetails ?? auditDetails({ action: AUDIT_ACTIONS.EXPENSE_ACCOUNT_DELETED }),
   });
+}
+
+export async function deleteCreditCard(input: { id: string; auditDetails?: string }) {
+  if (!firebaseDataConnect || !sqlConnectConfigured) throw new Error("SQL Connect est requis pour supprimer la carte.");
+  await deleteCreditCardMutation(firebaseDataConnect, {
+    id: input.id,
+    auditEventId: auditEventId(input.id, AUDIT_ACTIONS.CARD_DELETED, createClientId()),
+    auditDetails: input.auditDetails ?? auditDetails({ action: AUDIT_ACTIONS.CARD_DELETED }),
+  });
+}
+
+export async function deleteCreditCardAndHolder(input: { cardId: string; holderId: string }) {
+  const user = firebaseAuth?.currentUser;
+  if (!user) throw new Error("Une session Firebase Authentication est requise pour supprimer la carte et le titulaire.");
+  const response = await fetch("/api/admin/references", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${await user.getIdToken()}`,
+    },
+    body: JSON.stringify({ cardId: input.cardId, holderId: input.holderId }),
+  });
+  const body = await response.json().catch(() => ({})) as { error?: string; warning?: string | null; ok?: boolean };
+  if (!response.ok || !body.ok) throw new Error(body.error ?? "La carte et le titulaire n’ont pas pu être supprimés.");
+  return { warning: body.warning ?? null };
 }
 
 export async function saveStatementPeriod(input: StatementPeriodInput) {

@@ -81,6 +81,8 @@ This README will guide you through the process of using the generated JavaScript
   - [*UpsertExpenseAccount*](#upsertexpenseaccount)
   - [*DeleteProject*](#deleteproject)
   - [*DeleteExpenseAccount*](#deleteexpenseaccount)
+  - [*DeleteCreditCard*](#deletecreditcard)
+  - [*DeleteCreditCardAndHolder*](#deletecreditcardandholder)
   - [*UpsertCardStatementPeriod*](#upsertcardstatementperiod)
   - [*SaveStatementManualAdjustments*](#savestatementmanualadjustments)
   - [*UpsertReportAdjustmentSet*](#upsertreportadjustmentset)
@@ -9132,6 +9134,254 @@ executeMutation(ref).then((response) => {
 });
 ```
 
+## DeleteCreditCard
+You can execute the `DeleteCreditCard` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+deleteCreditCard(vars: DeleteCreditCardVariables): MutationPromise<DeleteCreditCardData, DeleteCreditCardVariables>;
+
+interface DeleteCreditCardRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: DeleteCreditCardVariables): MutationRef<DeleteCreditCardData, DeleteCreditCardVariables>;
+}
+export const deleteCreditCardRef: DeleteCreditCardRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+deleteCreditCard(dc: DataConnect, vars: DeleteCreditCardVariables): MutationPromise<DeleteCreditCardData, DeleteCreditCardVariables>;
+
+interface DeleteCreditCardRef {
+  ...
+  (dc: DataConnect, vars: DeleteCreditCardVariables): MutationRef<DeleteCreditCardData, DeleteCreditCardVariables>;
+}
+export const deleteCreditCardRef: DeleteCreditCardRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the deleteCreditCardRef:
+```typescript
+const name = deleteCreditCardRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `DeleteCreditCard` mutation requires an argument of type `DeleteCreditCardVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface DeleteCreditCardVariables {
+  id: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that executing the `DeleteCreditCard` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `DeleteCreditCardData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface DeleteCreditCardData {
+  creditCard_delete?: CreditCard_Key | null;
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+### Using `DeleteCreditCard`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, deleteCreditCard, DeleteCreditCardVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `DeleteCreditCard` mutation requires an argument of type `DeleteCreditCardVariables`:
+const deleteCreditCardVars: DeleteCreditCardVariables = {
+  id: ..., 
+  auditEventId: ..., 
+  auditDetails: ..., 
+};
+
+// Call the `deleteCreditCard()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await deleteCreditCard(deleteCreditCardVars);
+// Variables can be defined inline as well.
+const { data } = await deleteCreditCard({ id: ..., auditEventId: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await deleteCreditCard(dataConnect, deleteCreditCardVars);
+
+console.log(data.creditCard_delete);
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+deleteCreditCard(deleteCreditCardVars).then((response) => {
+  const data = response.data;
+  console.log(data.creditCard_delete);
+  console.log(data.auditEvent_upsert);
+});
+```
+
+### Using `DeleteCreditCard`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, deleteCreditCardRef, DeleteCreditCardVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `DeleteCreditCard` mutation requires an argument of type `DeleteCreditCardVariables`:
+const deleteCreditCardVars: DeleteCreditCardVariables = {
+  id: ..., 
+  auditEventId: ..., 
+  auditDetails: ..., 
+};
+
+// Call the `deleteCreditCardRef()` function to get a reference to the mutation.
+const ref = deleteCreditCardRef(deleteCreditCardVars);
+// Variables can be defined inline as well.
+const ref = deleteCreditCardRef({ id: ..., auditEventId: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = deleteCreditCardRef(dataConnect, deleteCreditCardVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.creditCard_delete);
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.creditCard_delete);
+  console.log(data.auditEvent_upsert);
+});
+```
+
+## DeleteCreditCardAndHolder
+You can execute the `DeleteCreditCardAndHolder` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+deleteCreditCardAndHolder(vars: DeleteCreditCardAndHolderVariables): MutationPromise<DeleteCreditCardAndHolderData, DeleteCreditCardAndHolderVariables>;
+
+interface DeleteCreditCardAndHolderRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: DeleteCreditCardAndHolderVariables): MutationRef<DeleteCreditCardAndHolderData, DeleteCreditCardAndHolderVariables>;
+}
+export const deleteCreditCardAndHolderRef: DeleteCreditCardAndHolderRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+deleteCreditCardAndHolder(dc: DataConnect, vars: DeleteCreditCardAndHolderVariables): MutationPromise<DeleteCreditCardAndHolderData, DeleteCreditCardAndHolderVariables>;
+
+interface DeleteCreditCardAndHolderRef {
+  ...
+  (dc: DataConnect, vars: DeleteCreditCardAndHolderVariables): MutationRef<DeleteCreditCardAndHolderData, DeleteCreditCardAndHolderVariables>;
+}
+export const deleteCreditCardAndHolderRef: DeleteCreditCardAndHolderRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the deleteCreditCardAndHolderRef:
+```typescript
+const name = deleteCreditCardAndHolderRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `DeleteCreditCardAndHolder` mutation requires an argument of type `DeleteCreditCardAndHolderVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface DeleteCreditCardAndHolderVariables {
+  cardId: string;
+  holderId: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that executing the `DeleteCreditCardAndHolder` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `DeleteCreditCardAndHolderData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface DeleteCreditCardAndHolderData {
+  creditCard_delete?: CreditCard_Key | null;
+  userProfile_delete?: UserProfile_Key | null;
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+### Using `DeleteCreditCardAndHolder`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, deleteCreditCardAndHolder, DeleteCreditCardAndHolderVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `DeleteCreditCardAndHolder` mutation requires an argument of type `DeleteCreditCardAndHolderVariables`:
+const deleteCreditCardAndHolderVars: DeleteCreditCardAndHolderVariables = {
+  cardId: ..., 
+  holderId: ..., 
+  auditEventId: ..., 
+  auditDetails: ..., 
+};
+
+// Call the `deleteCreditCardAndHolder()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await deleteCreditCardAndHolder(deleteCreditCardAndHolderVars);
+// Variables can be defined inline as well.
+const { data } = await deleteCreditCardAndHolder({ cardId: ..., holderId: ..., auditEventId: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await deleteCreditCardAndHolder(dataConnect, deleteCreditCardAndHolderVars);
+
+console.log(data.creditCard_delete);
+console.log(data.userProfile_delete);
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+deleteCreditCardAndHolder(deleteCreditCardAndHolderVars).then((response) => {
+  const data = response.data;
+  console.log(data.creditCard_delete);
+  console.log(data.userProfile_delete);
+  console.log(data.auditEvent_upsert);
+});
+```
+
+### Using `DeleteCreditCardAndHolder`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, deleteCreditCardAndHolderRef, DeleteCreditCardAndHolderVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `DeleteCreditCardAndHolder` mutation requires an argument of type `DeleteCreditCardAndHolderVariables`:
+const deleteCreditCardAndHolderVars: DeleteCreditCardAndHolderVariables = {
+  cardId: ..., 
+  holderId: ..., 
+  auditEventId: ..., 
+  auditDetails: ..., 
+};
+
+// Call the `deleteCreditCardAndHolderRef()` function to get a reference to the mutation.
+const ref = deleteCreditCardAndHolderRef(deleteCreditCardAndHolderVars);
+// Variables can be defined inline as well.
+const ref = deleteCreditCardAndHolderRef({ cardId: ..., holderId: ..., auditEventId: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = deleteCreditCardAndHolderRef(dataConnect, deleteCreditCardAndHolderVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.creditCard_delete);
+console.log(data.userProfile_delete);
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.creditCard_delete);
+  console.log(data.userProfile_delete);
+  console.log(data.auditEvent_upsert);
+});
+```
+
 ## UpsertCardStatementPeriod
 You can execute the `UpsertCardStatementPeriod` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
 ```typescript
@@ -13146,9 +13396,9 @@ import { connectorConfig, retryInvoiceIntakeAiReviewV2, RetryInvoiceIntakeAiRevi
 
 // The `RetryInvoiceIntakeAiReviewV2` mutation requires an argument of type `RetryInvoiceIntakeAiReviewV2Variables`:
 const retryInvoiceIntakeAiReviewV2Vars: RetryInvoiceIntakeAiReviewV2Variables = {
-  receiptId: ...,
-  currentAttempts: ...,
-  maxAttempts: ...,
+  receiptId: ..., 
+  currentAttempts: ..., 
+  maxAttempts: ..., 
 };
 
 // Call the `retryInvoiceIntakeAiReviewV2()` function to execute the mutation.
@@ -13178,9 +13428,9 @@ import { connectorConfig, retryInvoiceIntakeAiReviewV2Ref, RetryInvoiceIntakeAiR
 
 // The `RetryInvoiceIntakeAiReviewV2` mutation requires an argument of type `RetryInvoiceIntakeAiReviewV2Variables`:
 const retryInvoiceIntakeAiReviewV2Vars: RetryInvoiceIntakeAiReviewV2Variables = {
-  receiptId: ...,
-  currentAttempts: ...,
-  maxAttempts: ...,
+  receiptId: ..., 
+  currentAttempts: ..., 
+  maxAttempts: ..., 
 };
 
 // Call the `retryInvoiceIntakeAiReviewV2Ref()` function to get a reference to the mutation.
@@ -14211,3 +14461,4 @@ executeMutation(ref).then((response) => {
   console.log(data.invoiceIntake_update);
 });
 ```
+

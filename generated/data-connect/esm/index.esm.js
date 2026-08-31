@@ -427,6 +427,30 @@ export function deleteExpenseAccount(dcOrVars, vars) {
   return executeMutation(deleteExpenseAccountRef(dcInstance, inputVars));
 }
 
+export const deleteCreditCardRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'DeleteCreditCard', inputVars);
+}
+deleteCreditCardRef.operationName = 'DeleteCreditCard';
+
+export function deleteCreditCard(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(deleteCreditCardRef(dcInstance, inputVars));
+}
+
+export const deleteCreditCardAndHolderRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'DeleteCreditCardAndHolder', inputVars);
+}
+deleteCreditCardAndHolderRef.operationName = 'DeleteCreditCardAndHolder';
+
+export function deleteCreditCardAndHolder(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(deleteCreditCardAndHolderRef(dcInstance, inputVars));
+}
+
 export const upsertCardStatementPeriodRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();

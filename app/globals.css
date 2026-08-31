@@ -449,6 +449,14 @@ main input:focus, main select:focus, main textarea:focus {
   box-shadow: 0 0 0 3px rgba(217, 173, 45, .16);
 }
 
+/* Keep the card directory actions together when a destructive action is enabled. */
+.card-directory-row { grid-template-columns: 145px minmax(180px, 1fr) minmax(0, auto); }
+.directory-actions .danger-text { color: #a44949; }
+.card-directory-actions { flex-wrap: wrap; }
+@media (max-width: 820px) {
+  .card-directory-row { grid-template-columns: 1fr auto; }
+}
+
 .archive-production-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 14px; }
 .archive-controls-panel { overflow: hidden; }
 .archive-controls { display: flex; align-items: center; gap: 10px; padding: 0 21px 16px; }
