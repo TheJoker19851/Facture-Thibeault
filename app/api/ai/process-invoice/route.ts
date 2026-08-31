@@ -471,6 +471,7 @@ export async function POST(request: Request) {
       lastFour: card.lastFour,
       status: card.status,
       holderId: card.holder.id,
+      holderStatus: card.holder.status,
     }));
     const cardResolution = resolveUploaderCards({
       cards,

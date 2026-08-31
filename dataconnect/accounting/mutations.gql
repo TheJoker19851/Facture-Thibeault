@@ -30,7 +30,18 @@ mutation UpsertCreditCard(
   $status: String!
   $activeFrom: Date
   $inactiveFrom: Date
-) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
+) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") @transaction {
+  query @redact @check(
+    expr: "response.query.creditCards.size() == 0"
+    message: "Une carte active portant ces quatre chiffres est déjà associée à ce titulaire."
+  ) {
+    creditCards(where: {
+      id: { ne: $id }
+      lastFour: { eq: $lastFour }
+      holder: { id: { eq: $holderId } }
+      status: { eq: "ACTIVE" }
+    }, limit: 1) { id }
+  }
   creditCard_upsert(data: {
     id: $id
     lastFour: $lastFour
@@ -62,6 +73,8 @@ mutation AdminUpsertUserProfileWithAudit(
   $actorRole: String!
   $auditAction: String!
   $auditDetails: String!
+  $deactivateCards: Boolean! = false
+  $inactiveFrom: Date
 ) @auth(level: NO_ACCESS) @transaction {
   userProfile_upsert(data: {
     id: $id
@@ -77,6 +90,16 @@ mutation AdminUpsertUserProfileWithAudit(
     lastInvitationError: $lastInvitationError
     activatedAt: $activatedAt
   })
+  creditCard_updateMany(
+    where: {
+      holder: { id: { eq: $id } }
+      status: { eq: "ACTIVE" }
+    }
+    data: {
+      status: "INACTIVE"
+      inactiveFrom: $inactiveFrom
+    }
+  ) @include(if: $deactivateCards)
   auditEvent_upsert(data: {
     id: $auditEventId
     actorUid: $actorUid

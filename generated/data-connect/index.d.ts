@@ -413,6 +413,7 @@ export interface AdminSeedUserProfileVariables {
 
 export interface AdminUpsertUserProfileWithAuditData {
   userProfile_upsert: UserProfile_Key;
+  creditCard_updateMany: number;
   auditEvent_upsert: AuditEvent_Key;
 }
 
@@ -434,6 +435,8 @@ export interface AdminUpsertUserProfileWithAuditVariables {
   actorRole: string;
   auditAction: string;
   auditDetails: string;
+  deactivateCards?: boolean;
+  inactiveFrom?: DateString | null;
 }
 
 export interface AuditEvent_Key {

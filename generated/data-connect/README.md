@@ -8379,6 +8379,8 @@ export interface AdminUpsertUserProfileWithAuditVariables {
   actorRole: string;
   auditAction: string;
   auditDetails: string;
+  deactivateCards?: boolean;
+  inactiveFrom?: DateString | null;
 }
 ```
 ### Return Type
@@ -8388,6 +8390,7 @@ The `data` property is an object of type `AdminUpsertUserProfileWithAuditData`, 
 ```typescript
 export interface AdminUpsertUserProfileWithAuditData {
   userProfile_upsert: UserProfile_Key;
+  creditCard_updateMany: number;
   auditEvent_upsert: AuditEvent_Key;
 }
 ```
@@ -8416,25 +8419,29 @@ const adminUpsertUserProfileWithAuditVars: AdminUpsertUserProfileWithAuditVariab
   actorRole: ..., 
   auditAction: ..., 
   auditDetails: ..., 
+  deactivateCards: ..., // optional
+  inactiveFrom: ..., // optional
 };
 
 // Call the `adminUpsertUserProfileWithAudit()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await adminUpsertUserProfileWithAudit(adminUpsertUserProfileWithAuditVars);
 // Variables can be defined inline as well.
-const { data } = await adminUpsertUserProfileWithAudit({ id: ..., firebaseUid: ..., displayName: ..., email: ..., jobTitle: ..., role: ..., status: ..., invitationStatus: ..., invitationSentAt: ..., invitationSentBy: ..., lastInvitationError: ..., activatedAt: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., auditDetails: ..., });
+const { data } = await adminUpsertUserProfileWithAudit({ id: ..., firebaseUid: ..., displayName: ..., email: ..., jobTitle: ..., role: ..., status: ..., invitationStatus: ..., invitationSentAt: ..., invitationSentBy: ..., lastInvitationError: ..., activatedAt: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., auditDetails: ..., deactivateCards: ..., inactiveFrom: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
 const { data } = await adminUpsertUserProfileWithAudit(dataConnect, adminUpsertUserProfileWithAuditVars);
 
 console.log(data.userProfile_upsert);
+console.log(data.creditCard_updateMany);
 console.log(data.auditEvent_upsert);
 
 // Or, you can use the `Promise` API.
 adminUpsertUserProfileWithAudit(adminUpsertUserProfileWithAuditVars).then((response) => {
   const data = response.data;
   console.log(data.userProfile_upsert);
+  console.log(data.creditCard_updateMany);
   console.log(data.auditEvent_upsert);
 });
 ```
@@ -8464,12 +8471,14 @@ const adminUpsertUserProfileWithAuditVars: AdminUpsertUserProfileWithAuditVariab
   actorRole: ..., 
   auditAction: ..., 
   auditDetails: ..., 
+  deactivateCards: ..., // optional
+  inactiveFrom: ..., // optional
 };
 
 // Call the `adminUpsertUserProfileWithAuditRef()` function to get a reference to the mutation.
 const ref = adminUpsertUserProfileWithAuditRef(adminUpsertUserProfileWithAuditVars);
 // Variables can be defined inline as well.
-const ref = adminUpsertUserProfileWithAuditRef({ id: ..., firebaseUid: ..., displayName: ..., email: ..., jobTitle: ..., role: ..., status: ..., invitationStatus: ..., invitationSentAt: ..., invitationSentBy: ..., lastInvitationError: ..., activatedAt: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., auditDetails: ..., });
+const ref = adminUpsertUserProfileWithAuditRef({ id: ..., firebaseUid: ..., displayName: ..., email: ..., jobTitle: ..., role: ..., status: ..., invitationStatus: ..., invitationSentAt: ..., invitationSentBy: ..., lastInvitationError: ..., activatedAt: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., auditDetails: ..., deactivateCards: ..., inactiveFrom: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -8480,12 +8489,14 @@ const ref = adminUpsertUserProfileWithAuditRef(dataConnect, adminUpsertUserProfi
 const { data } = await executeMutation(ref);
 
 console.log(data.userProfile_upsert);
+console.log(data.creditCard_updateMany);
 console.log(data.auditEvent_upsert);
 
 // Or, you can use the `Promise` API.
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.userProfile_upsert);
+  console.log(data.creditCard_updateMany);
   console.log(data.auditEvent_upsert);
 });
 ```

@@ -20,6 +20,7 @@ import { DEMO_STATEMENT_IMPORTS } from "../../lib/reconciliation-fixtures.mjs";
 import { buildReconciliationExcelXml, reconciliationExportFileName } from "../../lib/reconciliation-export.mjs";
 import { accountingReportFileName, buildAccountingReportXlsx } from "../../lib/report-export.mjs";
 import { buildAccountingTemplateReport } from "../../lib/accounting-template-report.mjs";
+import { uniqueCreditCards } from "../../lib/credit-card-selection.mjs";
 import { normalizeManualAdjustmentRows, serializeManualAdjustmentRows } from "../../lib/manual-adjustments.mjs";
 import { buildTaxSummaryByHolder } from "../../lib/accounting-report.mjs";
 import { createClientId } from "../../lib/client-id.mjs";
@@ -1585,10 +1586,12 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
   const [retryState, setRetryState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [retryMessage, setRetryMessage] = useState("");
   const [draftDirty, setDraftDirty] = useState(false);
+  const activeUserIds = new Set(users.filter((user) => user.status === "ACTIVE").map((user) => user.id));
+  const selectableCards = uniqueCreditCards(cards.filter((card) => card.status === "Actif" && activeUserIds.has(card.holderId ?? "")));
   const cardSuggestionFor = (intake: InvoiceIntake | null) => {
     if (!intake) return "";
     const uploader = users.find((user) => user.firebaseUid === intake.uploaderUid);
-    const matches = cards.filter((card) => card.status === "Actif" && card.holderId === uploader?.id);
+    const matches = selectableCards.filter((card) => card.holderId === uploader?.id);
     return matches.length === 1 ? matches[0].id : "";
   };
   const [commitCardId, setCommitCardId] = useState(() => cardSuggestionFor(selectedIntake));
@@ -2040,7 +2043,7 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
           <section className="intake-commit-card">
             <div><p className="eyebrow">Création comptable</p><h3>Références comptables</h3><p className="muted">Choisissez la carte utilisée et le cycle comptable. Ces informations alimentent directement le tableau de Kim après la comptabilisation.</p></div>
             <div className="field-grid">
-              <label className={`field ${cardNeedsCorrection ? "needs-correction" : ""}`}><span>Carte utilisée</span><select aria-invalid={cardNeedsCorrection} value={commitCardId} onChange={(event) => { setCommitCardId(event.target.value); setCommitState("idle"); }}><option value="">Choisir la carte</option>{cards.filter((card) => card.status === "Actif").map((card) => <option key={card.id} value={card.id}>•••• {card.lastFour} · {card.holder}</option>)}</select>{suggestedCard && suggestedUploader ? <small>Suggestion : carte de {suggestedUploader.displayName}, selon le compte qui a envoyé la facture.</small> : cardNeedsCorrection ? <small>{cardReviewMessage}</small> : null}</label>
+              <label className={`field ${cardNeedsCorrection ? "needs-correction" : ""}`}><span>Carte utilisée</span><select aria-invalid={cardNeedsCorrection} value={commitCardId} onChange={(event) => { setCommitCardId(event.target.value); setCommitState("idle"); }}><option value="">Choisir la carte</option>{selectableCards.map((card) => <option key={card.id} value={card.id}>•••• {card.lastFour} · {card.holder}</option>)}</select>{suggestedCard && suggestedUploader ? <small>Suggestion : carte de {suggestedUploader.displayName}, selon le compte qui a envoyé la facture.</small> : cardNeedsCorrection ? <small>{cardReviewMessage}</small> : null}</label>
               <label className="field"><span>Période du relevé (facultatif)</span><select value={commitPeriodId} onChange={(event) => { setCommitPeriodId(event.target.value); setCommitState("idle"); }}><option value="">Aucune période sélectionnée</option>{periods.map((period) => <option key={period.id} value={period.id}>{period.label}</option>)}</select><small>Cette association classe l’écriture dans le cycle du tableau de Kim.</small></label>
             </div>
             {processingStatusOf(selectedIntake) !== "VALIDATED" && <small>Enregistrez la correction et confirmez le compte de chaque ligne avant de créer l’écriture.</small>}
@@ -2072,7 +2075,7 @@ function PeriodSelector({ period, onChange }: { period: CardPeriod; onChange: (p
 
 function Dashboard({ onNavigate, onOpenTransactions, period, onPeriodChange }: { onNavigate: (view: View) => void; onOpenTransactions: (person?: string) => void; period: CardPeriod; onPeriodChange: (period: CardPeriod) => void }) {
   const { cards, transactions } = useAppData();
-  const holderRows = cards.filter((card) => card.status === "Actif").map((card) => {
+  const holderRows = uniqueCreditCards(cards.filter((card) => card.status === "Actif")).map((card) => {
     const items = transactions.filter((transaction) => transaction.person === card.holder && isTransactionInPeriod(transaction, period));
     return { card, items, total: items.reduce((sum, item) => sum + item.total, 0) };
   });
@@ -2355,7 +2358,7 @@ function ReconciliationPage({ period, onPeriodChange, isProductionDataSource }: 
   const identity = useFirebaseIdentity();
   const isLocalEmulatorMode = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID === "demo-facture-thibeault" && process.env.NEXT_PUBLIC_FIREBASE_USE_EMULATORS === "true";
   const useServerWorkflow = isLocalEmulatorMode && Boolean(identity.user) && (identity.role === "KIM" || identity.role === "ADMIN");
-  const activeCards = cards.filter((card) => card.status === "Actif");
+  const activeCards = uniqueCreditCards(cards.filter((card) => card.status === "Actif"));
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const [statements, setStatements] = useState<CreditCardStatement[]>(() => isProductionDataSource || isLocalEmulatorMode ? [] : DEMO_STATEMENT_IMPORTS as unknown as CreditCardStatement[]);
   const [selectedStatementId, setSelectedStatementId] = useState<string>(() => isProductionDataSource || isLocalEmulatorMode ? "" : (DEMO_STATEMENT_IMPORTS[0]?.id ?? ""));
@@ -3074,7 +3077,13 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
       const updated = await runAdminUserAction({ action: "status", profileId: user.id, status: nextStatus }, token);
       const nextUsers = users.map((candidate) => candidate.id === user.id ? { ...candidate, ...updated } : candidate);
       setUsers(nextUsers);
-      onDataChange({ users: nextUsers });
+      const nextCards = nextStatus === "INACTIVE"
+        ? cards.map((card) => card.holderId === user.id
+          ? { ...card, status: "Inactif" as const, endDate: card.endDate ?? new Date().toISOString().slice(0, 10) }
+          : card)
+        : cards;
+      if (nextStatus === "INACTIVE") setCards(nextCards);
+      onDataChange({ users: nextUsers, cards: nextCards });
       setNotice(`${user.displayName} est maintenant ${nextStatus === "ACTIVE" ? "actif" : "désactivé"}.`);
     } catch (reason) {
       showError(reason);
@@ -3135,6 +3144,10 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
     }
     if (!/^\d{4}$/.test(cardForm.lastFour) || !cardForm.holderId) {
       setError("Les quatre derniers chiffres et le titulaire sont requis.");
+      return;
+    }
+    if (cards.some((card) => card.status === "Actif" && card.lastFour === cardForm.lastFour && card.holderId === cardForm.holderId)) {
+      setError("Cette carte est déjà associée à ce titulaire. Désactivez l’ancien enregistrement avant d’en créer un autre.");
       return;
     }
     setBusyKey("add-card");
@@ -3558,7 +3571,7 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
        </>}
       {selectedSection === "cards" && <>
         <form className="directory-form" onSubmit={addCard}><div className="field-grid"><label className="field"><span>Quatre derniers chiffres</span><input required inputMode="numeric" maxLength={4} value={cardForm.lastFour} onChange={(event) => setCardForm((current) => ({ ...current, lastFour: event.target.value.replace(/\D/g, "") }))} placeholder="9001" /></label><label className="field"><span>Titulaire</span><select required value={cardForm.holderId} onChange={(event) => setCardForm((current) => ({ ...current, holderId: event.target.value }))}><option value="">Sélectionner le profil</option>{users.filter((user) => user.status === "ACTIVE").map((user) => <option key={user.id} value={user.id}>{user.displayName} · {user.jobTitle ?? user.role}</option>)}</select></label></div><div className="field-grid"><label className="field"><span>Fonction de la carte</span><input value={cardForm.cardFunction} onChange={(event) => setCardForm((current) => ({ ...current, cardFunction: event.target.value }))} placeholder="Fonction démo" /></label><div className="directory-help">Seuls les quatre derniers chiffres sont conservés. Le numéro complet de la carte ne passe jamais dans l&apos;application.</div></div><button className="primary-button" type="submit" disabled={!persistenceReady || busyKey === "add-card"}>{busyKey === "add-card" ? "Enregistrement…" : "Ajouter et associer la carte"}</button></form>
-        <div className="directory-list">{visibleCards.map((card) => <div className="directory-row card-directory-row" key={card.id}><div><strong>•••• {card.lastFour}</strong><small>{card.function} · {card.status} · {card.startDate || "date inconnue"}</small></div><select value={cardHolderDrafts[card.id] ?? card.holderId ?? ""} onChange={(event) => setCardHolderDrafts((current) => ({ ...current, [card.id]: event.target.value }))} aria-label={`Titulaire de la carte ${card.lastFour}`}><option value="">Titulaire à choisir</option>{users.map((user) => <option key={user.id} value={user.id}>{user.displayName}</option>)}</select><button className="secondary-button" type="button" disabled={!persistenceReady || busyKey === `card-${card.id}`} onClick={() => void saveCardAssignment(card)}>{busyKey === `card-${card.id}` ? "…" : "Enregistrer"}</button><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `toggle-card-${card.id}`} onClick={() => void toggleCard(card)}>{card.status === "Actif" ? "Désactiver" : "Réactiver"}</button></div>)}</div>
+        <div className="directory-list">{visibleCards.map((card) => <div className="directory-row card-directory-row" key={card.id}><div><strong>•••• {card.lastFour}</strong><small>{card.function} · {card.status} · {card.startDate || "date inconnue"}</small></div><select value={cardHolderDrafts[card.id] ?? card.holderId ?? ""} onChange={(event) => setCardHolderDrafts((current) => ({ ...current, [card.id]: event.target.value }))} aria-label={`Titulaire de la carte ${card.lastFour}`}><option value="">Titulaire à choisir</option>{users.filter((user) => user.status === "ACTIVE").map((user) => <option key={user.id} value={user.id}>{user.displayName}</option>)}</select><button className="secondary-button" type="button" disabled={!persistenceReady || busyKey === `card-${card.id}`} onClick={() => void saveCardAssignment(card)}>{busyKey === `card-${card.id}` ? "…" : "Enregistrer"}</button><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `toggle-card-${card.id}`} onClick={() => void toggleCard(card)}>{card.status === "Actif" ? "Désactiver" : "Réactiver"}</button></div>)}</div>
       </>}
        {selectedSection === "accounts" && <>
          {canEditReferences ? <form className="directory-form" onSubmit={saveAccountReference}><div className="field-grid"><label className="field"><span>Numéro de compte</span><input required inputMode="numeric" value={accountForm.number} onChange={(event) => setAccountForm((current) => ({ ...current, number: event.target.value }))} placeholder="33544" /></label><label className="field"><span>Libellé / catégorie</span><input required value={accountForm.label} onChange={(event) => setAccountForm((current) => ({ ...current, label: event.target.value }))} placeholder="Matériaux divers" /></label></div><div className="field-grid"><label className="field"><span>Type</span><select value={accountForm.type} onChange={(event) => setAccountForm((current) => ({ ...current, type: event.target.value }))}><option value="EXPENSE">Dépense</option><option value="TAX">Taxe</option></select></label><div className="directory-help">Le numéro est stocké comme texte afin de préserver les zéros initiaux. L’identifiant interne ne change pas lors d’une correction.</div></div><button className="primary-button" type="submit" disabled={!persistenceReady || busyKey.startsWith("account-")}>{busyKey.startsWith("account-") ? "Enregistrement…" : accountForm.id ? "Enregistrer la modification" : "Ajouter le compte"}</button></form> : <div className="config-note"><span>i</span><p>Le contrôle comptable peut consulter et sélectionner les comptes. La gestion du référentiel est réservée à ADMIN.</p></div>}

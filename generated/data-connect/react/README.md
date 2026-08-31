@@ -6858,6 +6858,8 @@ export interface AdminUpsertUserProfileWithAuditVariables {
   actorRole: string;
   auditAction: string;
   auditDetails: string;
+  deactivateCards?: boolean;
+  inactiveFrom?: DateString | null;
 }
 ```
 ### Return Type
@@ -6871,6 +6873,7 @@ To access the data returned by a Mutation, use the `UseMutationResult.data` fiel
 ```javascript
 export interface AdminUpsertUserProfileWithAuditData {
   userProfile_upsert: UserProfile_Key;
+  creditCard_updateMany: number;
   auditEvent_upsert: AuditEvent_Key;
 }
 ```
@@ -6925,10 +6928,12 @@ export default function AdminUpsertUserProfileWithAuditComponent() {
     actorRole: ..., 
     auditAction: ..., 
     auditDetails: ..., 
+    deactivateCards: ..., // optional
+    inactiveFrom: ..., // optional
   };
   mutation.mutate(adminUpsertUserProfileWithAuditVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ id: ..., firebaseUid: ..., displayName: ..., email: ..., jobTitle: ..., role: ..., status: ..., invitationStatus: ..., invitationSentAt: ..., invitationSentBy: ..., lastInvitationError: ..., activatedAt: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., auditDetails: ..., });
+  mutation.mutate({ id: ..., firebaseUid: ..., displayName: ..., email: ..., jobTitle: ..., role: ..., status: ..., invitationStatus: ..., invitationSentAt: ..., invitationSentBy: ..., lastInvitationError: ..., activatedAt: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., auditDetails: ..., deactivateCards: ..., inactiveFrom: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -6948,6 +6953,7 @@ export default function AdminUpsertUserProfileWithAuditComponent() {
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
     console.log(mutation.data.userProfile_upsert);
+    console.log(mutation.data.creditCard_updateMany);
     console.log(mutation.data.auditEvent_upsert);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;

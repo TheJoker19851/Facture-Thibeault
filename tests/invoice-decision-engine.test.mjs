@@ -115,6 +115,27 @@ test("associe une carte active au profil réel de l’uploader", () => {
   assert.equal(result.card?.id, "CARD-1");
 });
 
+test("ignore un doublon de carte identique pour résoudre automatiquement l’uploader", () => {
+  const result = resolveUploaderCards({
+    uploaderUserId: "U-1",
+    cards: [
+      { id: "CARD-1", lastFour: "1807", status: "ACTIVE", holderId: "U-1", holderStatus: "ACTIVE" },
+      { id: "CARD-2", lastFour: "1807", status: "ACTIVE", holderId: "U-1", holderStatus: "ACTIVE" },
+    ],
+  });
+  assert.equal(result.status, "RESOLVED");
+  assert.equal(result.card?.id, "CARD-1");
+  assert.equal(result.candidates.length, 1);
+});
+
+test("ne résout pas une carte rattachée à un titulaire inactif", () => {
+  const result = resolveUploaderCards({
+    uploaderUserId: "U-1",
+    cards: [{ id: "CARD-1", lastFour: "1807", status: "ACTIVE", holderId: "U-1", holderStatus: "INACTIVE" }],
+  });
+  assert.equal(result.status, "UNKNOWN");
+});
+
 test("accepte temporairement une facture sans bloquer sur le projet", () => {
   const result = decision(
     { projectId: "P-INCONNU" },

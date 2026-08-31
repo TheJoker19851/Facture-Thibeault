@@ -162,6 +162,8 @@ async function persistProfile(
     actorRole: identity.role,
     auditAction,
     auditDetails: auditDetails(details),
+    deactivateCards: profile.status === "INACTIVE",
+    inactiveFrom: profile.status === "INACTIVE" ? new Date().toISOString().slice(0, 10) : null,
   });
   return profile;
 }
