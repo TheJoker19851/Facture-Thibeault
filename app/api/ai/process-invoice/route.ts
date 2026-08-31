@@ -590,7 +590,7 @@ export async function POST(request: Request) {
           accountId: account.id,
           cardId,
           statementPeriodId: null,
-          projectId,
+          projectId: null,
           lineItems: JSON.stringify(lineItems),
           classificationNote: `${extraction.notes} ${classification.note}`.trim(),
           actorUid: identity.uid,
