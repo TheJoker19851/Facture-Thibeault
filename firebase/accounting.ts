@@ -572,8 +572,8 @@ export async function loadTransactionCorrections(transactionId: string) {
 }
 
 export type AdminUserAction =
-  | { action: "create"; displayName: string; email: string; jobTitle: string; role: string; sendInvitation: boolean }
-  | { action: "invite" | "reset"; profileId: string }
+  | { action: "create"; displayName: string; email: string; password: string; jobTitle: string; role: string }
+  | { action: "set-password"; profileId: string; password: string }
   | { action: "status"; profileId: string; status: "ACTIVE" | "INACTIVE" }
   | { action: "update-email"; profileId: string; email: string };
 
@@ -598,7 +598,7 @@ export class AdminUserActionError extends Error {
 }
 
 export async function runAdminUserAction(input: AdminUserAction, idToken: string) {
-  const response = await fetch("/api/admin/invitations", {
+  const response = await fetch("/api/admin/users", {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -614,7 +614,7 @@ export async function runAdminUserAction(input: AdminUserAction, idToken: string
 }
 
 export async function loadAdminUserAccess(idToken: string) {
-  const response = await fetch("/api/admin/invitations", {
+  const response = await fetch("/api/admin/users", {
     headers: { authorization: `Bearer ${idToken}` },
     cache: "no-store",
   });

@@ -1452,6 +1452,7 @@ function auditActionLabel(action: string) {
     INVITATION_FAILED: "Invitation échouée",
     PASSWORD_RESET_REQUESTED: "Réinitialisation demandée",
     PASSWORD_RESET_FAILED: "Réinitialisation échouée",
+    PASSWORD_UPDATED: "Mot de passe modifié",
     USER_EMAIL_UPDATED: "Email utilisateur mis à jour",
     USER_ACTIVATED: "Compte utilisateur activé",
     ACCOUNT_DEACTIVATED: "Compte utilisateur désactivé",
@@ -2991,11 +2992,13 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
   const [projects, setProjects] = useState(data.projects);
   const [periods, setPeriods] = useState(data.periods);
   const [cardHolderDrafts, setCardHolderDrafts] = useState<Record<string, string>>(() => Object.fromEntries(data.cards.map((card) => [card.id, card.holderId ?? ""])));
-  const [userForm, setUserForm] = useState({ displayName: "", email: "", jobTitle: "Contremaître", role: "WORKER", sendInvitation: true });
+  const [userForm, setUserForm] = useState({ displayName: "", email: "", password: "", jobTitle: "Contremaître", role: "WORKER" });
   const [cardForm, setCardForm] = useState({ lastFour: "", holderId: "", cardFunction: "" });
   const [busyKey, setBusyKey] = useState("");
   const [editingEmailUserId, setEditingEmailUserId] = useState("");
   const [emailDraft, setEmailDraft] = useState("");
+  const [editingPasswordUserId, setEditingPasswordUserId] = useState("");
+  const [passwordDraft, setPasswordDraft] = useState("");
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [directoryQuery, setDirectoryQuery] = useState("");
@@ -3043,15 +3046,25 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
       setError("La base de production doit être connectée avant de créer un utilisateur.");
       return;
     }
+    if (userForm.password && !userForm.email.trim()) {
+      setError("Un email est requis pour créer un compte avec mot de passe.");
+      return;
+    }
+    if (userForm.password && userForm.password.length < 12) {
+      setError("Le mot de passe doit contenir au moins 12 caractères.");
+      return;
+    }
     setBusyKey("create-user");
     try {
       const token = await getAdminToken();
-      const profile = await runAdminUserAction({ action: "create", displayName: userForm.displayName, email: userForm.email, jobTitle: userForm.jobTitle, role: userForm.role, sendInvitation: userForm.sendInvitation }, token);
+      const profile = await runAdminUserAction({ action: "create", displayName: userForm.displayName, email: userForm.email, password: userForm.password, jobTitle: userForm.jobTitle, role: userForm.role }, token);
       const nextUsers = [...users, profile];
       setUsers(nextUsers);
       onDataChange({ users: nextUsers });
-      setUserForm({ displayName: "", email: "", jobTitle: "Contremaître", role: "WORKER", sendInvitation: true });
-      setNotice(profile.invitationStatus === "INVITED" ? `Profil créé et invitation envoyée à ${profile.email}.` : `Profil créé pour ${profile.displayName}. Il pourra être invité depuis cette liste.`);
+      setUserForm({ displayName: "", email: "", password: "", jobTitle: "Contremaître", role: "WORKER" });
+      setNotice(profile.authState === "ACTIVE" || profile.invitationStatus === "ACTIVE"
+        ? `Profil et compte créés pour ${profile.displayName}.`
+        : `Profil créé pour ${profile.displayName}. Vous pourrez définir son email et son mot de passe plus tard.`);
     } catch (reason) {
       if (reason instanceof AdminUserActionError && reason.profile) {
         const nextUsers = users.some((candidate) => candidate.id === reason.profile?.id)
@@ -3092,17 +3105,27 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
     }
   };
 
-  const runUserAccessAction = async (user: UserProfile, action: "invite" | "reset") => {
+  const saveUserPassword = async (user: UserProfile) => {
     if (!canCreateUsers || !persistenceReady) return;
-    setBusyKey(`${action}-${user.id}`);
+    if (!user.email) {
+      setError("Ajoutez un email avant de définir un mot de passe.");
+      return;
+    }
+    if (passwordDraft.length < 12) {
+      setError("Le mot de passe doit contenir au moins 12 caractères.");
+      return;
+    }
+    setBusyKey(`password-${user.id}`);
     setError("");
     setNotice("");
     try {
-      const profile = await runAdminUserAction({ action, profileId: user.id }, await getAdminToken());
+      const profile = await runAdminUserAction({ action: "set-password", profileId: user.id, password: passwordDraft }, await getAdminToken());
       const nextUsers = users.map((candidate) => candidate.id === user.id ? { ...candidate, ...profile } : candidate);
       setUsers(nextUsers);
       onDataChange({ users: nextUsers });
-      setNotice(action === "reset" ? `Le lien de réinitialisation a été envoyé à ${profile.email}.` : `L’invitation a été envoyée à ${profile.email}.`);
+      setEditingPasswordUserId("");
+      setPasswordDraft("");
+      setNotice(`Mot de passe de ${profile.displayName} défini. Le mot de passe précédent n’est pas conservé ni visible.`);
     } catch (reason) {
       if (reason instanceof AdminUserActionError && reason.profile) {
         const nextUsers = users.map((candidate) => candidate.id === user.id ? { ...candidate, ...reason.profile } : candidate);
@@ -3612,17 +3635,16 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
        {selectedSection === "projects" && <label className="field"><span>Statut</span><select value={projectStatusFilter} onChange={(event) => setProjectStatusFilter(event.target.value)}><option value="ALL">Tous</option><option value="ACTIVE">Actifs</option><option value="INACTIVE">Inactifs</option></select></label>}
        {selectedSection === "users" && <>
          {canCreateUsers ? <form className="directory-form" onSubmit={createUser}>
-           <div className="field-grid"><label className="field"><span>Nom complet</span><input required value={userForm.displayName} onChange={(event) => setUserForm((current) => ({ ...current, displayName: event.target.value }))} placeholder="Personne Démo" /></label><label className="field"><span>Courriel {userForm.sendInvitation ? "" : "(facultatif)"}</span><input required={userForm.sendInvitation} type="email" value={userForm.email} onChange={(event) => setUserForm((current) => ({ ...current, email: event.target.value }))} placeholder="personne@example.test" /></label></div>
+           <div className="field-grid"><label className="field"><span>Nom complet</span><input required value={userForm.displayName} onChange={(event) => setUserForm((current) => ({ ...current, displayName: event.target.value }))} placeholder="Personne Démo" /></label><label className="field"><span>Courriel (facultatif)</span><input type="email" value={userForm.email} onChange={(event) => setUserForm((current) => ({ ...current, email: event.target.value }))} placeholder="personne@example.test" /></label></div>
+            <div className="field-grid"><label className="field"><span>Mot de passe initial (facultatif)</span><input type="password" autoComplete="new-password" minLength={12} maxLength={128} value={userForm.password} onChange={(event) => setUserForm((current) => ({ ...current, password: event.target.value }))} placeholder="12 caractères minimum" /></label><div className="directory-help">Sans mot de passe, seul le profil est créé. Vous pourrez ajouter l’email et définir le mot de passe plus tard. Les mots de passe existants ne sont jamais visibles.</div></div>
            <div className="field-grid"><label className="field"><span>Fonction</span><input value={userForm.jobTitle} onChange={(event) => setUserForm((current) => ({ ...current, jobTitle: event.target.value }))} placeholder="Contremaître" /></label><label className="field"><span>Rôle applicatif</span><select value={userForm.role} onChange={(event) => setUserForm((current) => ({ ...current, role: event.target.value }))}><option value="WORKER">WORKER · dépôt seulement</option><option value="KIM">KIM · contrôle comptable</option><option value="ADMIN">ADMIN · administration</option></select></label></div>
-            <div className="directory-invitation-option"><input id="send-user-invitation" type="checkbox" aria-describedby="send-user-invitation-help" checked={userForm.sendInvitation} onChange={(event) => setUserForm((current) => ({ ...current, sendInvitation: event.target.checked }))} /><div><label className="directory-invitation-label" htmlFor="send-user-invitation">Envoyer une invitation par email</label><small id="send-user-invitation-help">L’utilisateur crée lui-même son mot de passe avec le lien Firebase sécurisé.</small></div></div>
-           <button className="primary-button" type="submit" disabled={!persistenceReady || busyKey === "create-user"}>{busyKey === "create-user" ? "Création…" : userForm.sendInvitation ? "Créer le profil et envoyer l’invitation" : "Créer le profil"}</button>
+           <button className="primary-button" type="submit" disabled={!persistenceReady || busyKey === "create-user"}>{busyKey === "create-user" ? "Création…" : userForm.password ? "Créer le profil et le compte" : "Créer le profil"}</button>
          </form> : <div className="config-note"><span>i</span><p>Le contrôle comptable peut consulter les profils et gérer les cartes. La création et la désactivation des comptes sont réservées à ADMIN.</p></div>}
          <div className="directory-list">{visibleUsers.map((user) => {
-           const accountActive = user.authState === "ACTIVE" || user.invitationStatus === "ACTIVE";
-           const invitationLabel = accountActive ? "Compte actif" : user.invitationStatus === "INVITED" ? "Invitation envoyée" : user.invitationStatus === "INVITATION_FAILED" ? "Échec d’envoi" : user.authAccount ? "À inviter" : user.email ? "À inviter · Auth absent" : "Email manquant";
-           const invitationClass = accountActive ? "badge-success" : user.invitationStatus === "INVITATION_FAILED" ? "badge-danger" : user.invitationStatus === "INVITED" ? "badge-warning" : "badge-neutral";
-           const action = accountActive ? "reset" : "invite";
-           return <div className="directory-row" key={user.id}><div><strong>{user.displayName}</strong>{editingEmailUserId === user.id ? <div className="directory-email-editor"><input type="email" value={emailDraft} onChange={(event) => setEmailDraft(event.target.value)} aria-label={`Email de ${user.displayName}`} /><button className="text-button" type="button" disabled={busyKey === `email-${user.id}`} onClick={() => void saveUserEmail(user)}>{busyKey === `email-${user.id}` ? "…" : "Enregistrer"}</button><button className="text-button" type="button" onClick={() => setEditingEmailUserId("")}>Annuler</button></div> : <small>{user.email ?? "Courriel non renseigné"} · {user.jobTitle ?? "Fonction non renseignée"}</small>}</div><span className="badge badge-neutral">{user.role}</span><span className={`badge ${invitationClass}`}>{invitationLabel}</span>{canCreateUsers && <div className="directory-actions"><button className="secondary-button" type="button" disabled={!persistenceReady || busyKey === `${action}-${user.id}` || (!accountActive && !user.email)} onClick={() => void runUserAccessAction(user, action)}>{busyKey === `${action}-${user.id}` ? "…" : accountActive ? "Réinitialiser le mot de passe" : user.invitationStatus === "INVITED" ? "Renvoyer l’invitation" : "Envoyer l’invitation"}</button><button className="text-button" type="button" disabled={!persistenceReady} onClick={() => { setEditingEmailUserId(user.id); setEmailDraft(user.email ?? ""); setError(""); setNotice(""); }}>Modifier l’email</button><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `user-${user.id}`} onClick={() => void toggleUser(user)}>{busyKey === `user-${user.id}` ? "…" : user.status === "ACTIVE" ? "Désactiver" : "Réactiver"}</button></div>}</div>;
+           const accountActive = user.authState === "ACTIVE";
+           const accountLabel = accountActive ? "Compte actif" : user.authAccount ? "Compte à configurer" : user.email ? "Mot de passe non défini" : "Email manquant";
+           const accountClass = accountActive ? "badge-success" : "badge-neutral";
+           return <div className="directory-row" key={user.id}><div><strong>{user.displayName}</strong>{editingEmailUserId === user.id ? <div className="directory-email-editor"><input type="email" value={emailDraft} onChange={(event) => setEmailDraft(event.target.value)} aria-label={`Email de ${user.displayName}`} /><button className="text-button" type="button" disabled={busyKey === `email-${user.id}`} onClick={() => void saveUserEmail(user)}>{busyKey === `email-${user.id}` ? "…" : "Enregistrer"}</button><button className="text-button" type="button" onClick={() => setEditingEmailUserId("")}>Annuler</button></div> : <small>{user.email ?? "Courriel non renseigné"} · {user.jobTitle ?? "Fonction non renseignée"}</small>}</div><span className="badge badge-neutral">{user.role}</span><span className={`badge ${accountClass}`}>{accountLabel}</span>{canCreateUsers && <div className="directory-actions">{editingPasswordUserId === user.id ? <div className="directory-password-editor"><input type="password" autoComplete="new-password" minLength={12} maxLength={128} value={passwordDraft} onChange={(event) => setPasswordDraft(event.target.value)} aria-label={`Nouveau mot de passe de ${user.displayName}`} placeholder="12 caractères minimum" /><button className="text-button" type="button" disabled={busyKey === `password-${user.id}`} onClick={() => void saveUserPassword(user)}>{busyKey === `password-${user.id}` ? "…" : "Enregistrer"}</button><button className="text-button" type="button" onClick={() => { setEditingPasswordUserId(""); setPasswordDraft(""); }}>Annuler</button></div> : <button className="secondary-button" type="button" disabled={!persistenceReady || !user.email} title={!user.email ? "Ajoutez un email avant de définir un mot de passe." : undefined} onClick={() => { setEditingPasswordUserId(user.id); setPasswordDraft(""); setError(""); setNotice(""); }}>{accountActive ? "Modifier le mot de passe" : "Définir le mot de passe"}</button>}<button className="text-button" type="button" disabled={!persistenceReady} onClick={() => { setEditingEmailUserId(user.id); setEmailDraft(user.email ?? ""); setError(""); setNotice(""); }}>Modifier l’email</button><button className="text-button" type="button" disabled={!persistenceReady || busyKey === `user-${user.id}`} onClick={() => void toggleUser(user)}>{busyKey === `user-${user.id}` ? "…" : user.status === "ACTIVE" ? "Désactiver" : "Réactiver"}</button></div>}</div>;
          })}</div>
        </>}
       {selectedSection === "cards" && <>

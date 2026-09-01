@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  createDirectUserProfile,
   createUserProfile,
   effectiveInvitationStatus,
   isAdminRole,
   isAuthUserActive,
   sendInvitationForProfile,
   sendPasswordResetForProfile,
+  setUserPasswordForProfile,
+  updateUserEmail,
   UserInvitationError,
   USER_AUDIT_ACTION,
   INVITATION_STATUS,
@@ -135,6 +138,72 @@ test("C: nouveau profil avec invitation crée le profil, Auth et l’email", asy
   assert.equal(result.profile.invitationStatus, INVITATION_STATUS.INVITED);
   assert.equal(store.audits.filter((audit) => audit.action === USER_AUDIT_ACTION.USER_CREATED).length, 1);
   assert.equal(sent.length, 1);
+});
+
+test("création directe avec email et mot de passe crée le compte sans email sortant", async () => {
+  const auth = fakeAuth();
+  const store = repository();
+  const result = await createDirectUserProfile({
+    input: { displayName: "Caroline", email: "caroline@example.test", jobTitle: "Chantier", role: "WORKER" },
+    password: "Caroline-Acces-2026!",
+    profiles: store.profiles,
+    persistProfile: store.persistProfile,
+    auth,
+    ...common,
+  });
+  const created = [...auth.users.values()][0];
+  assert.equal(auth.users.size, 1);
+  assert.equal(created.email, "caroline@example.test");
+  assert.equal(created.password, "Caroline-Acces-2026!");
+  assert.equal(created.customClaims.role, "WORKER");
+  assert.equal(result.profile.firebaseUid, created.uid);
+  assert.equal(result.profile.invitationStatus, INVITATION_STATUS.ACTIVE);
+  assert.equal(store.audits[0].action, USER_AUDIT_ACTION.USER_CREATED);
+});
+
+test("un profil peut recevoir email et mot de passe plus tard", async () => {
+  const auth = fakeAuth();
+  const store = repository();
+  const created = await createDirectUserProfile({
+    input: { displayName: "Daniel", email: "", jobTitle: "Atelier", role: "KIM" },
+    profiles: store.profiles,
+    persistProfile: store.persistProfile,
+    auth,
+    ...common,
+  });
+  assert.equal(auth.users.size, 0);
+  const withEmail = await updateUserEmail({
+    profile: created.profile,
+    profiles: store.profiles,
+    auth,
+    persistProfile: store.persistProfile,
+    nextEmail: "daniel@example.test",
+    ...common,
+  });
+  const withPassword = await setUserPasswordForProfile({
+    profile: withEmail.profile,
+    profiles: store.profiles,
+    auth,
+    persistProfile: store.persistProfile,
+    nextPassword: "Daniel-Acces-2026!",
+    ...common,
+  });
+  assert.equal(auth.users.size, 1);
+  assert.equal(withPassword.profile.email, "daniel@example.test");
+  assert.equal(withPassword.profile.invitationStatus, INVITATION_STATUS.ACTIVE);
+  assert.equal([...auth.users.values()][0].password, "Daniel-Acces-2026!");
+  assert.equal([...auth.users.values()][0].customClaims.role, "KIM");
+});
+
+test("un mot de passe ne peut pas être créé sans email", async () => {
+  const auth = fakeAuth();
+  const store = repository();
+  await assert.rejects(
+    () => createDirectUserProfile({ input: { displayName: "Éric", email: "", jobTitle: "", role: "WORKER" }, password: "Eric-Acces-2026!", profiles: store.profiles, persistProfile: store.persistProfile, auth, ...common }),
+    (error) => error instanceof UserInvitationError && error.code === "EMAIL_REQUIRED",
+  );
+  assert.equal(store.profiles.length, 0);
+  assert.equal(auth.users.size, 0);
 });
 
 test("D: email invalide ne crée et ne modifie aucun profil", async () => {

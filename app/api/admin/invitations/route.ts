@@ -3,15 +3,13 @@ import { z } from "zod";
 import { firebaseAdminConfigured, getFirebaseAdminAuth, getFirebaseAdminDataConnect } from "../../../../firebase/admin";
 import { listAllUserProfiles } from "../../../../firebase/accounting-pagination.server";
 import { auditDetails, auditEventId } from "../../../../lib/audit-events.mjs";
-import { sendTransactionalEmail } from "../../../../lib/transactional-email.mjs";
 import {
-  createUserProfile,
+  createDirectUserProfile,
   effectiveInvitationStatus,
   isAdminRole,
   isAuthUserActive,
   normalizeEmail,
-  sendInvitationForProfile,
-  sendPasswordResetForProfile,
+  setUserPasswordForProfile,
   updateUserEmail,
   UserInvitationError,
   USER_AUDIT_ACTION,
@@ -26,14 +24,15 @@ const createAction = z.object({
   action: z.literal("create"),
   displayName: z.string().trim().min(2).max(120),
   email: z.string().trim().max(254).optional().default(""),
+  password: z.string().max(128).optional().default(""),
   jobTitle: z.string().trim().max(80).optional().default(""),
   role: z.enum(roles),
-  sendInvitation: z.boolean().default(true),
 });
 const profileAction = z.object({
-  action: z.enum(["invite", "reset", "update-email", "status"]),
+  action: z.enum(["set-password", "update-email", "status"]),
   profileId: z.string().trim().min(1).max(128),
   email: z.string().trim().max(254).optional(),
+  password: z.string().max(128).optional(),
   status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
 });
 const actionSchema = z.discriminatedUnion("action", [createAction, profileAction]);
@@ -117,10 +116,6 @@ async function readAuthUsers(auth: Awaited<ReturnType<typeof getFirebaseAdminAut
     pageToken = page.pageToken;
   } while (pageToken);
   return users;
-}
-
-function baseUrlForRequest(request: Request) {
-  return process.env.APP_BASE_URL?.trim() || process.env.NEXT_PUBLIC_APP_URL?.trim() || new URL(request.url).origin;
 }
 
 function asProfileRecord(profile: UserProfileRow) {
@@ -228,6 +223,9 @@ function errorResponse(error: unknown) {
   if (code === "auth/email-already-exists") {
     return Response.json({ error: "Cette adresse email est déjà utilisée par un compte Firebase.", code: "AUTH_EMAIL_TAKEN" }, { status: 409 });
   }
+  if (code === "auth/password-does-not-meet-requirements") {
+    return Response.json({ error: "Le mot de passe ne respecte pas les exigences de Firebase.", code: "INVALID_PASSWORD" }, { status: 400 });
+  }
   console.error("[admin-invitations] operation failed", { code });
   return Response.json({ error: "L’opération d’accès utilisateur n’a pas pu être terminée." }, { status: 500 });
 }
@@ -271,31 +269,25 @@ export async function POST(request: Request) {
       auth,
       persistProfile: persist,
       recordAudit: audit,
-      sendEmail: sendTransactionalEmail,
-      baseUrl: baseUrlForRequest(request),
       actorUid: identity.uid,
       actorRole: identity.role,
     };
 
     if (input.action === "create") {
-      const result = await createUserProfile({
+      const result = await createDirectUserProfile({
         input,
         ...common,
-        sendInvitation: input.sendInvitation,
+        password: input.password,
       });
-      return Response.json({ ok: true, profile: result.profile, invitationSent: input.sendInvitation && result.profile.invitationStatus === INVITATION_STATUS.INVITED }, { status: 201 });
+      return Response.json({ ok: true, profile: result.profile, accountCreated: Boolean(result.user) }, { status: 201 });
     }
 
     const profile = profiles.find((candidate) => candidate.id === input.profileId);
     if (!profile) throw new UserInvitationError("PROFILE_NOT_FOUND", "Le profil utilisateur demandé est introuvable.", { status: 404 });
 
-    if (input.action === "invite") {
-      const result = await sendInvitationForProfile({ profile, ...common });
-      return Response.json({ ok: true, profile: result.profile, invitationSent: true });
-    }
-    if (input.action === "reset") {
-      const result = await sendPasswordResetForProfile({ profile, ...common });
-      return Response.json({ ok: true, profile: result.profile, passwordResetSent: true });
+    if (input.action === "set-password") {
+      const result = await setUserPasswordForProfile({ profile, ...common, nextPassword: input.password, actorUid: identity.uid, actorRole: identity.role });
+      return Response.json({ ok: true, profile: result.profile, accountCreated: result.created });
     }
 
     if (input.action === "status") {

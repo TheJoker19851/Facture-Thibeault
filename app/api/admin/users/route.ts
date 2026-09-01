@@ -1,6 +1,10 @@
 import { firebaseAdminConfigured, getFirebaseAdminAuth } from "../../../../firebase/admin";
+import { GET as getUserDirectory, POST as manageUserDirectory } from "../invitations/route";
 
 export const runtime = "nodejs";
+
+export const GET = getUserDirectory;
+export const POST = manageUserDirectory;
 
 async function isAuthorizedAdmin(request: Request) {
   const token = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
@@ -12,13 +16,6 @@ async function isAuthorizedAdmin(request: Request) {
   } catch {
     return false;
   }
-}
-
-export async function POST(request: Request) {
-  if (!(await isAuthorizedAdmin(request))) {
-    return Response.json({ error: "Accès administrateur requis." }, { status: 403 });
-  }
-  return Response.json({ error: "La création par mot de passe temporaire est désactivée. Utilisez /api/admin/invitations." }, { status: 410 });
 }
 
 export async function PATCH(request: Request) {

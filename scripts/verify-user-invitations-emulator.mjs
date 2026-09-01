@@ -4,9 +4,9 @@ import { getAuth } from "firebase-admin/auth";
 import { getDataConnect } from "firebase-admin/data-connect";
 import { LOCAL_FIREBASE_PROJECT_ID } from "../lib/environment.mjs";
 import {
-  createUserProfile,
+  createDirectUserProfile,
   INVITATION_STATUS,
-  sendInvitationForProfile,
+  setUserPasswordForProfile,
 } from "../lib/user-invitations.mjs";
 
 const serviceConfig = {
@@ -15,16 +15,16 @@ const serviceConfig = {
   connector: "accounting",
 };
 
-export async function verifyUserInvitationsEmulator() {
-  const app = initializeApp({ projectId: LOCAL_FIREBASE_PROJECT_ID }, `user-invitations-${Date.now()}`);
+export async function verifyUserAccessEmulator() {
+  const app = initializeApp({ projectId: LOCAL_FIREBASE_PROJECT_ID }, `user-access-${Date.now()}`);
   const auth = getAuth(app);
   const dataConnect = getDataConnect(serviceConfig, app);
   const runTag = String(Date.now());
-  const email = `invitation-${runTag}@example.test`;
-  let profileId = null;
+  const email = `direct-${runTag}@example.test`;
+  const password = `Direct-Access-${runTag}!`;
+  const rotatedPassword = `Rotated-Access-${runTag}!`;
+  const profileIds = [];
   const actorUid = "DEMO-USER-ADMIN";
-  const sentEmails = [];
-  const auditEvents = [];
   let auditSequence = 0;
 
   const persistProfile = async (profile, audit) => {
@@ -49,73 +49,51 @@ export async function verifyUserInvitationsEmulator() {
     });
   };
 
-  const recordAudit = async (profile, action, details) => {
-    auditEvents.push({ profileId: profile.id, action, details });
-    await dataConnect.executeMutation("AdminRecordUserAudit", {
-      auditEventId: `AUDIT-${runTag}-${++auditSequence}`,
-      actorUid,
-      actorRole: "ADMIN",
-      auditAction: action,
-      entityId: profile.id,
-      auditDetails: JSON.stringify(details ?? {}),
-    });
-  };
-
-  let profile;
   try {
-    const first = await createUserProfile({
+    const first = await createDirectUserProfile({
       input: {
-        displayName: "Utilisateur invitation émulateur",
+        displayName: "Utilisateur direct émulateur",
         email,
         jobTitle: "Test local",
         role: "WORKER",
       },
+      password,
       profiles: [],
       persistProfile,
-      sendInvitation: true,
       auth,
-      recordAudit,
-      sendEmail: async (message) => { sentEmails.push(message); },
-      baseUrl: "http://127.0.0.1:3000",
       actorUid,
       actorRole: "ADMIN",
     });
-    profile = first.profile;
-    profileId = profile.id;
+    const profile = first.profile;
+    profileIds.push(profile.id);
 
     const createdUser = await auth.getUserByEmail(email);
     assert.equal(createdUser.email, email);
-    assert.equal(createdUser.passwordHash, undefined);
+    assert.ok(createdUser.passwordHash);
     assert.equal(createdUser.customClaims?.role, "WORKER");
-    assert.equal(profile.invitationStatus, INVITATION_STATUS.INVITED);
-    assert.equal(sentEmails.length, 1);
-    assert.match(sentEmails[0].html, /Facture Thibeault/);
-    assert.doesNotMatch(sentEmails[0].html, /mot de passe temporaire/i);
+    assert.equal(profile.invitationStatus, INVITATION_STATUS.ACTIVE);
 
-    const resend = await sendInvitationForProfile({
+    const rotated = await setUserPasswordForProfile({
       profile,
       profiles: [profile],
       auth,
       persistProfile,
-      recordAudit,
-      sendEmail: async (message) => { sentEmails.push(message); },
-      baseUrl: "http://127.0.0.1:3000",
+      nextPassword: rotatedPassword,
       actorUid,
       actorRole: "ADMIN",
     });
-    const resentUser = await auth.getUserByEmail(email);
-    assert.equal(resentUser.uid, createdUser.uid);
-    assert.equal(resend.user.uid, createdUser.uid);
-    assert.equal(sentEmails.length, 2);
-    assert.equal(resend.profile.invitationStatus, INVITATION_STATUS.INVITED);
+    const rotatedUser = await auth.getUser(createdUser.uid);
+    assert.equal(rotated.user.uid, createdUser.uid);
+    assert.ok(rotatedUser.passwordHash);
+    assert.equal(rotated.profile.invitationStatus, INVITATION_STATUS.ACTIVE);
 
     const stored = await dataConnect.executeQuery("ListUserProfiles", { limit: 100, offset: 0 }, {
       impersonate: { authClaims: { sub: actorUid, role: "ADMIN" } },
     });
-    const storedProfile = stored.data.userProfiles.find((row) => row.id === profileId);
+    const storedProfile = stored.data.userProfiles.find((row) => row.id === profile.id);
     assert.equal(storedProfile?.firebaseUid, createdUser.uid);
-    assert.equal(storedProfile?.invitationStatus, INVITATION_STATUS.INVITED);
-    console.log("Invitations utilisateur Emulator validées : Auth, rôle, email sans mot de passe et ré-envoi idempotent.");
+    assert.equal(storedProfile?.invitationStatus, INVITATION_STATUS.ACTIVE);
+    console.log("Accès utilisateur direct Emulator validé : Auth, rôle, mot de passe et modification sans email sortant.");
   } finally {
     let cleanupError = null;
     try {
@@ -123,12 +101,14 @@ export async function verifyUserInvitationsEmulator() {
     } catch (error) {
       if (error?.code !== "auth/user-not-found") cleanupError = error;
     }
-    try {
-      if (profileId) await dataConnect.executeMutation("AdminDeleteUserProfile", { id: profileId });
-    } catch (error) {
-      cleanupError ??= error;
+    for (const profileId of profileIds) {
+      try {
+        await dataConnect.executeMutation("AdminDeleteUserProfile", { id: profileId });
+      } catch (error) {
+        cleanupError ??= error;
+      }
     }
     await deleteApp(app);
-    if (cleanupError) console.error("Nettoyage du test d’invitation incomplet :", cleanupError.message ?? cleanupError);
+    if (cleanupError) console.error("Nettoyage du test d’accès utilisateur incomplet :", cleanupError.message ?? cleanupError);
   }
 }
