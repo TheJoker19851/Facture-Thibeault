@@ -56,7 +56,10 @@ export function FirebaseShell({ children }: { children: ReactNode }) {
       }
 
       setLoading(true);
-      nextUser.getIdTokenResult()
+      // Custom claims are refreshed only on sign-in, expiry, or an explicit
+      // forced refresh. This prevents an already-open admin session from
+      // being treated as an unprivileged account after role assignment.
+      nextUser.getIdTokenResult(true)
         .then((token) => {
           setRole(readRoleClaim(token.claims.role));
         })

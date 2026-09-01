@@ -3016,13 +3016,13 @@ function AdminDirectoryPage({ onDataChange, role }: { onDataChange: (patch: Dire
   const showError = (reason: unknown) => setError(reason instanceof Error ? reason.message : "La modification n'a pas pu être enregistrée.");
   const getAdminToken = async () => {
     if (!identity.user) throw new Error("Session administrateur absente.");
-    return identity.user.getIdToken();
+    return identity.user.getIdToken(true);
   };
 
   useEffect(() => {
     let active = true;
     if (!canCreateUsers || !persistenceReady || !identity.user) return () => { active = false; };
-    void identity.user.getIdToken()
+    void identity.user.getIdToken(true)
       .then((token) => loadAdminUserAccess(token))
       .then((nextUsers) => {
         if (active) setUsers(nextUsers);

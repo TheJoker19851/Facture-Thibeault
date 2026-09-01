@@ -70,8 +70,35 @@ async function authenticateAdmin(request: Request): Promise<AdminIdentity | null
   const token = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return null;
   try {
-    const decoded = await (await getFirebaseAdminAuth()).verifyIdToken(token);
-    return isAdminRole(decoded.role) ? { uid: decoded.uid, role: "ADMIN" } : null;
+    const auth = await getFirebaseAdminAuth();
+    const decoded = await auth.verifyIdToken(token);
+    if (isAdminRole(decoded.role)) return { uid: decoded.uid, role: "ADMIN" };
+
+    // The profile is the application source of truth for an administrator.
+    // A role claim can be absent or stale when an already-open browser session
+    // predates the profile/claim synchronization. Accept only an active ADMIN
+    // profile belonging to the verified Firebase uid, then repair the claim
+    // so subsequent client-side Data Connect calls use the same authorization.
+    const dataConnect = await getFirebaseAdminDataConnect();
+    const profiles = await readProfiles(dataConnect);
+    const adminProfile = profiles.find((profile) =>
+      profile.firebaseUid === decoded.uid &&
+      profile.status === "ACTIVE" &&
+      isAdminRole(profile.role),
+    );
+    if (!adminProfile) return null;
+
+    try {
+      const user = await auth.getUser(decoded.uid);
+      const currentClaims = user.customClaims && typeof user.customClaims === "object" ? user.customClaims : {};
+      if (!isAdminRole(currentClaims.role)) {
+        await auth.setCustomUserClaims(decoded.uid, { ...currentClaims, role: "ADMIN" });
+      }
+    } catch {
+      // The verified active profile is sufficient for this request. Claim
+      // repair is best effort and will be retried on the next request.
+    }
+    return { uid: decoded.uid, role: "ADMIN" };
   } catch {
     return null;
   }
