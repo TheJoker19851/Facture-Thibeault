@@ -84,10 +84,11 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*UpsertCreditCard*](#upsertcreditcard)
   - [*AdminUpsertUserProfileWithAudit*](#adminupsertuserprofilewithaudit)
   - [*AdminRecordUserAudit*](#adminrecorduseraudit)
-  - [*UpsertProject*](#upsertproject)
+  - [*DeleteUserProfile*](#deleteuserprofile)
   - [*UpsertExpenseAccount*](#upsertexpenseaccount)
-  - [*DeleteProject*](#deleteproject)
   - [*DeleteExpenseAccount*](#deleteexpenseaccount)
+  - [*UpsertSkuReference*](#upsertskureference)
+  - [*DeleteSkuReference*](#deleteskureference)
   - [*DeleteCreditCard*](#deletecreditcard)
   - [*DeleteCreditCardAndHolder*](#deletecreditcardandholder)
   - [*UpsertCardStatementPeriod*](#upsertcardstatementperiod)
@@ -107,6 +108,7 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*CreateInvoiceIntakeV2*](#createinvoiceintakev2)
   - [*ClaimInvoiceIntakeProcessing*](#claiminvoiceintakeprocessing)
   - [*RequeueStaleInvoiceIntake*](#requeuestaleinvoiceintake)
+  - [*CacheCanadianTireSkuReference*](#cachecanadiantireskureference)
   - [*UpdateInvoiceIntakeAiResult*](#updateinvoiceintakeairesult)
   - [*MarkInvoiceIntakeAiError*](#markinvoiceintakeaierror)
   - [*MarkInvoiceIntakeAiMaxAttempts*](#markinvoiceintakeaimaxattempts)
@@ -2111,6 +2113,7 @@ export interface ListExpenseTransactionsData {
       number: string;
       name: string;
     } & Project_Key;
+    projectNumber?: string | null;
     expenseAccount?: {
       id: string;
       number: string;
@@ -2240,6 +2243,7 @@ export interface ListExpenseTransactionsPageData {
       number: string;
       name: string;
     } & Project_Key;
+    projectNumber?: string | null;
     expenseAccount?: {
       id: string;
       number: string;
@@ -2603,6 +2607,7 @@ export interface ListInvoiceIntakesData {
     extractedCurrency?: string | null;
     extractedSku?: string | null;
     extractedCategory?: string | null;
+    extractedProjectNumber?: string | null;
     extractedProjectId?: string | null;
     classificationAccountCode?: string | null;
     classificationCategory?: string | null;
@@ -2725,6 +2730,7 @@ export interface ListInvoiceIntakesPageData {
     extractedCurrency?: string | null;
     extractedSku?: string | null;
     extractedCategory?: string | null;
+    extractedProjectNumber?: string | null;
     extractedProjectId?: string | null;
     classificationAccountCode?: string | null;
     classificationCategory?: string | null;
@@ -7066,95 +7072,89 @@ export default function AdminRecordUserAuditComponent() {
 }
 ```
 
-## UpsertProject
-You can execute the `UpsertProject` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+## DeleteUserProfile
+You can execute the `DeleteUserProfile` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
 ```javascript
-useUpsertProject(options?: useDataConnectMutationOptions<UpsertProjectData, FirebaseError, UpsertProjectVariables>): UseDataConnectMutationResult<UpsertProjectData, UpsertProjectVariables>;
+useDeleteUserProfile(options?: useDataConnectMutationOptions<DeleteUserProfileData, FirebaseError, DeleteUserProfileVariables>): UseDataConnectMutationResult<DeleteUserProfileData, DeleteUserProfileVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
 ```javascript
-useUpsertProject(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertProjectData, FirebaseError, UpsertProjectVariables>): UseDataConnectMutationResult<UpsertProjectData, UpsertProjectVariables>;
+useDeleteUserProfile(dc: DataConnect, options?: useDataConnectMutationOptions<DeleteUserProfileData, FirebaseError, DeleteUserProfileVariables>): UseDataConnectMutationResult<DeleteUserProfileData, DeleteUserProfileVariables>;
 ```
 
 ### Variables
-The `UpsertProject` Mutation requires an argument of type `UpsertProjectVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+The `DeleteUserProfile` Mutation requires an argument of type `DeleteUserProfileVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 
 ```javascript
-export interface UpsertProjectVariables {
+export interface DeleteUserProfileVariables {
   id: string;
-  number: string;
-  name: string;
-  status: string;
-  auditAction: string;
+  firebaseUid: string;
   auditEventId: string;
   auditDetails: string;
 }
 ```
 ### Return Type
-Recall that calling the `UpsertProject` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+Recall that calling the `DeleteUserProfile` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
 
 To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
 
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
-To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpsertProject` Mutation is of type `UpsertProjectData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `DeleteUserProfile` Mutation is of type `DeleteUserProfileData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
 ```javascript
-export interface UpsertProjectData {
-  project_upsert: Project_Key;
+export interface DeleteUserProfileData {
+  userProfile_delete?: UserProfile_Key | null;
   auditEvent_upsert: AuditEvent_Key;
 }
 ```
 
 To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
 
-### Using `UpsertProject`'s Mutation hook function
+### Using `DeleteUserProfile`'s Mutation hook function
 
 ```javascript
 import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig, UpsertProjectVariables } from '@factures-thibeault/data-connect-generated';
-import { useUpsertProject } from '@factures-thibeault/data-connect-generated/react'
+import { connectorConfig, DeleteUserProfileVariables } from '@factures-thibeault/data-connect-generated';
+import { useDeleteUserProfile } from '@factures-thibeault/data-connect-generated/react'
 
-export default function UpsertProjectComponent() {
+export default function DeleteUserProfileComponent() {
   // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
-  const mutation = useUpsertProject();
+  const mutation = useDeleteUserProfile();
 
   // You can also pass in a `DataConnect` instance to the Mutation hook function.
   const dataConnect = getDataConnect(connectorConfig);
-  const mutation = useUpsertProject(dataConnect);
+  const mutation = useDeleteUserProfile(dataConnect);
 
   // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
   const options = {
     onSuccess: () => { console.log('Mutation succeeded!'); }
   };
-  const mutation = useUpsertProject(options);
+  const mutation = useDeleteUserProfile(options);
 
   // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
   const dataConnect = getDataConnect(connectorConfig);
   const options = {
     onSuccess: () => { console.log('Mutation succeeded!'); }
   };
-  const mutation = useUpsertProject(dataConnect, options);
+  const mutation = useDeleteUserProfile(dataConnect, options);
 
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
-  // The `useUpsertProject` Mutation requires an argument of type `UpsertProjectVariables`:
-  const upsertProjectVars: UpsertProjectVariables = {
+  // The `useDeleteUserProfile` Mutation requires an argument of type `DeleteUserProfileVariables`:
+  const deleteUserProfileVars: DeleteUserProfileVariables = {
     id: ..., 
-    number: ..., 
-    name: ..., 
-    status: ..., 
-    auditAction: ..., 
+    firebaseUid: ..., 
     auditEventId: ..., 
     auditDetails: ..., 
   };
-  mutation.mutate(upsertProjectVars);
+  mutation.mutate(deleteUserProfileVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ id: ..., number: ..., name: ..., status: ..., auditAction: ..., auditEventId: ..., auditDetails: ..., });
+  mutation.mutate({ id: ..., firebaseUid: ..., auditEventId: ..., auditDetails: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
     onSuccess: () => { console.log('Mutation succeeded!'); }
   };
-  mutation.mutate(upsertProjectVars, options);
+  mutation.mutate(deleteUserProfileVars, options);
 
   // Then, you can render your component dynamically based on the status of the Mutation.
   if (mutation.isPending) {
@@ -7167,7 +7167,7 @@ export default function UpsertProjectComponent() {
 
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
-    console.log(mutation.data.project_upsert);
+    console.log(mutation.data.userProfile_delete);
     console.log(mutation.data.auditEvent_upsert);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
@@ -7284,106 +7284,6 @@ export default function UpsertExpenseAccountComponent() {
 }
 ```
 
-## DeleteProject
-You can execute the `DeleteProject` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
-```javascript
-useDeleteProject(options?: useDataConnectMutationOptions<DeleteProjectData, FirebaseError, DeleteProjectVariables>): UseDataConnectMutationResult<DeleteProjectData, DeleteProjectVariables>;
-```
-You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
-useDeleteProject(dc: DataConnect, options?: useDataConnectMutationOptions<DeleteProjectData, FirebaseError, DeleteProjectVariables>): UseDataConnectMutationResult<DeleteProjectData, DeleteProjectVariables>;
-```
-
-### Variables
-The `DeleteProject` Mutation requires an argument of type `DeleteProjectVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-
-```javascript
-export interface DeleteProjectVariables {
-  id: string;
-  auditEventId: string;
-  auditDetails: string;
-}
-```
-### Return Type
-Recall that calling the `DeleteProject` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
-
-To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
-
-To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
-
-To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `DeleteProject` Mutation is of type `DeleteProjectData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
-export interface DeleteProjectData {
-  project_delete?: Project_Key | null;
-  auditEvent_upsert: AuditEvent_Key;
-}
-```
-
-To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
-
-### Using `DeleteProject`'s Mutation hook function
-
-```javascript
-import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig, DeleteProjectVariables } from '@factures-thibeault/data-connect-generated';
-import { useDeleteProject } from '@factures-thibeault/data-connect-generated/react'
-
-export default function DeleteProjectComponent() {
-  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
-  const mutation = useDeleteProject();
-
-  // You can also pass in a `DataConnect` instance to the Mutation hook function.
-  const dataConnect = getDataConnect(connectorConfig);
-  const mutation = useDeleteProject(dataConnect);
-
-  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
-  const options = {
-    onSuccess: () => { console.log('Mutation succeeded!'); }
-  };
-  const mutation = useDeleteProject(options);
-
-  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
-  const dataConnect = getDataConnect(connectorConfig);
-  const options = {
-    onSuccess: () => { console.log('Mutation succeeded!'); }
-  };
-  const mutation = useDeleteProject(dataConnect, options);
-
-  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
-  // The `useDeleteProject` Mutation requires an argument of type `DeleteProjectVariables`:
-  const deleteProjectVars: DeleteProjectVariables = {
-    id: ..., 
-    auditEventId: ..., 
-    auditDetails: ..., 
-  };
-  mutation.mutate(deleteProjectVars);
-  // Variables can be defined inline as well.
-  mutation.mutate({ id: ..., auditEventId: ..., auditDetails: ..., });
-
-  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
-  const options = {
-    onSuccess: () => { console.log('Mutation succeeded!'); }
-  };
-  mutation.mutate(deleteProjectVars, options);
-
-  // Then, you can render your component dynamically based on the status of the Mutation.
-  if (mutation.isPending) {
-    return <div>Loading...</div>;
-  }
-
-  if (mutation.isError) {
-    return <div>Error: {mutation.error.message}</div>;
-  }
-
-  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
-  if (mutation.isSuccess) {
-    console.log(mutation.data.project_delete);
-    console.log(mutation.data.auditEvent_upsert);
-  }
-  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
-}
-```
-
 ## DeleteExpenseAccount
 You can execute the `DeleteExpenseAccount` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
 ```javascript
@@ -7478,6 +7378,224 @@ export default function DeleteExpenseAccountComponent() {
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
     console.log(mutation.data.expenseAccount_delete);
+    console.log(mutation.data.auditEvent_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## UpsertSkuReference
+You can execute the `UpsertSkuReference` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useUpsertSkuReference(options?: useDataConnectMutationOptions<UpsertSkuReferenceData, FirebaseError, UpsertSkuReferenceVariables>): UseDataConnectMutationResult<UpsertSkuReferenceData, UpsertSkuReferenceVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useUpsertSkuReference(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertSkuReferenceData, FirebaseError, UpsertSkuReferenceVariables>): UseDataConnectMutationResult<UpsertSkuReferenceData, UpsertSkuReferenceVariables>;
+```
+
+### Variables
+The `UpsertSkuReference` Mutation requires an argument of type `UpsertSkuReferenceVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface UpsertSkuReferenceVariables {
+  merchant: string;
+  sku: string;
+  productLabel: string;
+  categoryLabel: string;
+  expenseAccountId: string;
+  sourceUrl?: string | null;
+  auditAction: string;
+  auditEventId: string;
+  entityId: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that calling the `UpsertSkuReference` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpsertSkuReference` Mutation is of type `UpsertSkuReferenceData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface UpsertSkuReferenceData {
+  skuReference_upsert: SkuReference_Key;
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `UpsertSkuReference`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, UpsertSkuReferenceVariables } from '@factures-thibeault/data-connect-generated';
+import { useUpsertSkuReference } from '@factures-thibeault/data-connect-generated/react'
+
+export default function UpsertSkuReferenceComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useUpsertSkuReference();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useUpsertSkuReference(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpsertSkuReference(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpsertSkuReference(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useUpsertSkuReference` Mutation requires an argument of type `UpsertSkuReferenceVariables`:
+  const upsertSkuReferenceVars: UpsertSkuReferenceVariables = {
+    merchant: ..., 
+    sku: ..., 
+    productLabel: ..., 
+    categoryLabel: ..., 
+    expenseAccountId: ..., 
+    sourceUrl: ..., // optional
+    auditAction: ..., 
+    auditEventId: ..., 
+    entityId: ..., 
+    auditDetails: ..., 
+  };
+  mutation.mutate(upsertSkuReferenceVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ merchant: ..., sku: ..., productLabel: ..., categoryLabel: ..., expenseAccountId: ..., sourceUrl: ..., auditAction: ..., auditEventId: ..., entityId: ..., auditDetails: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(upsertSkuReferenceVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.skuReference_upsert);
+    console.log(mutation.data.auditEvent_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## DeleteSkuReference
+You can execute the `DeleteSkuReference` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useDeleteSkuReference(options?: useDataConnectMutationOptions<DeleteSkuReferenceData, FirebaseError, DeleteSkuReferenceVariables>): UseDataConnectMutationResult<DeleteSkuReferenceData, DeleteSkuReferenceVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useDeleteSkuReference(dc: DataConnect, options?: useDataConnectMutationOptions<DeleteSkuReferenceData, FirebaseError, DeleteSkuReferenceVariables>): UseDataConnectMutationResult<DeleteSkuReferenceData, DeleteSkuReferenceVariables>;
+```
+
+### Variables
+The `DeleteSkuReference` Mutation requires an argument of type `DeleteSkuReferenceVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface DeleteSkuReferenceVariables {
+  merchant: string;
+  sku: string;
+  auditEventId: string;
+  entityId: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that calling the `DeleteSkuReference` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `DeleteSkuReference` Mutation is of type `DeleteSkuReferenceData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface DeleteSkuReferenceData {
+  skuReference_delete?: SkuReference_Key | null;
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `DeleteSkuReference`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, DeleteSkuReferenceVariables } from '@factures-thibeault/data-connect-generated';
+import { useDeleteSkuReference } from '@factures-thibeault/data-connect-generated/react'
+
+export default function DeleteSkuReferenceComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useDeleteSkuReference();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useDeleteSkuReference(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useDeleteSkuReference(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useDeleteSkuReference(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useDeleteSkuReference` Mutation requires an argument of type `DeleteSkuReferenceVariables`:
+  const deleteSkuReferenceVars: DeleteSkuReferenceVariables = {
+    merchant: ..., 
+    sku: ..., 
+    auditEventId: ..., 
+    entityId: ..., 
+    auditDetails: ..., 
+  };
+  mutation.mutate(deleteSkuReferenceVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ merchant: ..., sku: ..., auditEventId: ..., entityId: ..., auditDetails: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(deleteSkuReferenceVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.skuReference_delete);
     console.log(mutation.data.auditEvent_upsert);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
@@ -9644,6 +9762,120 @@ export default function RequeueStaleInvoiceIntakeComponent() {
 }
 ```
 
+## CacheCanadianTireSkuReference
+You can execute the `CacheCanadianTireSkuReference` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useCacheCanadianTireSkuReference(options?: useDataConnectMutationOptions<CacheCanadianTireSkuReferenceData, FirebaseError, CacheCanadianTireSkuReferenceVariables>): UseDataConnectMutationResult<CacheCanadianTireSkuReferenceData, CacheCanadianTireSkuReferenceVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useCacheCanadianTireSkuReference(dc: DataConnect, options?: useDataConnectMutationOptions<CacheCanadianTireSkuReferenceData, FirebaseError, CacheCanadianTireSkuReferenceVariables>): UseDataConnectMutationResult<CacheCanadianTireSkuReferenceData, CacheCanadianTireSkuReferenceVariables>;
+```
+
+### Variables
+The `CacheCanadianTireSkuReference` Mutation requires an argument of type `CacheCanadianTireSkuReferenceVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface CacheCanadianTireSkuReferenceVariables {
+  sku: string;
+  productLabel: string;
+  categoryLabel: string;
+  expenseAccountId: string;
+  sourceUrl: string;
+  auditEventId: string;
+  entityId: string;
+  actorUid: string;
+  actorRole: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that calling the `CacheCanadianTireSkuReference` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `CacheCanadianTireSkuReference` Mutation is of type `CacheCanadianTireSkuReferenceData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface CacheCanadianTireSkuReferenceData {
+  skuReference_upsert: SkuReference_Key;
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `CacheCanadianTireSkuReference`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, CacheCanadianTireSkuReferenceVariables } from '@factures-thibeault/data-connect-generated';
+import { useCacheCanadianTireSkuReference } from '@factures-thibeault/data-connect-generated/react'
+
+export default function CacheCanadianTireSkuReferenceComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useCacheCanadianTireSkuReference();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useCacheCanadianTireSkuReference(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useCacheCanadianTireSkuReference(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useCacheCanadianTireSkuReference(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useCacheCanadianTireSkuReference` Mutation requires an argument of type `CacheCanadianTireSkuReferenceVariables`:
+  const cacheCanadianTireSkuReferenceVars: CacheCanadianTireSkuReferenceVariables = {
+    sku: ..., 
+    productLabel: ..., 
+    categoryLabel: ..., 
+    expenseAccountId: ..., 
+    sourceUrl: ..., 
+    auditEventId: ..., 
+    entityId: ..., 
+    actorUid: ..., 
+    actorRole: ..., 
+    auditDetails: ..., 
+  };
+  mutation.mutate(cacheCanadianTireSkuReferenceVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ sku: ..., productLabel: ..., categoryLabel: ..., expenseAccountId: ..., sourceUrl: ..., auditEventId: ..., entityId: ..., actorUid: ..., actorRole: ..., auditDetails: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(cacheCanadianTireSkuReferenceVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.skuReference_upsert);
+    console.log(mutation.data.auditEvent_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
 ## UpdateInvoiceIntakeAiResult
 You can execute the `UpdateInvoiceIntakeAiResult` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
 ```javascript
@@ -9673,7 +9905,7 @@ export interface UpdateInvoiceIntakeAiResultVariables {
   extractedCurrency: string;
   extractedSku?: string | null;
   extractedCategory?: string | null;
-  extractedProjectId?: string | null;
+  extractedProjectNumber?: string | null;
   classificationAccountCode?: string | null;
   classificationCategory?: string | null;
   classificationSource: string;
@@ -9752,7 +9984,7 @@ export default function UpdateInvoiceIntakeAiResultComponent() {
     extractedCurrency: ..., 
     extractedSku: ..., // optional
     extractedCategory: ..., // optional
-    extractedProjectId: ..., // optional
+    extractedProjectNumber: ..., // optional
     classificationAccountCode: ..., // optional
     classificationCategory: ..., // optional
     classificationSource: ..., 
@@ -9770,7 +10002,7 @@ export default function UpdateInvoiceIntakeAiResultComponent() {
   };
   mutation.mutate(updateInvoiceIntakeAiResultVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ receiptId: ..., aiModel: ..., aiConfidence: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedLineItems: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., processingStatus: ..., decisionExceptions: ..., decisionChecks: ..., actorUid: ..., actorRole: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., });
+  mutation.mutate({ receiptId: ..., aiModel: ..., aiConfidence: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedLineItems: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectNumber: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., processingStatus: ..., decisionExceptions: ..., decisionChecks: ..., actorUid: ..., actorRole: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -10164,7 +10396,7 @@ export interface UpdateInvoiceIntakeReviewVariables {
   extractedCurrency: string;
   extractedSku?: string | null;
   extractedCategory?: string | null;
-  extractedProjectId?: string | null;
+  extractedProjectNumber?: string | null;
   classificationAccountCode?: string | null;
   classificationCategory?: string | null;
   classificationSource: string;
@@ -10241,7 +10473,7 @@ export default function UpdateInvoiceIntakeReviewComponent() {
     extractedCurrency: ..., 
     extractedSku: ..., // optional
     extractedCategory: ..., // optional
-    extractedProjectId: ..., // optional
+    extractedProjectNumber: ..., // optional
     classificationAccountCode: ..., // optional
     classificationCategory: ..., // optional
     classificationSource: ..., 
@@ -10258,7 +10490,7 @@ export default function UpdateInvoiceIntakeReviewComponent() {
   };
   mutation.mutate(updateInvoiceIntakeReviewVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ receiptId: ..., status: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedLineItems: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., decisionExceptions: ..., decisionChecks: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., expectedReviewRevision: ..., nextReviewRevision: ..., });
+  mutation.mutate({ receiptId: ..., status: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedLineItems: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectNumber: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., decisionExceptions: ..., decisionChecks: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., expectedReviewRevision: ..., nextReviewRevision: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -11015,6 +11247,7 @@ export interface MaterializeInvoiceIntakeV2Variables {
   cardId: string;
   statementPeriod?: CardStatementPeriod_Key | null;
   project?: Project_Key | null;
+  projectNumber?: string | null;
   storageFolder: string;
   classificationNote: string;
   expectedProcessingStatus: string;
@@ -11121,6 +11354,7 @@ export default function MaterializeInvoiceIntakeV2Component() {
     cardId: ..., 
     statementPeriod: ..., // optional
     project: ..., // optional
+    projectNumber: ..., // optional
     storageFolder: ..., 
     classificationNote: ..., 
     expectedProcessingStatus: ..., 
@@ -11154,7 +11388,7 @@ export default function MaterializeInvoiceIntakeV2Component() {
   };
   mutation.mutate(materializeInvoiceIntakeV2Vars);
   // Variables can be defined inline as well.
-  mutation.mutate({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., lineItems: ..., currency: ..., sku: ..., category: ..., account: ..., cardId: ..., statementPeriod: ..., project: ..., storageFolder: ..., classificationNote: ..., expectedProcessingStatus: ..., classificationSource: ..., classificationStatus: ..., actorUid: ..., actorRole: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., photoCount: ..., photo1Id: ..., photo1StoragePath: ..., photo1ContentType: ..., hasPhoto2: ..., photo2Id: ..., photo2StoragePath: ..., photo2ContentType: ..., hasPhoto3: ..., photo3Id: ..., photo3StoragePath: ..., photo3ContentType: ..., hasPhoto4: ..., photo4Id: ..., photo4StoragePath: ..., photo4ContentType: ..., hasPhoto5: ..., photo5Id: ..., photo5StoragePath: ..., photo5ContentType: ..., });
+  mutation.mutate({ receiptId: ..., transactionId: ..., invoiceId: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., lineItems: ..., currency: ..., sku: ..., category: ..., account: ..., cardId: ..., statementPeriod: ..., project: ..., projectNumber: ..., storageFolder: ..., classificationNote: ..., expectedProcessingStatus: ..., classificationSource: ..., classificationStatus: ..., actorUid: ..., actorRole: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., photoCount: ..., photo1Id: ..., photo1StoragePath: ..., photo1ContentType: ..., hasPhoto2: ..., photo2Id: ..., photo2StoragePath: ..., photo2ContentType: ..., hasPhoto3: ..., photo3Id: ..., photo3StoragePath: ..., photo3ContentType: ..., hasPhoto4: ..., photo4Id: ..., photo4StoragePath: ..., photo4ContentType: ..., hasPhoto5: ..., photo5Id: ..., photo5StoragePath: ..., photo5ContentType: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {

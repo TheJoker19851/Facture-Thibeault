@@ -24,6 +24,7 @@ test("l’export comptable reprend le template par carte et trie les transaction
   assert.match(xml, /<Data ss:Type="Number">21370<\/Data>/);
   assert.match(xml, /<Data ss:Type="String">TPS<\/Data>/);
   assert.match(xml, /<Data ss:Type="String">TVQ<\/Data>/);
+  assert.match(xml, /<Row ss:Height="36" ss:AutoFitHeight="0">/);
   assert.match(xml, /ss:Hidden="1"/);
   assert.match(xml, /ss:Format="m\/d\/yy"/);
   assert.match(xml, /&quot;\$&quot;/);
@@ -101,6 +102,7 @@ test("l’export final est un conteneur OOXML .xlsx typé et conserve les 37 col
   assert.match(packageText, /21340/);
   assert.match(packageText, /21370/);
   assert.match(packageText, /autoFilter ref="A3:AK3"/);
+  assert.match(packageText, /<row r="4" ht="36" customHeight="1">/);
   assert.match(packageText, /hidden="1"/);
   assert.match(packageText, /Fournisseur É/);
 });

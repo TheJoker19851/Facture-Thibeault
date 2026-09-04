@@ -1,10 +1,12 @@
 import { firebaseAdminConfigured, getFirebaseAdminAuth } from "../../../../firebase/admin";
 import { GET as getUserDirectory, POST as manageUserDirectory } from "../invitations/route";
+import { DELETE as deleteUserDirectory } from "../invitations/route";
 
 export const runtime = "nodejs";
 
 export const GET = getUserDirectory;
 export const POST = manageUserDirectory;
+export const DELETE = deleteUserDirectory;
 
 async function isAuthorizedAdmin(request: Request) {
   const token = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];

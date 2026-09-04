@@ -379,16 +379,16 @@ export function adminRecordUserAudit(dcOrVars, vars) {
   return executeMutation(adminRecordUserAuditRef(dcInstance, inputVars));
 }
 
-export const upsertProjectRef = (dcOrVars, vars) => {
+export const deleteUserProfileRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
-  return mutationRef(dcInstance, 'UpsertProject', inputVars);
+  return mutationRef(dcInstance, 'DeleteUserProfile', inputVars);
 }
-upsertProjectRef.operationName = 'UpsertProject';
+deleteUserProfileRef.operationName = 'DeleteUserProfile';
 
-export function upsertProject(dcOrVars, vars) {
+export function deleteUserProfile(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
-  return executeMutation(upsertProjectRef(dcInstance, inputVars));
+  return executeMutation(deleteUserProfileRef(dcInstance, inputVars));
 }
 
 export const upsertExpenseAccountRef = (dcOrVars, vars) => {
@@ -403,18 +403,6 @@ export function upsertExpenseAccount(dcOrVars, vars) {
   return executeMutation(upsertExpenseAccountRef(dcInstance, inputVars));
 }
 
-export const deleteProjectRef = (dcOrVars, vars) => {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return mutationRef(dcInstance, 'DeleteProject', inputVars);
-}
-deleteProjectRef.operationName = 'DeleteProject';
-
-export function deleteProject(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
-  return executeMutation(deleteProjectRef(dcInstance, inputVars));
-}
-
 export const deleteExpenseAccountRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -425,6 +413,30 @@ deleteExpenseAccountRef.operationName = 'DeleteExpenseAccount';
 export function deleteExpenseAccount(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(deleteExpenseAccountRef(dcInstance, inputVars));
+}
+
+export const upsertSkuReferenceRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertSkuReference', inputVars);
+}
+upsertSkuReferenceRef.operationName = 'UpsertSkuReference';
+
+export function upsertSkuReference(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertSkuReferenceRef(dcInstance, inputVars));
+}
+
+export const deleteSkuReferenceRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'DeleteSkuReference', inputVars);
+}
+deleteSkuReferenceRef.operationName = 'DeleteSkuReference';
+
+export function deleteSkuReference(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(deleteSkuReferenceRef(dcInstance, inputVars));
 }
 
 export const deleteCreditCardRef = (dcOrVars, vars) => {
@@ -653,6 +665,18 @@ requeueStaleInvoiceIntakeRef.operationName = 'RequeueStaleInvoiceIntake';
 export function requeueStaleInvoiceIntake(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(requeueStaleInvoiceIntakeRef(dcInstance, inputVars));
+}
+
+export const cacheCanadianTireSkuReferenceRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CacheCanadianTireSkuReference', inputVars);
+}
+cacheCanadianTireSkuReferenceRef.operationName = 'CacheCanadianTireSkuReference';
+
+export function cacheCanadianTireSkuReference(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(cacheCanadianTireSkuReferenceRef(dcInstance, inputVars));
 }
 
 export const updateInvoiceIntakeAiResultRef = (dcOrVars, vars) => {

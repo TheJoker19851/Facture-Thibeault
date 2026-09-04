@@ -36,7 +36,9 @@ export const firebaseConfigurationError = firebaseEnvironmentValidation.ok
 export const firebaseUsesEmulators =
   firebaseEnvironment === "local" &&
   process.env.NEXT_PUBLIC_FIREBASE_USE_EMULATORS === "true";
-export const firebasePreviewMode = process.env.NEXT_PUBLIC_FIREBASE_PREVIEW_MODE === "true";
+export const firebasePreviewMode =
+  process.env.NEXT_PUBLIC_FIREBASE_PREVIEW_MODE === "true" &&
+  process.env.NEXT_PUBLIC_APP_ENV !== "production";
 
 export const firebaseConfig = config;
 export const firebaseConfigured = Boolean(

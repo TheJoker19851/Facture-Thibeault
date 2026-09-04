@@ -12,11 +12,11 @@ import {
   listUserProfiles,
   deleteCreditCard as deleteCreditCardMutation,
   deleteExpenseAccount as deleteExpenseAccountMutation,
-  deleteProject as deleteProjectMutation,
+  deleteSkuReference as deleteSkuReferenceMutation,
   upsertCardStatementPeriod,
   upsertCreditCard,
   upsertExpenseAccount,
-  upsertProject,
+  upsertSkuReference,
   upsertUserProfile,
   updateInvoiceIntakeReview,
   listReportAdjustmentSets,
@@ -191,6 +191,7 @@ export type AppAccountingData = {
     extractedCurrency?: string;
     extractedSku?: string;
     extractedCategory?: string;
+    extractedProjectNumber?: string;
     extractedProjectId?: string;
     classificationAccountCode?: string;
     classificationCategory?: string;
@@ -225,7 +226,7 @@ export type AccountingSnapshot = {
  */
 export const accountingReadSource = sqlConnectConfigured
   ? "firebase-sql-connect"
-  : "demo";
+  : "not-configured";
 
 const DATA_CONNECT_PAGE_SIZE = 200;
 const collectPagedRows = collectPagedRowsUntyped as <T>(
@@ -313,7 +314,7 @@ export type InvoiceIntakeReviewInput = {
   currency: string;
   sku: string | null;
   category: string | null;
-  projectId: string | null;
+  projectNumber: string | null;
   accountCode: string | null;
   classificationCategory: string | null;
   classificationSource: string;
@@ -343,7 +344,7 @@ export type InvoiceIntakeCommitInput = {
   accountCode: string | null;
   cardId: string;
   statementPeriodId: string | null;
-  projectId: string | null;
+  projectNumber: string | null;
   classificationNote: string;
   lineItems: string;
 };
@@ -382,8 +383,17 @@ export type CreditCardInput = {
   inactiveFrom: string | null;
 };
 
-export type ProjectInput = { id: string; number: string; name: string; status: string; auditAction?: string; auditDetails?: string };
 export type ExpenseAccountInput = { id: string; number: string; label: string; type: string; status: string; auditAction?: string; auditDetails?: string };
+export type SkuReferenceInput = {
+  merchant: string;
+  sku: string;
+  productLabel: string;
+  categoryLabel: string;
+  expenseAccountId: string;
+  sourceUrl: string | null;
+  auditAction?: string;
+  auditDetails?: string;
+};
 export type StatementPeriodInput = { id: string; label: string; startDate: string; endDate: string; statementLabel: string | null; status: string };
 
 export async function saveUserProfile(input: UserProfileInput) {
@@ -400,16 +410,6 @@ export async function saveCreditCard(input: CreditCardInput) {
   await upsertCreditCard(firebaseDataConnect, input);
 }
 
-export async function saveProject(input: ProjectInput) {
-  if (!firebaseDataConnect || !sqlConnectConfigured) throw new Error("SQL Connect est requis pour enregistrer le projet.");
-  await upsertProject(firebaseDataConnect, {
-    ...input,
-    auditAction: input.auditAction ?? AUDIT_ACTIONS.PROJECT_UPDATED,
-    auditEventId: auditEventId(input.id, input.auditAction ?? AUDIT_ACTIONS.PROJECT_UPDATED, createClientId()),
-    auditDetails: input.auditDetails ?? auditDetails({ number: input.number, name: input.name, status: input.status }),
-  });
-}
-
 export async function saveExpenseAccount(input: ExpenseAccountInput) {
   if (!firebaseDataConnect || !sqlConnectConfigured) throw new Error("SQL Connect est requis pour enregistrer le compte.");
   await upsertExpenseAccount(firebaseDataConnect, {
@@ -420,21 +420,48 @@ export async function saveExpenseAccount(input: ExpenseAccountInput) {
   });
 }
 
-export async function deleteProject(input: { id: string; auditDetails?: string }) {
-  if (!firebaseDataConnect || !sqlConnectConfigured) throw new Error("SQL Connect est requis pour supprimer le projet.");
-  await deleteProjectMutation(firebaseDataConnect, {
-    id: input.id,
-    auditEventId: auditEventId(input.id, AUDIT_ACTIONS.PROJECT_DELETED, createClientId()),
-    auditDetails: input.auditDetails ?? auditDetails({ action: AUDIT_ACTIONS.PROJECT_DELETED }),
-  });
-}
-
 export async function deleteExpenseAccount(input: { id: string; auditDetails?: string }) {
   if (!firebaseDataConnect || !sqlConnectConfigured) throw new Error("SQL Connect est requis pour supprimer le compte.");
   await deleteExpenseAccountMutation(firebaseDataConnect, {
     id: input.id,
     auditEventId: auditEventId(input.id, AUDIT_ACTIONS.EXPENSE_ACCOUNT_DELETED, createClientId()),
     auditDetails: input.auditDetails ?? auditDetails({ action: AUDIT_ACTIONS.EXPENSE_ACCOUNT_DELETED }),
+  });
+}
+
+export async function saveSkuReference(input: SkuReferenceInput) {
+  if (!firebaseDataConnect || !sqlConnectConfigured) throw new Error("SQL Connect est requis pour enregistrer la référence SKU.");
+  const entityId = `${input.merchant}:${input.sku}`;
+  const auditAction = input.auditAction ?? AUDIT_ACTIONS.SKU_REFERENCE_UPDATED;
+  await upsertSkuReference(firebaseDataConnect, {
+    ...input,
+    auditAction,
+    auditEventId: auditEventId(entityId, auditAction, createClientId()),
+    entityId,
+    auditDetails: input.auditDetails ?? auditDetails({
+      merchant: input.merchant,
+      sku: input.sku,
+      productLabel: input.productLabel,
+      categoryLabel: input.categoryLabel,
+      expenseAccountId: input.expenseAccountId,
+      sourceUrl: input.sourceUrl,
+    }),
+  });
+}
+
+export async function deleteSkuReference(input: { merchant: string; sku: string; auditDetails?: string }) {
+  if (!firebaseDataConnect || !sqlConnectConfigured) throw new Error("SQL Connect est requis pour supprimer la référence SKU.");
+  const entityId = `${input.merchant}:${input.sku}`;
+  await deleteSkuReferenceMutation(firebaseDataConnect, {
+    merchant: input.merchant,
+    sku: input.sku,
+    auditEventId: auditEventId(entityId, AUDIT_ACTIONS.SKU_REFERENCE_DELETED, createClientId()),
+    entityId,
+    auditDetails: input.auditDetails ?? auditDetails({
+      action: AUDIT_ACTIONS.SKU_REFERENCE_DELETED,
+      merchant: input.merchant,
+      sku: input.sku,
+    }),
   });
 }
 
@@ -613,6 +640,22 @@ export async function runAdminUserAction(input: AdminUserAction, idToken: string
   return body.profile;
 }
 
+export async function deleteAdminUserProfile(input: { profileId: string }, idToken: string) {
+  const response = await fetch("/api/admin/users", {
+    method: "DELETE",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify(input),
+  });
+  const body = await response.json().catch(() => ({})) as { error?: string; warning?: string | null; ok?: boolean };
+  if (!response.ok || !body.ok) {
+    throw new AdminUserActionError(body.error ?? "Le profil utilisateur n’a pas pu être supprimé.");
+  }
+  return { warning: body.warning ?? null };
+}
+
 export async function loadAdminUserAccess(idToken: string) {
   const response = await fetch("/api/admin/users", {
     headers: { authorization: `Bearer ${idToken}` },
@@ -654,7 +697,7 @@ export async function saveInvoiceIntakeReview(input: InvoiceIntakeReviewInput) {
     extractedCurrency: input.currency,
     extractedSku: input.sku,
     extractedCategory: input.category,
-    extractedProjectId: input.projectId,
+    extractedProjectNumber: input.projectNumber,
     classificationAccountCode: input.accountCode,
     classificationCategory: input.classificationCategory,
     classificationSource: input.classificationSource,
@@ -843,6 +886,8 @@ export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccounti
       category: reference.categoryLabel ?? "Divers",
       accountCode: reference.expenseAccount?.number ?? "—",
       status: reference.verificationStatus === "VALIDATED" ? "Validé" : "À confirmer",
+      sourceUrl: reference.sourceUrl ?? undefined,
+      verifiedAt: reference.verifiedAt ?? undefined,
     })),
     transactions: snapshot.transactions.map((transaction) => {
       const invoice = invoicesByTransactionId.get(transaction.id);
@@ -855,8 +900,8 @@ export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccounti
         person: transaction.card.holder.displayName,
         card: transaction.card.lastFour,
         ...(transaction.statementPeriod?.id ? { periodId: transaction.statementPeriod.id } : {}),
-        ...(transaction.project ? { projectId: transaction.project.id, projectNumber: transaction.project.number, projectName: transaction.project.name } : {}),
-        project: transaction.project ? `${transaction.project.number} · ${transaction.project.name}` : "—",
+        ...(transaction.project ? { projectId: transaction.project.id, projectNumber: transaction.project.number, projectName: transaction.project.name } : transaction.projectNumber ? { projectNumber: transaction.projectNumber } : {}),
+        project: transaction.project ? `${transaction.project.number} · ${transaction.project.name}` : transaction.projectNumber ?? "—",
         category: transaction.expenseAccount?.label ?? transaction.categoryLabel ?? "Divers",
         ...(transaction.expenseAccount ? { accountId: transaction.expenseAccount.id, accountNumber: transaction.expenseAccount.number, accountLabel: transaction.expenseAccount.label } : {}),
         subtotal: centsToCad(transaction.amountBeforeTaxCents),
@@ -904,6 +949,7 @@ export function mapAccountingSnapshot(snapshot: AccountingSnapshot): AppAccounti
       ...(intake.extractedCurrency ? { extractedCurrency: intake.extractedCurrency } : {}),
       ...(intake.extractedSku ? { extractedSku: intake.extractedSku } : {}),
       ...(intake.extractedCategory ? { extractedCategory: intake.extractedCategory } : {}),
+      ...(intake.extractedProjectNumber ? { extractedProjectNumber: intake.extractedProjectNumber } : {}),
       ...(intake.extractedProjectId ? { extractedProjectId: intake.extractedProjectId } : {}),
       ...(intake.classificationAccountCode ? { classificationAccountCode: intake.classificationAccountCode } : {}),
       ...(intake.classificationCategory ? { classificationCategory: intake.classificationCategory } : {}),

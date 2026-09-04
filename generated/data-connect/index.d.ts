@@ -473,6 +473,24 @@ export interface AutoCommitInvoiceIntakeVariables {
   classificationNote: string;
 }
 
+export interface CacheCanadianTireSkuReferenceData {
+  skuReference_upsert: SkuReference_Key;
+  auditEvent_upsert: AuditEvent_Key;
+}
+
+export interface CacheCanadianTireSkuReferenceVariables {
+  sku: string;
+  productLabel: string;
+  categoryLabel: string;
+  expenseAccountId: string;
+  sourceUrl: string;
+  auditEventId: string;
+  entityId: string;
+  actorUid: string;
+  actorRole: string;
+  auditDetails: string;
+}
+
 export interface CardStatementPeriod_Key {
   id: string;
   __typename?: 'CardStatementPeriod_Key';
@@ -699,13 +717,27 @@ export interface DeletePostedInvoiceVariables {
   auditDetails: string;
 }
 
-export interface DeleteProjectData {
-  project_delete?: Project_Key | null;
+export interface DeleteSkuReferenceData {
+  skuReference_delete?: SkuReference_Key | null;
   auditEvent_upsert: AuditEvent_Key;
 }
 
-export interface DeleteProjectVariables {
+export interface DeleteSkuReferenceVariables {
+  merchant: string;
+  sku: string;
+  auditEventId: string;
+  entityId: string;
+  auditDetails: string;
+}
+
+export interface DeleteUserProfileData {
+  userProfile_delete?: UserProfile_Key | null;
+  auditEvent_upsert: AuditEvent_Key;
+}
+
+export interface DeleteUserProfileVariables {
   id: string;
+  firebaseUid: string;
   auditEventId: string;
   auditDetails: string;
 }
@@ -1090,6 +1122,7 @@ export interface ListExpenseTransactionsData {
       number: string;
       name: string;
     } & Project_Key;
+    projectNumber?: string | null;
     expenseAccount?: {
       id: string;
       number: string;
@@ -1139,6 +1172,7 @@ export interface ListExpenseTransactionsPageData {
       number: string;
       name: string;
     } & Project_Key;
+    projectNumber?: string | null;
     expenseAccount?: {
       id: string;
       number: string;
@@ -1202,6 +1236,7 @@ export interface ListInvoiceIntakesData {
     extractedCurrency?: string | null;
     extractedSku?: string | null;
     extractedCategory?: string | null;
+    extractedProjectNumber?: string | null;
     extractedProjectId?: string | null;
     classificationAccountCode?: string | null;
     classificationCategory?: string | null;
@@ -1244,6 +1279,7 @@ export interface ListInvoiceIntakesPageData {
     extractedCurrency?: string | null;
     extractedSku?: string | null;
     extractedCategory?: string | null;
+    extractedProjectNumber?: string | null;
     extractedProjectId?: string | null;
     classificationAccountCode?: string | null;
     classificationCategory?: string | null;
@@ -1813,6 +1849,7 @@ export interface MaterializeInvoiceIntakeV2Variables {
   cardId: string;
   statementPeriod?: CardStatementPeriod_Key | null;
   project?: Project_Key | null;
+  projectNumber?: string | null;
   storageFolder: string;
   classificationNote: string;
   expectedProcessingStatus: string;
@@ -2060,7 +2097,7 @@ export interface UpdateInvoiceIntakeAiResultVariables {
   extractedCurrency: string;
   extractedSku?: string | null;
   extractedCategory?: string | null;
-  extractedProjectId?: string | null;
+  extractedProjectNumber?: string | null;
   classificationAccountCode?: string | null;
   classificationCategory?: string | null;
   classificationSource: string;
@@ -2096,7 +2133,7 @@ export interface UpdateInvoiceIntakeReviewVariables {
   extractedCurrency: string;
   extractedSku?: string | null;
   extractedCategory?: string | null;
-  extractedProjectId?: string | null;
+  extractedProjectNumber?: string | null;
   classificationAccountCode?: string | null;
   classificationCategory?: string | null;
   classificationSource: string;
@@ -2239,21 +2276,6 @@ export interface UpsertMerchantAliasVariables {
   auditDetails: string;
 }
 
-export interface UpsertProjectData {
-  project_upsert: Project_Key;
-  auditEvent_upsert: AuditEvent_Key;
-}
-
-export interface UpsertProjectVariables {
-  id: string;
-  number: string;
-  name: string;
-  status: string;
-  auditAction: string;
-  auditEventId: string;
-  auditDetails: string;
-}
-
 export interface UpsertReconciliationOutsideControlData {
   reconciliationOutsideControl_upsert: ReconciliationOutsideControl_Key;
   auditEvent_upsert: AuditEvent_Key;
@@ -2286,6 +2308,24 @@ export interface UpsertReportAdjustmentSetVariables {
   rowsJson: string;
   actorUid: string;
   auditEventId: string;
+  auditDetails: string;
+}
+
+export interface UpsertSkuReferenceData {
+  skuReference_upsert: SkuReference_Key;
+  auditEvent_upsert: AuditEvent_Key;
+}
+
+export interface UpsertSkuReferenceVariables {
+  merchant: string;
+  sku: string;
+  productLabel: string;
+  categoryLabel: string;
+  expenseAccountId: string;
+  sourceUrl?: string | null;
+  auditAction: string;
+  auditEventId: string;
+  entityId: string;
   auditDetails: string;
 }
 
@@ -2680,17 +2720,17 @@ export const adminRecordUserAuditRef: AdminRecordUserAuditRef;
 export function adminRecordUserAudit(vars: AdminRecordUserAuditVariables): MutationPromise<AdminRecordUserAuditData, AdminRecordUserAuditVariables>;
 export function adminRecordUserAudit(dc: DataConnect, vars: AdminRecordUserAuditVariables): MutationPromise<AdminRecordUserAuditData, AdminRecordUserAuditVariables>;
 
-interface UpsertProjectRef {
+interface DeleteUserProfileRef {
   /* Allow users to create refs without passing in DataConnect */
-  (vars: UpsertProjectVariables): MutationRef<UpsertProjectData, UpsertProjectVariables>;
+  (vars: DeleteUserProfileVariables): MutationRef<DeleteUserProfileData, DeleteUserProfileVariables>;
   /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: UpsertProjectVariables): MutationRef<UpsertProjectData, UpsertProjectVariables>;
+  (dc: DataConnect, vars: DeleteUserProfileVariables): MutationRef<DeleteUserProfileData, DeleteUserProfileVariables>;
   operationName: string;
 }
-export const upsertProjectRef: UpsertProjectRef;
+export const deleteUserProfileRef: DeleteUserProfileRef;
 
-export function upsertProject(vars: UpsertProjectVariables): MutationPromise<UpsertProjectData, UpsertProjectVariables>;
-export function upsertProject(dc: DataConnect, vars: UpsertProjectVariables): MutationPromise<UpsertProjectData, UpsertProjectVariables>;
+export function deleteUserProfile(vars: DeleteUserProfileVariables): MutationPromise<DeleteUserProfileData, DeleteUserProfileVariables>;
+export function deleteUserProfile(dc: DataConnect, vars: DeleteUserProfileVariables): MutationPromise<DeleteUserProfileData, DeleteUserProfileVariables>;
 
 interface UpsertExpenseAccountRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -2704,18 +2744,6 @@ export const upsertExpenseAccountRef: UpsertExpenseAccountRef;
 export function upsertExpenseAccount(vars: UpsertExpenseAccountVariables): MutationPromise<UpsertExpenseAccountData, UpsertExpenseAccountVariables>;
 export function upsertExpenseAccount(dc: DataConnect, vars: UpsertExpenseAccountVariables): MutationPromise<UpsertExpenseAccountData, UpsertExpenseAccountVariables>;
 
-interface DeleteProjectRef {
-  /* Allow users to create refs without passing in DataConnect */
-  (vars: DeleteProjectVariables): MutationRef<DeleteProjectData, DeleteProjectVariables>;
-  /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: DeleteProjectVariables): MutationRef<DeleteProjectData, DeleteProjectVariables>;
-  operationName: string;
-}
-export const deleteProjectRef: DeleteProjectRef;
-
-export function deleteProject(vars: DeleteProjectVariables): MutationPromise<DeleteProjectData, DeleteProjectVariables>;
-export function deleteProject(dc: DataConnect, vars: DeleteProjectVariables): MutationPromise<DeleteProjectData, DeleteProjectVariables>;
-
 interface DeleteExpenseAccountRef {
   /* Allow users to create refs without passing in DataConnect */
   (vars: DeleteExpenseAccountVariables): MutationRef<DeleteExpenseAccountData, DeleteExpenseAccountVariables>;
@@ -2727,6 +2755,30 @@ export const deleteExpenseAccountRef: DeleteExpenseAccountRef;
 
 export function deleteExpenseAccount(vars: DeleteExpenseAccountVariables): MutationPromise<DeleteExpenseAccountData, DeleteExpenseAccountVariables>;
 export function deleteExpenseAccount(dc: DataConnect, vars: DeleteExpenseAccountVariables): MutationPromise<DeleteExpenseAccountData, DeleteExpenseAccountVariables>;
+
+interface UpsertSkuReferenceRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertSkuReferenceVariables): MutationRef<UpsertSkuReferenceData, UpsertSkuReferenceVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpsertSkuReferenceVariables): MutationRef<UpsertSkuReferenceData, UpsertSkuReferenceVariables>;
+  operationName: string;
+}
+export const upsertSkuReferenceRef: UpsertSkuReferenceRef;
+
+export function upsertSkuReference(vars: UpsertSkuReferenceVariables): MutationPromise<UpsertSkuReferenceData, UpsertSkuReferenceVariables>;
+export function upsertSkuReference(dc: DataConnect, vars: UpsertSkuReferenceVariables): MutationPromise<UpsertSkuReferenceData, UpsertSkuReferenceVariables>;
+
+interface DeleteSkuReferenceRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: DeleteSkuReferenceVariables): MutationRef<DeleteSkuReferenceData, DeleteSkuReferenceVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: DeleteSkuReferenceVariables): MutationRef<DeleteSkuReferenceData, DeleteSkuReferenceVariables>;
+  operationName: string;
+}
+export const deleteSkuReferenceRef: DeleteSkuReferenceRef;
+
+export function deleteSkuReference(vars: DeleteSkuReferenceVariables): MutationPromise<DeleteSkuReferenceData, DeleteSkuReferenceVariables>;
+export function deleteSkuReference(dc: DataConnect, vars: DeleteSkuReferenceVariables): MutationPromise<DeleteSkuReferenceData, DeleteSkuReferenceVariables>;
 
 interface DeleteCreditCardRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -2955,6 +3007,18 @@ export const requeueStaleInvoiceIntakeRef: RequeueStaleInvoiceIntakeRef;
 
 export function requeueStaleInvoiceIntake(vars: RequeueStaleInvoiceIntakeVariables): MutationPromise<RequeueStaleInvoiceIntakeData, RequeueStaleInvoiceIntakeVariables>;
 export function requeueStaleInvoiceIntake(dc: DataConnect, vars: RequeueStaleInvoiceIntakeVariables): MutationPromise<RequeueStaleInvoiceIntakeData, RequeueStaleInvoiceIntakeVariables>;
+
+interface CacheCanadianTireSkuReferenceRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: CacheCanadianTireSkuReferenceVariables): MutationRef<CacheCanadianTireSkuReferenceData, CacheCanadianTireSkuReferenceVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: CacheCanadianTireSkuReferenceVariables): MutationRef<CacheCanadianTireSkuReferenceData, CacheCanadianTireSkuReferenceVariables>;
+  operationName: string;
+}
+export const cacheCanadianTireSkuReferenceRef: CacheCanadianTireSkuReferenceRef;
+
+export function cacheCanadianTireSkuReference(vars: CacheCanadianTireSkuReferenceVariables): MutationPromise<CacheCanadianTireSkuReferenceData, CacheCanadianTireSkuReferenceVariables>;
+export function cacheCanadianTireSkuReference(dc: DataConnect, vars: CacheCanadianTireSkuReferenceVariables): MutationPromise<CacheCanadianTireSkuReferenceData, CacheCanadianTireSkuReferenceVariables>;
 
 interface UpdateInvoiceIntakeAiResultRef {
   /* Allow users to create refs without passing in DataConnect */

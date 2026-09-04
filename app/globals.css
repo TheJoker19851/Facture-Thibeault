@@ -256,7 +256,6 @@ h2 { margin-bottom: 0; font-size: 17px; letter-spacing: -.02em; }
 @media (max-width: 820px) { .intake-row { grid-template-columns: 29px minmax(0, 1fr) auto; }.intake-fields { grid-column: 2; }.intake-total { grid-column: 2; text-align: left; }.intake-row > .badge { grid-column: 3; grid-row: 2; } }
  .intake-commit-card { display: grid; gap: 10px; border: 1px solid #d9e8eb; border-radius: 10px; padding: 13px; background: #f5fbfb; }.intake-commit-card h3 { margin: 2px 0 4px; color: var(--navy); font-size: 13px; }.intake-commit-card p { margin: 0; }.intake-commit-card .field-grid { margin-top: 0; }.intake-commit-card .secondary-button { justify-self: start; }.intake-commit-card .secondary-button:disabled { cursor: wait; opacity: .65; }
  .directory-form { display: grid; gap: 12px; border-bottom: 1px solid var(--line); padding: 0 21px 18px; }.directory-form .field-grid { margin-top: 0; }.directory-help { align-self: end; border: 1px solid #d9e8eb; border-radius: 8px; padding: 10px; background: #f5fbfb; color: var(--muted); font-size: 9px; line-height: 1.45; }.directory-list { display: grid; gap: 0; padding: 0 21px 10px; }.directory-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto minmax(0, auto); align-items: center; gap: 10px; border-bottom: 1px solid #eef2f4; padding: 11px 0; }.directory-row > div { display: grid; gap: 3px; min-width: 0; }.directory-row strong { color: var(--ink); font-size: 11px; }.directory-row small { overflow: hidden; color: var(--muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }.directory-row .secondary-button { min-height: 29px; padding: 0 10px; font-size: 9px; }.directory-row .text-button { white-space: nowrap; }.directory-actions { display: flex !important; align-items: center; justify-content: flex-end; gap: 7px; min-width: 0; }.directory-email-editor, .directory-password-editor { display: flex !important; align-items: center; gap: 6px; }.directory-email-editor input, .directory-password-editor input { min-height: 27px; width: min(260px, 100%); border: 1px solid var(--line); border-radius: 7px; padding: 0 8px; background: #fff; color: var(--ink); font-size: 9px; }.card-directory-row { grid-template-columns: 145px minmax(180px, 1fr) auto auto; }.card-directory-row select { min-height: 29px; border: 1px solid var(--line); border-radius: 7px; padding: 0 8px; background: #fff; color: var(--ink); font: inherit; font-size: 9px; }
- .project-import-panel { display: grid; gap: 12px; margin: 0 21px 18px; border: 1px solid #d9e8eb; border-radius: 10px; padding: 14px; background: #f7fbfc; }.project-import-panel h3 { margin: 3px 0 5px; color: var(--navy); font-size: 14px; }.project-import-panel .muted { margin: 0; font-size: 10px; }.project-import-file { display: grid; gap: 5px; color: var(--muted); font-size: 9px; font-weight: 800; }.project-import-file input { min-height: 34px; border: 1px solid var(--line); border-radius: 7px; padding: 7px; background: #fff; color: var(--ink); font: inherit; font-size: 10px; }.project-import-panel code { color: var(--navy); font-size: 9px; overflow-wrap: anywhere; }.project-import-file-name { margin: 0; color: var(--muted); font-size: 9px; }.project-import-preview { display: grid; gap: 10px; border-top: 1px solid #d9e8eb; padding-top: 11px; }.project-import-summary { display: flex; flex-wrap: wrap; gap: 7px; }.project-import-summary span { border-radius: 999px; padding: 5px 8px; background: #e8f3f2; color: #267d68; font-size: 9px; }.project-import-summary strong { color: var(--navy); font-size: 11px; }.project-import-errors { border: 1px solid #edc2c0; border-radius: 8px; padding: 9px 10px; background: #fff6f5; color: #8b5552; font-size: 9px; line-height: 1.4; }.project-import-errors ul { display: grid; gap: 3px; margin: 5px 0 0; padding-left: 17px; }.project-import-errors small { display: block; margin-top: 4px; }
  .reconciliation-actions { display: flex; flex-wrap: wrap; gap: 8px; }.statement-import-panel { margin-bottom: 15px; }.statement-import-toolbar { display: grid; grid-template-columns: minmax(250px, .85fr) minmax(300px, 1.15fr); gap: 12px; padding: 0 21px 17px; }.statement-import-toolbar .field { margin: 0; }.statement-import-preview { display: grid; gap: 7px; margin: 0 21px 17px; border: 1px solid #ecd6a5; border-radius: 9px; padding: 11px; background: #fffaf0; color: #806d3e; font-size: 10px; }.statement-import-preview small { color: #967d48; }.reconciliation-table-wrap { overflow-x: auto; padding: 0 10px 10px; }.reconciliation-detail-table { width: 100%; border-collapse: collapse; min-width: 800px; }.reconciliation-detail-table th { border-bottom: 1px solid var(--line); padding: 10px 11px; color: #91a1aa; font-size: 9px; font-weight: 800; letter-spacing: .04em; text-align: left; text-transform: uppercase; }.reconciliation-detail-table td { border-top: 1px solid #eef2f4; padding: 12px 11px; color: var(--ink); font-size: 10px; vertical-align: top; }.reconciliation-detail-table tbody tr { cursor: pointer; }.reconciliation-detail-table tbody tr:hover, .reconciliation-detail-table tbody tr.selected { background: #f2f9fa; }.reconciliation-detail-table td strong, .reconciliation-detail-table td small { display: block; }.reconciliation-detail-table td small { margin-top: 3px; color: var(--muted); font-size: 9px; }.reconciliation-detail-card { margin-top: 15px; }.reconciliation-detail-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 0 21px 15px; }.reconciliation-detail-grid > div { display: grid; gap: 4px; border: 1px solid #dcebed; border-radius: 8px; padding: 10px; background: #f7fbfc; }.reconciliation-detail-grid span { color: var(--muted); font-size: 9px; }.reconciliation-detail-grid strong { color: var(--navy); font-size: 10px; line-height: 1.4; }.reconciliation-candidate-actions { display: flex; align-items: end; gap: 10px; padding: 0 21px 12px; }.reconciliation-candidate-actions .field { flex: 1; margin: 0; }.reconciliation-detail-actions { display: flex; flex-wrap: wrap; gap: 10px; border-top: 1px solid var(--line); padding: 13px 21px 17px; }.reconciliation-outside { margin-top: 15px; }
 @media (max-width: 820px) { .directory-row, .card-directory-row { grid-template-columns: 1fr auto; }.directory-row > div { grid-column: 1 / -1; }.directory-row .badge { justify-self: start; }.card-directory-row select { grid-column: 1 / -1; width: 100%; }.directory-row .secondary-button, .directory-row .text-button { justify-self: start; } }
 @media (max-width: 820px) { .reconciliation-actions { width: 100%; }.reconciliation-actions button { flex: 1; }.statement-import-toolbar, .reconciliation-detail-grid { grid-template-columns: 1fr; }.reconciliation-candidate-actions { align-items: stretch; flex-direction: column; }.reconciliation-candidate-actions .primary-button { width: 100%; } }
@@ -448,6 +447,396 @@ main input:focus, main select:focus, main textarea:focus {
   box-shadow: 0 0 0 3px rgba(217, 173, 45, .16);
 }
 
+/* A posted classification is confirmation, not an unresolved warning. */
+.field-note.success {
+  border-left-color: var(--teal);
+  background: #eef8f5;
+  color: #2f7467;
+}
+
+/* Configuration workspace: compact, production-oriented administration UI. */
+.configuration-page {
+  display: grid;
+  gap: 18px;
+}
+.configuration-page .config-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+.configuration-page .config-summary-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 78px;
+  border: 1px solid #c3d7de;
+  border-radius: 13px;
+  padding: 14px 16px;
+  background: #f8fbfc;
+  box-shadow: 0 5px 14px rgba(28, 58, 76, .06);
+}
+.configuration-page .config-summary-card > div {
+  display: grid;
+  gap: 2px;
+}
+.configuration-page .config-summary-icon,
+.configuration-page .config-nav-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #b6d1da;
+  border-radius: 9px;
+  color: #2e7897;
+  background: #e7f2f5;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .06em;
+}
+.configuration-page .config-summary-card strong {
+  color: var(--navy);
+  font-size: 22px;
+  line-height: 1;
+}
+.configuration-page .config-summary-card div span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+.configuration-page .config-navigation {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+.configuration-page .config-nav-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid #c3d7de;
+  border-radius: 12px;
+  padding: 12px 13px;
+  color: var(--ink);
+  background: rgba(248, 251, 252, .78);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .16s ease, background .16s ease, transform .16s ease;
+}
+.configuration-page .config-nav-card:hover,
+.configuration-page .config-nav-card:focus-visible {
+  border-color: #7caabd;
+  background: #fff;
+  transform: translateY(-1px);
+}
+.configuration-page .config-nav-card.selected {
+  border-color: #2d7d9d;
+  background: #eaf4f6;
+  box-shadow: inset 3px 0 0 #2d7d9d, 0 5px 14px rgba(28, 58, 76, .07);
+}
+.configuration-page .config-nav-card > span:nth-child(2) {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.configuration-page .config-nav-card strong {
+  overflow: hidden;
+  color: var(--navy);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.configuration-page .config-nav-card small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.configuration-page .config-nav-card > b {
+  color: #397e96;
+  font-size: 12px;
+}
+.configuration-page .config-workspace {
+  overflow: hidden;
+  border-color: #b9d1d9;
+  background: #f8fbfc;
+  box-shadow: 0 8px 22px rgba(28, 58, 76, .08);
+}
+.configuration-page .config-workspace-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 21px 24px 17px;
+  border-bottom: 1px solid #d6e3e7;
+  background: linear-gradient(180deg, #fff 0%, #f5fafb 100%);
+}
+.configuration-page .config-workspace-header > div {
+  display: grid;
+  gap: 3px;
+}
+.configuration-page .config-workspace-header h2 {
+  margin: 0;
+  color: var(--navy);
+  font-size: 22px;
+  line-height: 1.1;
+}
+.configuration-page .config-workspace-description {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+.configuration-page .config-source-pill {
+  flex: 0 0 auto;
+  border: 1px solid #c8d9de;
+  border-radius: 999px;
+  padding: 7px 10px;
+  color: #5f7781;
+  background: #edf4f5;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.configuration-page .config-source-pill.connected {
+  border-color: #b8ddd2;
+  color: #267b68;
+  background: #eaf7f2;
+}
+.configuration-page .config-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  padding: 15px 24px;
+  border-bottom: 1px solid #d6e3e7;
+  background: #f1f7f8;
+}
+.configuration-page .config-search {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 5px;
+  min-width: 180px;
+}
+.configuration-page .config-search > span,
+.configuration-page .config-filters .field > span {
+  color: #58717b;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+.configuration-page .config-search input {
+  min-height: 40px;
+  border-color: #b5cdd5;
+  background: #fff;
+}
+.configuration-page .config-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(125px, 160px));
+  gap: 10px;
+}
+.configuration-page .config-filters .field {
+  display: grid;
+  gap: 5px;
+}
+.configuration-page .config-filters select {
+  min-height: 40px;
+  border-color: #b5cdd5;
+  background: #fff;
+}
+.configuration-page .config-create-panel {
+  display: grid;
+  gap: 14px;
+  margin: 18px 24px 0;
+  border: 1px solid #c5d9df;
+  border-radius: 13px;
+  padding: 17px 18px 18px;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(28, 58, 76, .05);
+}
+.configuration-page .config-create-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e0eaed;
+}
+.configuration-page .config-create-header > div {
+  display: grid;
+  gap: 3px;
+}
+.configuration-page .config-create-header h3 {
+  margin: 0;
+  color: var(--navy);
+  font-size: 15px;
+}
+.configuration-page .config-create-header > span {
+  color: #64808b;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.configuration-page .config-form-grid {
+  gap: 14px;
+}
+.configuration-page .config-create-panel .field {
+  gap: 6px;
+}
+.configuration-page .config-create-panel .field > span {
+  color: #506a74;
+  font-size: 10px;
+  font-weight: 800;
+}
+.configuration-page .config-create-panel input,
+.configuration-page .config-create-panel select {
+  min-height: 40px;
+  border-color: #b5cdd5;
+  background: #f5fafb;
+}
+.configuration-page .config-form-note {
+  align-self: end;
+  margin: 0;
+  padding: 0 3px 8px;
+  color: #6a818a;
+  font-size: 10px;
+  line-height: 1.45;
+}
+.configuration-page .config-create-panel > .primary-button {
+  justify-self: start;
+  min-width: 190px;
+}
+.configuration-page .config-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.configuration-page .config-form-actions .primary-button {
+  min-width: 190px;
+}
+.configuration-page .config-note {
+  margin: 0;
+}
+.configuration-page .config-record-list {
+  margin: 18px 24px 0;
+  border-top: 1px solid #dbe7ea;
+}
+.configuration-page .config-record {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto auto minmax(0, auto);
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  border-bottom: 1px solid #dbe7ea;
+  padding: 14px 0;
+  background: transparent;
+}
+.configuration-page .config-record-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.configuration-page .config-record-main strong {
+  overflow: hidden;
+  color: var(--navy);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.configuration-page .config-record-main small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.configuration-page .config-record > select {
+  min-width: 220px;
+  min-height: 38px;
+  border-color: #b5cdd5;
+  background: #fff;
+}
+.configuration-page .config-record .directory-actions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 7px 10px;
+}
+.configuration-page .config-record .secondary-button,
+.configuration-page .config-record .text-button {
+  white-space: nowrap;
+}
+.configuration-page .sku-directory-row {
+  grid-template-columns: minmax(280px, 1fr) auto minmax(0, auto);
+}
+.configuration-page .sku-directory-row a.text-button {
+  text-decoration: none;
+}
+.configuration-page .config-record-list:empty::after {
+  display: block;
+  padding: 22px 0;
+  color: var(--muted);
+  content: "Aucun élément ne correspond à la recherche.";
+  font-size: 11px;
+  text-align: center;
+}
+
+@media (max-width: 1400px) {
+  .configuration-page .config-navigation {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1100px) {
+  .configuration-page .config-summary,
+  .configuration-page .config-navigation {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .configuration-page .config-record {
+    grid-template-columns: minmax(200px, 1fr) auto auto;
+  }
+  .configuration-page .config-record .directory-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 680px) {
+  .configuration-page .config-summary,
+  .configuration-page .config-navigation {
+    grid-template-columns: 1fr;
+  }
+  .configuration-page .config-toolbar,
+  .configuration-page .config-workspace-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .configuration-page .config-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .configuration-page .config-create-panel,
+  .configuration-page .config-record-list {
+    margin-inline: 14px;
+  }
+  .configuration-page .config-record {
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 9px;
+  }
+  .configuration-page .config-record > select {
+    width: 100%;
+  }
+  .configuration-page .config-record .directory-actions {
+    grid-column: auto;
+    justify-content: flex-start;
+  }
+  .configuration-page .config-create-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
 /* Keep the card directory actions together when a destructive action is enabled. */
 .card-directory-row { grid-template-columns: 145px minmax(180px, 1fr) minmax(0, auto); }
 .directory-actions .danger-text { color: #a44949; }
@@ -570,25 +959,25 @@ main input:focus, main select:focus, main textarea:focus {
 }
 .brand-block-logo .prototype-pill { align-self: flex-end; }
 .worker-topbar .brand-mark.compact { gap: 0; }
-.worker-logo { width: min(230px, 56vw); max-height: 48px; object-fit: contain; }
+.worker-logo { width: min(270px, 62vw); max-height: 58px; object-fit: contain; }
 
 /* Keep interactive fields visibly separate from the card surface. */
-main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .project-import-file, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) input,
-main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .project-import-file, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) select,
-main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .project-import-file, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) textarea {
+main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) input,
+main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) select,
+main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) textarea {
   border-color: #9fbac5;
   background: #d8e6eb;
   color: var(--ink);
 }
-main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .project-import-file, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) input:hover,
-main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .project-import-file, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) select:hover,
-main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .project-import-file, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) textarea:hover {
+main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) input:hover,
+main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) select:hover,
+main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) textarea:hover {
   border-color: #789eac;
   background: #e1edf0;
 }
-main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .project-import-file, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) input:focus,
-main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .project-import-file, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) select:focus,
-main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .project-import-file, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) textarea:focus {
+main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) input:focus,
+main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) select:focus,
+main :is(.intake-review-form, .period-selector, .dashboard-person-filter, .filter-panel, .card-directory-row, .period-custom-dates, .settings-card-row, .settings-input-card, .settings-inline-row, .settings-add-row) textarea:focus {
   border-color: var(--blue);
   background: #edf5f6;
   outline: 3px solid rgba(59, 131, 166, .16);

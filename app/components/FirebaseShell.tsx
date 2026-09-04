@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, type User } from "firebase/auth";
-import { firebaseAuth, firebaseConfigured } from "../../firebase/client";
+import { firebaseAuth, firebaseConfigured, firebasePreviewMode } from "../../firebase/client";
 
 export { firebaseConfigured };
 
@@ -35,7 +35,6 @@ const getClientHydrationSnapshot = () => true;
 const getServerHydrationSnapshot = () => false;
 
 export function FirebaseShell({ children }: { children: ReactNode }) {
-  const previewMode = process.env.NEXT_PUBLIC_FIREBASE_PREVIEW_MODE === "true";
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
   const hydrated = useSyncExternalStore(
@@ -71,7 +70,7 @@ export function FirebaseShell({ children }: { children: ReactNode }) {
     return unsubscribe;
   }, []);
 
-  if (previewMode || !firebaseConfigured) return children;
+  if (firebasePreviewMode || !firebaseConfigured) return children;
   if (!hydrated) return children;
   if (typeof window !== "undefined" && window.location.pathname === "/installer") return children;
   if (!firebaseAuth) return children;

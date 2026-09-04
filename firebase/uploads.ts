@@ -91,5 +91,25 @@ export async function uploadInvoicePhotos(
     auditDetails: auditDetails({ photoCount: photos.length, storageFolder }),
   });
 
+  // Start processing immediately while preserving the durable queued intake.
+  // The daily Vercel cron remains a fallback if the device closes or loses its
+  // connection before this lightweight request reaches the server.
+  const form = new FormData();
+  form.append("receiptId", receiptId);
+  const authorization = `Bearer ${await user.getIdToken()}`;
+  void fetch("/api/ai/process-invoice", {
+    method: "POST",
+    headers: {
+      Authorization: authorization,
+      "x-invoice-client-version": INVOICE_CLIENT_VERSION,
+    },
+    body: form,
+    keepalive: true,
+  }).then((response) => {
+    if (!response.ok) console.warn("Le traitement automatique de la facture sera repris par la file serveur.");
+  }).catch(() => {
+    console.warn("Le traitement automatique de la facture sera repris par la file serveur.");
+  });
+
   return { receiptId, paths };
 }

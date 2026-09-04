@@ -130,22 +130,38 @@ mutation AdminRecordUserAudit(
   })
 }
 
-mutation UpsertProject(
+mutation DeleteUserProfile(
   $id: String!
-  $number: String!
-  $name: String!
-  $status: String!
-  $auditAction: String!
+  $firebaseUid: String!
   $auditEventId: String!
   $auditDetails: String!
 ) @auth(expr: "auth.token.role == 'ADMIN'") @transaction {
-  project_upsert(data: { id: $id number: $number name: $name status: $status })
+  query @redact @check(
+    expr: "response.query.profile.size() == 1 && response.query.adminProfile.size() == 0 && response.query.cards.size() == 0 && response.query.cardStatements.size() == 0 && response.query.importedStatements.size() == 0 && response.query.cardHolderHistory.size() == 0 && response.query.corrections.size() == 0 && response.query.invoices.size() == 0 && response.query.confirmedMatches.size() == 0 && response.query.resolvedControls.size() == 0 && response.query.merchantAliases.size() == 0 && response.query.reportAdjustments.size() == 0 && response.query.importedIntakes.size() == 0 && response.query.auditEvents.size() == 0"
+    message: "Ce profil possède un historique ou une autre association et ne peut pas être supprimé. Désactivez-le plutôt."
+  ) {
+    profile: userProfiles(where: { id: { eq: $id } }, limit: 1) { id }
+    adminProfile: userProfiles(where: { id: { eq: $id }, role: { eq: "ADMIN" } }, limit: 1) { id }
+    cards: creditCards(where: { holder: { id: { eq: $id } } }, limit: 1) { id }
+    cardStatements: creditCardStatements(where: { holderIdSnapshot: { eq: $id } }, limit: 1) { id }
+    importedStatements: creditCardStatements(where: { importedBy: { id: { eq: $id } } }, limit: 1) { id }
+    cardHolderHistory: creditCardHolderHistories(where: { holder: { id: { eq: $id } } }, limit: 1) { id }
+    corrections: transactionCorrections(where: { correctedBy: { id: { eq: $id } } }, limit: 1) { id }
+    invoices: invoices(where: { createdBy: { id: { eq: $id } } }, limit: 1) { id }
+    confirmedMatches: reconciliationMatches(where: { confirmedBy: { id: { eq: $id } } }, limit: 1) { id }
+    resolvedControls: reconciliationOutsideControls(where: { resolvedBy: { id: { eq: $id } } }, limit: 1) { id }
+    merchantAliases: merchantAliases(where: { createdBy: { id: { eq: $id } } }, limit: 1) { id }
+    reportAdjustments: reportAdjustmentSets(where: { holderId: { eq: $id } }, limit: 1) { id }
+    importedIntakes: invoiceIntakes(where: { uploaderUid: { eq: $firebaseUid } }, limit: 1) { receiptId }
+    auditEvents: auditEvents(where: { actorUid: { eq: $firebaseUid } }, limit: 1) { id }
+  }
+  userProfile_delete(key: { id: $id })
   auditEvent_upsert(data: {
     id: $auditEventId
     actorUid_expr: "auth.uid"
     actorRole_expr: "auth.token.role"
-    action: $auditAction
-    entityType: "Project"
+    action: "USER_DELETED"
+    entityType: "UserProfile"
     entityId: $id
     details: $auditDetails
   })
@@ -173,29 +189,6 @@ mutation UpsertExpenseAccount(
   })
 }
 
-mutation DeleteProject(
-  $id: String!
-  $auditEventId: String!
-  $auditDetails: String!
-) @auth(expr: "auth.token.role == 'ADMIN'") @transaction {
-  query @redact @check(
-    expr: "response.query.expenseTransactions.size() == 0"
-    message: "Ce projet possède un historique et ne peut pas être supprimé. Il sera désactivé."
-  ) {
-    expenseTransactions(where: { project: { id: { eq: $id } } }, limit: 1) { id }
-  }
-  project_delete(key: { id: $id })
-  auditEvent_upsert(data: {
-    id: $auditEventId
-    actorUid_expr: "auth.uid"
-    actorRole_expr: "auth.token.role"
-    action: "PROJECT_DELETED"
-    entityType: "Project"
-    entityId: $id
-    details: $auditDetails
-  })
-}
-
 mutation DeleteExpenseAccount(
   $id: String!
   $auditEventId: String!
@@ -216,6 +209,58 @@ mutation DeleteExpenseAccount(
     action: "EXPENSE_ACCOUNT_DELETED"
     entityType: "ExpenseAccount"
     entityId: $id
+    details: $auditDetails
+  })
+}
+
+mutation UpsertSkuReference(
+  $merchant: String!
+  $sku: String!
+  $productLabel: String!
+  $categoryLabel: String!
+  $expenseAccountId: String!
+  $sourceUrl: String
+  $auditAction: String!
+  $auditEventId: String!
+  $entityId: String!
+  $auditDetails: String!
+) @auth(expr: "auth.token.role == 'ADMIN'") @transaction {
+  skuReference_upsert(data: {
+    merchant: $merchant
+    sku: $sku
+    productLabel: $productLabel
+    categoryLabel: $categoryLabel
+    expenseAccount: { id: $expenseAccountId }
+    sourceUrl: $sourceUrl
+    verificationStatus: "VALIDATED"
+    verifiedAt_expr: "request.time"
+  })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid_expr: "auth.uid"
+    actorRole_expr: "auth.token.role"
+    action: $auditAction
+    entityType: "SkuReference"
+    entityId: $entityId
+    details: $auditDetails
+  })
+}
+
+mutation DeleteSkuReference(
+  $merchant: String!
+  $sku: String!
+  $auditEventId: String!
+  $entityId: String!
+  $auditDetails: String!
+) @auth(expr: "auth.token.role == 'ADMIN'") @transaction {
+  skuReference_delete(key: { merchant: $merchant, sku: $sku })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid_expr: "auth.uid"
+    actorRole_expr: "auth.token.role"
+    action: "SKU_REFERENCE_DELETED"
+    entityType: "SkuReference"
+    entityId: $entityId
     details: $auditDetails
   })
 }
@@ -862,6 +907,42 @@ mutation RequeueStaleInvoiceIntake(
   })
 }
 
+# Server-only Canadian Tire lookup cache. A reference reaches VALIDATED only
+# after the server confirms the exact item number, an official canadiantire.ca
+# source and one active expense account.
+mutation CacheCanadianTireSkuReference(
+  $sku: String!
+  $productLabel: String!
+  $categoryLabel: String!
+  $expenseAccountId: String!
+  $sourceUrl: String!
+  $auditEventId: String!
+  $entityId: String!
+  $actorUid: String!
+  $actorRole: String!
+  $auditDetails: String!
+) @auth(level: NO_ACCESS) @transaction {
+  skuReference_upsert(data: {
+    merchant: "Canadian Tire"
+    sku: $sku
+    productLabel: $productLabel
+    categoryLabel: $categoryLabel
+    expenseAccount: { id: $expenseAccountId }
+    sourceUrl: $sourceUrl
+    verificationStatus: "VALIDATED"
+    verifiedAt_expr: "request.time"
+  })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: "CANADIAN_TIRE_SKU_RESOLVED"
+    entityType: "SkuReference"
+    entityId: $entityId
+    details: $auditDetails
+  })
+}
+
 # Server-only AI persistence. The Admin SDK verifies the Firebase token,
 # confirms ownership of the intake and performs deterministic classification
 # before executing this operation. Browser clients cannot call it directly.
@@ -881,7 +962,7 @@ mutation UpdateInvoiceIntakeAiResult(
   $extractedCurrency: String!
   $extractedSku: String
   $extractedCategory: String
-  $extractedProjectId: String
+  $extractedProjectNumber: String
   $classificationAccountCode: String
   $classificationCategory: String
   $classificationSource: String!
@@ -927,7 +1008,8 @@ mutation UpdateInvoiceIntakeAiResult(
       extractedCurrency: $extractedCurrency
       extractedSku: $extractedSku
       extractedCategory: $extractedCategory
-      extractedProjectId: $extractedProjectId
+      extractedProjectId: null
+      extractedProjectNumber: $extractedProjectNumber
       classificationAccountCode: $classificationAccountCode
       classificationCategory: $classificationCategory
       classificationSource: $classificationSource
@@ -1123,7 +1205,7 @@ mutation UpdateInvoiceIntakeReview(
   $extractedCurrency: String!
   $extractedSku: String
   $extractedCategory: String
-  $extractedProjectId: String
+  $extractedProjectNumber: String
   $classificationAccountCode: String
   $classificationCategory: String
   $classificationSource: String!
@@ -1166,7 +1248,8 @@ mutation UpdateInvoiceIntakeReview(
       extractedCurrency: $extractedCurrency
       extractedSku: $extractedSku
       extractedCategory: $extractedCategory
-      extractedProjectId: $extractedProjectId
+      extractedProjectId: null
+      extractedProjectNumber: $extractedProjectNumber
       classificationAccountCode: $classificationAccountCode
       classificationCategory: $classificationCategory
       classificationSource: $classificationSource
@@ -1479,6 +1562,7 @@ mutation MaterializeInvoiceIntakeV2(
   $cardId: String!
   $statementPeriod: CardStatementPeriod_Key
   $project: Project_Key
+  $projectNumber: String
   $storageFolder: String!
   $classificationNote: String!
   $expectedProcessingStatus: String!
@@ -1534,6 +1618,7 @@ mutation MaterializeInvoiceIntakeV2(
     card: { id: $cardId }
     statementPeriod: $statementPeriod
     project: $project
+    projectNumber: $projectNumber
     expenseAccount: $account
     categoryLabel: $category
     sku: $sku

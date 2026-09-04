@@ -1,5 +1,11 @@
 {
   "buildCommand": "NITRO_PRESET=vercel pnpm exec vite build",
   "outputDirectory": ".output",
-  "framework": null
+  "framework": null,
+  "crons": [
+    {
+      "path": "/api/cron/process-invoice-intakes",
+      "schedule": "0 8 * * *"
+    }
+  ]
 }

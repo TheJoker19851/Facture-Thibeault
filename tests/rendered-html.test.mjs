@@ -47,6 +47,12 @@ test("server-renders the Thibeault administration shell", async () => {
     return;
   }
 
+  if (/Connexion de production non configurée|Données comptables indisponibles/.test(html)) {
+    assert.doesNotMatch(html, /Alice Démo|Données de démonstration/);
+    assert.match(html, /Aucune donnée fictive/);
+    return;
+  }
+
   assert.doesNotMatch(html, /Tableau de bord/);
   assert.match(html, /Données de démonstration|Connexion Firebase…/);
   assert.match(html, /Factures à vérifier/);

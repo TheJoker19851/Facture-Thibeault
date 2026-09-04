@@ -316,6 +316,7 @@ query ListExpenseTransactions($limit: Int!, $offset: Int!) @auth(expr: "auth.tok
       number
       name
     }
+    projectNumber
     expenseAccount {
       id
       number
@@ -349,6 +350,7 @@ query ListExpenseTransactionsPage($limit: Int!, $offset: Int!) @auth(expr: "auth
     card { id lastFour holder { id displayName } }
     statementPeriod { id label startDate endDate }
     project { id number name }
+    projectNumber
     expenseAccount { id number label type }
     categoryLabel
     sku
@@ -453,6 +455,7 @@ query ListInvoiceIntakes($limit: Int!, $offset: Int!) @auth(expr: "auth.token.ro
     extractedCurrency
     extractedSku
     extractedCategory
+    extractedProjectNumber
     extractedProjectId
     classificationAccountCode
     classificationCategory
@@ -495,6 +498,7 @@ query ListInvoiceIntakesPage($limit: Int!, $offset: Int!) @auth(expr: "auth.toke
     extractedCurrency
     extractedSku
     extractedCategory
+    extractedProjectNumber
     extractedProjectId
     classificationAccountCode
     classificationCategory

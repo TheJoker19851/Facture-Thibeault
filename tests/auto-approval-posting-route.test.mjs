@@ -14,5 +14,5 @@ test("le chemin AUTO_APPROVED ne dépend pas du projet", async () => {
 
   const branch = source.slice(branchStart, branchEnd);
   assert.match(branch, /const \{ accountCode, cardId \} = decision\.resolutions;/);
-  assert.match(branch, /statementPeriodId: null,\s+projectId: null,/);
+  assert.match(branch, /statementPeriodId: null,\s+projectNumber: null,/);
 });

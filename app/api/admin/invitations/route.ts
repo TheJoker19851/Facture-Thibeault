@@ -36,6 +36,9 @@ const profileAction = z.object({
   status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
 });
 const actionSchema = z.discriminatedUnion("action", [createAction, profileAction]);
+const deleteProfileSchema = z.object({
+  profileId: z.string().trim().min(1).max(128),
+});
 
 type UserProfileRow = {
   id: string;
@@ -307,5 +310,61 @@ export async function POST(request: Request) {
     return Response.json({ ok: true, profile: result.profile });
   } catch (error) {
     return errorResponse(error);
+  }
+}
+
+export async function DELETE(request: Request) {
+  const identity = await authenticateAdmin(request);
+  if (!identity) return Response.json({ error: "Le rôle ADMIN est requis." }, { status: 403 });
+  if (!firebaseAdminConfigured()) return Response.json({ error: "Firebase Admin et SQL Connect doivent être configurés côté serveur." }, { status: 503 });
+
+  let input: z.infer<typeof deleteProfileSchema>;
+  try {
+    input = deleteProfileSchema.parse(await request.json());
+  } catch {
+    return Response.json({ error: "Le profil à supprimer est invalide." }, { status: 400 });
+  }
+
+  try {
+    const [dataConnect, auth] = await Promise.all([getFirebaseAdminDataConnect(), getFirebaseAdminAuth()]);
+    const profiles = await readProfiles(dataConnect);
+    const profile = profiles.find((candidate) => candidate.id === input.profileId);
+    if (!profile) return Response.json({ error: "Le profil utilisateur demandé est introuvable." }, { status: 404 });
+    if (isAdminRole(profile.role)) return Response.json({ error: "Un profil ADMIN ne peut pas être supprimé. Désactivez-le plutôt si nécessaire." }, { status: 409 });
+    if (profile.firebaseUid === identity.uid) return Response.json({ error: "Le profil de la session courante ne peut pas être supprimé." }, { status: 409 });
+
+    await dataConnect.executeMutation("DeleteUserProfile", {
+      id: profile.id,
+      firebaseUid: profile.firebaseUid ?? "",
+      auditEventId: auditEventId(profile.id, USER_AUDIT_ACTION.USER_DELETED, randomUUID()),
+      auditDetails: auditDetails({
+        source: "admin_user_directory",
+        profileId: profile.id,
+        displayName: profile.displayName,
+        email: profile.email ?? null,
+        role: profile.role,
+      }),
+    }, { impersonate: { authClaims: { sub: identity.uid, role: identity.role } } });
+
+    let warning: string | null = null;
+    if (profile.firebaseUid) {
+      try {
+        await auth.deleteUser(profile.firebaseUid);
+      } catch (error) {
+        if (errorCode(error) !== "auth/user-not-found") {
+          await auth.updateUser(profile.firebaseUid, { disabled: true }).catch(() => undefined);
+          warning = "Le profil a été supprimé; le compte d’accès Firebase a été désactivé, mais n’a pas pu être supprimé automatiquement.";
+        }
+      }
+    }
+
+    return Response.json({ ok: true, warning });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (/historique|association|données liées|ne peut pas être supprim/i.test(message)) {
+      return Response.json({ error: "Ce profil possède un historique ou une autre association et ne peut pas être supprimé. Désactivez-le plutôt." }, { status: 409 });
+    }
+    console.error("[admin-invitations] user deletion failed", { code: errorCode(error) });
+    return Response.json({ error: "Le profil utilisateur n’a pas pu être supprimé." }, { status: 500 });
   }
 }

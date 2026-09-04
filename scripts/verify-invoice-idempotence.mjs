@@ -35,7 +35,7 @@ function aiVariables(receiptId, processingStatus, vendor = "Idempotence Démo") 
     extractedCurrency: "CAD",
     extractedSku: "DEMO-SKU-001",
     extractedCategory: "Matériaux Démo",
-    extractedProjectId: "DEMO-PROJET-001",
+    extractedProjectNumber: null,
     classificationAccountCode: "DEMO-90001",
     classificationCategory: "Matériaux Démo",
     classificationSource: "EMULATOR_TEST",
@@ -76,7 +76,7 @@ function reviewVariables(receiptId, vendor = "Correction KIM Démo") {
     extractedCurrency: "CAD",
     extractedSku: "DEMO-SKU-001",
     extractedCategory: "Matériaux Démo",
-    extractedProjectId: "DEMO-PROJET-001",
+    extractedProjectNumber: null,
     classificationAccountCode: "DEMO-90001",
     classificationCategory: "Matériaux Démo",
     classificationSource: "KIM_REVIEW",
@@ -173,7 +173,8 @@ function autoPostingVariables(receiptId, photoCount = 1) {
   return {
     ...base,
     statementPeriod: { id: statementPeriodId },
-    project: { id: "DEMO-PROJET-001" },
+    project: null,
+    projectNumber: null,
     expectedProcessingStatus: "AUTO_APPROVED",
     classificationSource: "AUTO_DECISION",
     classificationStatus: "RESOLVED",
@@ -181,12 +182,13 @@ function autoPostingVariables(receiptId, photoCount = 1) {
   };
 }
 
-function humanPostingVariables(receiptId, photoCount = 1, projectId = "DEMO-PROJET-001") {
+function humanPostingVariables(receiptId, photoCount = 1, projectNumber = null) {
   const { statementPeriodId, ...base } = postingVariables(receiptId);
   return {
     ...base,
     statementPeriod: { id: statementPeriodId },
-    project: projectId ? { id: projectId } : null,
+    project: null,
+    projectNumber,
     expectedProcessingStatus: "VALIDATED",
     classificationSource: "KIM_COMMIT",
     classificationStatus: "COMMITTED",
@@ -610,9 +612,9 @@ export async function verifyInvoiceIdempotence() {
     await claimIntake(dataConnect, businessExceptionId);
     await dataConnect.executeMutation("UpdateInvoiceIntakeAiResult", {
       ...aiVariables(businessExceptionId, "NEEDS_REVIEW"),
-      extractedProjectId: null,
+      extractedProjectNumber: null,
       classificationStatus: "NEEDS_REVIEW",
-      decisionExceptions: JSON.stringify([{ code: "UNKNOWN_PROJECT", message: "Projet introuvable." }]),
+      decisionExceptions: JSON.stringify([{ code: "MISSING_ACCOUNT", message: "Compte comptable manquant." }]),
     });
     await assert.rejects(() => dataConnect.executeMutation("RetryInvoiceIntakeAiTransientV2", {
       receiptId: businessExceptionId,
@@ -672,13 +674,14 @@ export async function verifyInvoiceIdempotence() {
     assert.equal(humanMismatchTransactions.data.expenseTransactions.some((transaction) => transaction.id === `TX-${humanMismatchId}`), false);
     assert.equal(humanMismatchPhotos.data.invoicePhotos.some((photo) => photo.invoice.id === `INV-${humanMismatchId}`), false);
 
-    const humanWithoutProjectId = testId("HUMAN-NO-PROJECT");
-    await createIntake(dataConnect, workerClaims, humanWithoutProjectId);
-    await claimIntake(dataConnect, humanWithoutProjectId);
-    assert.equal((await dataConnect.executeMutation("UpdateInvoiceIntakeAiResult", aiVariables(humanWithoutProjectId, "NEEDS_REVIEW"))).data.invoiceIntake_updateMany, 1);
-    assert.equal((await dataConnect.executeMutation("UpdateInvoiceIntakeReview", { ...reviewVariables(humanWithoutProjectId), extractedProjectId: null }, { impersonate: { authClaims: kimClaims } })).data.invoiceIntake_updateMany, 1);
-    await assert.rejects(() => dataConnect.executeMutation("MaterializeInvoiceIntakeV2", humanPostingVariables(humanWithoutProjectId, 1, null)));
-    assert.equal((await readIntake(dataConnect, humanWithoutProjectId)).accountingStatus, "NOT_POSTED");
+    const humanManualProjectNumberId = testId("HUMAN-MANUAL-PROJECT-NUMBER");
+    await createIntake(dataConnect, workerClaims, humanManualProjectNumberId);
+    await claimIntake(dataConnect, humanManualProjectNumberId);
+    assert.equal((await dataConnect.executeMutation("UpdateInvoiceIntakeAiResult", aiVariables(humanManualProjectNumberId, "NEEDS_REVIEW"))).data.invoiceIntake_updateMany, 1);
+    assert.equal((await dataConnect.executeMutation("UpdateInvoiceIntakeReview", { ...reviewVariables(humanManualProjectNumberId), extractedProjectNumber: "26015" }, { impersonate: { authClaims: kimClaims } })).data.invoiceIntake_updateMany, 1);
+    await dataConnect.executeMutation("MaterializeInvoiceIntakeV2", humanPostingVariables(humanManualProjectNumberId, 1, "26015"));
+    const humanManualProjectNumberTransactions = await queryAllData(dataConnect, "ListExpenseTransactions", "expenseTransactions");
+    assert.equal(humanManualProjectNumberTransactions.data.expenseTransactions.find((transaction) => transaction.id === `TX-${humanManualProjectNumberId}`).projectNumber, "26015");
 
     const humanVsAutoId = testId("HUMAN-VS-AUTO");
     await createIntake(dataConnect, workerClaims, humanVsAutoId);

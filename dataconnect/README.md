@@ -13,11 +13,17 @@ The first version of the application schema now lives in
 `accounting/`. It covers the current product boundary:
 
 - users, cards, and configurable statement periods;
-- projects, expense accounts, tax amounts, and CAD-cent accounting values;
-- transactions with card holder, project, account classification, SKU, and
-  reconciliation state;
+- expense accounts, tax amounts, and CAD-cent accounting values;
+- transactions with card holder, a manually entered project number, account
+  classification, SKU, and reconciliation state; legacy project relations are
+  retained for historical rows;
 - invoices, private invoice photos, corrections, and audit events;
 - merchant/SKU references for Canadian Tire and other SKU-only suppliers.
+
+New invoice processing does not read, recognize, validate, or require project
+references. During review, a project number may be entered manually and is
+preserved in the transaction table and Excel export. The `Project` relation is
+kept only for historical data and controlled seed/migration operations.
 
 The connector exposes accounting reads to `KIM` and `ADMIN`.
 `WORKER` accounts cannot read global accounting data; they may create and list

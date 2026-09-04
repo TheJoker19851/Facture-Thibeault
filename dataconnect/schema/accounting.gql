@@ -86,6 +86,9 @@ type ExpenseTransaction @table(name: "expense_transactions", key: "id") {
   card: CreditCard!
   statementPeriod: CardStatementPeriod
   project: Project
+  # Project numbers are entered manually; the legacy project relation is kept
+  # only for historical rows and is not used by OCR or auto-approval.
+  projectNumber: String
   expenseAccount: ExpenseAccount
   categoryLabel: String
   sku: String
@@ -164,8 +167,7 @@ type InvoiceIntake @table(name: "invoice_intakes", key: "receiptId") {
   lastAttemptAt: Timestamp
   accountingStatus: String! @default(value: "NOT_POSTED")
   lastError: String
-  # Machine-readable retry eligibility. Business exceptions such as
-  # UNKNOWN_PROJECT never set this field.
+  # Machine-readable retry eligibility for technical AI failures.
   aiErrorCode: String
   aiModel: String
   aiConfidence: Float
@@ -180,6 +182,9 @@ type InvoiceIntake @table(name: "invoice_intakes", key: "receiptId") {
   extractedCurrency: String
   extractedSku: String
   extractedCategory: String
+  # Manual project number captured during review. It is not OCR data.
+  extractedProjectNumber: String
+  # Legacy relation key retained for historical rows; new processing clears it.
   extractedProjectId: String
   classificationAccountCode: String
   classificationCategory: String

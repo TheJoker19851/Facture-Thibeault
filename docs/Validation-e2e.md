@@ -17,7 +17,7 @@ Avec les trois rôles `WORKER`, `KIM` et `ADMIN` :
 1. ADMIN se connecte, crée un WORKER et lui associe une carte.
 2. WORKER se connecte, ouvre `/capture`, dépose une image fictive et vérifie l’upload Storage.
 3. Le serveur crée l’intake, appelle Gemini live une seule fois ou sur quelques factures, puis persiste fournisseur, date, totaux, taxes, articles et carte.
-4. Vérifier qu’une facture sans exception devient `AUTO_APPROVED` et qu’une facture avec `LOW_CONFIDENCE`, `UNKNOWN_SKU`, `AMBIGUOUS_CARD`, `UNKNOWN_PROJECT`, `POSSIBLE_DUPLICATE` ou incohérence de total reste `NEEDS_REVIEW`.
+4. Vérifier qu’une facture sans exception devient `AUTO_APPROVED` et qu’une facture avec `LOW_CONFIDENCE`, `UNKNOWN_SKU`, `AMBIGUOUS_CARD`, `POSSIBLE_DUPLICATE` ou incohérence de total reste `NEEDS_REVIEW`. Le numéro de projet est saisi manuellement et ne fait pas partie des contrôles IA.
 5. KIM corrige une facture `NEEDS_REVIEW`, la valide et déclenche l’enregistrement comptable.
 5. Vérifier rapports, filtres personne/période/compte et rapprochement avec une transaction DEMO.
 

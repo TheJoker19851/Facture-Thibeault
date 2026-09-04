@@ -96,7 +96,6 @@ export type ServerUserProfile = {
   activatedAt?: string | null;
 };
 
-export type ServerProject = { id: string; number: string; name: string; status: string };
 export type ServerStatementPeriod = { id: string; startDate: string; endDate: string; status: string };
 
 export async function listAllInvoiceIntakes(dataConnect: DataConnect) {
@@ -152,13 +151,6 @@ export async function listAllUserProfiles(dataConnect: DataConnect) {
   return collectPagedRows(async (variables) => {
     const result = await dataConnect.executeQuery<{ userProfiles: ServerUserProfile[] }, { limit: number; offset: number }>("ListUserProfiles", variables);
     return result.data.userProfiles;
-  }, { pageSize: DATA_CONNECT_PAGE_SIZE });
-}
-
-export async function listAllProjects(dataConnect: DataConnect) {
-  return collectPagedRows(async (variables) => {
-    const result = await dataConnect.executeQuery<{ projects: ServerProject[] }, { limit: number; offset: number }>("ListProjectsPage", variables);
-    return result.data.projects;
   }, { pageSize: DATA_CONNECT_PAGE_SIZE });
 }
 

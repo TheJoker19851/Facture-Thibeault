@@ -8,11 +8,14 @@ import {
   listAllExpenseAccounts,
   listAllExpenseTransactions,
   listAllInvoiceIntakes,
-  listAllProjects,
   listAllSkuReferences,
   listAllUserProfiles,
 } from "../../../../firebase/accounting-pagination.server";
 import { inferApplicationEnvironment } from "../../../../lib/environment.mjs";
+import {
+  enrichCanadianTireExtraction,
+  lookupCanadianTireProducts,
+} from "../../../../lib/canadian-tire-sku.mjs";
 import {
   AI_MAX_ATTEMPTS_REACHED,
   decisionChecksAtMaxAttempts,
@@ -37,6 +40,7 @@ import {
 export const runtime = "nodejs";
 export const maxDuration = 120;
 const GEMINI_TIMEOUT_MS = 90_000;
+const CANADIAN_TIRE_LOOKUP_TIMEOUT_MS = 20_000;
 
 const ALLOWED_ROLES = new Set(["WORKER", "KIM", "ADMIN"]);
 const AI_PROCESSING_ERROR_MESSAGE = "Le traitement IA a échoué; la facture doit être vérifiée manuellement.";
@@ -62,7 +66,6 @@ const invoiceExtractionSchema = z.object({
   currency: z.string(),
   sku: z.string().nullable(),
   category: z.string().nullable(),
-  projectId: z.string().nullable(),
   lineItems: z.array(invoiceLineItemSchema).max(100).default([]),
   confidence: z.number().min(0).max(1),
   notes: z.string(),
@@ -107,7 +110,6 @@ type NormalizedExtraction = {
   totalCents: number;
   currency: string;
   sku: string | null;
-  projectId: string | null;
   lineItems: Array<Record<string, unknown>>;
   lineItemsSubtotalCents: number;
   lineItemsMatchSubtotal: boolean;
@@ -132,7 +134,7 @@ async function authenticate(request: Request): Promise<AuthenticatedIdentity | n
 
 const baseInstructions = `You are the production invoice intake agent for Maçonnerie Thibeault.
 Read all supplied photos as pages of one invoice. Extract only information visible in the document.
-Never invent a value: use null for a missing invoice number, date, SKU or project.
+Never invent a value: use null for a missing invoice number, date or SKU.
 Return monetary values as integer Canadian cents. Use ISO date YYYY-MM-DD when the date is readable.
 The subtotal plus TPS plus TVQ must equal the total; if a value is unclear, lower confidence and explain it in notes.
 Read every visible line item. Return its description, quantity, unit price when visible, amount before tax, SKU/code when visible, and a category suggestion only when the document supports it.
@@ -161,10 +163,9 @@ function localMockExtraction(receiptId: string) {
     currency: "CAD",
     sku: "DEMO-SKU-001",
     category: "Matériaux Démo",
-    projectId: "DEMO-PROJET-001",
     lineItems: [{ description: "Article de démonstration", quantity: 1, unitPriceCents: 10000, amountCents: 10000, sku: "DEMO-SKU-001", category: "Matériaux Démo" }],
     confidence: 0.75,
-    notes: "Résultat IA simulé pour le projet Firebase demo-* local.",
+    notes: "Résultat IA simulé pour l’environnement Firebase demo-* local.",
   };
 }
 
@@ -267,6 +268,45 @@ async function extractInvoice(receiptId: string, files: File[], accountLabels: s
     }
     throw error;
   }
+}
+
+async function searchCanadianTireProducts(prompt: string) {
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  if (!apiKey) throw new Error("GOOGLE_GENERATIVE_AI_API_KEY est absent.");
+  const modelId = process.env.GEMINI_SEARCH_MODEL || process.env.GEMINI_MODEL || "gemini-3.6-flash";
+  const google = createGoogle({ apiKey });
+  const result = await generateText({
+    model: google(modelId),
+    tools: {
+      google_search: google.tools.googleSearch({}),
+    },
+    prompt,
+    abortSignal: AbortSignal.timeout(CANADIAN_TIRE_LOOKUP_TIMEOUT_MS),
+  });
+  return {
+    text: result.text,
+    sourceUrls: result.sources
+      .map((source) => "url" in source ? source.url : "")
+      .filter(Boolean),
+  };
+}
+
+function skuReferenceForClassification(reference: {
+  merchant: string;
+  sku: string;
+  productLabel?: string | null;
+  categoryLabel?: string | null;
+  verificationStatus: string;
+  expenseAccount?: { number: string } | null;
+}) {
+  return {
+    merchant: reference.merchant,
+    sku: reference.sku,
+    productLabel: reference.productLabel ?? undefined,
+    category: reference.categoryLabel ?? undefined,
+    accountCode: reference.expenseAccount?.number,
+    status: reference.verificationStatus,
+  };
 }
 
 export async function POST(request: Request) {
@@ -416,14 +456,13 @@ export async function POST(request: Request) {
       throw new Error("Le traitement serveur n’a pas pu prendre en charge l’intake.");
     }
 
-    const [storedPhotos, [skuReferences, expenseAccounts, creditCards, userProfiles, projects, transactionResponse]] = await Promise.all([
+    const [storedPhotos, [skuReferences, expenseAccounts, creditCards, userProfiles, transactionResponse]] = await Promise.all([
       readInvoiceIntakeStoragePhotos(intake),
       Promise.all([
         listAllSkuReferences(dataConnect),
         listAllExpenseAccounts(dataConnect),
         listAllCreditCards(dataConnect),
         listAllUserProfiles(dataConnect),
-        listAllProjects(dataConnect),
         listAllExpenseTransactions(dataConnect),
       ]),
     ]);
@@ -437,30 +476,115 @@ export async function POST(request: Request) {
     });
     console.info("[invoice-ai] phase=gemini_finished");
     const validation = validateInvoiceExtraction(extraction);
+    const workingSkuReferences = skuReferences.map(skuReferenceForClassification);
+    let canadianTireLookup: {
+      triggered: boolean;
+      merchant: string | null;
+      results: Array<Record<string, unknown>>;
+      error?: string;
+    } = { triggered: false, merchant: null, results: [] };
+
+    if (validation.ok) {
+      try {
+        console.info("[invoice-ai] phase=canadian_tire_lookup_check");
+        const lookup = await lookupCanadianTireProducts({
+          vendor: extraction.vendor,
+          sku: extraction.sku,
+          lineItems: extraction.lineItems,
+          skuReferences: workingSkuReferences,
+          accountLabels,
+          search: ({ prompt }: { prompt: string }) => searchCanadianTireProducts(prompt),
+        });
+        const persistedResults: Array<Record<string, unknown>> = [];
+        for (const rawResult of lookup.results) {
+          const result = rawResult as {
+            sku: string;
+            status: string;
+            productLabel?: string;
+            category?: string;
+            sourceUrl?: string;
+            evidence?: string;
+            reason?: string;
+          };
+          if (result.status !== "RESOLVED" || !result.productLabel || !result.category || !result.sourceUrl) {
+            persistedResults.push(result);
+            continue;
+          }
+          const account = expenseAccounts.find((candidate) =>
+            candidate.type === "EXPENSE" && candidate.status === "ACTIVE" && candidate.label === result.category,
+          );
+          if (!account) {
+            persistedResults.push({ ...result, status: "REJECTED", reason: "ACTIVE_ACCOUNT_NOT_FOUND" });
+            continue;
+          }
+
+          workingSkuReferences.push({
+            merchant: "Canadian Tire",
+            sku: result.sku,
+            productLabel: result.productLabel,
+            category: result.category,
+            accountCode: account.number,
+            status: "VALIDATED",
+          });
+          let cachePersisted = false;
+          try {
+            await dataConnect.executeMutation("CacheCanadianTireSkuReference", {
+              sku: result.sku,
+              productLabel: result.productLabel,
+              categoryLabel: result.category,
+              expenseAccountId: account.id,
+              sourceUrl: result.sourceUrl,
+              auditEventId: auditEventId(receiptId, AUDIT_ACTIONS.CANADIAN_TIRE_SKU_RESOLVED, result.sku),
+              entityId: `Canadian Tire:${result.sku}`,
+              actorUid: identity.uid,
+              actorRole: identity.role,
+              auditDetails: auditDetails({
+                receiptId,
+                sku: result.sku,
+                productLabel: result.productLabel,
+                category: result.category,
+                accountCode: account.number,
+                sourceUrl: result.sourceUrl,
+                evidence: result.evidence ?? null,
+              }),
+            });
+            cachePersisted = true;
+          } catch (error) {
+            console.warn("[invoice-ai] phase=canadian_tire_cache_failed", {
+              message: error instanceof Error ? error.message : "unknown",
+            });
+          }
+          persistedResults.push({ ...result, accountCode: account.number, cachePersisted });
+        }
+        canadianTireLookup = { ...lookup, results: persistedResults };
+        console.info("[invoice-ai] phase=canadian_tire_lookup_finished", {
+          triggered: lookup.triggered,
+          resolved: persistedResults.filter((result) => result.status === "RESOLVED").length,
+        });
+      } catch (error) {
+        canadianTireLookup = {
+          triggered: true,
+          merchant: "Canadian Tire",
+          results: [],
+          error: error instanceof Error ? error.message : "Erreur de recherche inconnue.",
+        };
+        console.warn("[invoice-ai] phase=canadian_tire_lookup_failed", { message: canadianTireLookup.error });
+      }
+    }
+
+    const enrichedExtraction = enrichCanadianTireExtraction(extraction, canadianTireLookup.results);
     const classification = classifyInvoice({
-      vendor: extraction?.vendor,
-      sku: extraction?.sku ?? undefined,
-      category: extraction?.category ?? undefined,
-    }, skuReferences.map((reference) => ({
-      merchant: reference.merchant,
-      sku: reference.sku,
-      category: reference.categoryLabel ?? undefined,
-      accountCode: reference.expenseAccount?.number,
-      status: reference.verificationStatus,
-    })), expenseAccounts);
+      vendor: enrichedExtraction.vendor,
+      sku: enrichedExtraction.sku ?? undefined,
+      category: enrichedExtraction.category ?? undefined,
+    }, workingSkuReferences, expenseAccounts);
     const lineItems = classifyInvoiceLineItems({
-      vendor: extraction?.vendor,
-      lineItems: extraction?.lineItems,
-      skuReferences: skuReferences.map((reference) => ({
-        merchant: reference.merchant,
-        sku: reference.sku,
-        category: reference.categoryLabel ?? undefined,
-        accountCode: reference.expenseAccount?.number,
-        status: reference.verificationStatus,
-      })),
+      vendor: enrichedExtraction.vendor,
+      lineItems: enrichedExtraction.lineItems,
+      skuReferences: workingSkuReferences,
       accounts: expenseAccounts,
     });
-    const extractionWithLineItems = { ...extraction, lineItems };
+    const extractionWithLineItems = { ...enrichedExtraction, lineItems };
 
     // The cron worker authenticates with a technical identity. Card ownership
     // must always be resolved from the intake uploader, not from that worker.
@@ -494,8 +618,6 @@ export async function POST(request: Request) {
         uploaderUserId: uploader?.id,
         cards,
         cardResolution,
-        projects,
-        requireProject: false,
       },
     });
 
@@ -517,6 +639,11 @@ export async function POST(request: Request) {
       return Response.json({ error, code: "AI_OUTPUT_REQUIRES_REVIEW", decision }, { status: 422 });
     }
     const normalized = validation.value as NormalizedExtraction;
+    const lookupNote = canadianTireLookup.results
+      .filter((result) => result.status === "RESOLVED")
+      .map((result) => `SKU Canadian Tire ${result.sku}: ${result.productLabel} (${result.sourceUrl}).`)
+      .join(" ");
+    const processingNotes = `${extraction.notes} ${lookupNote} ${classification.note}`.trim();
 
     const aiResult = await dataConnect.executeMutation<IntakeMutationData, Record<string, unknown>>("UpdateInvoiceIntakeAiResult", {
       receiptId,
@@ -530,16 +657,17 @@ export async function POST(request: Request) {
       extractedTvqCents: String(normalized.tvqCents),
       extractedTotalCents: String(normalized.totalCents),
       extractedCurrency: normalized.currency,
-      extractedSku: extraction.sku,
-      extractedCategory: extraction.category,
-      extractedProjectId: extraction.projectId,
+      extractedSku: enrichedExtraction.sku,
+      extractedCategory: enrichedExtraction.category,
+      extractedProjectId: null,
+      extractedProjectNumber: null,
       extractedLineItems: JSON.stringify(lineItems),
       classificationAccountCode: classification.accountCode,
       classificationCategory: classification.category,
       classificationSource: classification.source,
       classificationConfidence: classification.confidence,
       classificationStatus: classification.resolution,
-      aiNotes: `${extraction.notes} ${classification.note}`.trim(),
+      aiNotes: processingNotes,
       processingStatus: decision.decision,
       decisionExceptions: serializeDecisionExceptions(decision.exceptions),
       decisionChecks: serializeDecisionChecks(decision.checks),
@@ -554,6 +682,12 @@ export async function POST(request: Request) {
         invoiceNumber: normalized.invoiceNumber,
         invoiceDate: normalized.invoiceDate,
         totalCents: normalized.totalCents,
+        extractedSku: enrichedExtraction.sku,
+        classificationAccountCode: classification.accountCode,
+        classificationCategory: classification.category,
+        classificationSource: classification.source,
+        classificationStatus: classification.resolution,
+        canadianTireLookup,
         decision: decision.decision,
         exceptionCodes: decision.exceptions.map((exception) => exception.code),
       }),
@@ -590,9 +724,9 @@ export async function POST(request: Request) {
           accountId: account.id,
           cardId,
           statementPeriodId: null,
-          projectId: null,
+          projectNumber: null,
           lineItems: JSON.stringify(lineItems),
-          classificationNote: `${extraction.notes} ${classification.note}`.trim(),
+          classificationNote: processingNotes,
           actorUid: identity.uid,
           actorRole: identity.role,
         }, "AUTO");
@@ -607,8 +741,9 @@ export async function POST(request: Request) {
       ok: true,
       receiptId,
       model,
-      extraction: { ...normalized, lineItems, confidence: extraction.confidence, notes: extraction.notes, category: extraction.category, projectId: extraction.projectId, sku: extraction.sku },
+      extraction: { ...normalized, lineItems, confidence: extraction.confidence, notes: extraction.notes, category: enrichedExtraction.category, sku: enrichedExtraction.sku },
       classification,
+      canadianTireLookup,
       decision,
     });
   } catch (error) {

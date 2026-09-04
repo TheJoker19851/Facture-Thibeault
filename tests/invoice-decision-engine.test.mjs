@@ -42,7 +42,7 @@ test("approuve automatiquement une facture entièrement résolue", () => {
   const result = decision();
   assert.equal(result.decision, "AUTO_APPROVED");
   assert.deepEqual(result.exceptions, []);
-  assert.deepEqual(result.resolutions, { accountCode: "90001", cardId: "CARD-1", projectId: "P-1", statementPeriodId: "PERIOD-1" });
+  assert.deepEqual(result.resolutions, { accountCode: "90001", cardId: "CARD-1", projectId: null, statementPeriodId: "PERIOD-1" });
 });
 
 test("bloque un SKU inconnu et conserve les exceptions structurées", () => {
@@ -94,15 +94,22 @@ test("distingue incohérence de total et incohérence de taxes", () => {
   assert.ok(codes(taxResult).includes("TAX_MISMATCH"));
 });
 
-test("bloque carte ambiguë, projet inconnu et confiance insuffisante", () => {
+test("bloque carte ambiguë et confiance insuffisante sans vérifier le projet", () => {
   const result = decision(
     { projectId: "P-INCONNU", confidence: 0.8 },
     { context: { ...baseContext, cards: [...baseContext.cards, { id: "CARD-2", lastFour: "0002", status: "ACTIVE", holderId: "U-1" }] } },
   );
   assert.equal(result.decision, "NEEDS_REVIEW");
   assert.ok(codes(result).includes("AMBIGUOUS_CARD"));
-  assert.ok(codes(result).includes("UNKNOWN_PROJECT"));
+  assert.ok(!codes(result).includes("UNKNOWN_PROJECT"));
   assert.ok(codes(result).includes("LOW_CONFIDENCE"));
+});
+
+test("ignore un projet extrait et laisse son numéro pour la saisie manuelle", () => {
+  const result = decision({ projectId: "P-INCONNU" });
+  assert.equal(result.decision, "AUTO_APPROVED");
+  assert.ok(!codes(result).includes("PROJECT_RESOLUTION"));
+  assert.equal(result.resolutions.projectId, null);
 });
 
 test("associe une carte active au profil réel de l’uploader", () => {
@@ -134,16 +141,6 @@ test("ne résout pas une carte rattachée à un titulaire inactif", () => {
     cards: [{ id: "CARD-1", lastFour: "1807", status: "ACTIVE", holderId: "U-1", holderStatus: "INACTIVE" }],
   });
   assert.equal(result.status, "UNKNOWN");
-});
-
-test("accepte temporairement une facture sans bloquer sur le projet", () => {
-  const result = decision(
-    { projectId: "P-INCONNU" },
-    { context: { ...baseContext, requireProject: false } },
-  );
-  assert.equal(result.decision, "AUTO_APPROVED");
-  assert.ok(!codes(result).includes("UNKNOWN_PROJECT"));
-  assert.equal(result.resolutions.projectId, null);
 });
 
 test("accepte automatiquement une facture sans période de relevé", () => {

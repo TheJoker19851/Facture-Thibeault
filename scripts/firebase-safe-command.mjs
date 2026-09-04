@@ -8,7 +8,8 @@ import { readEnvFile } from "./lib/env-files.mjs";
 const target = process.argv[2];
 const action = process.argv[3];
 if (target !== "production" || !["plan", "migrate", "deploy"].includes(action)) throw new Error("Usage : node scripts/firebase-safe-command.mjs production <plan|migrate|deploy>.");
-const { values: fileValues } = await readEnvFile(".env.local");
+const environmentFile = process.env.FIREBASE_ENV_FILE || ".env.local";
+const { values: fileValues } = await readEnvFile(environmentFile);
 const runtimeKeys = [
   "APP_ENV", "NEXT_PUBLIC_APP_ENV", "CONFIRM_PRODUCTION_DEPLOY", "CONFIRM_PRODUCTION_SCHEMA_MIGRATION",
 ];
