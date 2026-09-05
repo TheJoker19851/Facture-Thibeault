@@ -53,6 +53,104 @@ mutation UpsertCreditCard(
   })
 }
 
+# Retained for installed clients that still call the pre-server-management
+# deletion API. New application code uses the guarded server routes instead.
+mutation DeleteCreditCard(
+  $id: String!
+  $auditEventId: String!
+  $auditDetails: String!
+) @auth(expr: "auth.token.role == 'ADMIN'") @retired(reason: "Use the server-managed credit-card administration API.") @transaction {
+  query @redact @check(
+    expr: "response.query.card.size() == 1 && response.query.cardStatements.size() == 0 && response.query.cardHolderHistory.size() == 0 && response.query.cardTransactions.size() == 0"
+    message: "Cette carte possède un historique comptable et ne peut pas être supprimée. Désactivez-la plutôt."
+  ) {
+    card: creditCards(where: { id: { eq: $id } }, limit: 1) { id }
+    cardStatements: creditCardStatements(where: { card: { id: { eq: $id } } }, limit: 1) { id }
+    cardHolderHistory: creditCardHolderHistories(where: { card: { id: { eq: $id } } }, limit: 1) { id }
+    cardTransactions: expenseTransactions(where: { card: { id: { eq: $id } } }, limit: 1) { id }
+  }
+  creditCard_delete(key: { id: $id })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid_expr: "auth.uid"
+    actorRole_expr: "auth.token.role"
+    action: "CARD_DELETED"
+    entityType: "CreditCard"
+    entityId: $id
+    details: $auditDetails
+  })
+}
+
+mutation DeleteCreditCardAndHolder(
+  $cardId: String!
+  $holderId: String!
+  $auditEventId: String!
+  $auditDetails: String!
+) @auth(expr: "auth.token.role == 'ADMIN'") @retired(reason: "Use the server-managed user and credit-card administration APIs.") @transaction {
+  query @redact @check(
+    expr: "response.query.card.size() == 1 && response.query.holderCards.size() == 1 && response.query.cardStatements.size() == 0 && response.query.cardHolderHistory.size() == 0 && response.query.cardTransactions.size() == 0 && response.query.holderStatements.size() == 0 && response.query.holderHistory.size() == 0 && response.query.holderCorrections.size() == 0 && response.query.holderInvoices.size() == 0"
+    message: "Cette carte ou ce titulaire possède un historique ou une autre association et ne peut pas être supprimé. Désactivez la carte plutôt."
+  ) {
+    card: creditCards(where: { id: { eq: $cardId }, holder: { id: { eq: $holderId } } }, limit: 1) { id }
+    holderCards: creditCards(where: { holder: { id: { eq: $holderId } } }, limit: 2) { id }
+    cardStatements: creditCardStatements(where: { card: { id: { eq: $cardId } } }, limit: 1) { id }
+    cardHolderHistory: creditCardHolderHistories(where: { card: { id: { eq: $cardId } } }, limit: 1) { id }
+    cardTransactions: expenseTransactions(where: { card: { id: { eq: $cardId } } }, limit: 1) { id }
+    holderStatements: creditCardStatements(where: { holderIdSnapshot: { eq: $holderId } }, limit: 1) { id }
+    holderHistory: creditCardHolderHistories(where: { holder: { id: { eq: $holderId } } }, limit: 1) { id }
+    holderCorrections: transactionCorrections(where: { correctedBy: { id: { eq: $holderId } } }, limit: 1) { id }
+    holderInvoices: invoices(where: { createdBy: { id: { eq: $holderId } } }, limit: 1) { id }
+  }
+  creditCard_delete(key: { id: $cardId })
+  userProfile_delete(key: { id: $holderId })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid_expr: "auth.uid"
+    actorRole_expr: "auth.token.role"
+    action: "CARD_AND_HOLDER_DELETED"
+    entityType: "CreditCard"
+    entityId: $cardId
+    details: $auditDetails
+  })
+}
+
+mutation DeleteUserProfile(
+  $id: String!
+  $firebaseUid: String!
+  $auditEventId: String!
+  $auditDetails: String!
+) @auth(expr: "auth.token.role == 'ADMIN'") @retired(reason: "Use the server-managed user administration API.") @transaction {
+  query @redact @check(
+    expr: "response.query.profile.size() == 1 && response.query.adminProfile.size() == 0 && response.query.cards.size() == 0 && response.query.cardStatements.size() == 0 && response.query.importedStatements.size() == 0 && response.query.cardHolderHistory.size() == 0 && response.query.corrections.size() == 0 && response.query.invoices.size() == 0 && response.query.confirmedMatches.size() == 0 && response.query.resolvedControls.size() == 0 && response.query.merchantAliases.size() == 0 && response.query.reportAdjustments.size() == 0 && response.query.importedIntakes.size() == 0 && response.query.auditEvents.size() == 0"
+    message: "Ce profil possède un historique ou une autre association et ne peut pas être supprimé. Désactivez-le plutôt."
+  ) {
+    profile: userProfiles(where: { id: { eq: $id } }, limit: 1) { id }
+    adminProfile: userProfiles(where: { id: { eq: $id }, role: { eq: "ADMIN" } }, limit: 1) { id }
+    cards: creditCards(where: { holder: { id: { eq: $id } } }, limit: 1) { id }
+    cardStatements: creditCardStatements(where: { holderIdSnapshot: { eq: $id } }, limit: 1) { id }
+    importedStatements: creditCardStatements(where: { importedBy: { id: { eq: $id } } }, limit: 1) { id }
+    cardHolderHistory: creditCardHolderHistories(where: { holder: { id: { eq: $id } } }, limit: 1) { id }
+    corrections: transactionCorrections(where: { correctedBy: { id: { eq: $id } } }, limit: 1) { id }
+    invoices: invoices(where: { createdBy: { id: { eq: $id } } }, limit: 1) { id }
+    confirmedMatches: reconciliationMatches(where: { confirmedBy: { id: { eq: $id } } }, limit: 1) { id }
+    resolvedControls: reconciliationOutsideControls(where: { resolvedBy: { id: { eq: $id } } }, limit: 1) { id }
+    merchantAliases: merchantAliases(where: { createdBy: { id: { eq: $id } } }, limit: 1) { id }
+    reportAdjustments: reportAdjustmentSets(where: { holderId: { eq: $id } }, limit: 1) { id }
+    importedIntakes: invoiceIntakes(where: { uploaderUid: { eq: $firebaseUid } }, limit: 1) { receiptId }
+    auditEvents: auditEvents(where: { actorUid: { eq: $firebaseUid } }, limit: 1) { id }
+  }
+  userProfile_delete(key: { id: $id })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid_expr: "auth.uid"
+    actorRole_expr: "auth.token.role"
+    action: "USER_DELETED"
+    entityType: "UserProfile"
+    entityId: $id
+    details: $auditDetails
+  })
+}
+
 # User access operations are server-only. The API authenticates the ADMIN
 # caller with Firebase Admin before invoking these NO_ACCESS mutations.
 mutation AdminUpsertUserProfileWithAudit(
@@ -803,6 +901,40 @@ mutation RequeueStaleInvoiceIntake(
   })
 }
 
+# Retained for wire compatibility with earlier server deployments.
+mutation CacheCanadianTireSkuReference(
+  $sku: String!
+  $productLabel: String!
+  $categoryLabel: String!
+  $expenseAccountId: String!
+  $sourceUrl: String!
+  $auditEventId: String!
+  $entityId: String!
+  $actorUid: String!
+  $actorRole: String!
+  $auditDetails: String!
+) @auth(level: NO_ACCESS) @retired(reason: "Canadian Tire SKU persistence is now handled by the current classification workflow.") @transaction {
+  skuReference_upsert(data: {
+    merchant: "Canadian Tire"
+    sku: $sku
+    productLabel: $productLabel
+    categoryLabel: $categoryLabel
+    expenseAccount: { id: $expenseAccountId }
+    sourceUrl: $sourceUrl
+    verificationStatus: "VALIDATED"
+    verifiedAt_expr: "request.time"
+  })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: "CANADIAN_TIRE_SKU_RESOLVED"
+    entityType: "SkuReference"
+    entityId: $entityId
+    details: $auditDetails
+  })
+}
+
 # Server-only AI persistence. The Admin SDK verifies the Firebase token,
 # confirms ownership of the intake and performs deterministic classification
 # before executing this operation. Browser clients cannot call it directly.
@@ -822,6 +954,7 @@ mutation UpdateInvoiceIntakeAiResult(
   $extractedCurrency: String!
   $extractedSku: String
   $extractedCategory: String
+  $extractedProjectNumber: String @retired(reason: "Project numbers are no longer part of invoice acceptance; retained for installed clients.")
   $extractedProjectId: String
   $classificationAccountCode: String
   $classificationCategory: String
@@ -868,6 +1001,7 @@ mutation UpdateInvoiceIntakeAiResult(
       extractedCurrency: $extractedCurrency
       extractedSku: $extractedSku
       extractedCategory: $extractedCategory
+      extractedProjectNumber: $extractedProjectNumber
       extractedProjectId: $extractedProjectId
       classificationAccountCode: $classificationAccountCode
       classificationCategory: $classificationCategory
@@ -1064,6 +1198,7 @@ mutation UpdateInvoiceIntakeReview(
   $extractedCurrency: String!
   $extractedSku: String
   $extractedCategory: String
+  $extractedProjectNumber: String @retired(reason: "Project numbers are no longer part of invoice acceptance; retained for installed clients.")
   $extractedProjectId: String
   $classificationAccountCode: String
   $classificationCategory: String
@@ -1107,6 +1242,7 @@ mutation UpdateInvoiceIntakeReview(
       extractedCurrency: $extractedCurrency
       extractedSku: $extractedSku
       extractedCategory: $extractedCategory
+      extractedProjectNumber: $extractedProjectNumber
       extractedProjectId: $extractedProjectId
       classificationAccountCode: $classificationAccountCode
       classificationCategory: $classificationCategory
@@ -1489,6 +1625,7 @@ mutation MaterializeInvoiceIntakeV2(
   $cardId: String!
   $statementPeriod: CardStatementPeriod_Key
   $project: Project_Key
+  $projectNumber: String @retired(reason: "Project numbers are no longer part of invoice acceptance; retained for installed clients.")
   $storageFolder: String!
   $classificationNote: String!
   $expectedProcessingStatus: String!
@@ -1544,6 +1681,7 @@ mutation MaterializeInvoiceIntakeV2(
     card: { id: $cardId }
     statementPeriod: $statementPeriod
     project: $project
+    projectNumber: $projectNumber
     expenseAccount: $account
     categoryLabel: $category
     sku: $sku

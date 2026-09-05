@@ -86,6 +86,8 @@ type ExpenseTransaction @table(name: "expense_transactions", key: "id") {
   card: CreditCard!
   statementPeriod: CardStatementPeriod
   project: Project
+  # Legacy compatibility only. Project selection is not an acceptance gate.
+  projectNumber: String
   expenseAccount: ExpenseAccount
   categoryLabel: String
   sku: String
@@ -180,6 +182,8 @@ type InvoiceIntake @table(name: "invoice_intakes", key: "receiptId") {
   extractedCurrency: String
   extractedSku: String
   extractedCategory: String
+  # Legacy compatibility only. Project selection is not an acceptance gate.
+  extractedProjectNumber: String
   extractedProjectId: String
   classificationAccountCode: String
   classificationCategory: String
