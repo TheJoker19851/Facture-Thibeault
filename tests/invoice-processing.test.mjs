@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   invoiceLineItemsSubtotalCents,
+  reconcileInvoiceLineItemsToSubtotal,
   validateInvoiceExtraction,
   validateInvoiceLineItemsForCommit,
 } from "../lib/invoice-processing.mjs";
@@ -39,6 +40,52 @@ test("préserve un coupon négatif dans le sous-total net et la comptabilisation
   const commit = validateInvoiceLineItemsForCommit(receiptLineItems, 39498);
   assert.equal(commit.ok, true);
   assert.equal(commit.linesSubtotalCents, 39498);
+});
+
+test("normalise une ligne de carburant taxes incluses vers le sous-total comptable", () => {
+  const grossLines = [
+    { description: "DIESEL", quantity: 34.272, unitPriceCents: 270, amountCents: 9250, accountCode: "33544" },
+  ];
+  const reconciliation = reconcileInvoiceLineItemsToSubtotal(grossLines, 8045, 9250);
+  assert.equal(reconciliation.reconciled, true);
+  assert.equal(reconciliation.basis, "TOTAL_TAX_INCLUDED");
+  assert.equal(reconciliation.lineItems[0].amountCents, 8045);
+  assert.equal(reconciliation.lineItems[0].unitPriceCents, null);
+
+  const extraction = validateInvoiceExtraction({
+    vendor: "ULTRAMAR",
+    invoiceNumber: "004036",
+    invoiceDate: "2026-09-04",
+    subtotalCents: 8045,
+    tpsCents: 402,
+    tvqCents: 803,
+    totalCents: 9250,
+    currency: "CAD",
+    lineItems: grossLines,
+  });
+  assert.equal(extraction.ok, true);
+  assert.equal(extraction.value.lineItemsMatchSubtotal, true);
+  assert.equal(extraction.value.lineItems[0].amountCents, 8045);
+
+  const commit = validateInvoiceLineItemsForCommit(grossLines, 8045, 9250);
+  assert.equal(commit.ok, true);
+  assert.equal(commit.linesSubtotalCents, 8045);
+
+  const allocations = transactionAccountAllocations({
+    lineItems: grossLines,
+    subtotalCents: 8045,
+    tpsCents: 402,
+    tvqCents: 803,
+    totalCents: 9250,
+  });
+  assert.deepEqual(allocations[0], {
+    accountNumber: "33544",
+    accountLabel: "Compte non référencé",
+    subtotalCents: 8045,
+    tpsCents: 402,
+    tvqCents: 803,
+    totalCents: 9250,
+  });
 });
 
 test("conserve une ligne négative dans la ventilation du rapport", () => {

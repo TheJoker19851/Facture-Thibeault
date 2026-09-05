@@ -73,7 +73,7 @@ export async function POST(request: Request) {
   } catch {
     return Response.json({ error: "Les lignes d’articles ne sont pas lisibles." }, { status: 422 });
   }
-  const lineValidation = validateInvoiceLineItemsForCommit(rawLineItems, parsed.data.subtotalCents);
+  const lineValidation = validateInvoiceLineItemsForCommit(rawLineItems, parsed.data.subtotalCents, parsed.data.totalCents);
   if (!lineValidation.ok) {
     return Response.json({ error: lineValidation.errors.join(" ") }, { status: 422 });
   }
@@ -98,6 +98,7 @@ export async function POST(request: Request) {
     const photos = await readInvoiceIntakeStoragePhotos(intake);
     await materializeInvoiceIntake(dataConnect, intake, photos, {
       ...parsed.data,
+      lineItems: JSON.stringify(lineValidation.lineItems),
       accountId: account?.id ?? null,
       actorUid: identity.uid,
       actorRole: identity.role,

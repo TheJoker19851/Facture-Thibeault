@@ -135,7 +135,7 @@ Read all supplied photos as pages of one invoice. Extract only information visib
 Never invent a value: use null for a missing invoice number, date, SKU or project.
 Return monetary values as integer Canadian cents. Use ISO date YYYY-MM-DD when the date is readable.
 The subtotal plus TPS plus TVQ must equal the total; if a value is unclear, lower confidence and explain it in notes.
-Read every visible line item. Return its description, quantity, unit price when visible, amount before tax, SKU/code when visible, and a category suggestion only when the document supports it.
+Read every visible line item. Return its description, quantity, unit price when visible, amount before tax, SKU/code when visible, and a category suggestion only when the document supports it. If the receipt only prints a tax-included line amount or unit price but also prints a coherent subtotal and taxes, allocate amountCents before tax and return null for unitPriceCents unless a pre-tax unit price is explicitly shown.
 Represent discounts, coupons, rebates, credits and returns as visible lines with negative unitPriceCents and amountCents; never omit them or turn them into positive amounts. The signed line amounts must add up to the net invoice subtotal after those adjustments. If no line detail is visible, return an empty lineItems array and explain that limitation in notes.
 Use category only as a suggestion. Do not invent an accounting account or approve the invoice.
 Keep vendor names and invoice numbers faithful to the document, including accents and punctuation.`;
@@ -569,7 +569,7 @@ export async function POST(request: Request) {
     })), expenseAccounts);
     const lineItems = classifyInvoiceLineItems({
       vendor: extraction?.vendor,
-      lineItems: extraction?.lineItems,
+      lineItems: validation.ok ? (validation.value as NormalizedExtraction).lineItems : extraction?.lineItems,
       skuReferences: skuReferences.map((reference) => ({
         merchant: reference.merchant,
         sku: reference.sku,

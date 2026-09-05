@@ -1685,7 +1685,8 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
   );
   const preparedLineItems = prepareLineItemsForSave(draft.lineItems, draft.vendor, skuReferences, accounts);
   const draftSubtotalCents = dollarsToCents(draft.subtotal);
-  const lineItemsValidation = validateInvoiceLineItemsForCommit(preparedLineItems, draftSubtotalCents ?? -1);
+  const draftTotalCents = dollarsToCents(draft.total);
+  const lineItemsValidation = validateInvoiceLineItemsForCommit(preparedLineItems, draftSubtotalCents ?? -1, draftTotalCents ?? -1);
   const lineItemsReady = lineItemsValidation.ok;
   const lineAccountCodes = Array.from(new Set(preparedLineItems.map((item) => item.accountCode).filter((code): code is string => Boolean(code))));
   const allLineAccountsConfirmed = preparedLineItems.length > 0 && preparedLineItems.every((item) => Boolean(item.accountCode));
