@@ -241,40 +241,61 @@ async function extractInvoice(receiptId: string, files: File[], accountLabels: s
 
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) throw new Error("GOOGLE_GENERATIVE_AI_API_KEY est absent.");
-  const modelId = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+  const primaryModelId = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+  const fallbackModelId = process.env.GEMINI_FALLBACK_MODEL || "gemini-2.5-flash";
+  const modelIds = Array.from(new Set([primaryModelId, fallbackModelId].filter(Boolean)));
+  const perModelTimeoutMs = modelIds.length > 1 ? 55_000 : GEMINI_TIMEOUT_MS;
   const google = createGoogle({ apiKey });
   const imageParts = await Promise.all(files.map(async (file) => ({
     type: "file" as const,
     data: Buffer.from(await file.arrayBuffer()),
     mediaType: file.type,
   })));
-  try {
-    const result = await generateText({
-      model: google(modelId),
-      instructions: invoiceInstructions(accountLabels),
-      output: Output.object({
-        name: "invoice_extraction",
-        description: "Structured OCR result for one Canadian invoice.",
-        schema: invoiceExtractionSchema,
-      }),
-      messages: [{
-        role: "user",
-        content: [{
-          type: "text",
-          text: `Receipt ID ${receiptId}. These are ${files.length} page(s) of the same invoice. Extract the invoice now.`,
-        }, ...imageParts],
-      }],
-      abortSignal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
-    });
-    return { model: modelId, extraction: result.output };
-  } catch (error) {
-    if (error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError")) {
-      const timeoutError = new Error(`Gemini n’a pas répondu dans le délai de ${GEMINI_TIMEOUT_MS / 1000} secondes.`);
-      Object.assign(timeoutError, { isRetryable: true });
-      throw timeoutError;
+  let lastError: unknown = new Error("Aucun modèle Gemini n'est configuré.");
+  for (const [index, modelId] of modelIds.entries()) {
+    try {
+      const result = await generateText({
+        model: google(modelId),
+        instructions: invoiceInstructions(accountLabels),
+        output: Output.object({
+          name: "invoice_extraction",
+          description: "Structured OCR result for one Canadian invoice.",
+          schema: invoiceExtractionSchema,
+        }),
+        messages: [{
+          role: "user",
+          content: [{
+            type: "text",
+            text: `Receipt ID ${receiptId}. These are ${files.length} page(s) of the same invoice. Extract the invoice now.`,
+          }, ...imageParts],
+        }],
+        abortSignal: AbortSignal.timeout(perModelTimeoutMs),
+      });
+      return { model: modelId, extraction: result.output };
+    } catch (error) {
+      let normalizedError: unknown = error;
+      if (error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError")) {
+        const timeoutError = new Error(`Gemini n’a pas répondu dans le délai de ${perModelTimeoutMs / 1000} secondes.`);
+        Object.assign(timeoutError, { isRetryable: true });
+        normalizedError = timeoutError;
+      }
+      lastError = normalizedError;
+      const transient = transientGeminiErrorCode("GEMINI", normalizedError) === "GEMINI_TRANSIENT";
+      console.error("[invoice-ai] phase=model_failed", {
+        receiptId,
+        modelId,
+        transient,
+        message: normalizedError instanceof Error ? normalizedError.message : "unknown",
+      });
+      if (!transient || index === modelIds.length - 1) throw normalizedError;
+      console.warn("[invoice-ai] phase=model_fallback", {
+        receiptId,
+        fromModelId: modelId,
+        toModelId: modelIds[index + 1],
+      });
     }
-    throw error;
   }
+  throw lastError;
 }
 
 export async function POST(request: Request) {
