@@ -242,7 +242,7 @@ async function extractInvoice(receiptId: string, files: File[], accountLabels: s
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) throw new Error("GOOGLE_GENERATIVE_AI_API_KEY est absent.");
   const primaryModelId = process.env.GEMINI_MODEL || "gemini-3.6-flash";
-  const fallbackModelId = process.env.GEMINI_FALLBACK_MODEL || "gemini-2.5-flash";
+  const fallbackModelId = process.env.GEMINI_FALLBACK_MODEL || "gemini-3.5-flash-lite";
   const modelIds = Array.from(new Set([primaryModelId, fallbackModelId].filter(Boolean)));
   const perModelTimeoutMs = modelIds.length > 1 ? 55_000 : GEMINI_TIMEOUT_MS;
   const google = createGoogle({ apiKey });
