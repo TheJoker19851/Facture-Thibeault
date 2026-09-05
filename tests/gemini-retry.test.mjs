@@ -50,11 +50,11 @@ test("admet un délai Gemini comme erreur transitoire", () => {
   assert.equal(transientGeminiErrorCode("GEMINI", new Error("Le délai Gemini est dépassé")), "GEMINI_TRANSIENT");
 });
 
-test("utilise cinq tentatives par défaut et refuse une configuration invalide", () => {
-  assert.equal(invoiceAiMaxAttempts(undefined), 5);
+test("utilise douze tentatives par défaut et refuse une configuration invalide", () => {
+  assert.equal(invoiceAiMaxAttempts(undefined), 12);
   assert.equal(invoiceAiMaxAttempts("5"), 5);
-  assert.equal(invoiceAiMaxAttempts("0"), 5);
-  assert.equal(invoiceAiMaxAttempts("not-a-number"), 5);
+  assert.equal(invoiceAiMaxAttempts("0"), 12);
+  assert.equal(invoiceAiMaxAttempts("not-a-number"), 12);
   assert.equal(hasReachedInvoiceAiMaxAttempts({ processingAttempts: 4 }, 5), false);
   assert.equal(hasReachedInvoiceAiMaxAttempts({ processingAttempts: 5 }, 5), true);
 });
