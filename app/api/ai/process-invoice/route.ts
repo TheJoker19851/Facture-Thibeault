@@ -733,6 +733,12 @@ export async function POST(request: Request) {
         }, { status: 502 });
       }
 
+      console.error("[invoice-ai] phase=processing_failed", {
+        receiptId: receiptIdForLog,
+        aiErrorCode: transientGeminiFailure ? "GEMINI_TRANSIENT" : null,
+        message: error instanceof Error ? error.message : "unknown",
+      });
+
       const decisionExceptions = serializeDecisionExceptions([{
         code: autoCommitAttempted ? "ACCOUNTING_POSTING_ERROR" : "AI_PROCESSING_ERROR",
         fieldName: null,

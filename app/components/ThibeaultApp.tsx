@@ -222,6 +222,7 @@ type InvoiceIntake = {
   reviewRevision?: number;
   accountingStatus?: string;
   lastError?: string;
+  aiErrorCode?: string;
   aiModel?: string;
   aiConfidence?: number;
   extractedVendor?: string;
@@ -641,6 +642,9 @@ function humanizeIntakeException(exception: IntakeDecisionException) {
 }
 
 function intakeReviewMessages(intake: InvoiceIntake) {
+  if (intake.aiErrorCode === "GEMINI_TRANSIENT") {
+    return ["Gemini est temporairement surchargé — une nouvelle tentative IA est planifiée automatiquement."];
+  }
   const exceptions = parseIntakeExceptions(intake);
   const actionableExceptions = exceptions.filter((exception) => !isOptionalReviewException(exception));
   const businessMessages = actionableExceptions
@@ -1160,6 +1164,7 @@ function intakeStatusLabel(status: string) {
 }
 
 function intakeQueueStatusLabel(intake: InvoiceIntake) {
+  if (intake.aiErrorCode === "GEMINI_TRANSIENT") return "Nouvelle tentative IA planifiée";
   return processingStatusOf(intake) === "VALIDATED" && intake.accountingStatus === "NOT_POSTED"
     ? "Prête à comptabiliser"
     : intakeStatusLabel(processingStatusOf(intake));
@@ -1719,6 +1724,7 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
     (selectedIntake.processingStatus === "NEEDS_REVIEW" || selectedIntake.processingStatus === "FAILED") &&
     selectedIntake.processingState !== "RUNNING",
   );
+  const transientGeminiPending = selectedIntake?.aiErrorCode === "GEMINI_TRANSIENT";
 
   const retryAi = async () => {
     if (!selectedIntake || !canRetryAi) return;
@@ -2052,10 +2058,10 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
         </div> : <div className="empty-state"><span>◌</span><strong>Les prochains dépôts apparaîtront ici</strong><p>Après un envoi, Gemini extrait la facture et conserve sa proposition pour validation.</p></div>}
       </section>
       {selectedIntake ? <form className="panel intake-review" onSubmit={(event) => void saveReview(event, "save")}>
-        <div className="panel-header"><div><p className="eyebrow">{processingStatusOf(selectedIntake) === "VALIDATED" ? "Prête pour comptabilisation" : "Exception à résoudre"}</p><h2>{draft.vendor || "Facture sélectionnée"}</h2></div><span className={intakeStatusClass(processingStatusOf(selectedIntake))}>{intakeQueueStatusLabel(selectedIntake)}</span></div>
+        <div className="panel-header"><div><p className="eyebrow">{processingStatusOf(selectedIntake) === "VALIDATED" ? "Prête pour comptabilisation" : transientGeminiPending ? "En attente de Gemini" : "Exception à résoudre"}</p><h2>{draft.vendor || "Facture sélectionnée"}</h2></div><span className={intakeStatusClass(processingStatusOf(selectedIntake))}>{intakeQueueStatusLabel(selectedIntake)}</span></div>
         {canRetryAi && !canAdminReanalyze && <div className="detail-alert"><div><p className="eyebrow">Erreur technique sans extraction</p><span>La lecture IA n’a enregistré aucune donnée; vous pouvez relancer l’analyse après correction du traitement.</span><button className="secondary-button" type="button" onClick={() => void retryAi()} disabled={retryState === "saving"}>{retryState === "saving" ? "Nouvelle analyse…" : "Relancer l’analyse IA"}</button>{retryMessage && <p className={`intake-review-message ${retryState}`}>{retryMessage}</p>}</div></div>}
         {canAdminReanalyze && <div className="detail-alert"><div><p className="eyebrow">Test ADMIN</p><span>Relance l’analyse IA sur cette facture non comptabilisée, même si une extraction existe déjà. La proposition actuelle sera remplacée.</span><button className="secondary-button" type="button" onClick={() => void reanalyzeAsAdmin()} disabled={retryState === "saving"}>{retryState === "saving" ? "Réanalyse en cours…" : "Réanalyser avec l’IA"}</button>{retryMessage && <p className={`intake-review-message ${retryState}`}>{retryMessage}</p>}</div></div>}
-        {visibleReviewMessages.length > 0 && <div className="detail-alert"><div className="detail-alert-icon">!</div><div><p className="eyebrow">À corriger</p>{visibleReviewMessages.map((message) => <span key={message}>{message}</span>)}</div></div>}
+        {visibleReviewMessages.length > 0 && <div className="detail-alert"><div className="detail-alert-icon">!</div><div><p className="eyebrow">{transientGeminiPending ? "Nouvelle tentative automatique" : "À corriger"}</p>{visibleReviewMessages.map((message) => <span key={message}>{message}</span>)}</div></div>}
         <InvoiceIntakeEvidence key={selectedIntake.receiptId} intake={selectedIntake} />
         <AuditTrailView events={auditEvents} role={identity.role} state={auditState} cards={cards} projects={projects} />
         <div className="intake-review-form">
