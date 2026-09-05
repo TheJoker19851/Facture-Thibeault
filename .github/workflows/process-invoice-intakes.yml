@@ -23,5 +23,7 @@ jobs:
         run: |
           test -n "$CRON_SECRET"
           curl --fail-with-body --silent --show-error --max-time 240 \
+            --retry 2 --retry-delay 5 --retry-all-errors \
             -H "Authorization: Bearer ${CRON_SECRET}" \
-            "https://facture-thibeault-psi.vercel.app/api/cron/process-invoice-intakes"
+            -H "Cache-Control: no-cache" \
+            "https://facture-thibeault.vercel.app/api/cron/process-invoice-intakes"

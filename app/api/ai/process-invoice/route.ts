@@ -281,6 +281,7 @@ export async function POST(request: Request) {
   let receiptIdForLog = "unknown";
   let ownedIntake = false;
   let autoCommitAttempted = false;
+  let processingClaimed = false;
   let transientGeminiFailure = false;
   let identityForAudit: AuthenticatedIdentity | null = null;
   let dataConnect: Awaited<ReturnType<typeof getFirebaseAdminDataConnect>> | null = null;
@@ -288,12 +289,18 @@ export async function POST(request: Request) {
     if (!isCurrentInvoiceClientVersion(request.headers.get("x-invoice-client-version"))) {
       return clientUpdateRequiredResponse();
     }
+    const hasWorkerSecret = Boolean(request.headers.get("x-invoice-worker-secret"));
+    const hasBearerToken = Boolean(request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1]);
+    if (!hasWorkerSecret && !hasBearerToken) {
+      return Response.json({ error: "Authentification Firebase requise." }, { status: 401 });
+    }
+    if (!firebaseAdminConfigured()) {
+      console.error("[invoice-ai] phase=configuration_failed reason=FIREBASE_ADMIN_MISSING");
+      return Response.json({ error: "Firebase Admin n'est pas configuré pour cet environnement." }, { status: 503 });
+    }
     const identity = await authenticate(request);
     if (!identity) return Response.json({ error: "Authentification Firebase requise." }, { status: 401 });
     identityForAudit = identity;
-    if (!firebaseAdminConfigured()) {
-      return Response.json({ error: "Firebase Admin n'est pas configuré pour cet environnement." }, { status: 503 });
-    }
 
     const formData = await request.formData();
     const receiptId = formData.get("receiptId");
@@ -355,12 +362,20 @@ export async function POST(request: Request) {
         );
       } catch (error) {
         const latest = await readIntake();
-        if (latest) return existingIntakeResponse(receiptId, latest);
+        console.error("[invoice-ai] phase=admin_reprocess_failed", {
+          receiptId,
+          message: error instanceof Error ? error.message : "unknown",
+        });
+        if (latest && (latest.processingState === "RETRY" || latest.processingState === "RUNNING" || latest.accountingStatus === "POSTED")) {
+          return existingIntakeResponse(receiptId, latest);
+        }
         throw error;
       }
       if (reprocess.data.invoiceIntake_updateMany !== 1) {
         const latest = await readIntake();
-        if (latest) return existingIntakeResponse(receiptId, latest);
+        if (latest && (latest.processingState === "RETRY" || latest.processingState === "RUNNING" || latest.accountingStatus === "POSTED")) {
+          return existingIntakeResponse(receiptId, latest);
+        }
         throw new Error("Le dépôt de facture n'existe plus pendant la réanalyse ADMIN.");
       }
     }
@@ -428,12 +443,20 @@ export async function POST(request: Request) {
         );
       } catch (error) {
         const latest = await readIntake();
-        if (latest) return existingIntakeResponse(receiptId, latest);
+        console.error("[invoice-ai] phase=manual_retry_failed", {
+          receiptId,
+          message: error instanceof Error ? error.message : "unknown",
+        });
+        if (latest && (latest.processingState === "RETRY" || latest.processingState === "RUNNING" || latest.accountingStatus === "POSTED")) {
+          return existingIntakeResponse(receiptId, latest);
+        }
         throw error;
       }
       if (retry.data.invoiceIntake_updateMany !== 1) {
         const latest = await readIntake();
-        if (latest) return existingIntakeResponse(receiptId, latest);
+        if (latest && (latest.processingState === "RETRY" || latest.processingState === "RUNNING" || latest.accountingStatus === "POSTED")) {
+          return existingIntakeResponse(receiptId, latest);
+        }
         throw new Error("Le dépôt de facture n'existe plus pendant le retry manuel.");
       }
     }
@@ -448,28 +471,48 @@ export async function POST(request: Request) {
           : await dataConnect.executeMutation<IntakeMutationData, { receiptId: string }>("RetryInvoiceIntakeAi", { receiptId });
       } catch (error) {
         const latest = await readIntake();
+        console.error("[invoice-ai] phase=controlled_retry_failed", {
+          receiptId,
+          message: error instanceof Error ? error.message : "unknown",
+        });
         // Another request may already have claimed the controlled retry.
         // Never convert that winner into a new AI error.
-        if (latest) return existingIntakeResponse(receiptId, latest);
+        if (latest && (latest.processingStatus === "PROCESSING" || latest.accountingStatus === "POSTED")) {
+          return existingIntakeResponse(receiptId, latest);
+        }
         throw error;
       }
       if (retry.data.invoiceIntake_updateMany !== 1) {
         const latest = await readIntake();
-        if (latest) return existingIntakeResponse(receiptId, latest);
+        if (latest && (latest.processingStatus === "PROCESSING" || latest.accountingStatus === "POSTED")) {
+          return existingIntakeResponse(receiptId, latest);
+        }
         throw new Error("Le dépôt de facture n'existe plus pendant le retry.");
       }
     }
 
-    const claim = await dataConnect.executeMutation<IntakeMutationData, { receiptId: string; processingAttempts: number; maxAttempts: number }>(
-      "ClaimInvoiceIntakeProcessing",
-      { receiptId, processingAttempts: Number(intake.processingAttempts ?? 0) + 1, maxAttempts },
-    ).catch(() => null);
+    let claim: { data: IntakeMutationData } | null;
+    try {
+      claim = await dataConnect.executeMutation<IntakeMutationData, { receiptId: string; processingAttempts: number; maxAttempts: number }>(
+        "ClaimInvoiceIntakeProcessing",
+        { receiptId, processingAttempts: Number(intake.processingAttempts ?? 0) + 1, maxAttempts },
+      );
+    } catch (error) {
+      console.error("[invoice-ai] phase=claim_failed", {
+        receiptId,
+        message: error instanceof Error ? error.message : "unknown",
+      });
+      claim = null;
+    }
     console.info("[invoice-ai] phase=claim_finished", { claimed: Boolean(claim?.data.invoiceIntake_updateMany === 1) });
     if (!claim || claim.data.invoiceIntake_updateMany !== 1) {
       const latest = await readIntake();
-      if (latest) return existingIntakeResponse(receiptId, latest);
+      if (latest && (latest.processingState === "RETRY" || latest.processingState === "RUNNING" || latest.accountingStatus === "POSTED")) {
+        return existingIntakeResponse(receiptId, latest);
+      }
       throw new Error("Le traitement serveur n’a pas pu prendre en charge l’intake.");
     }
+    processingClaimed = true;
 
     const [storedPhotos, [skuReferences, expenseAccounts, creditCards, userProfiles, projects, transactionResponse]] = await Promise.all([
       readInvoiceIntakeStoragePhotos(intake),
@@ -645,7 +688,7 @@ export async function POST(request: Request) {
           accountId: account.id,
           cardId,
           statementPeriodId: null,
-          projectId,
+          projectId: extraction.projectId,
           lineItems: JSON.stringify(lineItems),
           classificationNote: `${extraction.notes} ${classification.note}`.trim(),
           actorUid: identity.uid,
@@ -675,9 +718,20 @@ export async function POST(request: Request) {
       if (current && (
         current.accountingStatus === "POSTED" ||
         current.accountingStatus === "POSTING_ERROR" ||
-        (!autoCommitAttempted && current.processingStatus !== "PROCESSING") ||
-        (autoCommitAttempted && current.processingStatus !== "AUTO_APPROVED")
+        (!processingClaimed && (current.processingState === "RETRY" || current.processingState === "RUNNING")) ||
+        (processingClaimed && current.processingStatus !== "PROCESSING")
       )) return existingIntakeResponse(receiptIdForLog, current);
+
+      if (!processingClaimed) {
+        console.error("[invoice-ai] phase=processing_not_started", {
+          receiptId: receiptIdForLog,
+          message: error instanceof Error ? error.message : "unknown",
+        });
+        return Response.json({
+          error: "La réanalyse n'a pas pu être lancée; la facture n'a pas été modifiée.",
+          code: "AI_RETRY_NOT_STARTED",
+        }, { status: 502 });
+      }
 
       const decisionExceptions = serializeDecisionExceptions([{
         code: autoCommitAttempted ? "ACCOUNTING_POSTING_ERROR" : "AI_PROCESSING_ERROR",
