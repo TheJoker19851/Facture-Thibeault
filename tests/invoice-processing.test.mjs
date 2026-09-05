@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   invoiceLineItemsSubtotalCents,
   reconcileInvoiceLineItemsToSubtotal,
+  reconcileQuebecSalesTaxes,
   validateInvoiceExtraction,
   validateInvoiceLineItemsForCommit,
 } from "../lib/invoice-processing.mjs";
@@ -56,14 +57,24 @@ test("normalise une ligne de carburant taxes incluses vers le sous-total comptab
     vendor: "ULTRAMAR",
     invoiceNumber: "004036",
     invoiceDate: "2026-09-04",
-    subtotalCents: 8045,
+    subtotalCents: 8043,
     tpsCents: 402,
-    tvqCents: 803,
+    tvqCents: 805,
     totalCents: 9250,
     currency: "CAD",
     lineItems: grossLines,
   });
   assert.equal(extraction.ok, true);
+  assert.deepEqual(reconcileQuebecSalesTaxes(8043, 402, 805, 9250), {
+    subtotalCents: 8045,
+    tpsCents: 402,
+    tvqCents: 803,
+    totalCents: 9250,
+    reconciled: true,
+  });
+  assert.equal(extraction.value.subtotalCents, 8045);
+  assert.equal(extraction.value.tpsCents, 402);
+  assert.equal(extraction.value.tvqCents, 803);
   assert.equal(extraction.value.lineItemsMatchSubtotal, true);
   assert.equal(extraction.value.lineItems[0].amountCents, 8045);
 
