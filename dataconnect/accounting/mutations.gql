@@ -1852,6 +1852,82 @@ mutation CorrectPostedInvoice(
   })
 }
 
+# Server-only counterpart used by audited maintenance and automatic
+# reconciliation jobs. Browser clients cannot invoke NO_ACCESS operations.
+mutation ServerCorrectPostedInvoice(
+  $correctionId: String!
+  $invoiceId: String!
+  $transactionId: String!
+  $actorUserId: String!
+  $actorUid: String!
+  $actorRole: String!
+  $fieldName: String!
+  $previousValue: String
+  $correctedValue: String!
+  $note: String!
+  $vendor: String!
+  $invoiceNumber: String
+  $invoiceDate: Date!
+  $subtotalCents: Int64!
+  $tpsCents: Int64!
+  $tvqCents: Int64!
+  $totalCents: Int64!
+  $lineItems: String!
+  $category: String!
+  $account: ExpenseAccount_Key
+  $auditEventId: String!
+  $auditDetails: String!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact @check(
+    expr: "response.query.invoices.size() == 1 && response.query.invoices[0].accountingStatus == 'POSTED' && response.query.invoices[0].transaction.id == vars.transactionId && response.query.transactions.size() == 1 && response.query.transactions[0].accountingStatus == 'POSTED'"
+    message: "La facture ou la transaction n’est pas comptabilisée comme attendu."
+  ) {
+    invoices(where: { id: { eq: $invoiceId } }, limit: 1) { id accountingStatus transaction { id } }
+    transactions: expenseTransactions(where: { id: { eq: $transactionId } }, limit: 1) { id accountingStatus }
+  }
+  transactionCorrection_upsert(data: {
+    id: $correctionId
+    invoice: { id: $invoiceId }
+    transaction: { id: $transactionId }
+    fieldName: $fieldName
+    previousValue: $previousValue
+    correctedValue: $correctedValue
+    correctedBy: { id: $actorUserId }
+    note: $note
+  })
+  expenseTransaction_update(key: { id: $transactionId }, data: {
+    transactionDate: $invoiceDate
+    vendor: $vendor
+    invoiceNumber: $invoiceNumber
+    amountBeforeTaxCents: $subtotalCents
+    tpsCents: $tpsCents
+    tvqCents: $tvqCents
+    totalCents: $totalCents
+    categoryLabel: $category
+    expenseAccount: $account
+    issue: null
+  })
+  invoice_update(key: { id: $invoiceId }, data: {
+    vendor: $vendor
+    invoiceNumber: $invoiceNumber
+    invoiceDate: $invoiceDate
+    subtotalCents: $subtotalCents
+    tpsCents: $tpsCents
+    tvqCents: $tvqCents
+    totalCents: $totalCents
+    lineItems: $lineItems
+  })
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: "POSTED_INVOICE_CORRECTED"
+    entityType: "Invoice"
+    entityId: $invoiceId
+    details: $auditDetails
+  })
+}
+
 # V1 signatures remain for connector compatibility, but fail closed inside the
 # transaction so a stale client cannot materialize an Invoice sans photos.
 mutation CommitInvoiceIntake(
