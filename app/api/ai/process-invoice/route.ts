@@ -26,6 +26,12 @@ import { clientUpdateRequiredResponse, isCurrentInvoiceClientVersion } from "../
 import { classifyInvoice, classifyInvoiceLineItems, validateInvoiceExtraction } from "../../../../lib/invoice-processing.mjs";
 import { AUDIT_ACTIONS, auditDetails, auditEventId } from "../../../../lib/audit-events.mjs";
 import {
+  buildInvoiceBusinessFingerprint,
+  buildInvoiceSourceHash,
+  exactDuplicateDecision,
+  findDefiniteTransactionDuplicate,
+} from "../../../../lib/invoice-duplicates.mjs";
+import {
   DEFAULT_INVOICE_AI_MIN_CONFIDENCE,
   decideInvoice,
   findPotentialDuplicates,
@@ -90,6 +96,10 @@ type IntakeData = {
     aiModel?: string | null;
     decisionExceptions?: string | null;
     decisionChecks?: string | null;
+    sourceHash?: string | null;
+    duplicateFingerprint?: string | null;
+    duplicateOfReceiptId?: string | null;
+    duplicateReason?: string | null;
   }>;
 };
 
@@ -200,6 +210,57 @@ function isStableIntakeState(intake: IntakeData["invoiceIntakes"][number]) {
     intake.processingStatus !== "PROCESSING" &&
     intake.accountingStatus !== "POSTING_ERROR"
   );
+}
+
+function activeDuplicateOwner(
+  intakes: IntakeData["invoiceIntakes"],
+  receiptId: string,
+  field: "sourceHash" | "duplicateFingerprint",
+  value: string,
+) {
+  return intakes.find((candidate) => (
+    candidate.receiptId !== receiptId &&
+    candidate[field] === value &&
+    candidate.processingStatus !== "DELETED" &&
+    candidate.processingStatus !== "DUPLICATE"
+  )) ?? null;
+}
+
+async function markExactDuplicate(
+  dataConnect: Awaited<ReturnType<typeof getFirebaseAdminDataConnect>>,
+  identity: AuthenticatedIdentity,
+  receiptId: string,
+  duplicateOfReceiptId: string,
+  duplicateReason: "SOURCE_HASH" | "BUSINESS_FINGERPRINT" | "POSTED_TRANSACTION",
+) {
+  const decision = exactDuplicateDecision(duplicateOfReceiptId, duplicateReason);
+  const message = decision.exceptions[0].message;
+  const result = await dataConnect.executeMutation<IntakeMutationData, Record<string, unknown>>("MarkInvoiceIntakeDuplicate", {
+    receiptId,
+    duplicateOfReceiptId,
+    duplicateReason,
+    message,
+    decisionExceptions: serializeDecisionExceptions(decision.exceptions),
+    decisionChecks: serializeDecisionChecks(decision.checks),
+    actorUid: identity.uid,
+    actorRole: identity.role,
+    auditEventId: auditEventId(receiptId, AUDIT_ACTIONS.INVOICE_DUPLICATE_REJECTED),
+    auditDetails: auditDetails({ duplicateOfReceiptId, duplicateReason }),
+  });
+  if (result.data.invoiceIntake_updateMany !== 1) throw new Error("Le doublon exact n’a pas pu être écarté.");
+  console.info("[invoice-ai] phase=duplicate_rejected", { duplicateReason });
+  return Response.json({
+    ok: true,
+    receiptId,
+    duplicate: true,
+    decision,
+    state: {
+      processingStatus: "DUPLICATE",
+      processingState: "COMPLETED",
+      accountingStatus: "NOT_POSTED",
+      lastError: message,
+    },
+  });
 }
 
 function hasManualAiRetryableError(intake: IntakeData["invoiceIntakes"][number], maxAttempts: number) {
@@ -547,6 +608,24 @@ export async function POST(request: Request) {
       ]),
     ]);
     console.info("[invoice-ai] phase=references_and_storage_ready", { photoCount: storedPhotos.length });
+    const sourceHash = await buildInvoiceSourceHash(storedPhotos.map((photo) => photo.file));
+    if (intake.sourceHash && intake.sourceHash !== sourceHash) {
+      throw new Error("L’empreinte des photos ne correspond plus au dépôt déjà enregistré.");
+    }
+    if (!intake.sourceHash) {
+      try {
+        const sourceClaim = await dataConnect.executeMutation<IntakeMutationData, { receiptId: string; sourceHash: string }>(
+          "ClaimInvoiceIntakeSourceHash",
+          { receiptId, sourceHash },
+        );
+        if (sourceClaim.data.invoiceIntake_updateMany !== 1) throw new Error("L’empreinte source n’a pas été réclamée.");
+      } catch (error) {
+        const owner = activeDuplicateOwner(await listAllInvoiceIntakes(dataConnect), receiptId, "sourceHash", sourceHash);
+        if (owner) return markExactDuplicate(dataConnect, identity, receiptId, owner.receiptId, "SOURCE_HASH");
+        throw error;
+      }
+    }
+    console.info("[invoice-ai] phase=source_hash_claimed");
     const accountLabels = expenseAccounts
       .filter((account) => account.type === "EXPENSE" && account.status === "ACTIVE")
       .map((account) => account.label);
@@ -597,7 +676,46 @@ export async function POST(request: Request) {
       uploaderUid,
       uploaderUserId: uploader?.id,
     });
-    const decision = decideInvoice({
+    const postedDuplicate = findDefiniteTransactionDuplicate(
+      extractionWithLineItems,
+      transactionResponse,
+      cardResolution.card?.id ?? null,
+    );
+    const duplicateFingerprint = validation.ok
+      ? buildInvoiceBusinessFingerprint({ ...(validation.value as NormalizedExtraction), lineItems }, cardResolution.card?.id ?? null)
+      : null;
+    let exactDuplicateOwner: IntakeData["invoiceIntakes"][number] | null = null;
+    if (duplicateFingerprint && !postedDuplicate) {
+      if (intake.duplicateFingerprint && intake.duplicateFingerprint !== duplicateFingerprint) {
+        throw new Error("L’empreinte commerciale ne correspond plus au dépôt déjà enregistré.");
+      }
+      if (!intake.duplicateFingerprint) {
+        try {
+          const businessClaim = await dataConnect.executeMutation<IntakeMutationData, { receiptId: string; duplicateFingerprint: string }>(
+            "ClaimInvoiceIntakeBusinessFingerprint",
+            { receiptId, duplicateFingerprint },
+          );
+          if (businessClaim.data.invoiceIntake_updateMany !== 1) throw new Error("L’empreinte commerciale n’a pas été réclamée.");
+        } catch (error) {
+          exactDuplicateOwner = activeDuplicateOwner(
+            await listAllInvoiceIntakes(dataConnect),
+            receiptId,
+            "duplicateFingerprint",
+            duplicateFingerprint,
+          );
+          if (!exactDuplicateOwner) throw error;
+        }
+      }
+    }
+    const duplicateOfReceiptId = exactDuplicateOwner?.receiptId ?? (
+      postedDuplicate?.id?.startsWith("TX-") ? postedDuplicate.id.slice(3) : postedDuplicate?.id ?? null
+    );
+    const duplicateReason = exactDuplicateOwner
+      ? "BUSINESS_FINGERPRINT"
+      : postedDuplicate
+        ? "POSTED_TRANSACTION"
+        : null;
+    const deterministicDecision = decideInvoice({
       extraction: extractionWithLineItems,
       extractionValidation: validation,
       classification,
@@ -617,6 +735,9 @@ export async function POST(request: Request) {
         requireProject: false,
       },
     });
+    const decision = duplicateOfReceiptId && duplicateReason
+      ? exactDuplicateDecision(duplicateOfReceiptId, duplicateReason)
+      : deterministicDecision;
 
     if (!validation.ok) {
       const error = "La lecture IA doit être vérifiée manuellement.";
@@ -662,6 +783,9 @@ export async function POST(request: Request) {
       processingStatus: decision.decision,
       decisionExceptions: serializeDecisionExceptions(decision.exceptions),
       decisionChecks: serializeDecisionChecks(decision.checks),
+      duplicateOfReceiptId,
+      duplicateReason,
+      lastError: duplicateReason ? decision.exceptions[0].message : null,
       actorUid: identity.uid,
       actorRole: identity.role,
       writeAudit: true,
@@ -675,6 +799,8 @@ export async function POST(request: Request) {
         totalCents: normalized.totalCents,
         decision: decision.decision,
         exceptionCodes: decision.exceptions.map((exception) => exception.code),
+        duplicateOfReceiptId,
+        duplicateReason,
       }),
     });
 
@@ -682,6 +808,10 @@ export async function POST(request: Request) {
       const latest = await readIntake();
       if (latest) return existingIntakeResponse(receiptId, latest);
       throw new Error("La transition IA idempotente n’a modifié aucun intake.");
+    }
+
+    if (duplicateOfReceiptId && duplicateReason) {
+      return markExactDuplicate(dataConnect, identity, receiptId, duplicateOfReceiptId, duplicateReason);
     }
 
     if (decision.decision === "AUTO_APPROVED") {

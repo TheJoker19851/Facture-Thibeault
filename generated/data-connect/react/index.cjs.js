@@ -1,4 +1,4 @@
-const { adminSeedUserProfileRef, adminSeedProjectRef, adminSeedExpenseAccountRef, adminSeedCardStatementPeriodRef, adminSeedInvoiceIntakeRef, adminSeedCreditCardRef, adminSeedCreditCardStatementRef, adminSeedCreditCardStatementLineRef, adminSeedSkuReferenceRef, adminSeedExpenseTransactionRef, adminSeedInvoiceRef, adminSeedInvoicePhotoRef, adminDeleteInvoicePhotoRef, adminDeleteInvoiceRef, adminDeleteExpenseTransactionRef, adminDeleteInvoiceIntakeRef, adminDeleteCreditCardRef, adminDeleteSkuReferenceRef, adminDeleteProjectRef, adminDeleteExpenseAccountRef, adminSeedCreditCardHolderHistoryRef, adminSeedMerchantAliasRef, adminDeleteCardStatementPeriodRef, adminDeleteUserProfileRef, adminListInvoicesRef, adminListInvoicePhotosRef, adminRecordArchivePurgeRef, upsertUserProfileRef, upsertCreditCardRef, adminUpsertUserProfileWithAuditRef, adminRecordUserAuditRef, upsertProjectRef, upsertExpenseAccountRef, deleteProjectRef, deleteExpenseAccountRef, upsertCardStatementPeriodRef, saveStatementManualAdjustmentsRef, upsertReportAdjustmentSetRef, upsertCreditCardStatementRef, upsertCreditCardStatementLineRef, upsertCreditCardHolderHistoryRef, upsertMerchantAliasRef, persistReconciliationMatchRef, clearReconciliationMatchRef, persistReconciliationMatchWithoutInvoiceRef, persistReconciliationLineStatusRef, upsertReconciliationOutsideControlRef, resolveReconciliationOutsideControlRef, createInvoiceIntakeRef, createInvoiceIntakeV2Ref, claimInvoiceIntakeProcessingRef, requeueStaleInvoiceIntakeRef, updateInvoiceIntakeAiResultRef, markInvoiceIntakeAiErrorRef, markInvoiceIntakeAiMaxAttemptsRef, markInvoiceIntakeAutoPostingErrorRef, updateInvoiceIntakeReviewRef, discardInvoiceIntakeRef, deletePostedInvoiceRef, markInvoiceIntakePostingErrorRef, retryInvoiceIntakeAiRef, retryInvoiceIntakeAiTransientRef, retryInvoiceIntakeAiTransientV2Ref, retryInvoiceIntakeAiReviewV2Ref, adminReprocessInvoiceIntakeAiRef, materializeInvoiceIntakeV2Ref, correctPostedInvoiceRef, commitInvoiceIntakeRef, commitInvoiceIntakeWithoutProjectRef, autoCommitInvoiceIntakeRef, listUserProfilesRef, listCreditCardsRef, listCardStatementPeriodsRef, listExpenseAccountsRef, listCreditCardHolderHistoriesRef, listCreditCardStatementsRef, listCreditCardStatementsPageRef, listCreditCardStatementLinesRef, listCreditCardStatementLinesPageRef, listAllCreditCardStatementLinesRef, listAllCreditCardStatementLinesPageRef, listMerchantAliasesRef, listMerchantAliasesPageRef, listReconciliationMatchesRef, listReconciliationMatchesPageRef, listProjectsRef, listSkuReferencesRef, listExpenseTransactionsRef, listExpenseTransactionsPageRef, listInvoicesToReviewRef, listInvoicesToReviewPageRef, listInvoiceIntakesRef, listInvoiceIntakesPageRef, listInvoicesForReconciliationRef, listInvoicesForReconciliationPageRef, listTransactionCorrectionsRef, listReportAdjustmentSetsRef, listAuditEventsRef, listReconciliationOutsideControlsRef, listReconciliationOutsideControlsPageRef, listCreditCardsPageRef, listCardStatementPeriodsPageRef, listExpenseAccountsPageRef, listProjectsPageRef, listSkuReferencesPageRef, connectorConfig } = require('../index.cjs.js');
+const { adminSeedUserProfileRef, adminSeedProjectRef, adminSeedExpenseAccountRef, adminSeedCardStatementPeriodRef, adminSeedInvoiceIntakeRef, adminSeedCreditCardRef, adminSeedCreditCardStatementRef, adminSeedCreditCardStatementLineRef, adminSeedSkuReferenceRef, adminSeedExpenseTransactionRef, adminSeedInvoiceRef, adminSeedInvoicePhotoRef, adminDeleteInvoicePhotoRef, adminDeleteInvoiceRef, adminDeleteExpenseTransactionRef, adminDeleteInvoiceIntakeRef, adminDeleteCreditCardRef, adminDeleteSkuReferenceRef, adminDeleteProjectRef, adminDeleteExpenseAccountRef, adminSeedCreditCardHolderHistoryRef, adminSeedMerchantAliasRef, adminDeleteCardStatementPeriodRef, adminDeleteUserProfileRef, adminListInvoicesRef, adminListInvoicePhotosRef, adminRecordArchivePurgeRef, upsertUserProfileRef, upsertCreditCardRef, adminUpsertUserProfileWithAuditRef, adminRecordUserAuditRef, upsertProjectRef, upsertExpenseAccountRef, deleteProjectRef, deleteExpenseAccountRef, upsertCardStatementPeriodRef, saveStatementManualAdjustmentsRef, upsertReportAdjustmentSetRef, upsertCreditCardStatementRef, upsertCreditCardStatementLineRef, upsertCreditCardHolderHistoryRef, upsertMerchantAliasRef, persistReconciliationMatchRef, clearReconciliationMatchRef, persistReconciliationMatchWithoutInvoiceRef, persistReconciliationLineStatusRef, upsertReconciliationOutsideControlRef, resolveReconciliationOutsideControlRef, createInvoiceIntakeRef, createInvoiceIntakeV2Ref, claimInvoiceIntakeProcessingRef, requeueStaleInvoiceIntakeRef, claimInvoiceIntakeSourceHashRef, claimInvoiceIntakeBusinessFingerprintRef, markInvoiceIntakeDuplicateRef, updateInvoiceIntakeAiResultRef, markInvoiceIntakeAiErrorRef, markInvoiceIntakeAiMaxAttemptsRef, markInvoiceIntakeAutoPostingErrorRef, updateInvoiceIntakeReviewRef, discardInvoiceIntakeRef, deletePostedInvoiceRef, markInvoiceIntakePostingErrorRef, retryInvoiceIntakeAiRef, retryInvoiceIntakeAiTransientRef, retryInvoiceIntakeAiTransientV2Ref, retryInvoiceIntakeAiReviewV2Ref, adminReprocessInvoiceIntakeAiRef, materializeInvoiceIntakeV2Ref, correctPostedInvoiceRef, serverCorrectPostedInvoiceRef, commitInvoiceIntakeRef, commitInvoiceIntakeWithoutProjectRef, autoCommitInvoiceIntakeRef, listUserProfilesRef, listCreditCardsRef, listCardStatementPeriodsRef, listExpenseAccountsRef, listCreditCardHolderHistoriesRef, listCreditCardStatementsRef, listCreditCardStatementsPageRef, listCreditCardStatementLinesRef, listCreditCardStatementLinesPageRef, listAllCreditCardStatementLinesRef, listAllCreditCardStatementLinesPageRef, listMerchantAliasesRef, listMerchantAliasesPageRef, listReconciliationMatchesRef, listReconciliationMatchesPageRef, listProjectsRef, listSkuReferencesRef, listExpenseTransactionsRef, listExpenseTransactionsPageRef, listInvoicesToReviewRef, listInvoicesToReviewPageRef, listInvoiceIntakesRef, listInvoiceIntakesPageRef, listInvoicesForReconciliationRef, listInvoicesForReconciliationPageRef, listTransactionCorrectionsRef, listReportAdjustmentSetsRef, listAuditEventsRef, listReconciliationOutsideControlsRef, listReconciliationOutsideControlsPageRef, listCreditCardsPageRef, listCardStatementPeriodsPageRef, listExpenseAccountsPageRef, listProjectsPageRef, listSkuReferencesPageRef, connectorConfig } = require('../index.cjs.js');
 const { validateArgs, CallerSdkTypeEnum } = require('firebase/data-connect');
 const { useDataConnectQuery, useDataConnectMutation, validateReactArgs } = require('@tanstack-query-firebase/react/data-connect');
 
@@ -414,6 +414,30 @@ exports.useRequeueStaleInvoiceIntake = function useRequeueStaleInvoiceIntake(dcO
   return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
 
+exports.useClaimInvoiceIntakeSourceHash = function useClaimInvoiceIntakeSourceHash(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
+  function refFactory(vars) {
+    return claimInvoiceIntakeSourceHashRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+
+exports.useClaimInvoiceIntakeBusinessFingerprint = function useClaimInvoiceIntakeBusinessFingerprint(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
+  function refFactory(vars) {
+    return claimInvoiceIntakeBusinessFingerprintRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+
+exports.useMarkInvoiceIntakeDuplicate = function useMarkInvoiceIntakeDuplicate(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
+  function refFactory(vars) {
+    return markInvoiceIntakeDuplicateRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+
 exports.useUpdateInvoiceIntakeAiResult = function useUpdateInvoiceIntakeAiResult(dcOrOptions, options) {
   const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
   function refFactory(vars) {
@@ -530,6 +554,14 @@ exports.useCorrectPostedInvoice = function useCorrectPostedInvoice(dcOrOptions, 
   const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
   function refFactory(vars) {
     return correctPostedInvoiceRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+
+exports.useServerCorrectPostedInvoice = function useServerCorrectPostedInvoice(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
+  function refFactory(vars) {
+    return serverCorrectPostedInvoiceRef(dcInstance, vars);
   }
   return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }

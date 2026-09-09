@@ -105,6 +105,9 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*CreateInvoiceIntakeV2*](#createinvoiceintakev2)
   - [*ClaimInvoiceIntakeProcessing*](#claiminvoiceintakeprocessing)
   - [*RequeueStaleInvoiceIntake*](#requeuestaleinvoiceintake)
+  - [*ClaimInvoiceIntakeSourceHash*](#claiminvoiceintakesourcehash)
+  - [*ClaimInvoiceIntakeBusinessFingerprint*](#claiminvoiceintakebusinessfingerprint)
+  - [*MarkInvoiceIntakeDuplicate*](#markinvoiceintakeduplicate)
   - [*UpdateInvoiceIntakeAiResult*](#updateinvoiceintakeairesult)
   - [*MarkInvoiceIntakeAiError*](#markinvoiceintakeaierror)
   - [*MarkInvoiceIntakeAiMaxAttempts*](#markinvoiceintakeaimaxattempts)
@@ -120,6 +123,7 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*AdminReprocessInvoiceIntakeAi*](#adminreprocessinvoiceintakeai)
   - [*MaterializeInvoiceIntakeV2*](#materializeinvoiceintakev2)
   - [*CorrectPostedInvoice*](#correctpostedinvoice)
+  - [*ServerCorrectPostedInvoice*](#servercorrectpostedinvoice)
   - [*CommitInvoiceIntake*](#commitinvoiceintake)
   - [*CommitInvoiceIntakeWithoutProject*](#commitinvoiceintakewithoutproject)
   - [*AutoCommitInvoiceIntake*](#autocommitinvoiceintake)
@@ -2110,6 +2114,7 @@ export interface ListExpenseTransactionsData {
       number: string;
       name: string;
     } & Project_Key;
+    projectNumber?: string | null;
     expenseAccount?: {
       id: string;
       number: string;
@@ -2239,6 +2244,7 @@ export interface ListExpenseTransactionsPageData {
       number: string;
       name: string;
     } & Project_Key;
+    projectNumber?: string | null;
     expenseAccount?: {
       id: string;
       number: string;
@@ -2602,6 +2608,7 @@ export interface ListInvoiceIntakesData {
     extractedCurrency?: string | null;
     extractedSku?: string | null;
     extractedCategory?: string | null;
+    extractedProjectNumber?: string | null;
     extractedProjectId?: string | null;
     classificationAccountCode?: string | null;
     classificationCategory?: string | null;
@@ -2611,6 +2618,10 @@ export interface ListInvoiceIntakesData {
     aiNotes?: string | null;
     decisionExceptions?: string | null;
     decisionChecks?: string | null;
+    sourceHash?: string | null;
+    duplicateFingerprint?: string | null;
+    duplicateOfReceiptId?: string | null;
+    duplicateReason?: string | null;
     createdAt: TimestampString;
     updatedAt: TimestampString;
   } & InvoiceIntake_Key)[];
@@ -2724,6 +2735,7 @@ export interface ListInvoiceIntakesPageData {
     extractedCurrency?: string | null;
     extractedSku?: string | null;
     extractedCategory?: string | null;
+    extractedProjectNumber?: string | null;
     extractedProjectId?: string | null;
     classificationAccountCode?: string | null;
     classificationCategory?: string | null;
@@ -2733,6 +2745,10 @@ export interface ListInvoiceIntakesPageData {
     aiNotes?: string | null;
     decisionExceptions?: string | null;
     decisionChecks?: string | null;
+    sourceHash?: string | null;
+    duplicateFingerprint?: string | null;
+    duplicateOfReceiptId?: string | null;
+    duplicateReason?: string | null;
     createdAt: TimestampString;
     updatedAt: TimestampString;
   } & InvoiceIntake_Key)[];
@@ -9439,6 +9455,312 @@ export default function RequeueStaleInvoiceIntakeComponent() {
 }
 ```
 
+## ClaimInvoiceIntakeSourceHash
+You can execute the `ClaimInvoiceIntakeSourceHash` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useClaimInvoiceIntakeSourceHash(options?: useDataConnectMutationOptions<ClaimInvoiceIntakeSourceHashData, FirebaseError, ClaimInvoiceIntakeSourceHashVariables>): UseDataConnectMutationResult<ClaimInvoiceIntakeSourceHashData, ClaimInvoiceIntakeSourceHashVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useClaimInvoiceIntakeSourceHash(dc: DataConnect, options?: useDataConnectMutationOptions<ClaimInvoiceIntakeSourceHashData, FirebaseError, ClaimInvoiceIntakeSourceHashVariables>): UseDataConnectMutationResult<ClaimInvoiceIntakeSourceHashData, ClaimInvoiceIntakeSourceHashVariables>;
+```
+
+### Variables
+The `ClaimInvoiceIntakeSourceHash` Mutation requires an argument of type `ClaimInvoiceIntakeSourceHashVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface ClaimInvoiceIntakeSourceHashVariables {
+  receiptId: string;
+  sourceHash: string;
+}
+```
+### Return Type
+Recall that calling the `ClaimInvoiceIntakeSourceHash` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `ClaimInvoiceIntakeSourceHash` Mutation is of type `ClaimInvoiceIntakeSourceHashData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface ClaimInvoiceIntakeSourceHashData {
+  invoiceIntake_updateMany: number;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `ClaimInvoiceIntakeSourceHash`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, ClaimInvoiceIntakeSourceHashVariables } from '@factures-thibeault/data-connect-generated';
+import { useClaimInvoiceIntakeSourceHash } from '@factures-thibeault/data-connect-generated/react'
+
+export default function ClaimInvoiceIntakeSourceHashComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useClaimInvoiceIntakeSourceHash();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useClaimInvoiceIntakeSourceHash(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useClaimInvoiceIntakeSourceHash(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useClaimInvoiceIntakeSourceHash(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useClaimInvoiceIntakeSourceHash` Mutation requires an argument of type `ClaimInvoiceIntakeSourceHashVariables`:
+  const claimInvoiceIntakeSourceHashVars: ClaimInvoiceIntakeSourceHashVariables = {
+    receiptId: ..., 
+    sourceHash: ..., 
+  };
+  mutation.mutate(claimInvoiceIntakeSourceHashVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ receiptId: ..., sourceHash: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(claimInvoiceIntakeSourceHashVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.invoiceIntake_updateMany);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## ClaimInvoiceIntakeBusinessFingerprint
+You can execute the `ClaimInvoiceIntakeBusinessFingerprint` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useClaimInvoiceIntakeBusinessFingerprint(options?: useDataConnectMutationOptions<ClaimInvoiceIntakeBusinessFingerprintData, FirebaseError, ClaimInvoiceIntakeBusinessFingerprintVariables>): UseDataConnectMutationResult<ClaimInvoiceIntakeBusinessFingerprintData, ClaimInvoiceIntakeBusinessFingerprintVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useClaimInvoiceIntakeBusinessFingerprint(dc: DataConnect, options?: useDataConnectMutationOptions<ClaimInvoiceIntakeBusinessFingerprintData, FirebaseError, ClaimInvoiceIntakeBusinessFingerprintVariables>): UseDataConnectMutationResult<ClaimInvoiceIntakeBusinessFingerprintData, ClaimInvoiceIntakeBusinessFingerprintVariables>;
+```
+
+### Variables
+The `ClaimInvoiceIntakeBusinessFingerprint` Mutation requires an argument of type `ClaimInvoiceIntakeBusinessFingerprintVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface ClaimInvoiceIntakeBusinessFingerprintVariables {
+  receiptId: string;
+  duplicateFingerprint: string;
+}
+```
+### Return Type
+Recall that calling the `ClaimInvoiceIntakeBusinessFingerprint` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `ClaimInvoiceIntakeBusinessFingerprint` Mutation is of type `ClaimInvoiceIntakeBusinessFingerprintData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface ClaimInvoiceIntakeBusinessFingerprintData {
+  invoiceIntake_updateMany: number;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `ClaimInvoiceIntakeBusinessFingerprint`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, ClaimInvoiceIntakeBusinessFingerprintVariables } from '@factures-thibeault/data-connect-generated';
+import { useClaimInvoiceIntakeBusinessFingerprint } from '@factures-thibeault/data-connect-generated/react'
+
+export default function ClaimInvoiceIntakeBusinessFingerprintComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useClaimInvoiceIntakeBusinessFingerprint();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useClaimInvoiceIntakeBusinessFingerprint(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useClaimInvoiceIntakeBusinessFingerprint(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useClaimInvoiceIntakeBusinessFingerprint(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useClaimInvoiceIntakeBusinessFingerprint` Mutation requires an argument of type `ClaimInvoiceIntakeBusinessFingerprintVariables`:
+  const claimInvoiceIntakeBusinessFingerprintVars: ClaimInvoiceIntakeBusinessFingerprintVariables = {
+    receiptId: ..., 
+    duplicateFingerprint: ..., 
+  };
+  mutation.mutate(claimInvoiceIntakeBusinessFingerprintVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ receiptId: ..., duplicateFingerprint: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(claimInvoiceIntakeBusinessFingerprintVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.invoiceIntake_updateMany);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## MarkInvoiceIntakeDuplicate
+You can execute the `MarkInvoiceIntakeDuplicate` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useMarkInvoiceIntakeDuplicate(options?: useDataConnectMutationOptions<MarkInvoiceIntakeDuplicateData, FirebaseError, MarkInvoiceIntakeDuplicateVariables>): UseDataConnectMutationResult<MarkInvoiceIntakeDuplicateData, MarkInvoiceIntakeDuplicateVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useMarkInvoiceIntakeDuplicate(dc: DataConnect, options?: useDataConnectMutationOptions<MarkInvoiceIntakeDuplicateData, FirebaseError, MarkInvoiceIntakeDuplicateVariables>): UseDataConnectMutationResult<MarkInvoiceIntakeDuplicateData, MarkInvoiceIntakeDuplicateVariables>;
+```
+
+### Variables
+The `MarkInvoiceIntakeDuplicate` Mutation requires an argument of type `MarkInvoiceIntakeDuplicateVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface MarkInvoiceIntakeDuplicateVariables {
+  receiptId: string;
+  duplicateOfReceiptId: string;
+  duplicateReason: string;
+  message: string;
+  decisionExceptions: string;
+  decisionChecks: string;
+  actorUid: string;
+  actorRole: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that calling the `MarkInvoiceIntakeDuplicate` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `MarkInvoiceIntakeDuplicate` Mutation is of type `MarkInvoiceIntakeDuplicateData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface MarkInvoiceIntakeDuplicateData {
+  invoiceIntake_updateMany: number;
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `MarkInvoiceIntakeDuplicate`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, MarkInvoiceIntakeDuplicateVariables } from '@factures-thibeault/data-connect-generated';
+import { useMarkInvoiceIntakeDuplicate } from '@factures-thibeault/data-connect-generated/react'
+
+export default function MarkInvoiceIntakeDuplicateComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useMarkInvoiceIntakeDuplicate();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useMarkInvoiceIntakeDuplicate(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useMarkInvoiceIntakeDuplicate(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useMarkInvoiceIntakeDuplicate(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useMarkInvoiceIntakeDuplicate` Mutation requires an argument of type `MarkInvoiceIntakeDuplicateVariables`:
+  const markInvoiceIntakeDuplicateVars: MarkInvoiceIntakeDuplicateVariables = {
+    receiptId: ..., 
+    duplicateOfReceiptId: ..., 
+    duplicateReason: ..., 
+    message: ..., 
+    decisionExceptions: ..., 
+    decisionChecks: ..., 
+    actorUid: ..., 
+    actorRole: ..., 
+    auditEventId: ..., 
+    auditDetails: ..., 
+  };
+  mutation.mutate(markInvoiceIntakeDuplicateVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ receiptId: ..., duplicateOfReceiptId: ..., duplicateReason: ..., message: ..., decisionExceptions: ..., decisionChecks: ..., actorUid: ..., actorRole: ..., auditEventId: ..., auditDetails: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(markInvoiceIntakeDuplicateVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.invoiceIntake_updateMany);
+    console.log(mutation.data.auditEvent_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
 ## UpdateInvoiceIntakeAiResult
 You can execute the `UpdateInvoiceIntakeAiResult` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
 ```javascript
@@ -9478,6 +9800,9 @@ export interface UpdateInvoiceIntakeAiResultVariables {
   processingStatus?: string | null;
   decisionExceptions?: string | null;
   decisionChecks?: string | null;
+  duplicateOfReceiptId?: string | null;
+  duplicateReason?: string | null;
+  lastError?: string | null;
   actorUid?: string | null;
   actorRole?: string | null;
   writeAudit?: boolean | null;
@@ -9557,6 +9882,9 @@ export default function UpdateInvoiceIntakeAiResultComponent() {
     processingStatus: ..., // optional
     decisionExceptions: ..., // optional
     decisionChecks: ..., // optional
+    duplicateOfReceiptId: ..., // optional
+    duplicateReason: ..., // optional
+    lastError: ..., // optional
     actorUid: ..., // optional
     actorRole: ..., // optional
     writeAudit: ..., // optional
@@ -9565,7 +9893,7 @@ export default function UpdateInvoiceIntakeAiResultComponent() {
   };
   mutation.mutate(updateInvoiceIntakeAiResultVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ receiptId: ..., aiModel: ..., aiConfidence: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedLineItems: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., processingStatus: ..., decisionExceptions: ..., decisionChecks: ..., actorUid: ..., actorRole: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., });
+  mutation.mutate({ receiptId: ..., aiModel: ..., aiConfidence: ..., extractedVendor: ..., extractedInvoiceNumber: ..., extractedInvoiceDate: ..., extractedSubtotalCents: ..., extractedTpsCents: ..., extractedTvqCents: ..., extractedTotalCents: ..., extractedLineItems: ..., extractedCurrency: ..., extractedSku: ..., extractedCategory: ..., extractedProjectId: ..., classificationAccountCode: ..., classificationCategory: ..., classificationSource: ..., classificationConfidence: ..., classificationStatus: ..., aiNotes: ..., processingStatus: ..., decisionExceptions: ..., decisionChecks: ..., duplicateOfReceiptId: ..., duplicateReason: ..., lastError: ..., actorUid: ..., actorRole: ..., writeAudit: ..., auditEventId: ..., auditDetails: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -11210,6 +11538,148 @@ export default function CorrectPostedInvoiceComponent() {
     onSuccess: () => { console.log('Mutation succeeded!'); }
   };
   mutation.mutate(correctPostedInvoiceVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.transactionCorrection_upsert);
+    console.log(mutation.data.expenseTransaction_update);
+    console.log(mutation.data.invoice_update);
+    console.log(mutation.data.auditEvent_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## ServerCorrectPostedInvoice
+You can execute the `ServerCorrectPostedInvoice` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [data-connect/react/index.d.ts](./index.d.ts)):
+```javascript
+useServerCorrectPostedInvoice(options?: useDataConnectMutationOptions<ServerCorrectPostedInvoiceData, FirebaseError, ServerCorrectPostedInvoiceVariables>): UseDataConnectMutationResult<ServerCorrectPostedInvoiceData, ServerCorrectPostedInvoiceVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useServerCorrectPostedInvoice(dc: DataConnect, options?: useDataConnectMutationOptions<ServerCorrectPostedInvoiceData, FirebaseError, ServerCorrectPostedInvoiceVariables>): UseDataConnectMutationResult<ServerCorrectPostedInvoiceData, ServerCorrectPostedInvoiceVariables>;
+```
+
+### Variables
+The `ServerCorrectPostedInvoice` Mutation requires an argument of type `ServerCorrectPostedInvoiceVariables`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface ServerCorrectPostedInvoiceVariables {
+  correctionId: string;
+  invoiceId: string;
+  transactionId: string;
+  actorUserId: string;
+  actorUid: string;
+  actorRole: string;
+  fieldName: string;
+  previousValue?: string | null;
+  correctedValue: string;
+  note: string;
+  vendor: string;
+  invoiceNumber?: string | null;
+  invoiceDate: DateString;
+  subtotalCents: Int64String;
+  tpsCents: Int64String;
+  tvqCents: Int64String;
+  totalCents: Int64String;
+  lineItems: string;
+  category: string;
+  account?: ExpenseAccount_Key | null;
+  auditEventId: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that calling the `ServerCorrectPostedInvoice` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `ServerCorrectPostedInvoice` Mutation is of type `ServerCorrectPostedInvoiceData`, which is defined in [data-connect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface ServerCorrectPostedInvoiceData {
+  transactionCorrection_upsert: TransactionCorrection_Key;
+  expenseTransaction_update?: ExpenseTransaction_Key | null;
+  invoice_update?: Invoice_Key | null;
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `ServerCorrectPostedInvoice`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, ServerCorrectPostedInvoiceVariables } from '@factures-thibeault/data-connect-generated';
+import { useServerCorrectPostedInvoice } from '@factures-thibeault/data-connect-generated/react'
+
+export default function ServerCorrectPostedInvoiceComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useServerCorrectPostedInvoice();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useServerCorrectPostedInvoice(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useServerCorrectPostedInvoice(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useServerCorrectPostedInvoice(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useServerCorrectPostedInvoice` Mutation requires an argument of type `ServerCorrectPostedInvoiceVariables`:
+  const serverCorrectPostedInvoiceVars: ServerCorrectPostedInvoiceVariables = {
+    correctionId: ..., 
+    invoiceId: ..., 
+    transactionId: ..., 
+    actorUserId: ..., 
+    actorUid: ..., 
+    actorRole: ..., 
+    fieldName: ..., 
+    previousValue: ..., // optional
+    correctedValue: ..., 
+    note: ..., 
+    vendor: ..., 
+    invoiceNumber: ..., // optional
+    invoiceDate: ..., 
+    subtotalCents: ..., 
+    tpsCents: ..., 
+    tvqCents: ..., 
+    totalCents: ..., 
+    lineItems: ..., 
+    category: ..., 
+    account: ..., // optional
+    auditEventId: ..., 
+    auditDetails: ..., 
+  };
+  mutation.mutate(serverCorrectPostedInvoiceVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ correctionId: ..., invoiceId: ..., transactionId: ..., actorUserId: ..., actorUid: ..., actorRole: ..., fieldName: ..., previousValue: ..., correctedValue: ..., note: ..., vendor: ..., invoiceNumber: ..., invoiceDate: ..., subtotalCents: ..., tpsCents: ..., tvqCents: ..., totalCents: ..., lineItems: ..., category: ..., account: ..., auditEventId: ..., auditDetails: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(serverCorrectPostedInvoiceVars, options);
 
   // Then, you can render your component dynamically based on the status of the Mutation.
   if (mutation.isPending) {

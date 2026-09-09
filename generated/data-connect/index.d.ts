@@ -494,6 +494,15 @@ export interface CardStatementPeriod_Key {
   __typename?: 'CardStatementPeriod_Key';
 }
 
+export interface ClaimInvoiceIntakeBusinessFingerprintData {
+  invoiceIntake_updateMany: number;
+}
+
+export interface ClaimInvoiceIntakeBusinessFingerprintVariables {
+  receiptId: string;
+  duplicateFingerprint: string;
+}
+
 export interface ClaimInvoiceIntakeProcessingData {
   invoiceIntake_updateMany: number;
   auditEvent_upsert: AuditEvent_Key;
@@ -508,6 +517,15 @@ export interface ClaimInvoiceIntakeProcessingVariables {
   writeAudit?: boolean | null;
   auditEventId?: string | null;
   auditDetails?: string | null;
+}
+
+export interface ClaimInvoiceIntakeSourceHashData {
+  invoiceIntake_updateMany: number;
+}
+
+export interface ClaimInvoiceIntakeSourceHashVariables {
+  receiptId: string;
+  sourceHash: string;
 }
 
 export interface ClearReconciliationMatchData {
@@ -1082,6 +1100,7 @@ export interface ListExpenseTransactionsData {
       number: string;
       name: string;
     } & Project_Key;
+    projectNumber?: string | null;
     expenseAccount?: {
       id: string;
       number: string;
@@ -1131,6 +1150,7 @@ export interface ListExpenseTransactionsPageData {
       number: string;
       name: string;
     } & Project_Key;
+    projectNumber?: string | null;
     expenseAccount?: {
       id: string;
       number: string;
@@ -1194,6 +1214,7 @@ export interface ListInvoiceIntakesData {
     extractedCurrency?: string | null;
     extractedSku?: string | null;
     extractedCategory?: string | null;
+    extractedProjectNumber?: string | null;
     extractedProjectId?: string | null;
     classificationAccountCode?: string | null;
     classificationCategory?: string | null;
@@ -1203,6 +1224,10 @@ export interface ListInvoiceIntakesData {
     aiNotes?: string | null;
     decisionExceptions?: string | null;
     decisionChecks?: string | null;
+    sourceHash?: string | null;
+    duplicateFingerprint?: string | null;
+    duplicateOfReceiptId?: string | null;
+    duplicateReason?: string | null;
     createdAt: TimestampString;
     updatedAt: TimestampString;
   } & InvoiceIntake_Key)[];
@@ -1236,6 +1261,7 @@ export interface ListInvoiceIntakesPageData {
     extractedCurrency?: string | null;
     extractedSku?: string | null;
     extractedCategory?: string | null;
+    extractedProjectNumber?: string | null;
     extractedProjectId?: string | null;
     classificationAccountCode?: string | null;
     classificationCategory?: string | null;
@@ -1245,6 +1271,10 @@ export interface ListInvoiceIntakesPageData {
     aiNotes?: string | null;
     decisionExceptions?: string | null;
     decisionChecks?: string | null;
+    sourceHash?: string | null;
+    duplicateFingerprint?: string | null;
+    duplicateOfReceiptId?: string | null;
+    duplicateReason?: string | null;
     createdAt: TimestampString;
     updatedAt: TimestampString;
   } & InvoiceIntake_Key)[];
@@ -1765,6 +1795,24 @@ export interface MarkInvoiceIntakeAutoPostingErrorVariables {
   auditDetails?: string | null;
 }
 
+export interface MarkInvoiceIntakeDuplicateData {
+  invoiceIntake_updateMany: number;
+  auditEvent_upsert: AuditEvent_Key;
+}
+
+export interface MarkInvoiceIntakeDuplicateVariables {
+  receiptId: string;
+  duplicateOfReceiptId: string;
+  duplicateReason: string;
+  message: string;
+  decisionExceptions: string;
+  decisionChecks: string;
+  actorUid: string;
+  actorRole: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+
 export interface MarkInvoiceIntakePostingErrorData {
   invoiceIntake_updateMany: number;
 }
@@ -2021,6 +2069,38 @@ export interface SaveStatementManualAdjustmentsVariables {
   auditDetails: string;
 }
 
+export interface ServerCorrectPostedInvoiceData {
+  transactionCorrection_upsert: TransactionCorrection_Key;
+  expenseTransaction_update?: ExpenseTransaction_Key | null;
+  invoice_update?: Invoice_Key | null;
+  auditEvent_upsert: AuditEvent_Key;
+}
+
+export interface ServerCorrectPostedInvoiceVariables {
+  correctionId: string;
+  invoiceId: string;
+  transactionId: string;
+  actorUserId: string;
+  actorUid: string;
+  actorRole: string;
+  fieldName: string;
+  previousValue?: string | null;
+  correctedValue: string;
+  note: string;
+  vendor: string;
+  invoiceNumber?: string | null;
+  invoiceDate: DateString;
+  subtotalCents: Int64String;
+  tpsCents: Int64String;
+  tvqCents: Int64String;
+  totalCents: Int64String;
+  lineItems: string;
+  category: string;
+  account?: ExpenseAccount_Key | null;
+  auditEventId: string;
+  auditDetails: string;
+}
+
 export interface SkuReference_Key {
   merchant: string;
   sku: string;
@@ -2062,6 +2142,9 @@ export interface UpdateInvoiceIntakeAiResultVariables {
   processingStatus?: string | null;
   decisionExceptions?: string | null;
   decisionChecks?: string | null;
+  duplicateOfReceiptId?: string | null;
+  duplicateReason?: string | null;
+  lastError?: string | null;
   actorUid?: string | null;
   actorRole?: string | null;
   writeAudit?: boolean | null;
@@ -2924,6 +3007,42 @@ export const requeueStaleInvoiceIntakeRef: RequeueStaleInvoiceIntakeRef;
 export function requeueStaleInvoiceIntake(vars: RequeueStaleInvoiceIntakeVariables): MutationPromise<RequeueStaleInvoiceIntakeData, RequeueStaleInvoiceIntakeVariables>;
 export function requeueStaleInvoiceIntake(dc: DataConnect, vars: RequeueStaleInvoiceIntakeVariables): MutationPromise<RequeueStaleInvoiceIntakeData, RequeueStaleInvoiceIntakeVariables>;
 
+interface ClaimInvoiceIntakeSourceHashRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ClaimInvoiceIntakeSourceHashVariables): MutationRef<ClaimInvoiceIntakeSourceHashData, ClaimInvoiceIntakeSourceHashVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: ClaimInvoiceIntakeSourceHashVariables): MutationRef<ClaimInvoiceIntakeSourceHashData, ClaimInvoiceIntakeSourceHashVariables>;
+  operationName: string;
+}
+export const claimInvoiceIntakeSourceHashRef: ClaimInvoiceIntakeSourceHashRef;
+
+export function claimInvoiceIntakeSourceHash(vars: ClaimInvoiceIntakeSourceHashVariables): MutationPromise<ClaimInvoiceIntakeSourceHashData, ClaimInvoiceIntakeSourceHashVariables>;
+export function claimInvoiceIntakeSourceHash(dc: DataConnect, vars: ClaimInvoiceIntakeSourceHashVariables): MutationPromise<ClaimInvoiceIntakeSourceHashData, ClaimInvoiceIntakeSourceHashVariables>;
+
+interface ClaimInvoiceIntakeBusinessFingerprintRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ClaimInvoiceIntakeBusinessFingerprintVariables): MutationRef<ClaimInvoiceIntakeBusinessFingerprintData, ClaimInvoiceIntakeBusinessFingerprintVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: ClaimInvoiceIntakeBusinessFingerprintVariables): MutationRef<ClaimInvoiceIntakeBusinessFingerprintData, ClaimInvoiceIntakeBusinessFingerprintVariables>;
+  operationName: string;
+}
+export const claimInvoiceIntakeBusinessFingerprintRef: ClaimInvoiceIntakeBusinessFingerprintRef;
+
+export function claimInvoiceIntakeBusinessFingerprint(vars: ClaimInvoiceIntakeBusinessFingerprintVariables): MutationPromise<ClaimInvoiceIntakeBusinessFingerprintData, ClaimInvoiceIntakeBusinessFingerprintVariables>;
+export function claimInvoiceIntakeBusinessFingerprint(dc: DataConnect, vars: ClaimInvoiceIntakeBusinessFingerprintVariables): MutationPromise<ClaimInvoiceIntakeBusinessFingerprintData, ClaimInvoiceIntakeBusinessFingerprintVariables>;
+
+interface MarkInvoiceIntakeDuplicateRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: MarkInvoiceIntakeDuplicateVariables): MutationRef<MarkInvoiceIntakeDuplicateData, MarkInvoiceIntakeDuplicateVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: MarkInvoiceIntakeDuplicateVariables): MutationRef<MarkInvoiceIntakeDuplicateData, MarkInvoiceIntakeDuplicateVariables>;
+  operationName: string;
+}
+export const markInvoiceIntakeDuplicateRef: MarkInvoiceIntakeDuplicateRef;
+
+export function markInvoiceIntakeDuplicate(vars: MarkInvoiceIntakeDuplicateVariables): MutationPromise<MarkInvoiceIntakeDuplicateData, MarkInvoiceIntakeDuplicateVariables>;
+export function markInvoiceIntakeDuplicate(dc: DataConnect, vars: MarkInvoiceIntakeDuplicateVariables): MutationPromise<MarkInvoiceIntakeDuplicateData, MarkInvoiceIntakeDuplicateVariables>;
+
 interface UpdateInvoiceIntakeAiResultRef {
   /* Allow users to create refs without passing in DataConnect */
   (vars: UpdateInvoiceIntakeAiResultVariables): MutationRef<UpdateInvoiceIntakeAiResultData, UpdateInvoiceIntakeAiResultVariables>;
@@ -3103,6 +3222,18 @@ export const correctPostedInvoiceRef: CorrectPostedInvoiceRef;
 
 export function correctPostedInvoice(vars: CorrectPostedInvoiceVariables): MutationPromise<CorrectPostedInvoiceData, CorrectPostedInvoiceVariables>;
 export function correctPostedInvoice(dc: DataConnect, vars: CorrectPostedInvoiceVariables): MutationPromise<CorrectPostedInvoiceData, CorrectPostedInvoiceVariables>;
+
+interface ServerCorrectPostedInvoiceRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ServerCorrectPostedInvoiceVariables): MutationRef<ServerCorrectPostedInvoiceData, ServerCorrectPostedInvoiceVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: ServerCorrectPostedInvoiceVariables): MutationRef<ServerCorrectPostedInvoiceData, ServerCorrectPostedInvoiceVariables>;
+  operationName: string;
+}
+export const serverCorrectPostedInvoiceRef: ServerCorrectPostedInvoiceRef;
+
+export function serverCorrectPostedInvoice(vars: ServerCorrectPostedInvoiceVariables): MutationPromise<ServerCorrectPostedInvoiceData, ServerCorrectPostedInvoiceVariables>;
+export function serverCorrectPostedInvoice(dc: DataConnect, vars: ServerCorrectPostedInvoiceVariables): MutationPromise<ServerCorrectPostedInvoiceData, ServerCorrectPostedInvoiceVariables>;
 
 interface CommitInvoiceIntakeRef {
   /* Allow users to create refs without passing in DataConnect */

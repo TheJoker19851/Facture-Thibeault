@@ -195,6 +195,12 @@ type InvoiceIntake @table(name: "invoice_intakes", key: "receiptId") {
   # the first V1 dependent on a second relational workflow.
   decisionExceptions: String
   decisionChecks: String
+  # Exact source bytes and a conservative OCR business key are claimed by the
+  # server. Unique nullable values prevent concurrent duplicate materialization.
+  sourceHash: String @unique
+  duplicateFingerprint: String @unique
+  duplicateOfReceiptId: String
+  duplicateReason: String
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }

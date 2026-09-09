@@ -465,6 +465,10 @@ query ListInvoiceIntakes($limit: Int!, $offset: Int!) @auth(expr: "auth.token.ro
     aiNotes
     decisionExceptions
     decisionChecks
+    sourceHash
+    duplicateFingerprint
+    duplicateOfReceiptId
+    duplicateReason
     createdAt
     updatedAt
   }
@@ -508,6 +512,10 @@ query ListInvoiceIntakesPage($limit: Int!, $offset: Int!) @auth(expr: "auth.toke
     aiNotes
     decisionExceptions
     decisionChecks
+    sourceHash
+    duplicateFingerprint
+    duplicateOfReceiptId
+    duplicateReason
     createdAt
     updatedAt
   }

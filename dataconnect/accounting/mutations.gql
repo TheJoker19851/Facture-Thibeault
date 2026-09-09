@@ -901,6 +901,92 @@ mutation RequeueStaleInvoiceIntake(
   })
 }
 
+# The unique nullable hashes are server-owned concurrency guards. When two
+# processors claim the same evidence, exactly one update succeeds and the
+# loser is transitioned to DUPLICATE by MarkInvoiceIntakeDuplicate.
+mutation ClaimInvoiceIntakeSourceHash(
+  $receiptId: String!
+  $sourceHash: String!
+) @auth(level: NO_ACCESS) @transaction {
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      processingStatus: { in: ["PROCESSING", "NEEDS_REVIEW", "VALIDATED", "AUTO_APPROVED", "POSTING_ERROR"] }
+      accountingStatus: { eq: "NOT_POSTED" }
+      sourceHash: { isNull: true }
+    }
+    data: { sourceHash: $sourceHash }
+  )
+  query @redact @check(expr: "response.invoiceIntake_updateMany == 1", message: "L’empreinte source n’a pas pu être réclamée.") {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }, limit: 1) { receiptId }
+  }
+}
+
+mutation ClaimInvoiceIntakeBusinessFingerprint(
+  $receiptId: String!
+  $duplicateFingerprint: String!
+) @auth(level: NO_ACCESS) @transaction {
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      processingStatus: { in: ["PROCESSING", "NEEDS_REVIEW", "VALIDATED", "AUTO_APPROVED", "POSTING_ERROR"] }
+      accountingStatus: { eq: "NOT_POSTED" }
+      duplicateFingerprint: { isNull: true }
+    }
+    data: { duplicateFingerprint: $duplicateFingerprint }
+  )
+  query @redact @check(expr: "response.invoiceIntake_updateMany == 1", message: "L’empreinte commerciale n’a pas pu être réclamée.") {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }, limit: 1) { receiptId }
+  }
+}
+
+mutation MarkInvoiceIntakeDuplicate(
+  $receiptId: String!
+  $duplicateOfReceiptId: String!
+  $duplicateReason: String!
+  $message: String!
+  $decisionExceptions: String!
+  $decisionChecks: String!
+  $actorUid: String!
+  $actorRole: String!
+  $auditEventId: String!
+  $auditDetails: String!
+) @auth(level: NO_ACCESS) @transaction {
+  invoiceIntake_updateMany(
+    where: {
+      receiptId: { eq: $receiptId }
+      accountingStatus: { eq: "NOT_POSTED" }
+      processingStatus: { in: ["PROCESSING", "NEEDS_REVIEW", "VALIDATED", "AUTO_APPROVED", "POSTING_ERROR", "DUPLICATE"] }
+    }
+    data: {
+      status: "DUPLICATE"
+      processingStatus: "DUPLICATE"
+      processingState: "COMPLETED"
+      accountingStatus: "NOT_POSTED"
+      lastError: $message
+      aiErrorCode: null
+      sourceHash: null
+      duplicateFingerprint: null
+      duplicateOfReceiptId: $duplicateOfReceiptId
+      duplicateReason: $duplicateReason
+      decisionExceptions: $decisionExceptions
+      decisionChecks: $decisionChecks
+    }
+  )
+  query @redact @check(expr: "response.invoiceIntake_updateMany == 1", message: "Le dépôt n’est plus admissible au classement comme doublon.") {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }, limit: 1) { receiptId processingStatus accountingStatus }
+  }
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: "INVOICE_DUPLICATE_REJECTED"
+    entityType: "InvoiceIntake"
+    entityId: $receiptId
+    details: $auditDetails
+  })
+}
+
 # Retained for wire compatibility with earlier server deployments.
 mutation CacheCanadianTireSkuReference(
   $sku: String!
@@ -965,6 +1051,9 @@ mutation UpdateInvoiceIntakeAiResult(
   $processingStatus: String = "NEEDS_REVIEW"
   $decisionExceptions: String = "[]"
   $decisionChecks: String = "[]"
+  $duplicateOfReceiptId: String
+  $duplicateReason: String
+  $lastError: String
   $actorUid: String = ""
   $actorRole: String = ""
   $writeAudit: Boolean = false
@@ -986,7 +1075,7 @@ mutation UpdateInvoiceIntakeAiResult(
       processingState: "COMPLETED"
       lastAttemptAt_expr: "request.time"
       accountingStatus: "NOT_POSTED"
-      lastError: null
+      lastError: $lastError
       aiErrorCode: null
       aiModel: $aiModel
       aiConfidence: $aiConfidence
@@ -1011,6 +1100,8 @@ mutation UpdateInvoiceIntakeAiResult(
       aiNotes: $aiNotes
       decisionExceptions: $decisionExceptions
       decisionChecks: $decisionChecks
+      duplicateOfReceiptId: $duplicateOfReceiptId
+      duplicateReason: $duplicateReason
     }
   )
   query @redact @check(expr: "response.invoiceIntake_updateMany == 1", message: "Le résultat IA a déjà été enregistré ou l’intake n’est plus en traitement.") {
@@ -1294,6 +1385,10 @@ mutation DiscardInvoiceIntake(
       lastError: "Facture retirée par un utilisateur autorisé."
       decisionExceptions: "[]"
       decisionChecks: "[]"
+      sourceHash: null
+      duplicateFingerprint: null
+      duplicateOfReceiptId: null
+      duplicateReason: null
     }
   )
   query @redact @check(expr: "response.invoiceIntake_updateMany == 1", message: "La facture est déjà comptabilisée ou n’est plus supprimable.") {
@@ -1366,6 +1461,10 @@ mutation DeletePostedInvoice(
       processingState: "DELETED"
       accountingStatus: "NOT_POSTED"
       lastError: $reason
+      sourceHash: null
+      duplicateFingerprint: null
+      duplicateOfReceiptId: null
+      duplicateReason: null
     }
   ) @include(if: $writeIntake)
   query @redact @check(

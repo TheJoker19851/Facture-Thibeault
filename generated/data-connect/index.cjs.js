@@ -737,6 +737,48 @@ exports.requeueStaleInvoiceIntake = function requeueStaleInvoiceIntake(dcOrVars,
 }
 ;
 
+const claimInvoiceIntakeSourceHashRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'ClaimInvoiceIntakeSourceHash', inputVars);
+}
+claimInvoiceIntakeSourceHashRef.operationName = 'ClaimInvoiceIntakeSourceHash';
+exports.claimInvoiceIntakeSourceHashRef = claimInvoiceIntakeSourceHashRef;
+
+exports.claimInvoiceIntakeSourceHash = function claimInvoiceIntakeSourceHash(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(claimInvoiceIntakeSourceHashRef(dcInstance, inputVars));
+}
+;
+
+const claimInvoiceIntakeBusinessFingerprintRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'ClaimInvoiceIntakeBusinessFingerprint', inputVars);
+}
+claimInvoiceIntakeBusinessFingerprintRef.operationName = 'ClaimInvoiceIntakeBusinessFingerprint';
+exports.claimInvoiceIntakeBusinessFingerprintRef = claimInvoiceIntakeBusinessFingerprintRef;
+
+exports.claimInvoiceIntakeBusinessFingerprint = function claimInvoiceIntakeBusinessFingerprint(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(claimInvoiceIntakeBusinessFingerprintRef(dcInstance, inputVars));
+}
+;
+
+const markInvoiceIntakeDuplicateRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'MarkInvoiceIntakeDuplicate', inputVars);
+}
+markInvoiceIntakeDuplicateRef.operationName = 'MarkInvoiceIntakeDuplicate';
+exports.markInvoiceIntakeDuplicateRef = markInvoiceIntakeDuplicateRef;
+
+exports.markInvoiceIntakeDuplicate = function markInvoiceIntakeDuplicate(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(markInvoiceIntakeDuplicateRef(dcInstance, inputVars));
+}
+;
+
 const updateInvoiceIntakeAiResultRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -944,6 +986,20 @@ exports.correctPostedInvoiceRef = correctPostedInvoiceRef;
 exports.correctPostedInvoice = function correctPostedInvoice(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(correctPostedInvoiceRef(dcInstance, inputVars));
+}
+;
+
+const serverCorrectPostedInvoiceRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'ServerCorrectPostedInvoice', inputVars);
+}
+serverCorrectPostedInvoiceRef.operationName = 'ServerCorrectPostedInvoice';
+exports.serverCorrectPostedInvoiceRef = serverCorrectPostedInvoiceRef;
+
+exports.serverCorrectPostedInvoice = function serverCorrectPostedInvoice(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(serverCorrectPostedInvoiceRef(dcInstance, inputVars));
 }
 ;
 

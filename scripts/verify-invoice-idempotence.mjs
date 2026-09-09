@@ -377,6 +377,51 @@ export async function verifyInvoiceIdempotence() {
     assert.equal((await queryAllData(dataConnect, "AdminListInvoices", "invoices")).data.invoices.filter((invoice) => invoice.id === `INV-${lostClientId}`).length, 1);
     await lostClientFile.delete().catch(() => undefined);
 
+    // Two concurrent uploads may reach PROCESSING before either one finishes.
+    // The unique source hash lets exactly one intake keep the evidence claim;
+    // the other is closed as a duplicate without creating accounting records.
+    const duplicateOriginalId = testId("DUPLICATE-ORIGINAL");
+    const duplicateCopyId = testId("DUPLICATE-COPY");
+    await createIntake(dataConnect, workerClaims, duplicateOriginalId);
+    await createIntake(dataConnect, workerClaims, duplicateCopyId);
+    await claimIntake(dataConnect, duplicateOriginalId);
+    await claimIntake(dataConnect, duplicateCopyId);
+    const duplicateSourceHash = `sha256-${runTag}-same-evidence`;
+    assert.equal((await dataConnect.executeMutation("ClaimInvoiceIntakeSourceHash", {
+      receiptId: duplicateOriginalId,
+      sourceHash: duplicateSourceHash,
+    })).data.invoiceIntake_updateMany, 1);
+    await assert.rejects(() => dataConnect.executeMutation("ClaimInvoiceIntakeSourceHash", {
+      receiptId: duplicateCopyId,
+      sourceHash: duplicateSourceHash,
+    }));
+    assert.equal((await dataConnect.executeMutation("MarkInvoiceIntakeDuplicate", {
+      receiptId: duplicateCopyId,
+      duplicateOfReceiptId: duplicateOriginalId,
+      duplicateReason: "SOURCE_HASH",
+      message: "Doublon exact éliminé automatiquement.",
+      decisionExceptions: JSON.stringify([{ code: "EXACT_DUPLICATE", status: "RESOLVED" }]),
+      decisionChecks: JSON.stringify([{ code: "EXACT_DUPLICATE", passed: true }]),
+      actorUid: "invoice-worker",
+      actorRole: "ADMIN",
+      auditEventId: `AUDIT-${duplicateCopyId}-DUPLICATE`,
+      auditDetails: JSON.stringify({ duplicateOfReceiptId: duplicateOriginalId, reason: "SOURCE_HASH" }),
+    })).data.invoiceIntake_updateMany, 1);
+    const duplicateCopy = await readIntake(dataConnect, duplicateCopyId);
+    assert.equal(duplicateCopy.processingStatus, "DUPLICATE");
+    assert.equal(duplicateCopy.accountingStatus, "NOT_POSTED");
+    assert.equal(duplicateCopy.duplicateOfReceiptId, duplicateOriginalId);
+    assert.equal(duplicateCopy.sourceHash, null);
+    const duplicateAudits = await dataConnect.executeQuery("ListAuditEvents", {
+      entityType: "InvoiceIntake",
+      entityId: duplicateCopyId,
+      limit: 200,
+      offset: 0,
+    });
+    assert.equal(duplicateAudits.data.auditEvents.some((event) => event.action === "INVOICE_DUPLICATE_REJECTED"), true);
+    assert.equal((await queryAllData(dataConnect, "AdminListInvoices", "invoices")).data.invoices.some((invoice) => invoice.intake?.receiptId === duplicateCopyId), false);
+    assert.equal((await queryAllData(dataConnect, "ListExpenseTransactions", "expenseTransactions")).data.expenseTransactions.some((transaction) => transaction.id === `TX-${duplicateCopyId}`), false);
+
     const sequentialId = testId("SEQUENTIAL");
     await createIntake(dataConnect, workerClaims, sequentialId);
     await claimIntake(dataConnect, sequentialId);
@@ -677,8 +722,8 @@ export async function verifyInvoiceIdempotence() {
     await claimIntake(dataConnect, humanWithoutProjectId);
     assert.equal((await dataConnect.executeMutation("UpdateInvoiceIntakeAiResult", aiVariables(humanWithoutProjectId, "NEEDS_REVIEW"))).data.invoiceIntake_updateMany, 1);
     assert.equal((await dataConnect.executeMutation("UpdateInvoiceIntakeReview", { ...reviewVariables(humanWithoutProjectId), extractedProjectId: null }, { impersonate: { authClaims: kimClaims } })).data.invoiceIntake_updateMany, 1);
-    await assert.rejects(() => dataConnect.executeMutation("MaterializeInvoiceIntakeV2", humanPostingVariables(humanWithoutProjectId, 1, null)));
-    assert.equal((await readIntake(dataConnect, humanWithoutProjectId)).accountingStatus, "NOT_POSTED");
+    await dataConnect.executeMutation("MaterializeInvoiceIntakeV2", humanPostingVariables(humanWithoutProjectId, 1, null));
+    assert.equal((await readIntake(dataConnect, humanWithoutProjectId)).accountingStatus, "POSTED");
 
     const humanVsAutoId = testId("HUMAN-VS-AUTO");
     await createIntake(dataConnect, workerClaims, humanVsAutoId);

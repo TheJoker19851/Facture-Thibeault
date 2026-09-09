@@ -601,6 +601,7 @@ function intakeFieldLabel(fieldName?: string | null) {
     projectId: "le chantier / projet",
     statementPeriodId: "la période du relevé",
     confidence: "les informations extraites",
+    lineItems: "les articles de la facture",
   };
   return fieldName ? labels[fieldName] ?? "ce champ" : "les informations proposées";
 }
@@ -625,6 +626,16 @@ function humanizeIntakeException(exception: IntakeDecisionException) {
       return "Article non reconnu — vérifiez le SKU ou la catégorie.";
     case "POSSIBLE_DUPLICATE":
       return "Doublon potentiel — confirmez qu’il s’agit bien d’une nouvelle facture.";
+    case "EXACT_DUPLICATE":
+      return "Doublon confirmé — le second dépôt a été écarté automatiquement.";
+    case "MISSING_LINE_ITEMS":
+      return "Articles non lisibles — ajoutez ou corrigez les lignes de la facture.";
+    case "LINE_ITEMS_TOTAL_MISMATCH":
+      return "Total des articles incohérent — la somme des lignes doit correspondre au sous-total.";
+    case "LINE_ITEM_CLASSIFICATION_REVIEW":
+      return "Article non classifié — confirmez le compte de dépense de chaque ligne.";
+    case "LINE_ITEM_SPLIT_REVIEW":
+      return "Plusieurs comptes de dépense détectés — confirmez la répartition des articles.";
     case "TOTAL_MISMATCH":
       return "Total incohérent — vérifiez le sous-total et les taxes.";
     case "TAX_MISMATCH":
@@ -1156,6 +1167,7 @@ function DebugPage({ dataSourceState, onRetry, role }: { dataSourceState: "demo"
 
 function intakeStatusLabel(status: string) {
   if (status === "AUTO_APPROVED") return "Approuvée automatiquement";
+  if (status === "DUPLICATE") return "Doublon éliminé";
   if (status === "NEEDS_REVIEW" || status === "AI_REVIEW" || status === "AI_ERROR") return "À vérifier";
   if (status === "PROCESSING" || status === "RECEIVED") return "En traitement";
   if (status === "VALIDATED" || status === "READY_FOR_ACCOUNTING" || status === "COMMITTED") return "Validée";
@@ -1447,6 +1459,7 @@ function auditActionLabel(action: string) {
     HUMAN_CORRECTION: "Correction humaine",
     HUMAN_VALIDATION: "Validation humaine",
     TRANSACTION_CREATED: "Transaction créée",
+    INVOICE_DUPLICATE_REJECTED: "Doublon éliminé",
     INVOICE_DISCARDED: "Facture supprimée",
     POSTED_INVOICE_DELETED: "Écriture publiée supprimée",
     RECONCILIATION_UPDATED: "Rapprochement mis à jour",
@@ -1474,6 +1487,7 @@ function auditActionDescription(action: string) {
     HUMAN_CORRECTION: "Un membre autorisé a modifié les champs indiqués avant la création de l’écriture.",
     HUMAN_VALIDATION: "Les informations obligatoires ont été confirmées par un membre autorisé.",
     TRANSACTION_CREATED: "La facture a été transformée en écriture comptable.",
+    INVOICE_DUPLICATE_REJECTED: "Un second dépôt identique a été écarté avant toute création d’écriture comptable.",
     INVOICE_DISCARDED: "La facture a été retirée de la file et sa photo Storage a été supprimée.",
     POSTED_INVOICE_DELETED: "L’écriture publiée a été retirée des vues opérationnelles; la trace d’audit est conservée.",
     RECONCILIATION_UPDATED: "Le lien entre la facture et le relevé de carte a été mis à jour.",
