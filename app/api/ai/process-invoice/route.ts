@@ -23,7 +23,7 @@ import {
   transientGeminiErrorCode,
 } from "../../../../lib/gemini-retry.mjs";
 import { clientUpdateRequiredResponse, isCurrentInvoiceClientVersion } from "../../../../lib/invoice-client-version.mjs";
-import { classifyInvoice, classifyInvoiceLineItems, validateInvoiceExtraction } from "../../../../lib/invoice-processing.mjs";
+import { applyCardholderRestaurantPolicy, classifyInvoice, classifyInvoiceLineItems, validateInvoiceExtraction } from "../../../../lib/invoice-processing.mjs";
 import { AUDIT_ACTIONS, auditDetails, auditEventId } from "../../../../lib/audit-events.mjs";
 import {
   buildInvoiceBusinessFingerprint,
@@ -67,6 +67,7 @@ const invoiceExtractionSchema = z.object({
   totalCents: z.number().int().nonnegative(),
   currency: z.string(),
   sku: z.string().nullable(),
+  isRestaurant: z.boolean(),
   category: z.string().nullable(),
   projectId: z.string().nullable(),
   lineItems: z.array(invoiceLineItemSchema).max(100).default([]),
@@ -117,6 +118,7 @@ type NormalizedExtraction = {
   totalCents: number;
   currency: string;
   sku: string | null;
+  isRestaurant: boolean;
   projectId: string | null;
   lineItems: Array<Record<string, unknown>>;
   lineItemsSubtotalCents: number;
@@ -148,6 +150,7 @@ The subtotal plus TPS plus TVQ must equal the total; if a value is unclear, lowe
 Read every visible line item. Return its description, quantity, unit price when visible, amount before tax, SKU/code when visible, and a category suggestion only when the document supports it. If the receipt only prints a tax-included line amount or unit price but also prints a coherent subtotal and taxes, allocate amountCents before tax and return null for unitPriceCents unless a pre-tax unit price is explicitly shown.
 Represent discounts, coupons, rebates, credits and returns as visible lines with negative unitPriceCents and amountCents; never omit them or turn them into positive amounts. The signed line amounts must add up to the net invoice subtotal after those adjustments. If no line detail is visible, return an empty lineItems array and explain that limitation in notes.
 Use category only as a suggestion. Do not invent an accounting account or approve the invoice.
+Set isRestaurant to true only when the visible merchant or receipt evidence identifies a restaurant, fast-food counter, cafe or meal service. Otherwise set it to false.
 Keep vendor names and invoice numbers faithful to the document, including accents and punctuation.`;
 
 function invoiceInstructions(accountLabels: string[]) {
@@ -156,6 +159,7 @@ function invoiceInstructions(accountLabels: string[]) {
   return `${baseInstructions}
 Choose the category from this active expense-account label list when a label is supported by the visible items: ${labels.join(" | ")}.
 If the receipt is a miscellaneous retail purchase and no more specific label is justified, use "Divers" when it is present in the list.
+For restaurant, fast-food, cafe or meal receipts, use "Voyage et pension" when it is present in the list. The server applies the final cardholder-specific restaurant policy.
 Return category null only when no useful item or category evidence is visible.`;
 }
 
@@ -170,6 +174,7 @@ function localMockExtraction(receiptId: string) {
     totalCents: 11498,
     currency: "CAD",
     sku: "DEMO-SKU-001",
+    isRestaurant: false,
     category: "Matériaux Démo",
     projectId: "DEMO-PROJET-001",
     lineItems: [{ description: "Article de démonstration", quantity: 1, unitPriceCents: 10000, amountCents: 10000, sku: "DEMO-SKU-001", category: "Matériaux Démo" }],
@@ -635,35 +640,52 @@ export async function POST(request: Request) {
     });
     console.info("[invoice-ai] phase=gemini_finished");
     const validation = validateInvoiceExtraction(extraction);
-    const classification = classifyInvoice({
-      vendor: extraction?.vendor,
-      sku: extraction?.sku ?? undefined,
-      category: extraction?.category ?? undefined,
-    }, skuReferences.map((reference) => ({
+    const uploaderUid = intake.uploaderUid;
+    const uploader = userProfiles.find((user) => user.firebaseUid === uploaderUid);
+    const classificationReferences = skuReferences.map((reference) => ({
       merchant: reference.merchant,
       sku: reference.sku,
       category: reference.categoryLabel ?? undefined,
       accountCode: reference.expenseAccount?.number,
       status: reference.verificationStatus,
-    })), expenseAccounts);
-    const lineItems = classifyInvoiceLineItems({
+    }));
+    const baseClassification = classifyInvoice({
+      vendor: extraction?.vendor,
+      sku: extraction?.sku ?? undefined,
+      category: extraction?.category ?? undefined,
+    }, classificationReferences, expenseAccounts);
+    const classifiedLineItems = classifyInvoiceLineItems({
       vendor: extraction?.vendor,
       lineItems: validation.ok ? (validation.value as NormalizedExtraction).lineItems : extraction?.lineItems,
-      skuReferences: skuReferences.map((reference) => ({
-        merchant: reference.merchant,
-        sku: reference.sku,
-        category: reference.categoryLabel ?? undefined,
-        accountCode: reference.expenseAccount?.number,
-        status: reference.verificationStatus,
-      })),
+      skuReferences: classificationReferences,
       accounts: expenseAccounts,
     });
+    const restaurantPolicy = applyCardholderRestaurantPolicy({
+      holderName: uploader?.displayName,
+      isRestaurant: validation.ok ? (validation.value as NormalizedExtraction).isRestaurant : extraction?.isRestaurant,
+      invoiceCategory: extraction?.category,
+      lineItems: classifiedLineItems,
+      accounts: expenseAccounts,
+    });
+    const lineItems = restaurantPolicy.lineItems;
+    const classification = restaurantPolicy.applied
+      ? {
+          ...baseClassification,
+          accountCode: restaurantPolicy.accountCode,
+          category: restaurantPolicy.category,
+          source: "CARDHOLDER_RESTAURANT_POLICY",
+          confidence: 1,
+          status: "TO_VALIDATE" as const,
+          note: restaurantPolicy.note,
+          resolution: "RESOLVED" as const,
+          skuState: "POLICY_OVERRIDDEN" as const,
+          candidates: [restaurantPolicy.accountCode],
+        }
+      : baseClassification;
     const extractionWithLineItems = { ...extraction, lineItems };
 
     // The cron worker authenticates with a technical identity. Card ownership
     // must always be resolved from the intake uploader, not from that worker.
-    const uploaderUid = intake.uploaderUid;
-    const uploader = userProfiles.find((user) => user.firebaseUid === uploaderUid);
     const cards = creditCards.map((card) => ({
       id: card.id,
       lastFour: card.lastFour,
@@ -816,13 +838,23 @@ export async function POST(request: Request) {
 
     if (decision.decision === "AUTO_APPROVED") {
       const { accountCode, cardId } = decision.resolutions;
-      if (!accountCode || !cardId || !normalized.invoiceDate) {
+      if (!cardId || !normalized.invoiceDate) {
         throw new Error("La décision automatique ne contient pas toutes les références comptables requises.");
       }
-      const account = expenseAccounts.find((candidate) =>
-        candidate.number === accountCode && candidate.type === "EXPENSE" && candidate.status === "ACTIVE",
+      const activeExpenseAccounts = new Map(
+        expenseAccounts
+          .filter((candidate) => candidate.type === "EXPENSE" && candidate.status === "ACTIVE")
+          .map((candidate) => [candidate.number, candidate]),
       );
-      if (!account) throw new Error("Le compte comptable résolu n'existe plus ou est inactif.");
+      const lineAccountCodes = [...new Set(lineItems.map((item) => item.accountCode).filter((value): value is string => Boolean(value)))];
+      if (lineItems.some((item) => !item.accountCode || !activeExpenseAccounts.has(item.accountCode))) {
+        throw new Error("Chaque ligne doit utiliser un compte de dépense actif.");
+      }
+      const account = accountCode ? activeExpenseAccounts.get(accountCode) ?? null : null;
+      if (accountCode && !account) throw new Error("Le compte comptable résolu n'existe plus ou est inactif.");
+      if (!account && lineAccountCodes.length < 2) {
+        throw new Error("La ventilation automatique ne contient aucun compte résumé ni ventilation multicomptes valide.");
+      }
       autoCommitAttempted = true;
       try {
         await materializeInvoiceIntake(dataConnect, intake, storedPhotos, {
@@ -835,8 +867,8 @@ export async function POST(request: Request) {
           totalCents: normalized.totalCents,
           currency: normalized.currency,
           sku: normalized.sku,
-          category: classification.category,
-          accountId: account.id,
+          category: account ? classification.category : "Ventilation multi-comptes",
+          accountId: account?.id ?? null,
           cardId,
           statementPeriodId: null,
           projectId: extraction.projectId,

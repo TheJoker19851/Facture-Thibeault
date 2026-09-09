@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { classifyInvoice, classifyInvoiceLineItems, validateInvoiceLineItemsForCommit } from "../lib/invoice-processing.mjs";
+import { applyCardholderRestaurantPolicy, classifyInvoice, classifyInvoiceLineItems, validateInvoiceLineItemsForCommit } from "../lib/invoice-processing.mjs";
 import { decideInvoice, findPotentialDuplicates, resolveUploaderCards } from "../lib/invoice-decision-engine.mjs";
 
 const accounts = [{ code: "90001", label: "Matériaux" }];
@@ -196,4 +196,133 @@ test("classifie les lignes et bloque un sous-total non concordant", () => {
   assert.ok(codes(mismatch).includes("LINE_ITEMS_TOTAL_MISMATCH"));
   assert.equal(validateInvoiceLineItemsForCommit(classified, 10000).ok, true);
   assert.equal(validateInvoiceLineItemsForCommit([{ ...classified[0], amountCents: 9000 }], 10000).ok, false);
+});
+
+test("approuve automatiquement une ventilation complète sur plusieurs comptes", () => {
+  const lineItems = [
+    { description: "Boisson", quantity: 1, amountCents: 399, accountCode: "33526", classificationStatus: "RESOLVED" },
+    { description: "Diesel", quantity: 1, amountCents: 9601, accountCode: "33544", classificationStatus: "RESOLVED" },
+  ];
+  const extraction = { ...baseExtraction, lineItems };
+  const result = decideInvoice({
+    extraction,
+    classification: { ...classifyInvoice(extraction, skuReferences, accounts), resolution: "PROPOSED" },
+    lineItemClassifications: lineItems,
+    context: baseContext,
+  });
+
+  assert.equal(result.decision, "AUTO_APPROVED");
+  assert.equal(result.resolutions.accountCode, null);
+  assert.ok(result.checks.some((check) => check.code === "LINE_ITEM_ACCOUNT_SPLIT" && check.passed));
+  assert.ok(!codes(result).includes("LINE_ITEM_SPLIT_REVIEW"));
+  assert.ok(!codes(result).includes("ACCOUNT_SUGGESTION_REVIEW"));
+});
+
+test("bloque une ventilation multicomptes lorsqu’une ligne n’est pas résolue", () => {
+  const lineItems = [
+    { description: "Boisson", quantity: 1, amountCents: 399, accountCode: "33526", classificationStatus: "RESOLVED" },
+    { description: "Article inconnu", quantity: 1, amountCents: 9601, accountCode: null, classificationStatus: "UNRESOLVED" },
+  ];
+  const extraction = { ...baseExtraction, lineItems };
+  const result = decideInvoice({ extraction, classification: classifyInvoice(extraction, skuReferences, accounts), lineItemClassifications: lineItems, context: baseContext });
+
+  assert.equal(result.decision, "NEEDS_REVIEW");
+  assert.ok(codes(result).includes("LINE_ITEM_CLASSIFICATION_REVIEW"));
+});
+
+const restaurantAccounts = [
+  { number: "33526", label: "Divers", type: "EXPENSE", status: "ACTIVE" },
+  { number: "34016", label: "Voyage et pension", type: "EXPENSE", status: "ACTIVE" },
+];
+const restaurantLines = [
+  { description: "Repas", quantity: 1, amountCents: 2500, category: "Voyage et pension" },
+  { description: "Boisson", quantity: 1, amountCents: 500, category: "Divers" },
+];
+
+test("classe toutes les lignes de restaurant de Keven Tremblay dans Divers", () => {
+  const result = applyCardholderRestaurantPolicy({
+    holderName: "Keven Tremblay",
+    isRestaurant: true,
+    invoiceCategory: "Voyage et pension",
+    lineItems: restaurantLines,
+    accounts: restaurantAccounts,
+  });
+
+  assert.equal(result.applied, true);
+  assert.equal(result.accountCode, "33526");
+  assert.ok(result.lineItems.every((item) => item.accountCode === "33526" && item.category === "Divers" && item.classificationStatus === "RESOLVED"));
+});
+
+test("la règle restaurant remplace un SKU inconnu sans forcer une validation humaine", () => {
+  const lineItems = applyCardholderRestaurantPolicy({
+    holderName: "Keven Tremblay",
+    isRestaurant: true,
+    invoiceCategory: "Voyage et pension",
+    lineItems: restaurantLines,
+    accounts: restaurantAccounts,
+  }).lineItems;
+  const extraction = {
+    ...baseExtraction,
+    sku: "SKU-RESTAURANT-INCONNU",
+    category: "Voyage et pension",
+    subtotalCents: 3000,
+    tpsCents: 150,
+    tvqCents: 299,
+    totalCents: 3449,
+    lineItems,
+  };
+  const result = decideInvoice({
+    extraction,
+    classification: {
+      accountCode: "33526",
+      category: "Divers",
+      resolution: "RESOLVED",
+      skuState: "POLICY_OVERRIDDEN",
+      candidates: ["33526"],
+    },
+    lineItemClassifications: lineItems,
+    context: baseContext,
+  });
+
+  assert.equal(result.decision, "AUTO_APPROVED");
+  assert.ok(!codes(result).includes("UNKNOWN_SKU"));
+});
+
+test("classe toutes les lignes de restaurant des autres détenteurs dans Voyage et pension", () => {
+  const result = applyCardholderRestaurantPolicy({
+    holderName: "Michel Fortier",
+    isRestaurant: true,
+    invoiceCategory: "Voyage et pension",
+    lineItems: restaurantLines,
+    accounts: restaurantAccounts,
+  });
+
+  assert.equal(result.applied, true);
+  assert.equal(result.accountCode, "34016");
+  assert.ok(result.lineItems.every((item) => item.accountCode === "34016" && item.category === "Voyage et pension"));
+});
+
+test("n’applique pas la règle restaurant si le compte cible est inactif", () => {
+  const result = applyCardholderRestaurantPolicy({
+    holderName: "Michel Fortier",
+    isRestaurant: true,
+    invoiceCategory: "Voyage et pension",
+    lineItems: restaurantLines,
+    accounts: restaurantAccounts.map((account) => account.number === "34016" ? { ...account, status: "INACTIVE" } : account),
+  });
+
+  assert.equal(result.applied, false);
+  assert.deepEqual(result.lineItems.map((item) => item.accountCode), [null, null]);
+});
+
+test("ne confond pas une autre dépense Voyage et pension avec un restaurant", () => {
+  const result = applyCardholderRestaurantPolicy({
+    holderName: "Keven Tremblay",
+    isRestaurant: false,
+    invoiceCategory: "Voyage et pension",
+    lineItems: restaurantLines,
+    accounts: restaurantAccounts,
+  });
+
+  assert.equal(result.applied, false);
 });
