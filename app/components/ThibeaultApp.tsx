@@ -544,7 +544,17 @@ function isIntakeException(intake: InvoiceIntake) {
 }
 
 function isIntakeQueueItem(intake: InvoiceIntake) {
-  return isIntakeException(intake) || (processingStatusOf(intake) === "VALIDATED" && intake.accountingStatus === "NOT_POSTED");
+  const processingStatus = processingStatusOf(intake);
+  // Keep every non-posted deposit visible while the worker is processing it.
+  // Otherwise a successful Storage/SQL acknowledgement can look like a lost
+  // invoice until Gemini finishes, and a rejected document has no visible
+  // evidence for the reviewer to inspect.
+  return (
+    (processingStatus === "PROCESSING" && intake.accountingStatus === "NOT_POSTED") ||
+    processingStatus === "REJECTED" ||
+    isIntakeException(intake) ||
+    (processingStatus === "VALIDATED" && intake.accountingStatus === "NOT_POSTED")
+  );
 }
 
 type IntakeDecisionException = {
@@ -2045,7 +2055,7 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
   };
 
   return <>
-    <PageHeading eyebrow="Traitement des factures" title="Factures à vérifier" description="Les exceptions et les factures validées mais pas encore comptabilisées restent ici jusqu’à leur traitement final. Elles apparaîtront dans Transactions seulement après la création de l’écriture comptable." />
+    <PageHeading eyebrow="Traitement des factures" title="Factures à vérifier" description="Les dépôts en traitement, les exceptions et les factures validées mais pas encore comptabilisées restent ici jusqu’à leur traitement final. Elles apparaîtront dans Transactions seulement après la création de l’écriture comptable." />
     <section className="intake-review-layout">
       <section className="panel intake-panel">
           <div className="panel-header">

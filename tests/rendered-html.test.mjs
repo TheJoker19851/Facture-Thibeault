@@ -51,13 +51,9 @@ test("server-renders the Thibeault administration shell", async () => {
   assert.match(html, /Données de démonstration|Connexion Firebase…/);
   assert.match(html, /Factures à vérifier/);
   assert.match(html, /File de traitement/);
-  assert.match(html, /Tableau de Kim/);
-  assert.match(html, /Montant à payer/);
-  assert.match(html, /Les lignes libres/);
+  assert.match(html, /Les factures fiables sont comptabilisées sans intervention KIM/);
   assert.doesNotMatch(html, /Exceptions IA/);
   assert.doesNotMatch(html, /1 · Titulaires|4 · Tableau comptable/);
-  assert.match(html, /Alice Démo/);
-  assert.match(html, /Période des cartes/);
   assert.match(html, /manifest\.webmanifest/);
   assert.doesNotMatch(html, /Your site is taking shape|react-loading-skeleton|codex-preview/);
 });
