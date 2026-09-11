@@ -3,7 +3,7 @@
 import { ChangeEvent, createContext, FormEvent, Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getDownloadURL, ref } from "firebase/storage";
 import { AdminUserActionError, accountingReadSource, commitInvoiceIntake, correctPostedInvoice, deleteExpenseAccount, deleteProject, deletePostedInvoice, discardInvoiceIntake, loadAccountingSnapshot, loadAdminUserAccess, loadReportAdjustments, loadTransactionCorrections, mapAccountingSnapshot, removeDemoAccountingData, runAdminUserAction, saveCreditCard, saveExpenseAccount, saveInvoiceIntakeReview, saveProject, saveReportAdjustments, saveStatementPeriod, type AccountingLineItem, type ManualAdjustmentRow } from "../../firebase/accounting";
-import { getInvoiceIntakeStatus, retryInvoiceIntakeAi, type InvoiceIntakeStatus } from "../../firebase/ai";
+import { getInvoiceIntakeStatus, retryInvoiceIntakeAi, startInvoiceIntakeProcessing, type InvoiceIntakeStatus } from "../../firebase/ai";
 import { appCheckConfigured, firebaseAuth, firebaseConfigured, firebaseStorage } from "../../firebase/client";
 import { sqlConnectConfigured } from "../../firebase/data-connect";
 import { invoicePhotoFileError, uploadInvoicePhotos } from "../../firebase/uploads";
@@ -986,6 +986,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
             aiErrorCode: null,
           },
         });
+        void startInvoiceIntakeProcessing(receipt.receiptId).catch(() => undefined);
         setQueueState("idle");
         notify(`Facture reçue · ${receipt.receiptId.slice(0, 8)} ✓ Vous pouvez en déposer une autre.`);
         notify(`Facture ${receipt.receiptId.slice(0, 8)} reçue · analyse IA planifiée côté serveur.`);

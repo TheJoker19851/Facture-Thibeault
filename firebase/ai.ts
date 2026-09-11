@@ -23,7 +23,7 @@ export type InvoiceIntakeRetryResponse = {
   error?: string;
 };
 
-/** Le navigateur consulte l'état; le traitement IA appartient au worker serveur. */
+/** Le navigateur consulte l'état; le traitement IA appartient au serveur. */
 export async function getInvoiceIntakeStatus(receiptId: string): Promise<InvoiceIntakeStatus> {
   const user = firebaseAuth?.currentUser;
   if (!user) throw new Error("Une session Firebase Authentication est requise pour consulter l'état de l'analyse.");
@@ -41,8 +41,7 @@ export async function getInvoiceIntakeStatus(receiptId: string): Promise<Invoice
   return payload as InvoiceIntakeStatus;
 }
 
-/** Relance une analyse IA; le mode forcé est réservé au test ADMIN côté serveur. */
-export async function retryInvoiceIntakeAi(receiptId: string, options: { forceReprocess?: boolean } = {}): Promise<InvoiceIntakeRetryResponse> {
+async function postInvoiceProcessing(receiptId: string, options: { forceReprocess?: boolean } = {}): Promise<InvoiceIntakeRetryResponse> {
   const user = firebaseAuth?.currentUser;
   if (!user) throw new Error("Une session Firebase Authentication est requise pour relancer l'analyse.");
 
@@ -62,4 +61,14 @@ export async function retryInvoiceIntakeAi(receiptId: string, options: { forceRe
     throw new Error(payload?.error || "La nouvelle analyse n'a pas pu être lancée.");
   }
   return payload as InvoiceIntakeRetryResponse;
+}
+
+/** Démarre l'analyse dès la confirmation Storage; le cron reste le filet de sécurité. */
+export function startInvoiceIntakeProcessing(receiptId: string) {
+  return postInvoiceProcessing(receiptId);
+}
+
+/** Relance une analyse IA; le mode forcé est réservé au test ADMIN côté serveur. */
+export function retryInvoiceIntakeAi(receiptId: string, options: { forceReprocess?: boolean } = {}) {
+  return postInvoiceProcessing(receiptId, options);
 }
