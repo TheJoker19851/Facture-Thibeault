@@ -11,6 +11,7 @@ import { classifyInvoice, invoiceLineItemsSubtotalCents, validateInvoiceLineItem
 import { DecisionJsonError, parseDecisionExceptions, serializeDecisionChecks, serializeDecisionExceptions } from "../../lib/decision-json.mjs";
 import { filterTransactionsByStatus, transactionStatusFilterCounts, TRANSACTION_STATUS_FILTERS } from "../../lib/transaction-filters.mjs";
 import { INVOICE_CLIENT_VERSION } from "../../lib/invoice-client-version.mjs";
+import { canAdminReprocessInvoiceIntake } from "../../lib/invoice-queue.mjs";
 import { AUDIT_ACTIONS, auditDetails, parseAuditDetails } from "../../lib/audit-events.mjs";
 import { clearCaptureDraft, loadCaptureDraft, saveCaptureDraft } from "../../lib/capture-queue.mjs";
 import { buildProjectImportPlan, parseProjectImportJson, PROJECT_IMPORT_MAX_BYTES } from "../../lib/project-import.mjs";
@@ -1735,38 +1736,15 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
   const visibleReviewMessages = selectedIntake && cardNeedsCorrection && !selectedReviewMessages.some((message) => message.toLowerCase().includes("carte"))
     ? [...selectedReviewMessages, cardReviewMessage]
     : selectedReviewMessages;
-  const canRetryAi = Boolean(
-    selectedIntake &&
-    (identity.role === "KIM" || identity.role === "ADMIN") &&
-    selectedIntake.processingStatus === "NEEDS_REVIEW" &&
-    selectedIntake.processingState === "FAILED" &&
-    !selectedIntake.aiModel &&
-    parseIntakeExceptions(selectedIntake).some((exception) => exception.code === "AI_PROCESSING_ERROR"),
-  );
   const canAdminReanalyze = Boolean(
     selectedIntake &&
     identity.role === "ADMIN" &&
-    selectedIntake.accountingStatus === "NOT_POSTED" &&
-    (selectedIntake.processingStatus === "NEEDS_REVIEW" || selectedIntake.processingStatus === "FAILED") &&
-    selectedIntake.processingState !== "RUNNING",
+    canAdminReprocessInvoiceIntake(selectedIntake),
   );
+  const adminReanalysisUnavailable = selectedIntake?.processingState === "RUNNING"
+    ? "Une analyse est déjà en cours. Si elle demeure bloquée, actualisez cette page après quelques minutes pour permettre la récupération."
+    : "La relance IA est bloquée pour une facture comptabilisée, supprimée ou marquée comme doublon.";
   const transientGeminiPending = selectedIntake?.aiErrorCode === "GEMINI_TRANSIENT";
-
-  const retryAi = async () => {
-    if (!selectedIntake || !canRetryAi) return;
-    if (!window.confirm("Relancer l’analyse IA de cette facture maintenant ? La facture sera retraitée et pourra revenir en revue manuelle si une incohérence subsiste.")) return;
-    setRetryState("saving");
-    setRetryMessage("");
-    try {
-      await retryInvoiceIntakeAi(selectedIntake.receiptId);
-      setRetryState("saved");
-      setRetryMessage("Analyse relancée; actualisation de la facture…");
-      window.setTimeout(() => window.location.reload(), 500);
-    } catch (error) {
-      setRetryState("error");
-      setRetryMessage(error instanceof Error ? error.message : "La nouvelle analyse n'a pas pu être lancée.");
-    }
-  };
 
   const reanalyzeAsAdmin = async () => {
     if (!selectedIntake || !canAdminReanalyze) return;
@@ -2085,8 +2063,7 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
       </section>
       {selectedIntake ? <form className="panel intake-review" onSubmit={(event) => void saveReview(event, "save")}>
         <div className="panel-header"><div><p className="eyebrow">{processingStatusOf(selectedIntake) === "VALIDATED" ? "Prête pour comptabilisation" : transientGeminiPending ? "En attente de Gemini" : "Exception à résoudre"}</p><h2>{draft.vendor || "Facture sélectionnée"}</h2></div><span className={intakeStatusClass(processingStatusOf(selectedIntake))}>{intakeQueueStatusLabel(selectedIntake)}</span></div>
-        {canRetryAi && !canAdminReanalyze && <div className="detail-alert"><div><p className="eyebrow">Erreur technique sans extraction</p><span>La lecture IA n’a enregistré aucune donnée; vous pouvez relancer l’analyse après correction du traitement.</span><button className="secondary-button" type="button" onClick={() => void retryAi()} disabled={retryState === "saving"}>{retryState === "saving" ? "Nouvelle analyse…" : "Relancer l’analyse IA"}</button>{retryMessage && <p className={`intake-review-message ${retryState}`}>{retryMessage}</p>}</div></div>}
-        {canAdminReanalyze && <div className="detail-alert"><div><p className="eyebrow">Test ADMIN</p><span>Relance l’analyse IA sur cette facture non comptabilisée, même si une extraction existe déjà. La proposition actuelle sera remplacée.</span><button className="secondary-button" type="button" onClick={() => void reanalyzeAsAdmin()} disabled={retryState === "saving"}>{retryState === "saving" ? "Réanalyse en cours…" : "Réanalyser avec l’IA"}</button>{retryMessage && <p className={`intake-review-message ${retryState}`}>{retryMessage}</p>}</div></div>}
+        {identity.role === "ADMIN" && <div className="detail-alert"><div><p className="eyebrow">Outil de récupération ADMIN</p><span>{canAdminReanalyze ? "Relance l’analyse IA de cette facture non comptabilisée. La proposition actuelle sera remplacée et l’action sera auditée." : adminReanalysisUnavailable}</span><button className="secondary-button" type="button" onClick={() => void reanalyzeAsAdmin()} disabled={!canAdminReanalyze || retryState === "saving"}>{retryState === "saving" ? "Relance en cours…" : "Relancer l’IA"}</button>{retryMessage && <p className={`intake-review-message ${retryState}`}>{retryMessage}</p>}</div></div>}
         {visibleReviewMessages.length > 0 && <div className="detail-alert"><div className="detail-alert-icon">!</div><div><p className="eyebrow">{transientGeminiPending ? "Nouvelle tentative automatique" : "À corriger"}</p>{visibleReviewMessages.map((message) => <span key={message}>{message}</span>)}</div></div>}
         <InvoiceIntakeEvidence key={selectedIntake.receiptId} intake={selectedIntake} />
         <AuditTrailView events={auditEvents} role={identity.role} state={auditState} cards={cards} projects={projects} />

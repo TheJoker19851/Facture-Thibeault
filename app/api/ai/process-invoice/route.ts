@@ -39,6 +39,7 @@ import {
   serializeDecisionChecks,
   serializeDecisionExceptions,
 } from "../../../../lib/invoice-decision-engine.mjs";
+import { canAdminReprocessInvoiceIntake, isAutomaticPostingSettled, isRetryableUnextractedAiFailure } from "../../../../lib/invoice-queue.mjs";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -285,14 +286,6 @@ function hasManualAiRetryableError(intake: IntakeData["invoiceIntakes"][number],
   }
 }
 
-function canAdminForceReprocess(intake: IntakeData["invoiceIntakes"][number]) {
-  return Boolean(
-    intake.accountingStatus === "NOT_POSTED" &&
-    (intake.processingStatus === "NEEDS_REVIEW" || intake.processingStatus === "FAILED") &&
-    intake.processingState !== "RUNNING",
-  );
-}
-
 async function extractInvoice(receiptId: string, files: File[], accountLabels: string[] = []) {
   const environment = inferApplicationEnvironment({
     appEnvironment: process.env.APP_ENV ?? process.env.NEXT_PUBLIC_APP_ENV,
@@ -403,7 +396,7 @@ export async function POST(request: Request) {
       const intakes = await listAllInvoiceIntakes(dataConnect!);
       return intakes.find((item) => item.receiptId === receiptId) ?? null;
     };
-    const intake = await readIntake();
+    let intake = await readIntake();
     console.info("[invoice-ai] phase=intake_read", { found: Boolean(intake) });
     if (!intake) return Response.json({ error: "Le dépôt de facture n'existe pas." }, { status: 404 });
     const canReview = identity.role === "KIM" || identity.role === "ADMIN";
@@ -417,11 +410,8 @@ export async function POST(request: Request) {
     const maxAttempts = invoiceAiMaxAttempts();
 
     if (forceReprocess) {
-      if (!canAdminForceReprocess(intake)) {
-        return Response.json({ error: "Seule une facture en revue, non comptabilisée et non en cours de traitement peut être réanalysée." }, { status: 409 });
-      }
-      if (Number(intake.processingAttempts ?? 0) >= maxAttempts) {
-        return Response.json({ error: "La facture a atteint la limite de tentatives IA." }, { status: 422 });
+      if (!canAdminReprocessInvoiceIntake(intake)) {
+        return Response.json({ error: "Cette facture ne peut pas être relancée pendant un traitement actif, après comptabilisation ou après suppression." }, { status: 409 });
       }
       let reprocess: { data: IntakeMutationData };
       try {
@@ -465,6 +455,8 @@ export async function POST(request: Request) {
         }
         throw new Error("Le dépôt de facture n'existe plus pendant la réanalyse ADMIN.");
       }
+      intake = await readIntake();
+      if (!intake) throw new Error("Le dépôt de facture n'existe plus après la réanalyse ADMIN.");
     }
 
     // A posted/validated/reviewed intake is already owned by the existing
@@ -472,7 +464,8 @@ export async function POST(request: Request) {
     // deliberately reopened, and each reopen is a database compare-and-set.
     const transientGeminiRetry = !forceReprocess && isTransientGeminiCapacityRetry(intake);
     const manualAiRetry = !forceReprocess && !identity.internal && canReview && hasManualAiRetryableError(intake, maxAttempts);
-    if (!forceReprocess && isStableIntakeState(intake) && !transientGeminiRetry && !manualAiRetry) return existingIntakeResponse(receiptId, intake);
+    const automaticTechnicalRetry = !forceReprocess && identity.internal && !transientGeminiRetry && isRetryableUnextractedAiFailure(intake, maxAttempts);
+    if (!forceReprocess && isStableIntakeState(intake) && !transientGeminiRetry && !manualAiRetry && !automaticTechnicalRetry) return existingIntakeResponse(receiptId, intake);
     if (transientGeminiRetry && hasReachedInvoiceAiMaxAttempts(intake, maxAttempts)) {
       const currentAttempts = Number(intake.processingAttempts ?? 0);
       const decisionExceptions = decisionExceptionsAtMaxAttempts(intake.decisionExceptions, maxAttempts);
@@ -513,7 +506,7 @@ export async function POST(request: Request) {
         state: stateOf(finalized ?? intake),
       }, { status: 422 });
     }
-    if (manualAiRetry) {
+    if (manualAiRetry || automaticTechnicalRetry) {
       let retry: { data: IntakeMutationData };
       try {
         retry = await dataConnect.executeMutation<IntakeMutationData, {
@@ -530,7 +523,7 @@ export async function POST(request: Request) {
         );
       } catch (error) {
         const latest = await readIntake();
-        console.error("[invoice-ai] phase=manual_retry_failed", {
+        console.error("[invoice-ai] phase=technical_retry_failed", {
           receiptId,
           message: error instanceof Error ? error.message : "unknown",
         });
@@ -544,7 +537,7 @@ export async function POST(request: Request) {
         if (latest && (latest.processingState === "RETRY" || latest.processingState === "RUNNING" || latest.accountingStatus === "POSTED")) {
           return existingIntakeResponse(receiptId, latest);
         }
-        throw new Error("Le dépôt de facture n'existe plus pendant le retry manuel.");
+        throw new Error("Le dépôt de facture n'existe plus pendant le retry technique.");
       }
     }
     if (transientGeminiRetry || intake.accountingStatus === "POSTING_ERROR") {
@@ -867,11 +860,14 @@ export async function POST(request: Request) {
           totalCents: normalized.totalCents,
           currency: normalized.currency,
           sku: normalized.sku,
-          category: account ? classification.category : "Ventilation multi-comptes",
+          category: account ? classification.category ?? account.label : "Ventilation multi-comptes",
           accountId: account?.id ?? null,
           cardId,
           statementPeriodId: null,
-          projectId: extraction.projectId,
+          // A project inferred from invoice text is not a trusted accounting
+          // reference. Keep automatic posting independent from project data;
+          // a reviewer can associate the project afterwards when needed.
+          projectId: null,
           lineItems: JSON.stringify(lineItems),
           classificationNote: `${extraction.notes} ${classification.note}`.trim(),
           actorUid: identity.uid,
@@ -879,7 +875,11 @@ export async function POST(request: Request) {
         }, "AUTO");
       } catch (error) {
         const latest = await readIntake();
-        if (latest && isStableIntakeState(latest)) return existingIntakeResponse(receiptId, latest);
+        if (latest && isAutomaticPostingSettled(latest)) return existingIntakeResponse(receiptId, latest);
+        console.error("[invoice-ai] phase=auto_post_failed", {
+          receiptId,
+          message: error instanceof Error ? error.message : "unknown",
+        });
         throw error;
       }
     }

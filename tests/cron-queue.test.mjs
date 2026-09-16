@@ -1,8 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { selectInvoiceIntakesForAutomaticProcessing, selectStaleInvoiceIntakes } from "../lib/invoice-queue.mjs";
+import {
+  canAdminReprocessInvoiceIntake,
+  isAutomaticPostingSettled,
+  isRetryableUnextractedAiFailure,
+  selectInvoiceIntakesForAutomaticProcessing,
+  selectOrphanedAutoApprovedIntakes,
+  selectStaleInvoiceIntakes,
+} from "../lib/invoice-queue.mjs";
 
-test("le cron limite à dix intakes et exclut le maximum atteint", () => {
+test("le cron limite à deux intakes pour respecter le budget de temps", () => {
   const eligible = Array.from({ length: 11 }, (_, index) => ({
     receiptId: `QUEUED-${index}`,
     processingStatus: "PROCESSING",
@@ -19,7 +26,7 @@ test("le cron limite à dix intakes et exclut le maximum atteint", () => {
   };
 
   const selected = selectInvoiceIntakesForAutomaticProcessing([...eligible, maxed]);
-  assert.equal(selected.length, 10);
+  assert.equal(selected.length, 2);
   assert.equal(selected.some((intake) => intake.receiptId === maxed.receiptId), false);
   assert.equal(selectInvoiceIntakesForAutomaticProcessing([]).length, 0);
 });
@@ -61,4 +68,74 @@ test("le cron repère un traitement RUNNING expiré sans reprendre une tentative
   const maxed = { ...stale, receiptId: "MAXED-001", processingAttempts: 5 };
   const selected = selectStaleInvoiceIntakes([stale, recent, maxed], now, 7 * 60 * 1000, 5);
   assert.deepEqual(selected.map((intake) => intake.receiptId), ["STALE-001"]);
+});
+
+test("le cron reprend une erreur technique sans extraction avant la limite", () => {
+  const technicalFailure = {
+    receiptId: "TECHNICAL-001",
+    processingStatus: "NEEDS_REVIEW",
+    processingState: "FAILED",
+    processingAttempts: 2,
+    accountingStatus: "NOT_POSTED",
+    lastError: "Le traitement IA a échoué; la facture doit être vérifiée manuellement.",
+    aiModel: null,
+    aiErrorCode: null,
+    decisionExceptions: JSON.stringify([{
+      code: "AI_PROCESSING_ERROR",
+      message: "L’empreinte commerciale ne correspond plus au dépôt déjà enregistré.",
+    }]),
+  };
+
+  assert.equal(isRetryableUnextractedAiFailure(technicalFailure, 5), true);
+  assert.equal(isRetryableUnextractedAiFailure({ ...technicalFailure, processingAttempts: 5 }, 5), false);
+  assert.deepEqual(
+    selectInvoiceIntakesForAutomaticProcessing([technicalFailure], 2, 5).map((intake) => intake.receiptId),
+    ["TECHNICAL-001"],
+  );
+});
+
+test("le cron reprend une approbation automatique orpheline avant la limite de tentatives", () => {
+  const orphaned = {
+    receiptId: "AUTO-ORPHANED",
+    processingStatus: "AUTO_APPROVED",
+    processingState: "COMPLETED",
+    processingAttempts: 1,
+    accountingStatus: "NOT_POSTED",
+  };
+  const posted = { ...orphaned, receiptId: "AUTO-POSTED", accountingStatus: "POSTED" };
+  const maxed = { ...orphaned, receiptId: "AUTO-MAXED", processingAttempts: 5 };
+
+  assert.deepEqual(
+    selectOrphanedAutoApprovedIntakes([orphaned, posted, maxed], 10, 5).map((intake) => intake.receiptId),
+    ["AUTO-ORPHANED"],
+  );
+});
+
+test("une approbation automatique non comptabilisée n'est pas un résultat de posting stable", () => {
+  assert.equal(isAutomaticPostingSettled({ processingStatus: "AUTO_APPROVED", accountingStatus: "NOT_POSTED" }), false);
+  assert.equal(isAutomaticPostingSettled({ processingStatus: "AUTO_APPROVED", accountingStatus: "POSTED" }), true);
+  assert.equal(isAutomaticPostingSettled({ processingStatus: "NEEDS_REVIEW", accountingStatus: "POSTING_ERROR" }), true);
+});
+
+test("la relance ADMIN accepte une facture orpheline et attend l'expiration d'un traitement actif", () => {
+  const now = Date.parse("2026-09-16T13:00:00.000Z");
+  const orphaned = {
+    processingStatus: "AUTO_APPROVED",
+    processingState: "COMPLETED",
+    accountingStatus: "NOT_POSTED",
+  };
+  const stale = {
+    ...orphaned,
+    processingStatus: "PROCESSING",
+    processingState: "RUNNING",
+    lastAttemptAt: "2026-09-16T12:50:00.000Z",
+  };
+  const recent = { ...stale, lastAttemptAt: "2026-09-16T12:56:00.000Z" };
+
+  assert.equal(canAdminReprocessInvoiceIntake(orphaned, now), true);
+  assert.equal(canAdminReprocessInvoiceIntake(stale, now), true);
+  assert.equal(canAdminReprocessInvoiceIntake(recent, now), false);
+  assert.equal(canAdminReprocessInvoiceIntake({ ...stale, lastAttemptAt: null }, now), true);
+  assert.equal(canAdminReprocessInvoiceIntake({ ...orphaned, accountingStatus: "POSTED" }, now), false);
+  assert.equal(canAdminReprocessInvoiceIntake({ ...orphaned, processingStatus: "DUPLICATE" }, now), false);
 });

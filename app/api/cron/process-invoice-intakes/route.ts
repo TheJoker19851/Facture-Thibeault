@@ -17,6 +17,7 @@ import { resolveUploaderCards, serializeDecisionChecks, serializeDecisionExcepti
 import {
   INVOICE_CRON_STALE_AFTER_MS,
   selectInvoiceIntakesForAutomaticProcessing,
+  selectOrphanedAutoApprovedIntakes,
   selectStaleInvoiceIntakes,
 } from "../../../../lib/invoice-queue.mjs";
 
@@ -234,12 +235,42 @@ export async function GET(request: Request) {
       });
       if (result?.data.invoiceIntake_updateMany === 1) requeued += 1;
     }
+    const orphanedAutoApprovals = selectOrphanedAutoApprovedIntakes(allIntakes, undefined, invoiceAiMaxAttempts());
+    let autoPostingRequeued = 0;
+    for (const intake of orphanedAutoApprovals) {
+      const result = await dataConnect.executeMutation<{ invoiceIntake_updateMany: number }, {
+        receiptId: string;
+        currentProcessingStatus: string;
+        currentProcessingState: string;
+        currentProcessingAttempts: number;
+        actorUid: string;
+        actorRole: string;
+        auditEventId: string;
+        auditDetails: string;
+      }>("AdminReprocessInvoiceIntakeAi", {
+        receiptId: intake.receiptId,
+        currentProcessingStatus: intake.processingStatus ?? "AUTO_APPROVED",
+        currentProcessingState: intake.processingState ?? "COMPLETED",
+        currentProcessingAttempts: Number(intake.processingAttempts ?? 0),
+        actorUid: "invoice-worker",
+        actorRole: "ADMIN",
+        auditEventId: auditEventId(intake.receiptId, AUDIT_ACTIONS.AI_REANALYSIS_REQUESTED, "orphaned-auto-post"),
+        auditDetails: auditDetails({ reason: "ORPHANED_AUTO_APPROVAL_REQUEUED" }),
+      }).catch((error) => {
+        console.error("[invoice-worker] phase=auto_post_requeue_failed", {
+          receiptId: intake.receiptId,
+          message: error instanceof Error ? error.message : "unknown",
+        });
+        return null;
+      });
+      if (result?.data.invoiceIntake_updateMany === 1) autoPostingRequeued += 1;
+    }
     const queued = selectInvoiceIntakesForAutomaticProcessing(
       await listAllInvoiceIntakes(dataConnect),
       undefined,
       invoiceAiMaxAttempts(),
     );
-    console.info("[invoice-worker] phase=queue_selected", { count: queued.length, requeued, duplicates });
+    console.info("[invoice-worker] phase=queue_selected", { count: queued.length, requeued, autoPostingRequeued, duplicates });
     const results: Array<{ receiptId: string; status: number; body: unknown }> = [];
     for (const intake of queued) {
       console.info("[invoice-worker] phase=intake_start", { receiptId: intake.receiptId });
@@ -257,9 +288,9 @@ export async function GET(request: Request) {
       console.info("[invoice-worker] phase=intake_finished", { receiptId: intake.receiptId, status: response.status });
     }
     const failedResults = results.filter((result) => result.status >= 500 || result.status === 401 || result.status === 403);
-    console.info("[invoice-worker] phase=cron_finished", { count: results.length, failed: failedResults.length, duplicates });
+    console.info("[invoice-worker] phase=cron_finished", { count: results.length, failed: failedResults.length, autoPostingRequeued, duplicates });
     return Response.json(
-      { ok: failedResults.length === 0, queued: queued.length, duplicates, results },
+      { ok: failedResults.length === 0, queued: queued.length, requeued, autoPostingRequeued, duplicates, results },
       { status: failedResults.length === 0 ? 200 : 500 },
     );
   } catch (error) {

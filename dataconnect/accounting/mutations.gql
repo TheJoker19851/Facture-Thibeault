@@ -1580,6 +1580,7 @@ mutation RetryInvoiceIntakeAiTransientV2(
       accountingStatus: "NOT_POSTED"
       lastError: null
       aiErrorCode: null
+      duplicateFingerprint: null
       decisionExceptions: "[]"
       decisionChecks: "[]"
     }
@@ -1621,6 +1622,7 @@ mutation RetryInvoiceIntakeAiReviewV2(
       accountingStatus: "NOT_POSTED"
       lastError: null
       aiErrorCode: null
+      duplicateFingerprint: null
       decisionExceptions: "[]"
       decisionChecks: "[]"
     }
@@ -1659,10 +1661,12 @@ mutation AdminReprocessInvoiceIntakeAi(
       status: "PROCESSING"
       processingStatus: "PROCESSING"
       processingState: "RETRY"
+      processingAttempts: 0
       lastError: null
       aiErrorCode: null
       aiModel: null
       aiConfidence: null
+      duplicateFingerprint: null
       extractedVendor: null
       extractedInvoiceNumber: null
       extractedInvoiceDate: null
