@@ -743,6 +743,20 @@ export interface ExpenseTransaction_Key {
   __typename?: 'ExpenseTransaction_Key';
 }
 
+export interface FinalizeCreditCardStatementImportData {
+  creditCardStatement_updateMany: number;
+  auditEvent_upsert: AuditEvent_Key;
+}
+
+export interface FinalizeCreditCardStatementImportVariables {
+  id: string;
+  statementHash: string;
+  actorUid: string;
+  actorRole: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+
 export interface InvoiceIntake_Key {
   receiptId: string;
   __typename?: 'InvoiceIntake_Key';
@@ -1909,6 +1923,7 @@ export interface PersistReconciliationLineStatusVariables {
   auditDetails: string;
   expectedMatchId?: string | null;
   expectedExpenseTransactionId?: string | null;
+  expectedMatchStatus?: string | null;
 }
 
 export interface PersistReconciliationMatchData {
@@ -1939,6 +1954,7 @@ export interface PersistReconciliationMatchVariables {
   auditDetails: string;
   expectedMatchId?: string | null;
   expectedExpenseTransactionId?: string | null;
+  expectedMatchStatus?: string | null;
 }
 
 export interface PersistReconciliationMatchWithoutInvoiceData {
@@ -1968,6 +1984,7 @@ export interface PersistReconciliationMatchWithoutInvoiceVariables {
   auditDetails: string;
   expectedMatchId?: string | null;
   expectedExpenseTransactionId?: string | null;
+  expectedMatchStatus?: string | null;
 }
 
 export interface Project_Key {
@@ -2224,8 +2241,7 @@ export interface UpsertCreditCardHolderHistoryVariables {
 }
 
 export interface UpsertCreditCardStatementData {
-  creditCardStatement_insert: CreditCardStatement_Key;
-  auditEvent_upsert: AuditEvent_Key;
+  creditCardStatement_upsert: CreditCardStatement_Key;
 }
 
 export interface UpsertCreditCardStatementLineData {
@@ -2260,10 +2276,6 @@ export interface UpsertCreditCardStatementVariables {
   status: string;
   lineCount: number;
   totalAmountCents: Int64String;
-  actorUid: string;
-  actorRole: string;
-  auditEventId: string;
-  auditDetails: string;
 }
 
 export interface UpsertCreditCardVariables {
@@ -2862,6 +2874,18 @@ export const upsertCreditCardStatementLineRef: UpsertCreditCardStatementLineRef;
 
 export function upsertCreditCardStatementLine(vars: UpsertCreditCardStatementLineVariables): MutationPromise<UpsertCreditCardStatementLineData, UpsertCreditCardStatementLineVariables>;
 export function upsertCreditCardStatementLine(dc: DataConnect, vars: UpsertCreditCardStatementLineVariables): MutationPromise<UpsertCreditCardStatementLineData, UpsertCreditCardStatementLineVariables>;
+
+interface FinalizeCreditCardStatementImportRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: FinalizeCreditCardStatementImportVariables): MutationRef<FinalizeCreditCardStatementImportData, FinalizeCreditCardStatementImportVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: FinalizeCreditCardStatementImportVariables): MutationRef<FinalizeCreditCardStatementImportData, FinalizeCreditCardStatementImportVariables>;
+  operationName: string;
+}
+export const finalizeCreditCardStatementImportRef: FinalizeCreditCardStatementImportRef;
+
+export function finalizeCreditCardStatementImport(vars: FinalizeCreditCardStatementImportVariables): MutationPromise<FinalizeCreditCardStatementImportData, FinalizeCreditCardStatementImportVariables>;
+export function finalizeCreditCardStatementImport(dc: DataConnect, vars: FinalizeCreditCardStatementImportVariables): MutationPromise<FinalizeCreditCardStatementImportData, FinalizeCreditCardStatementImportVariables>;
 
 interface UpsertCreditCardHolderHistoryRef {
   /* Allow users to create refs without passing in DataConnect */

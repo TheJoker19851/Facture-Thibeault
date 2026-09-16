@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { firebaseAdminConfigured, getFirebaseAdminAuth, getFirebaseAdminDataConnect } from "../../../../firebase/admin";
 import { loadReconciliationContext, upsertHolderHistory, upsertMerchantAlias } from "../../../../lib/reconciliation-server.mjs";
+import { reconciliationServerAvailable } from "../../../../lib/reconciliation-access.mjs";
 
 export const runtime = "nodejs";
 
@@ -20,12 +21,8 @@ async function authenticate(request: Request) {
   }
 }
 
-function localOnly() {
-  return process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID === "demo-facture-thibeault" && process.env.APP_ENV === "local" && process.env.NEXT_PUBLIC_FIREBASE_USE_EMULATORS === "true";
-}
-
 export async function GET(request: Request) {
-  if (!localOnly() || !firebaseAdminConfigured()) return Response.json({ error: "Configuration verrouillée hors de l’émulateur local." }, { status: 503 });
+  if (!reconciliationServerAvailable() || !firebaseAdminConfigured()) return Response.json({ error: "Le service de rapprochement n’est pas configuré pour cet environnement." }, { status: 503 });
   const identity = await authenticate(request);
   if (!identity) return Response.json({ error: "Le rôle KIM ou ADMIN est requis." }, { status: 403 });
   const context = await loadReconciliationContext(await getFirebaseAdminDataConnect(), identity);
@@ -33,7 +30,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!localOnly() || !firebaseAdminConfigured()) return Response.json({ error: "Configuration verrouillée hors de l’émulateur local." }, { status: 503 });
+  if (!reconciliationServerAvailable() || !firebaseAdminConfigured()) return Response.json({ error: "Le service de rapprochement n’est pas configuré pour cet environnement." }, { status: 503 });
   const identity = await authenticate(request);
   if (!identity || identity.role !== "ADMIN") return Response.json({ error: "Le rôle ADMIN est requis." }, { status: 403 });
   const parsed = configSchema.safeParse(await request.json().catch(() => null));

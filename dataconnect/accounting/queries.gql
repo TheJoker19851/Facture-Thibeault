@@ -248,7 +248,7 @@ query ListReconciliationMatches($limit: Int!, $offset: Int!) @auth(expr: "auth.t
 }
 
 query ListReconciliationMatchesPage($limit: Int!, $offset: Int!) @auth(expr: "auth.token.role == 'KIM' || auth.token.role == 'ADMIN'") {
-  reconciliationMatches(where: { expenseTransaction: { processingStatus: { ne: "DELETED" } } }, orderBy: [{ createdAt: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
+  reconciliationMatches(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: $limit, offset: $offset) {
     id
     statementLine { id statement { id } sequence }
     expenseTransaction { id }

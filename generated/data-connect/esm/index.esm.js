@@ -487,6 +487,18 @@ export function upsertCreditCardStatementLine(dcOrVars, vars) {
   return executeMutation(upsertCreditCardStatementLineRef(dcInstance, inputVars));
 }
 
+export const finalizeCreditCardStatementImportRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'FinalizeCreditCardStatementImport', inputVars);
+}
+finalizeCreditCardStatementImportRef.operationName = 'FinalizeCreditCardStatementImport';
+
+export function finalizeCreditCardStatementImport(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(finalizeCreditCardStatementImportRef(dcInstance, inputVars));
+}
+
 export const upsertCreditCardHolderHistoryRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();

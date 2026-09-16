@@ -8,8 +8,9 @@ import {
   persistOutsideControls,
   resolveOutsideControl,
 } from "../../../../lib/reconciliation-server.mjs";
-import { reconcileStatement, RECONCILIATION_STATUSES } from "../../../../lib/reconciliation.mjs";
+import { RECONCILIATION_STATUSES } from "../../../../lib/reconciliation.mjs";
 import { AUDIT_ACTIONS } from "../../../../lib/audit-events.mjs";
+import { reconciliationServerAvailable } from "../../../../lib/reconciliation-access.mjs";
 
 export const runtime = "nodejs";
 
@@ -35,12 +36,8 @@ async function authenticate(request: Request) {
   }
 }
 
-function localOnly() {
-  return process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID === "demo-facture-thibeault" && process.env.APP_ENV === "local" && process.env.NEXT_PUBLIC_FIREBASE_USE_EMULATORS === "true";
-}
-
 export async function POST(request: Request) {
-  if (!localOnly() || !firebaseAdminConfigured()) return Response.json({ error: "Les actions sont verrouillées hors de l’émulateur local." }, { status: 503 });
+  if (!reconciliationServerAvailable() || !firebaseAdminConfigured()) return Response.json({ error: "Le service de rapprochement n’est pas configuré pour cet environnement." }, { status: 503 });
   const identity = await authenticate(request);
   if (!identity) return Response.json({ error: "Le rôle KIM ou ADMIN est requis." }, { status: 403 });
   const parsed = actionSchema.safeParse(await request.json().catch(() => null));
@@ -54,7 +51,7 @@ export async function POST(request: Request) {
     const persisted = buildPersistedReconciliation(context, input.statementId);
 
     if (input.action === "AUTO_MATCH") {
-      const base = reconcileStatement(statement, context.transactions, context.aliasRules) as { lineResults: Array<{ line: { id: string }; status: string; match: { expenseTransactionId: string; invoiceId?: string | null; matchScore: number } | null; reason: string }> };
+      const base = buildPersistedReconciliation(context, input.statementId) as { lineResults: Array<{ line: { id: string }; status: string; match: { expenseTransactionId: string; invoiceId?: string | null; matchScore: number } | null; reason: string }> };
       const saved = [];
       for (const result of base.lineResults) {
         if (result.status !== RECONCILIATION_STATUSES.MATCHED || !result.match) continue;

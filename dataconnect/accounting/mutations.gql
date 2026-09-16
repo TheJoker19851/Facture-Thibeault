@@ -402,12 +402,8 @@ mutation UpsertCreditCardStatement(
   $status: String!
   $lineCount: Int!
   $totalAmountCents: Int64!
-  $actorUid: String!
-  $actorRole: String!
-  $auditEventId: String!
-  $auditDetails: String!
 ) @auth(level: NO_ACCESS) @transaction {
-  creditCardStatement_insert(data: {
+  creditCardStatement_upsert(data: {
     id: $id
     card: { id: $cardId }
     holderIdSnapshot: $holderIdSnapshot
@@ -421,15 +417,6 @@ mutation UpsertCreditCardStatement(
     status: $status
     lineCount: $lineCount
     totalAmountCents: $totalAmountCents
-  })
-  auditEvent_upsert(data: {
-    id: $auditEventId
-    actorUid: $actorUid
-    actorRole: $actorRole
-    action: "STATEMENT_IMPORTED"
-    entityType: "CreditCardStatement"
-    entityId: $id
-    details: $auditDetails
   })
 }
 
@@ -458,6 +445,36 @@ mutation UpsertCreditCardStatementLine(
     externalReference: $externalReference
     status: $status
     rawData: $rawData
+  })
+}
+
+mutation FinalizeCreditCardStatementImport(
+  $id: String!
+  $statementHash: String!
+  $actorUid: String!
+  $actorRole: String!
+  $auditEventId: String!
+  $auditDetails: String!
+) @auth(level: NO_ACCESS) @transaction {
+  creditCardStatement_updateMany(
+    where: {
+      id: { eq: $id }
+      statementHash: { eq: $statementHash }
+      status: { eq: "IMPORTING" }
+    }
+    data: { status: "IMPORTED" }
+  )
+  query @redact @check(expr: "response.creditCardStatement_updateMany == 1", message: "Le relevé a déjà été finalisé ou modifié par une autre requête.") {
+    creditCardStatements(where: { id: { eq: $id } }, limit: 1) { id }
+  }
+  auditEvent_upsert(data: {
+    id: $auditEventId
+    actorUid: $actorUid
+    actorRole: $actorRole
+    action: "STATEMENT_IMPORTED"
+    entityType: "CreditCardStatement"
+    entityId: $id
+    details: $auditDetails
   })
 }
 
@@ -557,9 +574,10 @@ mutation PersistReconciliationMatch(
   $auditDetails: String!
   $expectedMatchId: String
   $expectedExpenseTransactionId: String
+  $expectedMatchStatus: String
 ) @auth(level: NO_ACCESS) @transaction {
-  query @redact @check(expr: "(vars.expectedMatchId == null && response.query.reconciliationMatches.size() == 0) || (vars.expectedMatchId != null && response.query.reconciliationMatches.size() == 1 && response.query.reconciliationMatches[0].id == vars.expectedMatchId && response.query.reconciliationMatches[0].expenseTransaction.id == vars.expectedExpenseTransactionId)", message: "Le jumelage a déjà été modifié par une autre action. Actualisez le rapprochement.") {
-    reconciliationMatches(where: { statementLine: { id: { eq: $statementLineId } } }, limit: 1) { id expenseTransaction { id } }
+  query @redact @check(expr: "(vars.expectedMatchId == null && response.query.reconciliationMatches.size() == 0) || (vars.expectedMatchId != null && response.query.reconciliationMatches.size() == 1 && response.query.reconciliationMatches[0].id == vars.expectedMatchId && ((vars.expectedExpenseTransactionId == null && response.query.reconciliationMatches[0].status == vars.expectedMatchStatus) || response.query.reconciliationMatches[0].expenseTransaction.id == vars.expectedExpenseTransactionId))", message: "Le jumelage a déjà été modifié par une autre action. Actualisez le rapprochement.") {
+    reconciliationMatches(where: { statementLine: { id: { eq: $statementLineId } } }, limit: 1) { id status expenseTransaction { id } }
   }
   reconciliationMatch_upsert(data: {
     id: $id
@@ -641,9 +659,10 @@ mutation PersistReconciliationMatchWithoutInvoice(
   $auditDetails: String!
   $expectedMatchId: String
   $expectedExpenseTransactionId: String
+  $expectedMatchStatus: String
 ) @auth(level: NO_ACCESS) @transaction {
-  query @redact @check(expr: "(vars.expectedMatchId == null && response.query.reconciliationMatches.size() == 0) || (vars.expectedMatchId != null && response.query.reconciliationMatches.size() == 1 && response.query.reconciliationMatches[0].id == vars.expectedMatchId && response.query.reconciliationMatches[0].expenseTransaction.id == vars.expectedExpenseTransactionId)", message: "Le jumelage a déjà été modifié par une autre action. Actualisez le rapprochement.") {
-    reconciliationMatches(where: { statementLine: { id: { eq: $statementLineId } } }, limit: 1) { id expenseTransaction { id } }
+  query @redact @check(expr: "(vars.expectedMatchId == null && response.query.reconciliationMatches.size() == 0) || (vars.expectedMatchId != null && response.query.reconciliationMatches.size() == 1 && response.query.reconciliationMatches[0].id == vars.expectedMatchId && ((vars.expectedExpenseTransactionId == null && response.query.reconciliationMatches[0].status == vars.expectedMatchStatus) || response.query.reconciliationMatches[0].expenseTransaction.id == vars.expectedExpenseTransactionId))", message: "Le jumelage a déjà été modifié par une autre action. Actualisez le rapprochement.") {
+    reconciliationMatches(where: { statementLine: { id: { eq: $statementLineId } } }, limit: 1) { id status expenseTransaction { id } }
   }
   reconciliationMatch_upsert(data: {
     id: $id
@@ -684,9 +703,10 @@ mutation PersistReconciliationLineStatus(
   $auditDetails: String!
   $expectedMatchId: String
   $expectedExpenseTransactionId: String
+  $expectedMatchStatus: String
 ) @auth(level: NO_ACCESS) @transaction {
-  query @redact @check(expr: "(vars.expectedMatchId == null && response.query.reconciliationMatches.size() == 0) || (vars.expectedMatchId != null && response.query.reconciliationMatches.size() == 1 && response.query.reconciliationMatches[0].id == vars.expectedMatchId && response.query.reconciliationMatches[0].expenseTransaction.id == vars.expectedExpenseTransactionId)", message: "La ligne a déjà été modifiée par une autre action. Actualisez le rapprochement.") {
-    reconciliationMatches(where: { statementLine: { id: { eq: $statementLineId } } }, limit: 1) { id expenseTransaction { id } }
+  query @redact @check(expr: "(vars.expectedMatchId == null && response.query.reconciliationMatches.size() == 0) || (vars.expectedMatchId != null && response.query.reconciliationMatches.size() == 1 && response.query.reconciliationMatches[0].id == vars.expectedMatchId && ((vars.expectedExpenseTransactionId == null && response.query.reconciliationMatches[0].status == vars.expectedMatchStatus) || response.query.reconciliationMatches[0].expenseTransaction.id == vars.expectedExpenseTransactionId))", message: "La ligne a déjà été modifiée par une autre action. Actualisez le rapprochement.") {
+    reconciliationMatches(where: { statementLine: { id: { eq: $statementLineId } } }, limit: 1) { id status expenseTransaction { id } }
   }
   reconciliationMatch_upsert(data: {
     id: $id

@@ -86,6 +86,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*UpsertReportAdjustmentSet*](#upsertreportadjustmentset)
   - [*UpsertCreditCardStatement*](#upsertcreditcardstatement)
   - [*UpsertCreditCardStatementLine*](#upsertcreditcardstatementline)
+  - [*FinalizeCreditCardStatementImport*](#finalizecreditcardstatementimport)
   - [*UpsertCreditCardHolderHistory*](#upsertcreditcardholderhistory)
   - [*UpsertMerchantAlias*](#upsertmerchantalias)
   - [*PersistReconciliationMatch*](#persistreconciliationmatch)
@@ -247,8 +248,8 @@ import { connectorConfig, adminListInvoices, AdminListInvoicesVariables } from '
 
 // The `AdminListInvoices` query requires an argument of type `AdminListInvoicesVariables`:
 const adminListInvoicesVars: AdminListInvoicesVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `adminListInvoices()` function to execute the query.
@@ -278,8 +279,8 @@ import { connectorConfig, adminListInvoicesRef, AdminListInvoicesVariables } fro
 
 // The `AdminListInvoices` query requires an argument of type `AdminListInvoicesVariables`:
 const adminListInvoicesVars: AdminListInvoicesVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `adminListInvoicesRef()` function to get a reference to the query.
@@ -368,8 +369,8 @@ import { connectorConfig, adminListInvoicePhotos, AdminListInvoicePhotosVariable
 
 // The `AdminListInvoicePhotos` query requires an argument of type `AdminListInvoicePhotosVariables`:
 const adminListInvoicePhotosVars: AdminListInvoicePhotosVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `adminListInvoicePhotos()` function to execute the query.
@@ -399,8 +400,8 @@ import { connectorConfig, adminListInvoicePhotosRef, AdminListInvoicePhotosVaria
 
 // The `AdminListInvoicePhotos` query requires an argument of type `AdminListInvoicePhotosVariables`:
 const adminListInvoicePhotosVars: AdminListInvoicePhotosVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `adminListInvoicePhotosRef()` function to get a reference to the query.
@@ -493,8 +494,8 @@ import { connectorConfig, listUserProfiles, ListUserProfilesVariables } from '@f
 
 // The `ListUserProfiles` query requires an argument of type `ListUserProfilesVariables`:
 const listUserProfilesVars: ListUserProfilesVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listUserProfiles()` function to execute the query.
@@ -524,8 +525,8 @@ import { connectorConfig, listUserProfilesRef, ListUserProfilesVariables } from 
 
 // The `ListUserProfiles` query requires an argument of type `ListUserProfilesVariables`:
 const listUserProfilesVars: ListUserProfilesVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listUserProfilesRef()` function to get a reference to the query.
@@ -923,8 +924,8 @@ import { connectorConfig, listCreditCardHolderHistories, ListCreditCardHolderHis
 
 // The `ListCreditCardHolderHistories` query requires an argument of type `ListCreditCardHolderHistoriesVariables`:
 const listCreditCardHolderHistoriesVars: ListCreditCardHolderHistoriesVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listCreditCardHolderHistories()` function to execute the query.
@@ -954,8 +955,8 @@ import { connectorConfig, listCreditCardHolderHistoriesRef, ListCreditCardHolder
 
 // The `ListCreditCardHolderHistories` query requires an argument of type `ListCreditCardHolderHistoriesVariables`:
 const listCreditCardHolderHistoriesVars: ListCreditCardHolderHistoriesVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listCreditCardHolderHistoriesRef()` function to get a reference to the query.
@@ -1062,8 +1063,8 @@ import { connectorConfig, listCreditCardStatements, ListCreditCardStatementsVari
 
 // The `ListCreditCardStatements` query requires an argument of type `ListCreditCardStatementsVariables`:
 const listCreditCardStatementsVars: ListCreditCardStatementsVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listCreditCardStatements()` function to execute the query.
@@ -1093,8 +1094,8 @@ import { connectorConfig, listCreditCardStatementsRef, ListCreditCardStatementsV
 
 // The `ListCreditCardStatements` query requires an argument of type `ListCreditCardStatementsVariables`:
 const listCreditCardStatementsVars: ListCreditCardStatementsVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listCreditCardStatementsRef()` function to get a reference to the query.
@@ -1201,8 +1202,8 @@ import { connectorConfig, listCreditCardStatementsPage, ListCreditCardStatements
 
 // The `ListCreditCardStatementsPage` query requires an argument of type `ListCreditCardStatementsPageVariables`:
 const listCreditCardStatementsPageVars: ListCreditCardStatementsPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listCreditCardStatementsPage()` function to execute the query.
@@ -1232,8 +1233,8 @@ import { connectorConfig, listCreditCardStatementsPageRef, ListCreditCardStateme
 
 // The `ListCreditCardStatementsPage` query requires an argument of type `ListCreditCardStatementsPageVariables`:
 const listCreditCardStatementsPageVars: ListCreditCardStatementsPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listCreditCardStatementsPageRef()` function to get a reference to the query.
@@ -1330,9 +1331,9 @@ import { connectorConfig, listCreditCardStatementLines, ListCreditCardStatementL
 
 // The `ListCreditCardStatementLines` query requires an argument of type `ListCreditCardStatementLinesVariables`:
 const listCreditCardStatementLinesVars: ListCreditCardStatementLinesVariables = {
-  statementId: ..., 
-  limit: ..., 
-  offset: ..., 
+  statementId: ...,
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listCreditCardStatementLines()` function to execute the query.
@@ -1362,9 +1363,9 @@ import { connectorConfig, listCreditCardStatementLinesRef, ListCreditCardStateme
 
 // The `ListCreditCardStatementLines` query requires an argument of type `ListCreditCardStatementLinesVariables`:
 const listCreditCardStatementLinesVars: ListCreditCardStatementLinesVariables = {
-  statementId: ..., 
-  limit: ..., 
-  offset: ..., 
+  statementId: ...,
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listCreditCardStatementLinesRef()` function to get a reference to the query.
@@ -1461,9 +1462,9 @@ import { connectorConfig, listCreditCardStatementLinesPage, ListCreditCardStatem
 
 // The `ListCreditCardStatementLinesPage` query requires an argument of type `ListCreditCardStatementLinesPageVariables`:
 const listCreditCardStatementLinesPageVars: ListCreditCardStatementLinesPageVariables = {
-  statementId: ..., 
-  limit: ..., 
-  offset: ..., 
+  statementId: ...,
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listCreditCardStatementLinesPage()` function to execute the query.
@@ -1493,9 +1494,9 @@ import { connectorConfig, listCreditCardStatementLinesPageRef, ListCreditCardSta
 
 // The `ListCreditCardStatementLinesPage` query requires an argument of type `ListCreditCardStatementLinesPageVariables`:
 const listCreditCardStatementLinesPageVars: ListCreditCardStatementLinesPageVariables = {
-  statementId: ..., 
-  limit: ..., 
-  offset: ..., 
+  statementId: ...,
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listCreditCardStatementLinesPageRef()` function to get a reference to the query.
@@ -1591,8 +1592,8 @@ import { connectorConfig, listAllCreditCardStatementLines, ListAllCreditCardStat
 
 // The `ListAllCreditCardStatementLines` query requires an argument of type `ListAllCreditCardStatementLinesVariables`:
 const listAllCreditCardStatementLinesVars: ListAllCreditCardStatementLinesVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listAllCreditCardStatementLines()` function to execute the query.
@@ -1622,8 +1623,8 @@ import { connectorConfig, listAllCreditCardStatementLinesRef, ListAllCreditCardS
 
 // The `ListAllCreditCardStatementLines` query requires an argument of type `ListAllCreditCardStatementLinesVariables`:
 const listAllCreditCardStatementLinesVars: ListAllCreditCardStatementLinesVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listAllCreditCardStatementLinesRef()` function to get a reference to the query.
@@ -1719,8 +1720,8 @@ import { connectorConfig, listAllCreditCardStatementLinesPage, ListAllCreditCard
 
 // The `ListAllCreditCardStatementLinesPage` query requires an argument of type `ListAllCreditCardStatementLinesPageVariables`:
 const listAllCreditCardStatementLinesPageVars: ListAllCreditCardStatementLinesPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listAllCreditCardStatementLinesPage()` function to execute the query.
@@ -1750,8 +1751,8 @@ import { connectorConfig, listAllCreditCardStatementLinesPageRef, ListAllCreditC
 
 // The `ListAllCreditCardStatementLinesPage` query requires an argument of type `ListAllCreditCardStatementLinesPageVariables`:
 const listAllCreditCardStatementLinesPageVars: ListAllCreditCardStatementLinesPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listAllCreditCardStatementLinesPageRef()` function to get a reference to the query.
@@ -1848,8 +1849,8 @@ import { connectorConfig, listMerchantAliases, ListMerchantAliasesVariables } fr
 
 // The `ListMerchantAliases` query requires an argument of type `ListMerchantAliasesVariables`:
 const listMerchantAliasesVars: ListMerchantAliasesVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listMerchantAliases()` function to execute the query.
@@ -1879,8 +1880,8 @@ import { connectorConfig, listMerchantAliasesRef, ListMerchantAliasesVariables }
 
 // The `ListMerchantAliases` query requires an argument of type `ListMerchantAliasesVariables`:
 const listMerchantAliasesVars: ListMerchantAliasesVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listMerchantAliasesRef()` function to get a reference to the query.
@@ -1977,8 +1978,8 @@ import { connectorConfig, listMerchantAliasesPage, ListMerchantAliasesPageVariab
 
 // The `ListMerchantAliasesPage` query requires an argument of type `ListMerchantAliasesPageVariables`:
 const listMerchantAliasesPageVars: ListMerchantAliasesPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listMerchantAliasesPage()` function to execute the query.
@@ -2008,8 +2009,8 @@ import { connectorConfig, listMerchantAliasesPageRef, ListMerchantAliasesPageVar
 
 // The `ListMerchantAliasesPage` query requires an argument of type `ListMerchantAliasesPageVariables`:
 const listMerchantAliasesPageVars: ListMerchantAliasesPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listMerchantAliasesPageRef()` function to get a reference to the query.
@@ -2117,8 +2118,8 @@ import { connectorConfig, listReconciliationMatches, ListReconciliationMatchesVa
 
 // The `ListReconciliationMatches` query requires an argument of type `ListReconciliationMatchesVariables`:
 const listReconciliationMatchesVars: ListReconciliationMatchesVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listReconciliationMatches()` function to execute the query.
@@ -2148,8 +2149,8 @@ import { connectorConfig, listReconciliationMatchesRef, ListReconciliationMatche
 
 // The `ListReconciliationMatches` query requires an argument of type `ListReconciliationMatchesVariables`:
 const listReconciliationMatchesVars: ListReconciliationMatchesVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listReconciliationMatchesRef()` function to get a reference to the query.
@@ -2257,8 +2258,8 @@ import { connectorConfig, listReconciliationMatchesPage, ListReconciliationMatch
 
 // The `ListReconciliationMatchesPage` query requires an argument of type `ListReconciliationMatchesPageVariables`:
 const listReconciliationMatchesPageVars: ListReconciliationMatchesPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listReconciliationMatchesPage()` function to execute the query.
@@ -2288,8 +2289,8 @@ import { connectorConfig, listReconciliationMatchesPageRef, ListReconciliationMa
 
 // The `ListReconciliationMatchesPage` query requires an argument of type `ListReconciliationMatchesPageVariables`:
 const listReconciliationMatchesPageVars: ListReconciliationMatchesPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listReconciliationMatchesPageRef()` function to get a reference to the query.
@@ -2616,8 +2617,8 @@ import { connectorConfig, listExpenseTransactions, ListExpenseTransactionsVariab
 
 // The `ListExpenseTransactions` query requires an argument of type `ListExpenseTransactionsVariables`:
 const listExpenseTransactionsVars: ListExpenseTransactionsVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listExpenseTransactions()` function to execute the query.
@@ -2647,8 +2648,8 @@ import { connectorConfig, listExpenseTransactionsRef, ListExpenseTransactionsVar
 
 // The `ListExpenseTransactions` query requires an argument of type `ListExpenseTransactionsVariables`:
 const listExpenseTransactionsVars: ListExpenseTransactionsVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listExpenseTransactionsRef()` function to get a reference to the query.
@@ -2774,8 +2775,8 @@ import { connectorConfig, listExpenseTransactionsPage, ListExpenseTransactionsPa
 
 // The `ListExpenseTransactionsPage` query requires an argument of type `ListExpenseTransactionsPageVariables`:
 const listExpenseTransactionsPageVars: ListExpenseTransactionsPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listExpenseTransactionsPage()` function to execute the query.
@@ -2805,8 +2806,8 @@ import { connectorConfig, listExpenseTransactionsPageRef, ListExpenseTransaction
 
 // The `ListExpenseTransactionsPage` query requires an argument of type `ListExpenseTransactionsPageVariables`:
 const listExpenseTransactionsPageVars: ListExpenseTransactionsPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listExpenseTransactionsPageRef()` function to get a reference to the query.
@@ -2917,8 +2918,8 @@ import { connectorConfig, listInvoicesToReview, ListInvoicesToReviewVariables } 
 
 // The `ListInvoicesToReview` query requires an argument of type `ListInvoicesToReviewVariables`:
 const listInvoicesToReviewVars: ListInvoicesToReviewVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listInvoicesToReview()` function to execute the query.
@@ -2948,8 +2949,8 @@ import { connectorConfig, listInvoicesToReviewRef, ListInvoicesToReviewVariables
 
 // The `ListInvoicesToReview` query requires an argument of type `ListInvoicesToReviewVariables`:
 const listInvoicesToReviewVars: ListInvoicesToReviewVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listInvoicesToReviewRef()` function to get a reference to the query.
@@ -3060,8 +3061,8 @@ import { connectorConfig, listInvoicesToReviewPage, ListInvoicesToReviewPageVari
 
 // The `ListInvoicesToReviewPage` query requires an argument of type `ListInvoicesToReviewPageVariables`:
 const listInvoicesToReviewPageVars: ListInvoicesToReviewPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listInvoicesToReviewPage()` function to execute the query.
@@ -3091,8 +3092,8 @@ import { connectorConfig, listInvoicesToReviewPageRef, ListInvoicesToReviewPageV
 
 // The `ListInvoicesToReviewPage` query requires an argument of type `ListInvoicesToReviewPageVariables`:
 const listInvoicesToReviewPageVars: ListInvoicesToReviewPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listInvoicesToReviewPageRef()` function to get a reference to the query.
@@ -3215,8 +3216,8 @@ import { connectorConfig, listInvoiceIntakes, ListInvoiceIntakesVariables } from
 
 // The `ListInvoiceIntakes` query requires an argument of type `ListInvoiceIntakesVariables`:
 const listInvoiceIntakesVars: ListInvoiceIntakesVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listInvoiceIntakes()` function to execute the query.
@@ -3246,8 +3247,8 @@ import { connectorConfig, listInvoiceIntakesRef, ListInvoiceIntakesVariables } f
 
 // The `ListInvoiceIntakes` query requires an argument of type `ListInvoiceIntakesVariables`:
 const listInvoiceIntakesVars: ListInvoiceIntakesVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listInvoiceIntakesRef()` function to get a reference to the query.
@@ -3370,8 +3371,8 @@ import { connectorConfig, listInvoiceIntakesPage, ListInvoiceIntakesPageVariable
 
 // The `ListInvoiceIntakesPage` query requires an argument of type `ListInvoiceIntakesPageVariables`:
 const listInvoiceIntakesPageVars: ListInvoiceIntakesPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listInvoiceIntakesPage()` function to execute the query.
@@ -3401,8 +3402,8 @@ import { connectorConfig, listInvoiceIntakesPageRef, ListInvoiceIntakesPageVaria
 
 // The `ListInvoiceIntakesPage` query requires an argument of type `ListInvoiceIntakesPageVariables`:
 const listInvoiceIntakesPageVars: ListInvoiceIntakesPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listInvoiceIntakesPageRef()` function to get a reference to the query.
@@ -3494,8 +3495,8 @@ import { connectorConfig, listInvoicesForReconciliation, ListInvoicesForReconcil
 
 // The `ListInvoicesForReconciliation` query requires an argument of type `ListInvoicesForReconciliationVariables`:
 const listInvoicesForReconciliationVars: ListInvoicesForReconciliationVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listInvoicesForReconciliation()` function to execute the query.
@@ -3525,8 +3526,8 @@ import { connectorConfig, listInvoicesForReconciliationRef, ListInvoicesForRecon
 
 // The `ListInvoicesForReconciliation` query requires an argument of type `ListInvoicesForReconciliationVariables`:
 const listInvoicesForReconciliationVars: ListInvoicesForReconciliationVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listInvoicesForReconciliationRef()` function to get a reference to the query.
@@ -3618,8 +3619,8 @@ import { connectorConfig, listInvoicesForReconciliationPage, ListInvoicesForReco
 
 // The `ListInvoicesForReconciliationPage` query requires an argument of type `ListInvoicesForReconciliationPageVariables`:
 const listInvoicesForReconciliationPageVars: ListInvoicesForReconciliationPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listInvoicesForReconciliationPage()` function to execute the query.
@@ -3649,8 +3650,8 @@ import { connectorConfig, listInvoicesForReconciliationPageRef, ListInvoicesForR
 
 // The `ListInvoicesForReconciliationPage` query requires an argument of type `ListInvoicesForReconciliationPageVariables`:
 const listInvoicesForReconciliationPageVars: ListInvoicesForReconciliationPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listInvoicesForReconciliationPageRef()` function to get a reference to the query.
@@ -3749,9 +3750,9 @@ import { connectorConfig, listTransactionCorrections, ListTransactionCorrections
 
 // The `ListTransactionCorrections` query requires an argument of type `ListTransactionCorrectionsVariables`:
 const listTransactionCorrectionsVars: ListTransactionCorrectionsVariables = {
-  transactionId: ..., 
-  limit: ..., 
-  offset: ..., 
+  transactionId: ...,
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listTransactionCorrections()` function to execute the query.
@@ -3781,9 +3782,9 @@ import { connectorConfig, listTransactionCorrectionsRef, ListTransactionCorrecti
 
 // The `ListTransactionCorrections` query requires an argument of type `ListTransactionCorrectionsVariables`:
 const listTransactionCorrectionsVars: ListTransactionCorrectionsVariables = {
-  transactionId: ..., 
-  limit: ..., 
-  offset: ..., 
+  transactionId: ...,
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listTransactionCorrectionsRef()` function to get a reference to the query.
@@ -3876,9 +3877,9 @@ import { connectorConfig, listReportAdjustmentSets, ListReportAdjustmentSetsVari
 
 // The `ListReportAdjustmentSets` query requires an argument of type `ListReportAdjustmentSetsVariables`:
 const listReportAdjustmentSetsVars: ListReportAdjustmentSetsVariables = {
-  periodKey: ..., 
-  limit: ..., 
-  offset: ..., 
+  periodKey: ...,
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listReportAdjustmentSets()` function to execute the query.
@@ -3908,9 +3909,9 @@ import { connectorConfig, listReportAdjustmentSetsRef, ListReportAdjustmentSetsV
 
 // The `ListReportAdjustmentSets` query requires an argument of type `ListReportAdjustmentSetsVariables`:
 const listReportAdjustmentSetsVars: ListReportAdjustmentSetsVariables = {
-  periodKey: ..., 
-  limit: ..., 
-  offset: ..., 
+  periodKey: ...,
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listReportAdjustmentSetsRef()` function to get a reference to the query.
@@ -4005,10 +4006,10 @@ import { connectorConfig, listAuditEvents, ListAuditEventsVariables } from '@fac
 
 // The `ListAuditEvents` query requires an argument of type `ListAuditEventsVariables`:
 const listAuditEventsVars: ListAuditEventsVariables = {
-  entityType: ..., 
-  entityId: ..., 
-  limit: ..., 
-  offset: ..., 
+  entityType: ...,
+  entityId: ...,
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listAuditEvents()` function to execute the query.
@@ -4038,10 +4039,10 @@ import { connectorConfig, listAuditEventsRef, ListAuditEventsVariables } from '@
 
 // The `ListAuditEvents` query requires an argument of type `ListAuditEventsVariables`:
 const listAuditEventsVars: ListAuditEventsVariables = {
-  entityType: ..., 
-  entityId: ..., 
-  limit: ..., 
-  offset: ..., 
+  entityType: ...,
+  entityId: ...,
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listAuditEventsRef()` function to get a reference to the query.
@@ -4146,8 +4147,8 @@ import { connectorConfig, listReconciliationOutsideControls, ListReconciliationO
 
 // The `ListReconciliationOutsideControls` query requires an argument of type `ListReconciliationOutsideControlsVariables`:
 const listReconciliationOutsideControlsVars: ListReconciliationOutsideControlsVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listReconciliationOutsideControls()` function to execute the query.
@@ -4177,8 +4178,8 @@ import { connectorConfig, listReconciliationOutsideControlsRef, ListReconciliati
 
 // The `ListReconciliationOutsideControls` query requires an argument of type `ListReconciliationOutsideControlsVariables`:
 const listReconciliationOutsideControlsVars: ListReconciliationOutsideControlsVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listReconciliationOutsideControlsRef()` function to get a reference to the query.
@@ -4283,8 +4284,8 @@ import { connectorConfig, listReconciliationOutsideControlsPage, ListReconciliat
 
 // The `ListReconciliationOutsideControlsPage` query requires an argument of type `ListReconciliationOutsideControlsPageVariables`:
 const listReconciliationOutsideControlsPageVars: ListReconciliationOutsideControlsPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listReconciliationOutsideControlsPage()` function to execute the query.
@@ -4314,8 +4315,8 @@ import { connectorConfig, listReconciliationOutsideControlsPageRef, ListReconcil
 
 // The `ListReconciliationOutsideControlsPage` query requires an argument of type `ListReconciliationOutsideControlsPageVariables`:
 const listReconciliationOutsideControlsPageVars: ListReconciliationOutsideControlsPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listReconciliationOutsideControlsPageRef()` function to get a reference to the query.
@@ -4408,8 +4409,8 @@ import { connectorConfig, listCreditCardsPage, ListCreditCardsPageVariables } fr
 
 // The `ListCreditCardsPage` query requires an argument of type `ListCreditCardsPageVariables`:
 const listCreditCardsPageVars: ListCreditCardsPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listCreditCardsPage()` function to execute the query.
@@ -4439,8 +4440,8 @@ import { connectorConfig, listCreditCardsPageRef, ListCreditCardsPageVariables }
 
 // The `ListCreditCardsPage` query requires an argument of type `ListCreditCardsPageVariables`:
 const listCreditCardsPageVars: ListCreditCardsPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listCreditCardsPageRef()` function to get a reference to the query.
@@ -4528,8 +4529,8 @@ import { connectorConfig, listCardStatementPeriodsPage, ListCardStatementPeriods
 
 // The `ListCardStatementPeriodsPage` query requires an argument of type `ListCardStatementPeriodsPageVariables`:
 const listCardStatementPeriodsPageVars: ListCardStatementPeriodsPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listCardStatementPeriodsPage()` function to execute the query.
@@ -4559,8 +4560,8 @@ import { connectorConfig, listCardStatementPeriodsPageRef, ListCardStatementPeri
 
 // The `ListCardStatementPeriodsPage` query requires an argument of type `ListCardStatementPeriodsPageVariables`:
 const listCardStatementPeriodsPageVars: ListCardStatementPeriodsPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listCardStatementPeriodsPageRef()` function to get a reference to the query.
@@ -4646,8 +4647,8 @@ import { connectorConfig, listExpenseAccountsPage, ListExpenseAccountsPageVariab
 
 // The `ListExpenseAccountsPage` query requires an argument of type `ListExpenseAccountsPageVariables`:
 const listExpenseAccountsPageVars: ListExpenseAccountsPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listExpenseAccountsPage()` function to execute the query.
@@ -4677,8 +4678,8 @@ import { connectorConfig, listExpenseAccountsPageRef, ListExpenseAccountsPageVar
 
 // The `ListExpenseAccountsPage` query requires an argument of type `ListExpenseAccountsPageVariables`:
 const listExpenseAccountsPageVars: ListExpenseAccountsPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listExpenseAccountsPageRef()` function to get a reference to the query.
@@ -4763,8 +4764,8 @@ import { connectorConfig, listProjectsPage, ListProjectsPageVariables } from '@f
 
 // The `ListProjectsPage` query requires an argument of type `ListProjectsPageVariables`:
 const listProjectsPageVars: ListProjectsPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listProjectsPage()` function to execute the query.
@@ -4794,8 +4795,8 @@ import { connectorConfig, listProjectsPageRef, ListProjectsPageVariables } from 
 
 // The `ListProjectsPage` query requires an argument of type `ListProjectsPageVariables`:
 const listProjectsPageVars: ListProjectsPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listProjectsPageRef()` function to get a reference to the query.
@@ -4889,8 +4890,8 @@ import { connectorConfig, listSkuReferencesPage, ListSkuReferencesPageVariables 
 
 // The `ListSkuReferencesPage` query requires an argument of type `ListSkuReferencesPageVariables`:
 const listSkuReferencesPageVars: ListSkuReferencesPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listSkuReferencesPage()` function to execute the query.
@@ -4920,8 +4921,8 @@ import { connectorConfig, listSkuReferencesPageRef, ListSkuReferencesPageVariabl
 
 // The `ListSkuReferencesPage` query requires an argument of type `ListSkuReferencesPageVariables`:
 const listSkuReferencesPageVars: ListSkuReferencesPageVariables = {
-  limit: ..., 
-  offset: ..., 
+  limit: ...,
+  offset: ...,
 };
 
 // Call the `listSkuReferencesPageRef()` function to get a reference to the query.
@@ -5021,13 +5022,13 @@ import { connectorConfig, adminSeedUserProfile, AdminSeedUserProfileVariables } 
 
 // The `AdminSeedUserProfile` mutation requires an argument of type `AdminSeedUserProfileVariables`:
 const adminSeedUserProfileVars: AdminSeedUserProfileVariables = {
-  id: ..., 
-  firebaseUid: ..., 
-  displayName: ..., 
+  id: ...,
+  firebaseUid: ...,
+  displayName: ...,
   email: ..., // optional
   jobTitle: ..., // optional
-  role: ..., 
-  status: ..., 
+  role: ...,
+  status: ...,
 };
 
 // Call the `adminSeedUserProfile()` function to execute the mutation.
@@ -5057,13 +5058,13 @@ import { connectorConfig, adminSeedUserProfileRef, AdminSeedUserProfileVariables
 
 // The `AdminSeedUserProfile` mutation requires an argument of type `AdminSeedUserProfileVariables`:
 const adminSeedUserProfileVars: AdminSeedUserProfileVariables = {
-  id: ..., 
-  firebaseUid: ..., 
-  displayName: ..., 
+  id: ...,
+  firebaseUid: ...,
+  displayName: ...,
   email: ..., // optional
   jobTitle: ..., // optional
-  role: ..., 
-  status: ..., 
+  role: ...,
+  status: ...,
 };
 
 // Call the `adminSeedUserProfileRef()` function to get a reference to the mutation.
@@ -5145,10 +5146,10 @@ import { connectorConfig, adminSeedProject, AdminSeedProjectVariables } from '@f
 
 // The `AdminSeedProject` mutation requires an argument of type `AdminSeedProjectVariables`:
 const adminSeedProjectVars: AdminSeedProjectVariables = {
-  id: ..., 
-  number: ..., 
-  name: ..., 
-  status: ..., 
+  id: ...,
+  number: ...,
+  name: ...,
+  status: ...,
 };
 
 // Call the `adminSeedProject()` function to execute the mutation.
@@ -5178,10 +5179,10 @@ import { connectorConfig, adminSeedProjectRef, AdminSeedProjectVariables } from 
 
 // The `AdminSeedProject` mutation requires an argument of type `AdminSeedProjectVariables`:
 const adminSeedProjectVars: AdminSeedProjectVariables = {
-  id: ..., 
-  number: ..., 
-  name: ..., 
-  status: ..., 
+  id: ...,
+  number: ...,
+  name: ...,
+  status: ...,
 };
 
 // Call the `adminSeedProjectRef()` function to get a reference to the mutation.
@@ -5264,11 +5265,11 @@ import { connectorConfig, adminSeedExpenseAccount, AdminSeedExpenseAccountVariab
 
 // The `AdminSeedExpenseAccount` mutation requires an argument of type `AdminSeedExpenseAccountVariables`:
 const adminSeedExpenseAccountVars: AdminSeedExpenseAccountVariables = {
-  id: ..., 
-  number: ..., 
-  label: ..., 
-  type: ..., 
-  status: ..., 
+  id: ...,
+  number: ...,
+  label: ...,
+  type: ...,
+  status: ...,
 };
 
 // Call the `adminSeedExpenseAccount()` function to execute the mutation.
@@ -5298,11 +5299,11 @@ import { connectorConfig, adminSeedExpenseAccountRef, AdminSeedExpenseAccountVar
 
 // The `AdminSeedExpenseAccount` mutation requires an argument of type `AdminSeedExpenseAccountVariables`:
 const adminSeedExpenseAccountVars: AdminSeedExpenseAccountVariables = {
-  id: ..., 
-  number: ..., 
-  label: ..., 
-  type: ..., 
-  status: ..., 
+  id: ...,
+  number: ...,
+  label: ...,
+  type: ...,
+  status: ...,
 };
 
 // Call the `adminSeedExpenseAccountRef()` function to get a reference to the mutation.
@@ -5386,12 +5387,12 @@ import { connectorConfig, adminSeedCardStatementPeriod, AdminSeedCardStatementPe
 
 // The `AdminSeedCardStatementPeriod` mutation requires an argument of type `AdminSeedCardStatementPeriodVariables`:
 const adminSeedCardStatementPeriodVars: AdminSeedCardStatementPeriodVariables = {
-  id: ..., 
-  label: ..., 
-  startDate: ..., 
-  endDate: ..., 
+  id: ...,
+  label: ...,
+  startDate: ...,
+  endDate: ...,
   statementLabel: ..., // optional
-  status: ..., 
+  status: ...,
 };
 
 // Call the `adminSeedCardStatementPeriod()` function to execute the mutation.
@@ -5421,12 +5422,12 @@ import { connectorConfig, adminSeedCardStatementPeriodRef, AdminSeedCardStatemen
 
 // The `AdminSeedCardStatementPeriod` mutation requires an argument of type `AdminSeedCardStatementPeriodVariables`:
 const adminSeedCardStatementPeriodVars: AdminSeedCardStatementPeriodVariables = {
-  id: ..., 
-  label: ..., 
-  startDate: ..., 
-  endDate: ..., 
+  id: ...,
+  label: ...,
+  startDate: ...,
+  endDate: ...,
   statementLabel: ..., // optional
-  status: ..., 
+  status: ...,
 };
 
 // Call the `adminSeedCardStatementPeriodRef()` function to get a reference to the mutation.
@@ -5532,13 +5533,13 @@ import { connectorConfig, adminSeedInvoiceIntake, AdminSeedInvoiceIntakeVariable
 
 // The `AdminSeedInvoiceIntake` mutation requires an argument of type `AdminSeedInvoiceIntakeVariables`:
 const adminSeedInvoiceIntakeVars: AdminSeedInvoiceIntakeVariables = {
-  receiptId: ..., 
-  uploaderUid: ..., 
-  storageFolder: ..., 
-  photoCount: ..., 
-  status: ..., 
-  processingStatus: ..., 
-  accountingStatus: ..., 
+  receiptId: ...,
+  uploaderUid: ...,
+  storageFolder: ...,
+  photoCount: ...,
+  status: ...,
+  processingStatus: ...,
+  accountingStatus: ...,
   aiModel: ..., // optional
   aiConfidence: ..., // optional
   extractedVendor: ..., // optional
@@ -5589,13 +5590,13 @@ import { connectorConfig, adminSeedInvoiceIntakeRef, AdminSeedInvoiceIntakeVaria
 
 // The `AdminSeedInvoiceIntake` mutation requires an argument of type `AdminSeedInvoiceIntakeVariables`:
 const adminSeedInvoiceIntakeVars: AdminSeedInvoiceIntakeVariables = {
-  receiptId: ..., 
-  uploaderUid: ..., 
-  storageFolder: ..., 
-  photoCount: ..., 
-  status: ..., 
-  processingStatus: ..., 
-  accountingStatus: ..., 
+  receiptId: ...,
+  uploaderUid: ...,
+  storageFolder: ...,
+  photoCount: ...,
+  status: ...,
+  processingStatus: ...,
+  accountingStatus: ...,
   aiModel: ..., // optional
   aiConfidence: ..., // optional
   extractedVendor: ..., // optional
@@ -5700,11 +5701,11 @@ import { connectorConfig, adminSeedCreditCard, AdminSeedCreditCardVariables } fr
 
 // The `AdminSeedCreditCard` mutation requires an argument of type `AdminSeedCreditCardVariables`:
 const adminSeedCreditCardVars: AdminSeedCreditCardVariables = {
-  id: ..., 
-  lastFour: ..., 
-  holderId: ..., 
+  id: ...,
+  lastFour: ...,
+  holderId: ...,
   cardFunction: ..., // optional
-  status: ..., 
+  status: ...,
   activeFrom: ..., // optional
 };
 
@@ -5735,11 +5736,11 @@ import { connectorConfig, adminSeedCreditCardRef, AdminSeedCreditCardVariables }
 
 // The `AdminSeedCreditCard` mutation requires an argument of type `AdminSeedCreditCardVariables`:
 const adminSeedCreditCardVars: AdminSeedCreditCardVariables = {
-  id: ..., 
-  lastFour: ..., 
-  holderId: ..., 
+  id: ...,
+  lastFour: ...,
+  holderId: ...,
   cardFunction: ..., // optional
-  status: ..., 
+  status: ...,
   activeFrom: ..., // optional
 };
 
@@ -5831,19 +5832,19 @@ import { connectorConfig, adminSeedCreditCardStatement, AdminSeedCreditCardState
 
 // The `AdminSeedCreditCardStatement` mutation requires an argument of type `AdminSeedCreditCardStatementVariables`:
 const adminSeedCreditCardStatementVars: AdminSeedCreditCardStatementVariables = {
-  id: ..., 
-  cardId: ..., 
-  holderIdSnapshot: ..., 
-  holderNameSnapshot: ..., 
-  periodStart: ..., 
-  periodEnd: ..., 
-  originalStoragePath: ..., 
-  originalFilename: ..., 
-  importedById: ..., 
-  statementHash: ..., 
-  status: ..., 
-  lineCount: ..., 
-  totalAmountCents: ..., 
+  id: ...,
+  cardId: ...,
+  holderIdSnapshot: ...,
+  holderNameSnapshot: ...,
+  periodStart: ...,
+  periodEnd: ...,
+  originalStoragePath: ...,
+  originalFilename: ...,
+  importedById: ...,
+  statementHash: ...,
+  status: ...,
+  lineCount: ...,
+  totalAmountCents: ...,
 };
 
 // Call the `adminSeedCreditCardStatement()` function to execute the mutation.
@@ -5873,19 +5874,19 @@ import { connectorConfig, adminSeedCreditCardStatementRef, AdminSeedCreditCardSt
 
 // The `AdminSeedCreditCardStatement` mutation requires an argument of type `AdminSeedCreditCardStatementVariables`:
 const adminSeedCreditCardStatementVars: AdminSeedCreditCardStatementVariables = {
-  id: ..., 
-  cardId: ..., 
-  holderIdSnapshot: ..., 
-  holderNameSnapshot: ..., 
-  periodStart: ..., 
-  periodEnd: ..., 
-  originalStoragePath: ..., 
-  originalFilename: ..., 
-  importedById: ..., 
-  statementHash: ..., 
-  status: ..., 
-  lineCount: ..., 
-  totalAmountCents: ..., 
+  id: ...,
+  cardId: ...,
+  holderIdSnapshot: ...,
+  holderNameSnapshot: ...,
+  periodStart: ...,
+  periodEnd: ...,
+  originalStoragePath: ...,
+  originalFilename: ...,
+  importedById: ...,
+  statementHash: ...,
+  status: ...,
+  lineCount: ...,
+  totalAmountCents: ...,
 };
 
 // Call the `adminSeedCreditCardStatementRef()` function to get a reference to the mutation.
@@ -5974,16 +5975,16 @@ import { connectorConfig, adminSeedCreditCardStatementLine, AdminSeedCreditCardS
 
 // The `AdminSeedCreditCardStatementLine` mutation requires an argument of type `AdminSeedCreditCardStatementLineVariables`:
 const adminSeedCreditCardStatementLineVars: AdminSeedCreditCardStatementLineVariables = {
-  id: ..., 
-  statementId: ..., 
-  sequence: ..., 
-  transactionDate: ..., 
+  id: ...,
+  statementId: ...,
+  sequence: ...,
+  transactionDate: ...,
   postedDate: ..., // optional
-  merchantRaw: ..., 
-  merchantNormalized: ..., 
-  amountCents: ..., 
+  merchantRaw: ...,
+  merchantNormalized: ...,
+  amountCents: ...,
   externalReference: ..., // optional
-  status: ..., 
+  status: ...,
   rawData: ..., // optional
 };
 
@@ -6014,16 +6015,16 @@ import { connectorConfig, adminSeedCreditCardStatementLineRef, AdminSeedCreditCa
 
 // The `AdminSeedCreditCardStatementLine` mutation requires an argument of type `AdminSeedCreditCardStatementLineVariables`:
 const adminSeedCreditCardStatementLineVars: AdminSeedCreditCardStatementLineVariables = {
-  id: ..., 
-  statementId: ..., 
-  sequence: ..., 
-  transactionDate: ..., 
+  id: ...,
+  statementId: ...,
+  sequence: ...,
+  transactionDate: ...,
   postedDate: ..., // optional
-  merchantRaw: ..., 
-  merchantNormalized: ..., 
-  amountCents: ..., 
+  merchantRaw: ...,
+  merchantNormalized: ...,
+  amountCents: ...,
   externalReference: ..., // optional
-  status: ..., 
+  status: ...,
   rawData: ..., // optional
 };
 
@@ -6108,12 +6109,12 @@ import { connectorConfig, adminSeedSkuReference, AdminSeedSkuReferenceVariables 
 
 // The `AdminSeedSkuReference` mutation requires an argument of type `AdminSeedSkuReferenceVariables`:
 const adminSeedSkuReferenceVars: AdminSeedSkuReferenceVariables = {
-  merchant: ..., 
-  sku: ..., 
+  merchant: ...,
+  sku: ...,
   productLabel: ..., // optional
   categoryLabel: ..., // optional
-  accountId: ..., 
-  verificationStatus: ..., 
+  accountId: ...,
+  verificationStatus: ...,
 };
 
 // Call the `adminSeedSkuReference()` function to execute the mutation.
@@ -6143,12 +6144,12 @@ import { connectorConfig, adminSeedSkuReferenceRef, AdminSeedSkuReferenceVariabl
 
 // The `AdminSeedSkuReference` mutation requires an argument of type `AdminSeedSkuReferenceVariables`:
 const adminSeedSkuReferenceVars: AdminSeedSkuReferenceVariables = {
-  merchant: ..., 
-  sku: ..., 
+  merchant: ...,
+  sku: ...,
   productLabel: ..., // optional
   categoryLabel: ..., // optional
-  accountId: ..., 
-  verificationStatus: ..., 
+  accountId: ...,
+  verificationStatus: ...,
 };
 
 // Call the `adminSeedSkuReferenceRef()` function to get a reference to the mutation.
@@ -6249,24 +6250,24 @@ import { connectorConfig, adminSeedExpenseTransaction, AdminSeedExpenseTransacti
 
 // The `AdminSeedExpenseTransaction` mutation requires an argument of type `AdminSeedExpenseTransactionVariables`:
 const adminSeedExpenseTransactionVars: AdminSeedExpenseTransactionVariables = {
-  id: ..., 
-  transactionDate: ..., 
-  vendor: ..., 
-  cardId: ..., 
-  statementPeriodId: ..., 
-  projectId: ..., 
-  accountId: ..., 
+  id: ...,
+  transactionDate: ...,
+  vendor: ...,
+  cardId: ...,
+  statementPeriodId: ...,
+  projectId: ...,
+  accountId: ...,
   categoryLabel: ..., // optional
   sku: ..., // optional
-  amountBeforeTaxCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  currency: ..., 
-  status: ..., 
+  amountBeforeTaxCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  currency: ...,
+  status: ...,
   processingStatus: ..., // optional
   accountingStatus: ..., // optional
-  reconciliationStatus: ..., 
+  reconciliationStatus: ...,
   classificationSource: ..., // optional
   classificationConfidence: ..., // optional
   classificationNote: ..., // optional
@@ -6301,24 +6302,24 @@ import { connectorConfig, adminSeedExpenseTransactionRef, AdminSeedExpenseTransa
 
 // The `AdminSeedExpenseTransaction` mutation requires an argument of type `AdminSeedExpenseTransactionVariables`:
 const adminSeedExpenseTransactionVars: AdminSeedExpenseTransactionVariables = {
-  id: ..., 
-  transactionDate: ..., 
-  vendor: ..., 
-  cardId: ..., 
-  statementPeriodId: ..., 
-  projectId: ..., 
-  accountId: ..., 
+  id: ...,
+  transactionDate: ...,
+  vendor: ...,
+  cardId: ...,
+  statementPeriodId: ...,
+  projectId: ...,
+  accountId: ...,
   categoryLabel: ..., // optional
   sku: ..., // optional
-  amountBeforeTaxCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  currency: ..., 
-  status: ..., 
+  amountBeforeTaxCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  currency: ...,
+  status: ...,
   processingStatus: ..., // optional
   accountingStatus: ..., // optional
-  reconciliationStatus: ..., 
+  reconciliationStatus: ...,
   classificationSource: ..., // optional
   classificationConfidence: ..., // optional
   classificationNote: ..., // optional
@@ -6415,9 +6416,9 @@ import { connectorConfig, adminSeedInvoice, AdminSeedInvoiceVariables } from '@f
 
 // The `AdminSeedInvoice` mutation requires an argument of type `AdminSeedInvoiceVariables`:
 const adminSeedInvoiceVars: AdminSeedInvoiceVariables = {
-  id: ..., 
-  transactionId: ..., 
-  vendor: ..., 
+  id: ...,
+  transactionId: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
   invoiceDate: ..., // optional
   subtotalCents: ..., // optional
@@ -6426,9 +6427,9 @@ const adminSeedInvoiceVars: AdminSeedInvoiceVariables = {
   totalCents: ..., // optional
   processingStatus: ..., // optional
   accountingStatus: ..., // optional
-  reviewStatus: ..., 
+  reviewStatus: ...,
   storageFolder: ..., // optional
-  createdById: ..., 
+  createdById: ...,
 };
 
 // Call the `adminSeedInvoice()` function to execute the mutation.
@@ -6458,9 +6459,9 @@ import { connectorConfig, adminSeedInvoiceRef, AdminSeedInvoiceVariables } from 
 
 // The `AdminSeedInvoice` mutation requires an argument of type `AdminSeedInvoiceVariables`:
 const adminSeedInvoiceVars: AdminSeedInvoiceVariables = {
-  id: ..., 
-  transactionId: ..., 
-  vendor: ..., 
+  id: ...,
+  transactionId: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
   invoiceDate: ..., // optional
   subtotalCents: ..., // optional
@@ -6469,9 +6470,9 @@ const adminSeedInvoiceVars: AdminSeedInvoiceVariables = {
   totalCents: ..., // optional
   processingStatus: ..., // optional
   accountingStatus: ..., // optional
-  reviewStatus: ..., 
+  reviewStatus: ...,
   storageFolder: ..., // optional
-  createdById: ..., 
+  createdById: ...,
 };
 
 // Call the `adminSeedInvoiceRef()` function to get a reference to the mutation.
@@ -6554,11 +6555,11 @@ import { connectorConfig, adminSeedInvoicePhoto, AdminSeedInvoicePhotoVariables 
 
 // The `AdminSeedInvoicePhoto` mutation requires an argument of type `AdminSeedInvoicePhotoVariables`:
 const adminSeedInvoicePhotoVars: AdminSeedInvoicePhotoVariables = {
-  id: ..., 
-  invoiceId: ..., 
-  storagePath: ..., 
-  contentType: ..., 
-  sequence: ..., 
+  id: ...,
+  invoiceId: ...,
+  storagePath: ...,
+  contentType: ...,
+  sequence: ...,
 };
 
 // Call the `adminSeedInvoicePhoto()` function to execute the mutation.
@@ -6588,11 +6589,11 @@ import { connectorConfig, adminSeedInvoicePhotoRef, AdminSeedInvoicePhotoVariabl
 
 // The `AdminSeedInvoicePhoto` mutation requires an argument of type `AdminSeedInvoicePhotoVariables`:
 const adminSeedInvoicePhotoVars: AdminSeedInvoicePhotoVariables = {
-  id: ..., 
-  invoiceId: ..., 
-  storagePath: ..., 
-  contentType: ..., 
-  sequence: ..., 
+  id: ...,
+  invoiceId: ...,
+  storagePath: ...,
+  contentType: ...,
+  sequence: ...,
 };
 
 // Call the `adminSeedInvoicePhotoRef()` function to get a reference to the mutation.
@@ -6671,7 +6672,7 @@ import { connectorConfig, adminDeleteInvoicePhoto, AdminDeleteInvoicePhotoVariab
 
 // The `AdminDeleteInvoicePhoto` mutation requires an argument of type `AdminDeleteInvoicePhotoVariables`:
 const adminDeleteInvoicePhotoVars: AdminDeleteInvoicePhotoVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteInvoicePhoto()` function to execute the mutation.
@@ -6701,7 +6702,7 @@ import { connectorConfig, adminDeleteInvoicePhotoRef, AdminDeleteInvoicePhotoVar
 
 // The `AdminDeleteInvoicePhoto` mutation requires an argument of type `AdminDeleteInvoicePhotoVariables`:
 const adminDeleteInvoicePhotoVars: AdminDeleteInvoicePhotoVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteInvoicePhotoRef()` function to get a reference to the mutation.
@@ -6780,7 +6781,7 @@ import { connectorConfig, adminDeleteInvoice, AdminDeleteInvoiceVariables } from
 
 // The `AdminDeleteInvoice` mutation requires an argument of type `AdminDeleteInvoiceVariables`:
 const adminDeleteInvoiceVars: AdminDeleteInvoiceVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteInvoice()` function to execute the mutation.
@@ -6810,7 +6811,7 @@ import { connectorConfig, adminDeleteInvoiceRef, AdminDeleteInvoiceVariables } f
 
 // The `AdminDeleteInvoice` mutation requires an argument of type `AdminDeleteInvoiceVariables`:
 const adminDeleteInvoiceVars: AdminDeleteInvoiceVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteInvoiceRef()` function to get a reference to the mutation.
@@ -6889,7 +6890,7 @@ import { connectorConfig, adminDeleteExpenseTransaction, AdminDeleteExpenseTrans
 
 // The `AdminDeleteExpenseTransaction` mutation requires an argument of type `AdminDeleteExpenseTransactionVariables`:
 const adminDeleteExpenseTransactionVars: AdminDeleteExpenseTransactionVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteExpenseTransaction()` function to execute the mutation.
@@ -6919,7 +6920,7 @@ import { connectorConfig, adminDeleteExpenseTransactionRef, AdminDeleteExpenseTr
 
 // The `AdminDeleteExpenseTransaction` mutation requires an argument of type `AdminDeleteExpenseTransactionVariables`:
 const adminDeleteExpenseTransactionVars: AdminDeleteExpenseTransactionVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteExpenseTransactionRef()` function to get a reference to the mutation.
@@ -6998,7 +6999,7 @@ import { connectorConfig, adminDeleteInvoiceIntake, AdminDeleteInvoiceIntakeVari
 
 // The `AdminDeleteInvoiceIntake` mutation requires an argument of type `AdminDeleteInvoiceIntakeVariables`:
 const adminDeleteInvoiceIntakeVars: AdminDeleteInvoiceIntakeVariables = {
-  receiptId: ..., 
+  receiptId: ...,
 };
 
 // Call the `adminDeleteInvoiceIntake()` function to execute the mutation.
@@ -7028,7 +7029,7 @@ import { connectorConfig, adminDeleteInvoiceIntakeRef, AdminDeleteInvoiceIntakeV
 
 // The `AdminDeleteInvoiceIntake` mutation requires an argument of type `AdminDeleteInvoiceIntakeVariables`:
 const adminDeleteInvoiceIntakeVars: AdminDeleteInvoiceIntakeVariables = {
-  receiptId: ..., 
+  receiptId: ...,
 };
 
 // Call the `adminDeleteInvoiceIntakeRef()` function to get a reference to the mutation.
@@ -7107,7 +7108,7 @@ import { connectorConfig, adminDeleteCreditCard, AdminDeleteCreditCardVariables 
 
 // The `AdminDeleteCreditCard` mutation requires an argument of type `AdminDeleteCreditCardVariables`:
 const adminDeleteCreditCardVars: AdminDeleteCreditCardVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteCreditCard()` function to execute the mutation.
@@ -7137,7 +7138,7 @@ import { connectorConfig, adminDeleteCreditCardRef, AdminDeleteCreditCardVariabl
 
 // The `AdminDeleteCreditCard` mutation requires an argument of type `AdminDeleteCreditCardVariables`:
 const adminDeleteCreditCardVars: AdminDeleteCreditCardVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteCreditCardRef()` function to get a reference to the mutation.
@@ -7217,8 +7218,8 @@ import { connectorConfig, adminDeleteSkuReference, AdminDeleteSkuReferenceVariab
 
 // The `AdminDeleteSkuReference` mutation requires an argument of type `AdminDeleteSkuReferenceVariables`:
 const adminDeleteSkuReferenceVars: AdminDeleteSkuReferenceVariables = {
-  merchant: ..., 
-  sku: ..., 
+  merchant: ...,
+  sku: ...,
 };
 
 // Call the `adminDeleteSkuReference()` function to execute the mutation.
@@ -7248,8 +7249,8 @@ import { connectorConfig, adminDeleteSkuReferenceRef, AdminDeleteSkuReferenceVar
 
 // The `AdminDeleteSkuReference` mutation requires an argument of type `AdminDeleteSkuReferenceVariables`:
 const adminDeleteSkuReferenceVars: AdminDeleteSkuReferenceVariables = {
-  merchant: ..., 
-  sku: ..., 
+  merchant: ...,
+  sku: ...,
 };
 
 // Call the `adminDeleteSkuReferenceRef()` function to get a reference to the mutation.
@@ -7328,7 +7329,7 @@ import { connectorConfig, adminDeleteProject, AdminDeleteProjectVariables } from
 
 // The `AdminDeleteProject` mutation requires an argument of type `AdminDeleteProjectVariables`:
 const adminDeleteProjectVars: AdminDeleteProjectVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteProject()` function to execute the mutation.
@@ -7358,7 +7359,7 @@ import { connectorConfig, adminDeleteProjectRef, AdminDeleteProjectVariables } f
 
 // The `AdminDeleteProject` mutation requires an argument of type `AdminDeleteProjectVariables`:
 const adminDeleteProjectVars: AdminDeleteProjectVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteProjectRef()` function to get a reference to the mutation.
@@ -7437,7 +7438,7 @@ import { connectorConfig, adminDeleteExpenseAccount, AdminDeleteExpenseAccountVa
 
 // The `AdminDeleteExpenseAccount` mutation requires an argument of type `AdminDeleteExpenseAccountVariables`:
 const adminDeleteExpenseAccountVars: AdminDeleteExpenseAccountVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteExpenseAccount()` function to execute the mutation.
@@ -7467,7 +7468,7 @@ import { connectorConfig, adminDeleteExpenseAccountRef, AdminDeleteExpenseAccoun
 
 // The `AdminDeleteExpenseAccount` mutation requires an argument of type `AdminDeleteExpenseAccountVariables`:
 const adminDeleteExpenseAccountVars: AdminDeleteExpenseAccountVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteExpenseAccountRef()` function to get a reference to the mutation.
@@ -7552,13 +7553,13 @@ import { connectorConfig, adminSeedCreditCardHolderHistory, AdminSeedCreditCardH
 
 // The `AdminSeedCreditCardHolderHistory` mutation requires an argument of type `AdminSeedCreditCardHolderHistoryVariables`:
 const adminSeedCreditCardHolderHistoryVars: AdminSeedCreditCardHolderHistoryVariables = {
-  id: ..., 
-  cardId: ..., 
-  holderId: ..., 
-  validFrom: ..., 
+  id: ...,
+  cardId: ...,
+  holderId: ...,
+  validFrom: ...,
   validTo: ..., // optional
-  isCurrent: ..., 
-  status: ..., 
+  isCurrent: ...,
+  status: ...,
 };
 
 // Call the `adminSeedCreditCardHolderHistory()` function to execute the mutation.
@@ -7588,13 +7589,13 @@ import { connectorConfig, adminSeedCreditCardHolderHistoryRef, AdminSeedCreditCa
 
 // The `AdminSeedCreditCardHolderHistory` mutation requires an argument of type `AdminSeedCreditCardHolderHistoryVariables`:
 const adminSeedCreditCardHolderHistoryVars: AdminSeedCreditCardHolderHistoryVariables = {
-  id: ..., 
-  cardId: ..., 
-  holderId: ..., 
-  validFrom: ..., 
+  id: ...,
+  cardId: ...,
+  holderId: ...,
+  validFrom: ...,
   validTo: ..., // optional
-  isCurrent: ..., 
-  status: ..., 
+  isCurrent: ...,
+  status: ...,
 };
 
 // Call the `adminSeedCreditCardHolderHistoryRef()` function to get a reference to the mutation.
@@ -7681,13 +7682,13 @@ import { connectorConfig, adminSeedMerchantAlias, AdminSeedMerchantAliasVariable
 
 // The `AdminSeedMerchantAlias` mutation requires an argument of type `AdminSeedMerchantAliasVariables`:
 const adminSeedMerchantAliasVars: AdminSeedMerchantAliasVariables = {
-  id: ..., 
-  merchantRawKey: ..., 
-  merchantNormalized: ..., 
+  id: ...,
+  merchantRawKey: ...,
+  merchantNormalized: ...,
   merchantCanonical: ..., // optional
-  active: ..., 
-  status: ..., 
-  source: ..., 
+  active: ...,
+  status: ...,
+  source: ...,
   confidence: ..., // optional
   method: ..., // optional
 };
@@ -7719,13 +7720,13 @@ import { connectorConfig, adminSeedMerchantAliasRef, AdminSeedMerchantAliasVaria
 
 // The `AdminSeedMerchantAlias` mutation requires an argument of type `AdminSeedMerchantAliasVariables`:
 const adminSeedMerchantAliasVars: AdminSeedMerchantAliasVariables = {
-  id: ..., 
-  merchantRawKey: ..., 
-  merchantNormalized: ..., 
+  id: ...,
+  merchantRawKey: ...,
+  merchantNormalized: ...,
   merchantCanonical: ..., // optional
-  active: ..., 
-  status: ..., 
-  source: ..., 
+  active: ...,
+  status: ...,
+  source: ...,
   confidence: ..., // optional
   method: ..., // optional
 };
@@ -7806,7 +7807,7 @@ import { connectorConfig, adminDeleteCardStatementPeriod, AdminDeleteCardStateme
 
 // The `AdminDeleteCardStatementPeriod` mutation requires an argument of type `AdminDeleteCardStatementPeriodVariables`:
 const adminDeleteCardStatementPeriodVars: AdminDeleteCardStatementPeriodVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteCardStatementPeriod()` function to execute the mutation.
@@ -7836,7 +7837,7 @@ import { connectorConfig, adminDeleteCardStatementPeriodRef, AdminDeleteCardStat
 
 // The `AdminDeleteCardStatementPeriod` mutation requires an argument of type `AdminDeleteCardStatementPeriodVariables`:
 const adminDeleteCardStatementPeriodVars: AdminDeleteCardStatementPeriodVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteCardStatementPeriodRef()` function to get a reference to the mutation.
@@ -7915,7 +7916,7 @@ import { connectorConfig, adminDeleteUserProfile, AdminDeleteUserProfileVariable
 
 // The `AdminDeleteUserProfile` mutation requires an argument of type `AdminDeleteUserProfileVariables`:
 const adminDeleteUserProfileVars: AdminDeleteUserProfileVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteUserProfile()` function to execute the mutation.
@@ -7945,7 +7946,7 @@ import { connectorConfig, adminDeleteUserProfileRef, AdminDeleteUserProfileVaria
 
 // The `AdminDeleteUserProfile` mutation requires an argument of type `AdminDeleteUserProfileVariables`:
 const adminDeleteUserProfileVars: AdminDeleteUserProfileVariables = {
-  id: ..., 
+  id: ...,
 };
 
 // Call the `adminDeleteUserProfileRef()` function to get a reference to the mutation.
@@ -8028,11 +8029,11 @@ import { connectorConfig, adminRecordArchivePurge, AdminRecordArchivePurgeVariab
 
 // The `AdminRecordArchivePurge` mutation requires an argument of type `AdminRecordArchivePurgeVariables`:
 const adminRecordArchivePurgeVars: AdminRecordArchivePurgeVariables = {
-  auditEventId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  archiveId: ..., 
-  auditDetails: ..., 
+  auditEventId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  archiveId: ...,
+  auditDetails: ...,
 };
 
 // Call the `adminRecordArchivePurge()` function to execute the mutation.
@@ -8062,11 +8063,11 @@ import { connectorConfig, adminRecordArchivePurgeRef, AdminRecordArchivePurgeVar
 
 // The `AdminRecordArchivePurge` mutation requires an argument of type `AdminRecordArchivePurgeVariables`:
 const adminRecordArchivePurgeVars: AdminRecordArchivePurgeVariables = {
-  auditEventId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  archiveId: ..., 
-  auditDetails: ..., 
+  auditEventId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  archiveId: ...,
+  auditDetails: ...,
 };
 
 // Call the `adminRecordArchivePurgeRef()` function to get a reference to the mutation.
@@ -8151,13 +8152,13 @@ import { connectorConfig, upsertUserProfile, UpsertUserProfileVariables } from '
 
 // The `UpsertUserProfile` mutation requires an argument of type `UpsertUserProfileVariables`:
 const upsertUserProfileVars: UpsertUserProfileVariables = {
-  id: ..., 
+  id: ...,
   firebaseUid: ..., // optional
-  displayName: ..., 
+  displayName: ...,
   email: ..., // optional
   jobTitle: ..., // optional
-  role: ..., 
-  status: ..., 
+  role: ...,
+  status: ...,
 };
 
 // Call the `upsertUserProfile()` function to execute the mutation.
@@ -8187,13 +8188,13 @@ import { connectorConfig, upsertUserProfileRef, UpsertUserProfileVariables } fro
 
 // The `UpsertUserProfile` mutation requires an argument of type `UpsertUserProfileVariables`:
 const upsertUserProfileVars: UpsertUserProfileVariables = {
-  id: ..., 
+  id: ...,
   firebaseUid: ..., // optional
-  displayName: ..., 
+  displayName: ...,
   email: ..., // optional
   jobTitle: ..., // optional
-  role: ..., 
-  status: ..., 
+  role: ...,
+  status: ...,
 };
 
 // Call the `upsertUserProfileRef()` function to get a reference to the mutation.
@@ -8278,11 +8279,11 @@ import { connectorConfig, upsertCreditCard, UpsertCreditCardVariables } from '@f
 
 // The `UpsertCreditCard` mutation requires an argument of type `UpsertCreditCardVariables`:
 const upsertCreditCardVars: UpsertCreditCardVariables = {
-  id: ..., 
-  lastFour: ..., 
-  holderId: ..., 
+  id: ...,
+  lastFour: ...,
+  holderId: ...,
   cardFunction: ..., // optional
-  status: ..., 
+  status: ...,
   activeFrom: ..., // optional
   inactiveFrom: ..., // optional
 };
@@ -8314,11 +8315,11 @@ import { connectorConfig, upsertCreditCardRef, UpsertCreditCardVariables } from 
 
 // The `UpsertCreditCard` mutation requires an argument of type `UpsertCreditCardVariables`:
 const upsertCreditCardVars: UpsertCreditCardVariables = {
-  id: ..., 
-  lastFour: ..., 
-  holderId: ..., 
+  id: ...,
+  lastFour: ...,
+  holderId: ...,
   cardFunction: ..., // optional
-  status: ..., 
+  status: ...,
   activeFrom: ..., // optional
   inactiveFrom: ..., // optional
 };
@@ -8419,23 +8420,23 @@ import { connectorConfig, adminUpsertUserProfileWithAudit, AdminUpsertUserProfil
 
 // The `AdminUpsertUserProfileWithAudit` mutation requires an argument of type `AdminUpsertUserProfileWithAuditVariables`:
 const adminUpsertUserProfileWithAuditVars: AdminUpsertUserProfileWithAuditVariables = {
-  id: ..., 
+  id: ...,
   firebaseUid: ..., // optional
-  displayName: ..., 
+  displayName: ...,
   email: ..., // optional
   jobTitle: ..., // optional
-  role: ..., 
-  status: ..., 
-  invitationStatus: ..., 
+  role: ...,
+  status: ...,
+  invitationStatus: ...,
   invitationSentAt: ..., // optional
   invitationSentBy: ..., // optional
   lastInvitationError: ..., // optional
   activatedAt: ..., // optional
-  auditEventId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditAction: ..., 
-  auditDetails: ..., 
+  auditEventId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditAction: ...,
+  auditDetails: ...,
   deactivateCards: ..., // optional
   inactiveFrom: ..., // optional
 };
@@ -8471,23 +8472,23 @@ import { connectorConfig, adminUpsertUserProfileWithAuditRef, AdminUpsertUserPro
 
 // The `AdminUpsertUserProfileWithAudit` mutation requires an argument of type `AdminUpsertUserProfileWithAuditVariables`:
 const adminUpsertUserProfileWithAuditVars: AdminUpsertUserProfileWithAuditVariables = {
-  id: ..., 
+  id: ...,
   firebaseUid: ..., // optional
-  displayName: ..., 
+  displayName: ...,
   email: ..., // optional
   jobTitle: ..., // optional
-  role: ..., 
-  status: ..., 
-  invitationStatus: ..., 
+  role: ...,
+  status: ...,
+  invitationStatus: ...,
   invitationSentAt: ..., // optional
   invitationSentBy: ..., // optional
   lastInvitationError: ..., // optional
   activatedAt: ..., // optional
-  auditEventId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditAction: ..., 
-  auditDetails: ..., 
+  auditEventId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditAction: ...,
+  auditDetails: ...,
   deactivateCards: ..., // optional
   inactiveFrom: ..., // optional
 };
@@ -8577,12 +8578,12 @@ import { connectorConfig, adminRecordUserAudit, AdminRecordUserAuditVariables } 
 
 // The `AdminRecordUserAudit` mutation requires an argument of type `AdminRecordUserAuditVariables`:
 const adminRecordUserAuditVars: AdminRecordUserAuditVariables = {
-  auditEventId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditAction: ..., 
-  entityId: ..., 
-  auditDetails: ..., 
+  auditEventId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditAction: ...,
+  entityId: ...,
+  auditDetails: ...,
 };
 
 // Call the `adminRecordUserAudit()` function to execute the mutation.
@@ -8612,12 +8613,12 @@ import { connectorConfig, adminRecordUserAuditRef, AdminRecordUserAuditVariables
 
 // The `AdminRecordUserAudit` mutation requires an argument of type `AdminRecordUserAuditVariables`:
 const adminRecordUserAuditVars: AdminRecordUserAuditVariables = {
-  auditEventId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditAction: ..., 
-  entityId: ..., 
-  auditDetails: ..., 
+  auditEventId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditAction: ...,
+  entityId: ...,
+  auditDetails: ...,
 };
 
 // Call the `adminRecordUserAuditRef()` function to get a reference to the mutation.
@@ -8703,13 +8704,13 @@ import { connectorConfig, upsertProject, UpsertProjectVariables } from '@facture
 
 // The `UpsertProject` mutation requires an argument of type `UpsertProjectVariables`:
 const upsertProjectVars: UpsertProjectVariables = {
-  id: ..., 
-  number: ..., 
-  name: ..., 
-  status: ..., 
-  auditAction: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  id: ...,
+  number: ...,
+  name: ...,
+  status: ...,
+  auditAction: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `upsertProject()` function to execute the mutation.
@@ -8741,13 +8742,13 @@ import { connectorConfig, upsertProjectRef, UpsertProjectVariables } from '@fact
 
 // The `UpsertProject` mutation requires an argument of type `UpsertProjectVariables`:
 const upsertProjectVars: UpsertProjectVariables = {
-  id: ..., 
-  number: ..., 
-  name: ..., 
-  status: ..., 
-  auditAction: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  id: ...,
+  number: ...,
+  name: ...,
+  status: ...,
+  auditAction: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `upsertProjectRef()` function to get a reference to the mutation.
@@ -8836,14 +8837,14 @@ import { connectorConfig, upsertExpenseAccount, UpsertExpenseAccountVariables } 
 
 // The `UpsertExpenseAccount` mutation requires an argument of type `UpsertExpenseAccountVariables`:
 const upsertExpenseAccountVars: UpsertExpenseAccountVariables = {
-  id: ..., 
-  number: ..., 
-  type: ..., 
-  label: ..., 
-  status: ..., 
-  auditAction: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  id: ...,
+  number: ...,
+  type: ...,
+  label: ...,
+  status: ...,
+  auditAction: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `upsertExpenseAccount()` function to execute the mutation.
@@ -8875,14 +8876,14 @@ import { connectorConfig, upsertExpenseAccountRef, UpsertExpenseAccountVariables
 
 // The `UpsertExpenseAccount` mutation requires an argument of type `UpsertExpenseAccountVariables`:
 const upsertExpenseAccountVars: UpsertExpenseAccountVariables = {
-  id: ..., 
-  number: ..., 
-  type: ..., 
-  label: ..., 
-  status: ..., 
-  auditAction: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  id: ...,
+  number: ...,
+  type: ...,
+  label: ...,
+  status: ...,
+  auditAction: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `upsertExpenseAccountRef()` function to get a reference to the mutation.
@@ -8966,9 +8967,9 @@ import { connectorConfig, deleteProject, DeleteProjectVariables } from '@facture
 
 // The `DeleteProject` mutation requires an argument of type `DeleteProjectVariables`:
 const deleteProjectVars: DeleteProjectVariables = {
-  id: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  id: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `deleteProject()` function to execute the mutation.
@@ -9000,9 +9001,9 @@ import { connectorConfig, deleteProjectRef, DeleteProjectVariables } from '@fact
 
 // The `DeleteProject` mutation requires an argument of type `DeleteProjectVariables`:
 const deleteProjectVars: DeleteProjectVariables = {
-  id: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  id: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `deleteProjectRef()` function to get a reference to the mutation.
@@ -9086,9 +9087,9 @@ import { connectorConfig, deleteExpenseAccount, DeleteExpenseAccountVariables } 
 
 // The `DeleteExpenseAccount` mutation requires an argument of type `DeleteExpenseAccountVariables`:
 const deleteExpenseAccountVars: DeleteExpenseAccountVariables = {
-  id: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  id: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `deleteExpenseAccount()` function to execute the mutation.
@@ -9120,9 +9121,9 @@ import { connectorConfig, deleteExpenseAccountRef, DeleteExpenseAccountVariables
 
 // The `DeleteExpenseAccount` mutation requires an argument of type `DeleteExpenseAccountVariables`:
 const deleteExpenseAccountVars: DeleteExpenseAccountVariables = {
-  id: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  id: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `deleteExpenseAccountRef()` function to get a reference to the mutation.
@@ -9208,12 +9209,12 @@ import { connectorConfig, upsertCardStatementPeriod, UpsertCardStatementPeriodVa
 
 // The `UpsertCardStatementPeriod` mutation requires an argument of type `UpsertCardStatementPeriodVariables`:
 const upsertCardStatementPeriodVars: UpsertCardStatementPeriodVariables = {
-  id: ..., 
-  label: ..., 
-  startDate: ..., 
-  endDate: ..., 
+  id: ...,
+  label: ...,
+  startDate: ...,
+  endDate: ...,
   statementLabel: ..., // optional
-  status: ..., 
+  status: ...,
 };
 
 // Call the `upsertCardStatementPeriod()` function to execute the mutation.
@@ -9243,12 +9244,12 @@ import { connectorConfig, upsertCardStatementPeriodRef, UpsertCardStatementPerio
 
 // The `UpsertCardStatementPeriod` mutation requires an argument of type `UpsertCardStatementPeriodVariables`:
 const upsertCardStatementPeriodVars: UpsertCardStatementPeriodVariables = {
-  id: ..., 
-  label: ..., 
-  startDate: ..., 
-  endDate: ..., 
+  id: ...,
+  label: ...,
+  startDate: ...,
+  endDate: ...,
   statementLabel: ..., // optional
-  status: ..., 
+  status: ...,
 };
 
 // Call the `upsertCardStatementPeriodRef()` function to get a reference to the mutation.
@@ -9331,10 +9332,10 @@ import { connectorConfig, saveStatementManualAdjustments, SaveStatementManualAdj
 
 // The `SaveStatementManualAdjustments` mutation requires an argument of type `SaveStatementManualAdjustmentsVariables`:
 const saveStatementManualAdjustmentsVars: SaveStatementManualAdjustmentsVariables = {
-  id: ..., 
-  manualAdjustmentsJson: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  id: ...,
+  manualAdjustmentsJson: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `saveStatementManualAdjustments()` function to execute the mutation.
@@ -9366,10 +9367,10 @@ import { connectorConfig, saveStatementManualAdjustmentsRef, SaveStatementManual
 
 // The `SaveStatementManualAdjustments` mutation requires an argument of type `SaveStatementManualAdjustmentsVariables`:
 const saveStatementManualAdjustmentsVars: SaveStatementManualAdjustmentsVariables = {
-  id: ..., 
-  manualAdjustmentsJson: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  id: ...,
+  manualAdjustmentsJson: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `saveStatementManualAdjustmentsRef()` function to get a reference to the mutation.
@@ -9460,16 +9461,16 @@ import { connectorConfig, upsertReportAdjustmentSet, UpsertReportAdjustmentSetVa
 
 // The `UpsertReportAdjustmentSet` mutation requires an argument of type `UpsertReportAdjustmentSetVariables`:
 const upsertReportAdjustmentSetVars: UpsertReportAdjustmentSetVariables = {
-  id: ..., 
-  periodKey: ..., 
-  periodStart: ..., 
-  periodEnd: ..., 
+  id: ...,
+  periodKey: ...,
+  periodStart: ...,
+  periodEnd: ...,
   projectId: ..., // optional
   holderId: ..., // optional
-  rowsJson: ..., 
-  actorUid: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  rowsJson: ...,
+  actorUid: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `upsertReportAdjustmentSet()` function to execute the mutation.
@@ -9501,16 +9502,16 @@ import { connectorConfig, upsertReportAdjustmentSetRef, UpsertReportAdjustmentSe
 
 // The `UpsertReportAdjustmentSet` mutation requires an argument of type `UpsertReportAdjustmentSetVariables`:
 const upsertReportAdjustmentSetVars: UpsertReportAdjustmentSetVariables = {
-  id: ..., 
-  periodKey: ..., 
-  periodStart: ..., 
-  periodEnd: ..., 
+  id: ...,
+  periodKey: ...,
+  periodStart: ...,
+  periodEnd: ...,
   projectId: ..., // optional
   holderId: ..., // optional
-  rowsJson: ..., 
-  actorUid: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  rowsJson: ...,
+  actorUid: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `upsertReportAdjustmentSetRef()` function to get a reference to the mutation.
@@ -9584,10 +9585,6 @@ export interface UpsertCreditCardStatementVariables {
   status: string;
   lineCount: number;
   totalAmountCents: Int64String;
-  actorUid: string;
-  actorRole: string;
-  auditEventId: string;
-  auditDetails: string;
 }
 ```
 ### Return Type
@@ -9596,8 +9593,7 @@ Recall that executing the `UpsertCreditCardStatement` mutation returns a `Mutati
 The `data` property is an object of type `UpsertCreditCardStatementData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
 ```typescript
 export interface UpsertCreditCardStatementData {
-  creditCardStatement_insert: CreditCardStatement_Key;
-  auditEvent_upsert: AuditEvent_Key;
+  creditCardStatement_upsert: CreditCardStatement_Key;
 }
 ```
 ### Using `UpsertCreditCardStatement`'s action shortcut function
@@ -9608,43 +9604,37 @@ import { connectorConfig, upsertCreditCardStatement, UpsertCreditCardStatementVa
 
 // The `UpsertCreditCardStatement` mutation requires an argument of type `UpsertCreditCardStatementVariables`:
 const upsertCreditCardStatementVars: UpsertCreditCardStatementVariables = {
-  id: ..., 
-  cardId: ..., 
-  holderIdSnapshot: ..., 
-  holderNameSnapshot: ..., 
-  periodStart: ..., 
-  periodEnd: ..., 
-  originalStoragePath: ..., 
-  originalFilename: ..., 
-  importedById: ..., 
-  statementHash: ..., 
-  status: ..., 
-  lineCount: ..., 
-  totalAmountCents: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  id: ...,
+  cardId: ...,
+  holderIdSnapshot: ...,
+  holderNameSnapshot: ...,
+  periodStart: ...,
+  periodEnd: ...,
+  originalStoragePath: ...,
+  originalFilename: ...,
+  importedById: ...,
+  statementHash: ...,
+  status: ...,
+  lineCount: ...,
+  totalAmountCents: ...,
 };
 
 // Call the `upsertCreditCardStatement()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await upsertCreditCardStatement(upsertCreditCardStatementVars);
 // Variables can be defined inline as well.
-const { data } = await upsertCreditCardStatement({ id: ..., cardId: ..., holderIdSnapshot: ..., holderNameSnapshot: ..., periodStart: ..., periodEnd: ..., originalStoragePath: ..., originalFilename: ..., importedById: ..., statementHash: ..., status: ..., lineCount: ..., totalAmountCents: ..., actorUid: ..., actorRole: ..., auditEventId: ..., auditDetails: ..., });
+const { data } = await upsertCreditCardStatement({ id: ..., cardId: ..., holderIdSnapshot: ..., holderNameSnapshot: ..., periodStart: ..., periodEnd: ..., originalStoragePath: ..., originalFilename: ..., importedById: ..., statementHash: ..., status: ..., lineCount: ..., totalAmountCents: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
 const { data } = await upsertCreditCardStatement(dataConnect, upsertCreditCardStatementVars);
 
-console.log(data.creditCardStatement_insert);
-console.log(data.auditEvent_upsert);
+console.log(data.creditCardStatement_upsert);
 
 // Or, you can use the `Promise` API.
 upsertCreditCardStatement(upsertCreditCardStatementVars).then((response) => {
   const data = response.data;
-  console.log(data.creditCardStatement_insert);
-  console.log(data.auditEvent_upsert);
+  console.log(data.creditCardStatement_upsert);
 });
 ```
 
@@ -9656,29 +9646,25 @@ import { connectorConfig, upsertCreditCardStatementRef, UpsertCreditCardStatemen
 
 // The `UpsertCreditCardStatement` mutation requires an argument of type `UpsertCreditCardStatementVariables`:
 const upsertCreditCardStatementVars: UpsertCreditCardStatementVariables = {
-  id: ..., 
-  cardId: ..., 
-  holderIdSnapshot: ..., 
-  holderNameSnapshot: ..., 
-  periodStart: ..., 
-  periodEnd: ..., 
-  originalStoragePath: ..., 
-  originalFilename: ..., 
-  importedById: ..., 
-  statementHash: ..., 
-  status: ..., 
-  lineCount: ..., 
-  totalAmountCents: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  id: ...,
+  cardId: ...,
+  holderIdSnapshot: ...,
+  holderNameSnapshot: ...,
+  periodStart: ...,
+  periodEnd: ...,
+  originalStoragePath: ...,
+  originalFilename: ...,
+  importedById: ...,
+  statementHash: ...,
+  status: ...,
+  lineCount: ...,
+  totalAmountCents: ...,
 };
 
 // Call the `upsertCreditCardStatementRef()` function to get a reference to the mutation.
 const ref = upsertCreditCardStatementRef(upsertCreditCardStatementVars);
 // Variables can be defined inline as well.
-const ref = upsertCreditCardStatementRef({ id: ..., cardId: ..., holderIdSnapshot: ..., holderNameSnapshot: ..., periodStart: ..., periodEnd: ..., originalStoragePath: ..., originalFilename: ..., importedById: ..., statementHash: ..., status: ..., lineCount: ..., totalAmountCents: ..., actorUid: ..., actorRole: ..., auditEventId: ..., auditDetails: ..., });
+const ref = upsertCreditCardStatementRef({ id: ..., cardId: ..., holderIdSnapshot: ..., holderNameSnapshot: ..., periodStart: ..., periodEnd: ..., originalStoragePath: ..., originalFilename: ..., importedById: ..., statementHash: ..., status: ..., lineCount: ..., totalAmountCents: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -9688,14 +9674,12 @@ const ref = upsertCreditCardStatementRef(dataConnect, upsertCreditCardStatementV
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await executeMutation(ref);
 
-console.log(data.creditCardStatement_insert);
-console.log(data.auditEvent_upsert);
+console.log(data.creditCardStatement_upsert);
 
 // Or, you can use the `Promise` API.
 executeMutation(ref).then((response) => {
   const data = response.data;
-  console.log(data.creditCardStatement_insert);
-  console.log(data.auditEvent_upsert);
+  console.log(data.creditCardStatement_upsert);
 });
 ```
 
@@ -9763,16 +9747,16 @@ import { connectorConfig, upsertCreditCardStatementLine, UpsertCreditCardStateme
 
 // The `UpsertCreditCardStatementLine` mutation requires an argument of type `UpsertCreditCardStatementLineVariables`:
 const upsertCreditCardStatementLineVars: UpsertCreditCardStatementLineVariables = {
-  id: ..., 
-  statementId: ..., 
-  sequence: ..., 
-  transactionDate: ..., 
+  id: ...,
+  statementId: ...,
+  sequence: ...,
+  transactionDate: ...,
   postedDate: ..., // optional
-  merchantRaw: ..., 
-  merchantNormalized: ..., 
-  amountCents: ..., 
+  merchantRaw: ...,
+  merchantNormalized: ...,
+  amountCents: ...,
   externalReference: ..., // optional
-  status: ..., 
+  status: ...,
   rawData: ..., // optional
 };
 
@@ -9803,16 +9787,16 @@ import { connectorConfig, upsertCreditCardStatementLineRef, UpsertCreditCardStat
 
 // The `UpsertCreditCardStatementLine` mutation requires an argument of type `UpsertCreditCardStatementLineVariables`:
 const upsertCreditCardStatementLineVars: UpsertCreditCardStatementLineVariables = {
-  id: ..., 
-  statementId: ..., 
-  sequence: ..., 
-  transactionDate: ..., 
+  id: ...,
+  statementId: ...,
+  sequence: ...,
+  transactionDate: ...,
   postedDate: ..., // optional
-  merchantRaw: ..., 
-  merchantNormalized: ..., 
-  amountCents: ..., 
+  merchantRaw: ...,
+  merchantNormalized: ...,
+  amountCents: ...,
   externalReference: ..., // optional
-  status: ..., 
+  status: ...,
   rawData: ..., // optional
 };
 
@@ -9835,6 +9819,135 @@ console.log(data.creditCardStatementLine_upsert);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.creditCardStatementLine_upsert);
+});
+```
+
+## FinalizeCreditCardStatementImport
+You can execute the `FinalizeCreditCardStatementImport` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [data-connect/index.d.ts](./index.d.ts):
+```typescript
+finalizeCreditCardStatementImport(vars: FinalizeCreditCardStatementImportVariables): MutationPromise<FinalizeCreditCardStatementImportData, FinalizeCreditCardStatementImportVariables>;
+
+interface FinalizeCreditCardStatementImportRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: FinalizeCreditCardStatementImportVariables): MutationRef<FinalizeCreditCardStatementImportData, FinalizeCreditCardStatementImportVariables>;
+}
+export const finalizeCreditCardStatementImportRef: FinalizeCreditCardStatementImportRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+finalizeCreditCardStatementImport(dc: DataConnect, vars: FinalizeCreditCardStatementImportVariables): MutationPromise<FinalizeCreditCardStatementImportData, FinalizeCreditCardStatementImportVariables>;
+
+interface FinalizeCreditCardStatementImportRef {
+  ...
+  (dc: DataConnect, vars: FinalizeCreditCardStatementImportVariables): MutationRef<FinalizeCreditCardStatementImportData, FinalizeCreditCardStatementImportVariables>;
+}
+export const finalizeCreditCardStatementImportRef: FinalizeCreditCardStatementImportRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the finalizeCreditCardStatementImportRef:
+```typescript
+const name = finalizeCreditCardStatementImportRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `FinalizeCreditCardStatementImport` mutation requires an argument of type `FinalizeCreditCardStatementImportVariables`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface FinalizeCreditCardStatementImportVariables {
+  id: string;
+  statementHash: string;
+  actorUid: string;
+  actorRole: string;
+  auditEventId: string;
+  auditDetails: string;
+}
+```
+### Return Type
+Recall that executing the `FinalizeCreditCardStatementImport` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `FinalizeCreditCardStatementImportData`, which is defined in [data-connect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface FinalizeCreditCardStatementImportData {
+  creditCardStatement_updateMany: number;
+  auditEvent_upsert: AuditEvent_Key;
+}
+```
+### Using `FinalizeCreditCardStatementImport`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, finalizeCreditCardStatementImport, FinalizeCreditCardStatementImportVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `FinalizeCreditCardStatementImport` mutation requires an argument of type `FinalizeCreditCardStatementImportVariables`:
+const finalizeCreditCardStatementImportVars: FinalizeCreditCardStatementImportVariables = {
+  id: ...,
+  statementHash: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditEventId: ...,
+  auditDetails: ...,
+};
+
+// Call the `finalizeCreditCardStatementImport()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await finalizeCreditCardStatementImport(finalizeCreditCardStatementImportVars);
+// Variables can be defined inline as well.
+const { data } = await finalizeCreditCardStatementImport({ id: ..., statementHash: ..., actorUid: ..., actorRole: ..., auditEventId: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await finalizeCreditCardStatementImport(dataConnect, finalizeCreditCardStatementImportVars);
+
+console.log(data.creditCardStatement_updateMany);
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+finalizeCreditCardStatementImport(finalizeCreditCardStatementImportVars).then((response) => {
+  const data = response.data;
+  console.log(data.creditCardStatement_updateMany);
+  console.log(data.auditEvent_upsert);
+});
+```
+
+### Using `FinalizeCreditCardStatementImport`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, finalizeCreditCardStatementImportRef, FinalizeCreditCardStatementImportVariables } from '@factures-thibeault/data-connect-generated';
+
+// The `FinalizeCreditCardStatementImport` mutation requires an argument of type `FinalizeCreditCardStatementImportVariables`:
+const finalizeCreditCardStatementImportVars: FinalizeCreditCardStatementImportVariables = {
+  id: ...,
+  statementHash: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditEventId: ...,
+  auditDetails: ...,
+};
+
+// Call the `finalizeCreditCardStatementImportRef()` function to get a reference to the mutation.
+const ref = finalizeCreditCardStatementImportRef(finalizeCreditCardStatementImportVars);
+// Variables can be defined inline as well.
+const ref = finalizeCreditCardStatementImportRef({ id: ..., statementHash: ..., actorUid: ..., actorRole: ..., auditEventId: ..., auditDetails: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = finalizeCreditCardStatementImportRef(dataConnect, finalizeCreditCardStatementImportVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.creditCardStatement_updateMany);
+console.log(data.auditEvent_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.creditCardStatement_updateMany);
+  console.log(data.auditEvent_upsert);
 });
 ```
 
@@ -9903,17 +10016,17 @@ import { connectorConfig, upsertCreditCardHolderHistory, UpsertCreditCardHolderH
 
 // The `UpsertCreditCardHolderHistory` mutation requires an argument of type `UpsertCreditCardHolderHistoryVariables`:
 const upsertCreditCardHolderHistoryVars: UpsertCreditCardHolderHistoryVariables = {
-  id: ..., 
-  cardId: ..., 
-  holderId: ..., 
-  validFrom: ..., 
+  id: ...,
+  cardId: ...,
+  holderId: ...,
+  validFrom: ...,
   validTo: ..., // optional
-  isCurrent: ..., 
-  status: ..., 
-  auditEventId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditDetails: ..., 
+  isCurrent: ...,
+  status: ...,
+  auditEventId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditDetails: ...,
 };
 
 // Call the `upsertCreditCardHolderHistory()` function to execute the mutation.
@@ -9945,17 +10058,17 @@ import { connectorConfig, upsertCreditCardHolderHistoryRef, UpsertCreditCardHold
 
 // The `UpsertCreditCardHolderHistory` mutation requires an argument of type `UpsertCreditCardHolderHistoryVariables`:
 const upsertCreditCardHolderHistoryVars: UpsertCreditCardHolderHistoryVariables = {
-  id: ..., 
-  cardId: ..., 
-  holderId: ..., 
-  validFrom: ..., 
+  id: ...,
+  cardId: ...,
+  holderId: ...,
+  validFrom: ...,
   validTo: ..., // optional
-  isCurrent: ..., 
-  status: ..., 
-  auditEventId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditDetails: ..., 
+  isCurrent: ...,
+  status: ...,
+  auditEventId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditDetails: ...,
 };
 
 // Call the `upsertCreditCardHolderHistoryRef()` function to get a reference to the mutation.
@@ -10050,20 +10163,20 @@ import { connectorConfig, upsertMerchantAlias, UpsertMerchantAliasVariables } fr
 
 // The `UpsertMerchantAlias` mutation requires an argument of type `UpsertMerchantAliasVariables`:
 const upsertMerchantAliasVars: UpsertMerchantAliasVariables = {
-  id: ..., 
-  merchantRawKey: ..., 
-  merchantNormalized: ..., 
+  id: ...,
+  merchantRawKey: ...,
+  merchantNormalized: ...,
   merchantCanonical: ..., // optional
-  active: ..., 
-  status: ..., 
-  source: ..., 
+  active: ...,
+  status: ...,
+  source: ...,
   confidence: ..., // optional
   method: ..., // optional
-  createdById: ..., 
-  auditEventId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditDetails: ..., 
+  createdById: ...,
+  auditEventId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditDetails: ...,
 };
 
 // Call the `upsertMerchantAlias()` function to execute the mutation.
@@ -10095,20 +10208,20 @@ import { connectorConfig, upsertMerchantAliasRef, UpsertMerchantAliasVariables }
 
 // The `UpsertMerchantAlias` mutation requires an argument of type `UpsertMerchantAliasVariables`:
 const upsertMerchantAliasVars: UpsertMerchantAliasVariables = {
-  id: ..., 
-  merchantRawKey: ..., 
-  merchantNormalized: ..., 
+  id: ...,
+  merchantRawKey: ...,
+  merchantNormalized: ...,
   merchantCanonical: ..., // optional
-  active: ..., 
-  status: ..., 
-  source: ..., 
+  active: ...,
+  status: ...,
+  source: ...,
   confidence: ..., // optional
   method: ..., // optional
-  createdById: ..., 
-  auditEventId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditDetails: ..., 
+  createdById: ...,
+  auditEventId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditDetails: ...,
 };
 
 // Call the `upsertMerchantAliasRef()` function to get a reference to the mutation.
@@ -10189,6 +10302,7 @@ export interface PersistReconciliationMatchVariables {
   auditDetails: string;
   expectedMatchId?: string | null;
   expectedExpenseTransactionId?: string | null;
+  expectedMatchStatus?: string | null;
 }
 ```
 ### Return Type
@@ -10211,33 +10325,34 @@ import { connectorConfig, persistReconciliationMatch, PersistReconciliationMatch
 
 // The `PersistReconciliationMatch` mutation requires an argument of type `PersistReconciliationMatchVariables`:
 const persistReconciliationMatchVars: PersistReconciliationMatchVariables = {
-  id: ..., 
-  statementLineId: ..., 
-  expenseTransactionId: ..., 
-  invoiceId: ..., 
+  id: ...,
+  statementLineId: ...,
+  expenseTransactionId: ...,
+  invoiceId: ...,
   matchScore: ..., // optional
-  matchMethod: ..., 
-  status: ..., 
-  confirmedById: ..., 
+  matchMethod: ...,
+  status: ...,
+  confirmedById: ...,
   confirmedAt: ..., // optional
   reason: ..., // optional
   details: ..., // optional
-  lineStatus: ..., 
-  transactionReconciliationStatus: ..., 
-  auditEventId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditAction: ..., 
-  auditDetails: ..., 
+  lineStatus: ...,
+  transactionReconciliationStatus: ...,
+  auditEventId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditAction: ...,
+  auditDetails: ...,
   expectedMatchId: ..., // optional
   expectedExpenseTransactionId: ..., // optional
+  expectedMatchStatus: ..., // optional
 };
 
 // Call the `persistReconciliationMatch()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await persistReconciliationMatch(persistReconciliationMatchVars);
 // Variables can be defined inline as well.
-const { data } = await persistReconciliationMatch({ id: ..., statementLineId: ..., expenseTransactionId: ..., invoiceId: ..., matchScore: ..., matchMethod: ..., status: ..., confirmedById: ..., confirmedAt: ..., reason: ..., details: ..., lineStatus: ..., transactionReconciliationStatus: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., auditDetails: ..., expectedMatchId: ..., expectedExpenseTransactionId: ..., });
+const { data } = await persistReconciliationMatch({ id: ..., statementLineId: ..., expenseTransactionId: ..., invoiceId: ..., matchScore: ..., matchMethod: ..., status: ..., confirmedById: ..., confirmedAt: ..., reason: ..., details: ..., lineStatus: ..., transactionReconciliationStatus: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., auditDetails: ..., expectedMatchId: ..., expectedExpenseTransactionId: ..., expectedMatchStatus: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -10266,32 +10381,33 @@ import { connectorConfig, persistReconciliationMatchRef, PersistReconciliationMa
 
 // The `PersistReconciliationMatch` mutation requires an argument of type `PersistReconciliationMatchVariables`:
 const persistReconciliationMatchVars: PersistReconciliationMatchVariables = {
-  id: ..., 
-  statementLineId: ..., 
-  expenseTransactionId: ..., 
-  invoiceId: ..., 
+  id: ...,
+  statementLineId: ...,
+  expenseTransactionId: ...,
+  invoiceId: ...,
   matchScore: ..., // optional
-  matchMethod: ..., 
-  status: ..., 
-  confirmedById: ..., 
+  matchMethod: ...,
+  status: ...,
+  confirmedById: ...,
   confirmedAt: ..., // optional
   reason: ..., // optional
   details: ..., // optional
-  lineStatus: ..., 
-  transactionReconciliationStatus: ..., 
-  auditEventId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditAction: ..., 
-  auditDetails: ..., 
+  lineStatus: ...,
+  transactionReconciliationStatus: ...,
+  auditEventId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditAction: ...,
+  auditDetails: ...,
   expectedMatchId: ..., // optional
   expectedExpenseTransactionId: ..., // optional
+  expectedMatchStatus: ..., // optional
 };
 
 // Call the `persistReconciliationMatchRef()` function to get a reference to the mutation.
 const ref = persistReconciliationMatchRef(persistReconciliationMatchVars);
 // Variables can be defined inline as well.
-const ref = persistReconciliationMatchRef({ id: ..., statementLineId: ..., expenseTransactionId: ..., invoiceId: ..., matchScore: ..., matchMethod: ..., status: ..., confirmedById: ..., confirmedAt: ..., reason: ..., details: ..., lineStatus: ..., transactionReconciliationStatus: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., auditDetails: ..., expectedMatchId: ..., expectedExpenseTransactionId: ..., });
+const ref = persistReconciliationMatchRef({ id: ..., statementLineId: ..., expenseTransactionId: ..., invoiceId: ..., matchScore: ..., matchMethod: ..., status: ..., confirmedById: ..., confirmedAt: ..., reason: ..., details: ..., lineStatus: ..., transactionReconciliationStatus: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., auditDetails: ..., expectedMatchId: ..., expectedExpenseTransactionId: ..., expectedMatchStatus: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -10381,15 +10497,15 @@ import { connectorConfig, clearReconciliationMatch, ClearReconciliationMatchVari
 
 // The `ClearReconciliationMatch` mutation requires an argument of type `ClearReconciliationMatchVariables`:
 const clearReconciliationMatchVars: ClearReconciliationMatchVariables = {
-  id: ..., 
-  statementLineId: ..., 
-  previousExpenseTransactionId: ..., 
-  lineStatus: ..., 
-  auditEventId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditAction: ..., 
-  auditDetails: ..., 
+  id: ...,
+  statementLineId: ...,
+  previousExpenseTransactionId: ...,
+  lineStatus: ...,
+  auditEventId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditAction: ...,
+  auditDetails: ...,
 };
 
 // Call the `clearReconciliationMatch()` function to execute the mutation.
@@ -10425,15 +10541,15 @@ import { connectorConfig, clearReconciliationMatchRef, ClearReconciliationMatchV
 
 // The `ClearReconciliationMatch` mutation requires an argument of type `ClearReconciliationMatchVariables`:
 const clearReconciliationMatchVars: ClearReconciliationMatchVariables = {
-  id: ..., 
-  statementLineId: ..., 
-  previousExpenseTransactionId: ..., 
-  lineStatus: ..., 
-  auditEventId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditAction: ..., 
-  auditDetails: ..., 
+  id: ...,
+  statementLineId: ...,
+  previousExpenseTransactionId: ...,
+  lineStatus: ...,
+  auditEventId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditAction: ...,
+  auditDetails: ...,
 };
 
 // Call the `clearReconciliationMatchRef()` function to get a reference to the mutation.
@@ -10517,6 +10633,7 @@ export interface PersistReconciliationMatchWithoutInvoiceVariables {
   auditDetails: string;
   expectedMatchId?: string | null;
   expectedExpenseTransactionId?: string | null;
+  expectedMatchStatus?: string | null;
 }
 ```
 ### Return Type
@@ -10539,32 +10656,33 @@ import { connectorConfig, persistReconciliationMatchWithoutInvoice, PersistRecon
 
 // The `PersistReconciliationMatchWithoutInvoice` mutation requires an argument of type `PersistReconciliationMatchWithoutInvoiceVariables`:
 const persistReconciliationMatchWithoutInvoiceVars: PersistReconciliationMatchWithoutInvoiceVariables = {
-  id: ..., 
-  statementLineId: ..., 
-  expenseTransactionId: ..., 
+  id: ...,
+  statementLineId: ...,
+  expenseTransactionId: ...,
   matchScore: ..., // optional
-  matchMethod: ..., 
-  status: ..., 
-  confirmedById: ..., 
+  matchMethod: ...,
+  status: ...,
+  confirmedById: ...,
   confirmedAt: ..., // optional
   reason: ..., // optional
   details: ..., // optional
-  lineStatus: ..., 
-  transactionReconciliationStatus: ..., 
-  auditEventId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditAction: ..., 
-  auditDetails: ..., 
+  lineStatus: ...,
+  transactionReconciliationStatus: ...,
+  auditEventId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditAction: ...,
+  auditDetails: ...,
   expectedMatchId: ..., // optional
   expectedExpenseTransactionId: ..., // optional
+  expectedMatchStatus: ..., // optional
 };
 
 // Call the `persistReconciliationMatchWithoutInvoice()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await persistReconciliationMatchWithoutInvoice(persistReconciliationMatchWithoutInvoiceVars);
 // Variables can be defined inline as well.
-const { data } = await persistReconciliationMatchWithoutInvoice({ id: ..., statementLineId: ..., expenseTransactionId: ..., matchScore: ..., matchMethod: ..., status: ..., confirmedById: ..., confirmedAt: ..., reason: ..., details: ..., lineStatus: ..., transactionReconciliationStatus: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., auditDetails: ..., expectedMatchId: ..., expectedExpenseTransactionId: ..., });
+const { data } = await persistReconciliationMatchWithoutInvoice({ id: ..., statementLineId: ..., expenseTransactionId: ..., matchScore: ..., matchMethod: ..., status: ..., confirmedById: ..., confirmedAt: ..., reason: ..., details: ..., lineStatus: ..., transactionReconciliationStatus: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., auditDetails: ..., expectedMatchId: ..., expectedExpenseTransactionId: ..., expectedMatchStatus: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -10593,31 +10711,32 @@ import { connectorConfig, persistReconciliationMatchWithoutInvoiceRef, PersistRe
 
 // The `PersistReconciliationMatchWithoutInvoice` mutation requires an argument of type `PersistReconciliationMatchWithoutInvoiceVariables`:
 const persistReconciliationMatchWithoutInvoiceVars: PersistReconciliationMatchWithoutInvoiceVariables = {
-  id: ..., 
-  statementLineId: ..., 
-  expenseTransactionId: ..., 
+  id: ...,
+  statementLineId: ...,
+  expenseTransactionId: ...,
   matchScore: ..., // optional
-  matchMethod: ..., 
-  status: ..., 
-  confirmedById: ..., 
+  matchMethod: ...,
+  status: ...,
+  confirmedById: ...,
   confirmedAt: ..., // optional
   reason: ..., // optional
   details: ..., // optional
-  lineStatus: ..., 
-  transactionReconciliationStatus: ..., 
-  auditEventId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditAction: ..., 
-  auditDetails: ..., 
+  lineStatus: ...,
+  transactionReconciliationStatus: ...,
+  auditEventId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditAction: ...,
+  auditDetails: ...,
   expectedMatchId: ..., // optional
   expectedExpenseTransactionId: ..., // optional
+  expectedMatchStatus: ..., // optional
 };
 
 // Call the `persistReconciliationMatchWithoutInvoiceRef()` function to get a reference to the mutation.
 const ref = persistReconciliationMatchWithoutInvoiceRef(persistReconciliationMatchWithoutInvoiceVars);
 // Variables can be defined inline as well.
-const ref = persistReconciliationMatchWithoutInvoiceRef({ id: ..., statementLineId: ..., expenseTransactionId: ..., matchScore: ..., matchMethod: ..., status: ..., confirmedById: ..., confirmedAt: ..., reason: ..., details: ..., lineStatus: ..., transactionReconciliationStatus: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., auditDetails: ..., expectedMatchId: ..., expectedExpenseTransactionId: ..., });
+const ref = persistReconciliationMatchWithoutInvoiceRef({ id: ..., statementLineId: ..., expenseTransactionId: ..., matchScore: ..., matchMethod: ..., status: ..., confirmedById: ..., confirmedAt: ..., reason: ..., details: ..., lineStatus: ..., transactionReconciliationStatus: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., auditDetails: ..., expectedMatchId: ..., expectedExpenseTransactionId: ..., expectedMatchStatus: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -10688,6 +10807,7 @@ export interface PersistReconciliationLineStatusVariables {
   auditDetails: string;
   expectedMatchId?: string | null;
   expectedExpenseTransactionId?: string | null;
+  expectedMatchStatus?: string | null;
 }
 ```
 ### Return Type
@@ -10709,25 +10829,26 @@ import { connectorConfig, persistReconciliationLineStatus, PersistReconciliation
 
 // The `PersistReconciliationLineStatus` mutation requires an argument of type `PersistReconciliationLineStatusVariables`:
 const persistReconciliationLineStatusVars: PersistReconciliationLineStatusVariables = {
-  id: ..., 
-  statementLineId: ..., 
-  status: ..., 
-  reason: ..., 
+  id: ...,
+  statementLineId: ...,
+  status: ...,
+  reason: ...,
   details: ..., // optional
-  auditEventId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditAction: ..., 
-  auditDetails: ..., 
+  auditEventId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditAction: ...,
+  auditDetails: ...,
   expectedMatchId: ..., // optional
   expectedExpenseTransactionId: ..., // optional
+  expectedMatchStatus: ..., // optional
 };
 
 // Call the `persistReconciliationLineStatus()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await persistReconciliationLineStatus(persistReconciliationLineStatusVars);
 // Variables can be defined inline as well.
-const { data } = await persistReconciliationLineStatus({ id: ..., statementLineId: ..., status: ..., reason: ..., details: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., auditDetails: ..., expectedMatchId: ..., expectedExpenseTransactionId: ..., });
+const { data } = await persistReconciliationLineStatus({ id: ..., statementLineId: ..., status: ..., reason: ..., details: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., auditDetails: ..., expectedMatchId: ..., expectedExpenseTransactionId: ..., expectedMatchStatus: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -10754,24 +10875,25 @@ import { connectorConfig, persistReconciliationLineStatusRef, PersistReconciliat
 
 // The `PersistReconciliationLineStatus` mutation requires an argument of type `PersistReconciliationLineStatusVariables`:
 const persistReconciliationLineStatusVars: PersistReconciliationLineStatusVariables = {
-  id: ..., 
-  statementLineId: ..., 
-  status: ..., 
-  reason: ..., 
+  id: ...,
+  statementLineId: ...,
+  status: ...,
+  reason: ...,
   details: ..., // optional
-  auditEventId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditAction: ..., 
-  auditDetails: ..., 
+  auditEventId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditAction: ...,
+  auditDetails: ...,
   expectedMatchId: ..., // optional
   expectedExpenseTransactionId: ..., // optional
+  expectedMatchStatus: ..., // optional
 };
 
 // Call the `persistReconciliationLineStatusRef()` function to get a reference to the mutation.
 const ref = persistReconciliationLineStatusRef(persistReconciliationLineStatusVars);
 // Variables can be defined inline as well.
-const ref = persistReconciliationLineStatusRef({ id: ..., statementLineId: ..., status: ..., reason: ..., details: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., auditDetails: ..., expectedMatchId: ..., expectedExpenseTransactionId: ..., });
+const ref = persistReconciliationLineStatusRef({ id: ..., statementLineId: ..., status: ..., reason: ..., details: ..., auditEventId: ..., actorUid: ..., actorRole: ..., auditAction: ..., auditDetails: ..., expectedMatchId: ..., expectedExpenseTransactionId: ..., expectedMatchStatus: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -10857,15 +10979,15 @@ import { connectorConfig, upsertReconciliationOutsideControl, UpsertReconciliati
 
 // The `UpsertReconciliationOutsideControl` mutation requires an argument of type `UpsertReconciliationOutsideControlVariables`:
 const upsertReconciliationOutsideControlVars: UpsertReconciliationOutsideControlVariables = {
-  id: ..., 
-  statementId: ..., 
-  expenseTransactionId: ..., 
-  status: ..., 
-  reason: ..., 
-  auditEventId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditDetails: ..., 
+  id: ...,
+  statementId: ...,
+  expenseTransactionId: ...,
+  status: ...,
+  reason: ...,
+  auditEventId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditDetails: ...,
 };
 
 // Call the `upsertReconciliationOutsideControl()` function to execute the mutation.
@@ -10897,15 +11019,15 @@ import { connectorConfig, upsertReconciliationOutsideControlRef, UpsertReconcili
 
 // The `UpsertReconciliationOutsideControl` mutation requires an argument of type `UpsertReconciliationOutsideControlVariables`:
 const upsertReconciliationOutsideControlVars: UpsertReconciliationOutsideControlVariables = {
-  id: ..., 
-  statementId: ..., 
-  expenseTransactionId: ..., 
-  status: ..., 
-  reason: ..., 
-  auditEventId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditDetails: ..., 
+  id: ...,
+  statementId: ...,
+  expenseTransactionId: ...,
+  status: ...,
+  reason: ...,
+  auditEventId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditDetails: ...,
 };
 
 // Call the `upsertReconciliationOutsideControlRef()` function to get a reference to the mutation.
@@ -10994,14 +11116,14 @@ import { connectorConfig, resolveReconciliationOutsideControl, ResolveReconcilia
 
 // The `ResolveReconciliationOutsideControl` mutation requires an argument of type `ResolveReconciliationOutsideControlVariables`:
 const resolveReconciliationOutsideControlVars: ResolveReconciliationOutsideControlVariables = {
-  id: ..., 
-  status: ..., 
-  resolvedById: ..., 
-  resolutionNote: ..., 
-  auditEventId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditDetails: ..., 
+  id: ...,
+  status: ...,
+  resolvedById: ...,
+  resolutionNote: ...,
+  auditEventId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditDetails: ...,
 };
 
 // Call the `resolveReconciliationOutsideControl()` function to execute the mutation.
@@ -11033,14 +11155,14 @@ import { connectorConfig, resolveReconciliationOutsideControlRef, ResolveReconci
 
 // The `ResolveReconciliationOutsideControl` mutation requires an argument of type `ResolveReconciliationOutsideControlVariables`:
 const resolveReconciliationOutsideControlVars: ResolveReconciliationOutsideControlVariables = {
-  id: ..., 
-  status: ..., 
-  resolvedById: ..., 
-  resolutionNote: ..., 
-  auditEventId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditDetails: ..., 
+  id: ...,
+  status: ...,
+  resolvedById: ...,
+  resolutionNote: ...,
+  auditEventId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditDetails: ...,
 };
 
 // Call the `resolveReconciliationOutsideControlRef()` function to get a reference to the mutation.
@@ -11123,9 +11245,9 @@ import { connectorConfig, createInvoiceIntake, CreateInvoiceIntakeVariables } fr
 
 // The `CreateInvoiceIntake` mutation requires an argument of type `CreateInvoiceIntakeVariables`:
 const createInvoiceIntakeVars: CreateInvoiceIntakeVariables = {
-  receiptId: ..., 
-  storageFolder: ..., 
-  photoCount: ..., 
+  receiptId: ...,
+  storageFolder: ...,
+  photoCount: ...,
 };
 
 // Call the `createInvoiceIntake()` function to execute the mutation.
@@ -11155,9 +11277,9 @@ import { connectorConfig, createInvoiceIntakeRef, CreateInvoiceIntakeVariables }
 
 // The `CreateInvoiceIntake` mutation requires an argument of type `CreateInvoiceIntakeVariables`:
 const createInvoiceIntakeVars: CreateInvoiceIntakeVariables = {
-  receiptId: ..., 
-  storageFolder: ..., 
-  photoCount: ..., 
+  receiptId: ...,
+  storageFolder: ...,
+  photoCount: ...,
 };
 
 // Call the `createInvoiceIntakeRef()` function to get a reference to the mutation.
@@ -11243,10 +11365,10 @@ import { connectorConfig, createInvoiceIntakeV2, CreateInvoiceIntakeV2Variables 
 
 // The `CreateInvoiceIntakeV2` mutation requires an argument of type `CreateInvoiceIntakeV2Variables`:
 const createInvoiceIntakeV2Vars: CreateInvoiceIntakeV2Variables = {
-  receiptId: ..., 
-  storageFolder: ..., 
-  photoCount: ..., 
-  clientVersion: ..., 
+  receiptId: ...,
+  storageFolder: ...,
+  photoCount: ...,
+  clientVersion: ...,
   writeAudit: ..., // optional
   auditEventId: ..., // optional
   auditDetails: ..., // optional
@@ -11281,10 +11403,10 @@ import { connectorConfig, createInvoiceIntakeV2Ref, CreateInvoiceIntakeV2Variabl
 
 // The `CreateInvoiceIntakeV2` mutation requires an argument of type `CreateInvoiceIntakeV2Variables`:
 const createInvoiceIntakeV2Vars: CreateInvoiceIntakeV2Variables = {
-  receiptId: ..., 
-  storageFolder: ..., 
-  photoCount: ..., 
-  clientVersion: ..., 
+  receiptId: ...,
+  storageFolder: ...,
+  photoCount: ...,
+  clientVersion: ...,
   writeAudit: ..., // optional
   auditEventId: ..., // optional
   auditDetails: ..., // optional
@@ -11376,8 +11498,8 @@ import { connectorConfig, claimInvoiceIntakeProcessing, ClaimInvoiceIntakeProces
 
 // The `ClaimInvoiceIntakeProcessing` mutation requires an argument of type `ClaimInvoiceIntakeProcessingVariables`:
 const claimInvoiceIntakeProcessingVars: ClaimInvoiceIntakeProcessingVariables = {
-  receiptId: ..., 
-  processingAttempts: ..., 
+  receiptId: ...,
+  processingAttempts: ...,
   maxAttempts: ..., // optional
   actorUid: ..., // optional
   actorRole: ..., // optional
@@ -11415,8 +11537,8 @@ import { connectorConfig, claimInvoiceIntakeProcessingRef, ClaimInvoiceIntakePro
 
 // The `ClaimInvoiceIntakeProcessing` mutation requires an argument of type `ClaimInvoiceIntakeProcessingVariables`:
 const claimInvoiceIntakeProcessingVars: ClaimInvoiceIntakeProcessingVariables = {
-  receiptId: ..., 
-  processingAttempts: ..., 
+  receiptId: ...,
+  processingAttempts: ...,
   maxAttempts: ..., // optional
   actorUid: ..., // optional
   actorRole: ..., // optional
@@ -11510,13 +11632,13 @@ import { connectorConfig, requeueStaleInvoiceIntake, RequeueStaleInvoiceIntakeVa
 
 // The `RequeueStaleInvoiceIntake` mutation requires an argument of type `RequeueStaleInvoiceIntakeVariables`:
 const requeueStaleInvoiceIntakeVars: RequeueStaleInvoiceIntakeVariables = {
-  receiptId: ..., 
-  staleBefore: ..., 
-  maxAttempts: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  receiptId: ...,
+  staleBefore: ...,
+  maxAttempts: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `requeueStaleInvoiceIntake()` function to execute the mutation.
@@ -11548,13 +11670,13 @@ import { connectorConfig, requeueStaleInvoiceIntakeRef, RequeueStaleInvoiceIntak
 
 // The `RequeueStaleInvoiceIntake` mutation requires an argument of type `RequeueStaleInvoiceIntakeVariables`:
 const requeueStaleInvoiceIntakeVars: RequeueStaleInvoiceIntakeVariables = {
-  receiptId: ..., 
-  staleBefore: ..., 
-  maxAttempts: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  receiptId: ...,
+  staleBefore: ...,
+  maxAttempts: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `requeueStaleInvoiceIntakeRef()` function to get a reference to the mutation.
@@ -11636,8 +11758,8 @@ import { connectorConfig, claimInvoiceIntakeSourceHash, ClaimInvoiceIntakeSource
 
 // The `ClaimInvoiceIntakeSourceHash` mutation requires an argument of type `ClaimInvoiceIntakeSourceHashVariables`:
 const claimInvoiceIntakeSourceHashVars: ClaimInvoiceIntakeSourceHashVariables = {
-  receiptId: ..., 
-  sourceHash: ..., 
+  receiptId: ...,
+  sourceHash: ...,
 };
 
 // Call the `claimInvoiceIntakeSourceHash()` function to execute the mutation.
@@ -11667,8 +11789,8 @@ import { connectorConfig, claimInvoiceIntakeSourceHashRef, ClaimInvoiceIntakeSou
 
 // The `ClaimInvoiceIntakeSourceHash` mutation requires an argument of type `ClaimInvoiceIntakeSourceHashVariables`:
 const claimInvoiceIntakeSourceHashVars: ClaimInvoiceIntakeSourceHashVariables = {
-  receiptId: ..., 
-  sourceHash: ..., 
+  receiptId: ...,
+  sourceHash: ...,
 };
 
 // Call the `claimInvoiceIntakeSourceHashRef()` function to get a reference to the mutation.
@@ -11748,8 +11870,8 @@ import { connectorConfig, claimInvoiceIntakeBusinessFingerprint, ClaimInvoiceInt
 
 // The `ClaimInvoiceIntakeBusinessFingerprint` mutation requires an argument of type `ClaimInvoiceIntakeBusinessFingerprintVariables`:
 const claimInvoiceIntakeBusinessFingerprintVars: ClaimInvoiceIntakeBusinessFingerprintVariables = {
-  receiptId: ..., 
-  duplicateFingerprint: ..., 
+  receiptId: ...,
+  duplicateFingerprint: ...,
 };
 
 // Call the `claimInvoiceIntakeBusinessFingerprint()` function to execute the mutation.
@@ -11779,8 +11901,8 @@ import { connectorConfig, claimInvoiceIntakeBusinessFingerprintRef, ClaimInvoice
 
 // The `ClaimInvoiceIntakeBusinessFingerprint` mutation requires an argument of type `ClaimInvoiceIntakeBusinessFingerprintVariables`:
 const claimInvoiceIntakeBusinessFingerprintVars: ClaimInvoiceIntakeBusinessFingerprintVariables = {
-  receiptId: ..., 
-  duplicateFingerprint: ..., 
+  receiptId: ...,
+  duplicateFingerprint: ...,
 };
 
 // Call the `claimInvoiceIntakeBusinessFingerprintRef()` function to get a reference to the mutation.
@@ -11869,16 +11991,16 @@ import { connectorConfig, markInvoiceIntakeDuplicate, MarkInvoiceIntakeDuplicate
 
 // The `MarkInvoiceIntakeDuplicate` mutation requires an argument of type `MarkInvoiceIntakeDuplicateVariables`:
 const markInvoiceIntakeDuplicateVars: MarkInvoiceIntakeDuplicateVariables = {
-  receiptId: ..., 
-  duplicateOfReceiptId: ..., 
-  duplicateReason: ..., 
-  message: ..., 
-  decisionExceptions: ..., 
-  decisionChecks: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  receiptId: ...,
+  duplicateOfReceiptId: ...,
+  duplicateReason: ...,
+  message: ...,
+  decisionExceptions: ...,
+  decisionChecks: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `markInvoiceIntakeDuplicate()` function to execute the mutation.
@@ -11910,16 +12032,16 @@ import { connectorConfig, markInvoiceIntakeDuplicateRef, MarkInvoiceIntakeDuplic
 
 // The `MarkInvoiceIntakeDuplicate` mutation requires an argument of type `MarkInvoiceIntakeDuplicateVariables`:
 const markInvoiceIntakeDuplicateVars: MarkInvoiceIntakeDuplicateVariables = {
-  receiptId: ..., 
-  duplicateOfReceiptId: ..., 
-  duplicateReason: ..., 
-  message: ..., 
-  decisionExceptions: ..., 
-  decisionChecks: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  receiptId: ...,
+  duplicateOfReceiptId: ...,
+  duplicateReason: ...,
+  message: ...,
+  decisionExceptions: ...,
+  decisionChecks: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `markInvoiceIntakeDuplicateRef()` function to get a reference to the mutation.
@@ -12032,27 +12154,27 @@ import { connectorConfig, updateInvoiceIntakeAiResult, UpdateInvoiceIntakeAiResu
 
 // The `UpdateInvoiceIntakeAiResult` mutation requires an argument of type `UpdateInvoiceIntakeAiResultVariables`:
 const updateInvoiceIntakeAiResultVars: UpdateInvoiceIntakeAiResultVariables = {
-  receiptId: ..., 
-  aiModel: ..., 
-  aiConfidence: ..., 
-  extractedVendor: ..., 
+  receiptId: ...,
+  aiModel: ...,
+  aiConfidence: ...,
+  extractedVendor: ...,
   extractedInvoiceNumber: ..., // optional
   extractedInvoiceDate: ..., // optional
-  extractedSubtotalCents: ..., 
-  extractedTpsCents: ..., 
-  extractedTvqCents: ..., 
-  extractedTotalCents: ..., 
-  extractedLineItems: ..., 
-  extractedCurrency: ..., 
+  extractedSubtotalCents: ...,
+  extractedTpsCents: ...,
+  extractedTvqCents: ...,
+  extractedTotalCents: ...,
+  extractedLineItems: ...,
+  extractedCurrency: ...,
   extractedSku: ..., // optional
   extractedCategory: ..., // optional
   extractedProjectId: ..., // optional
   classificationAccountCode: ..., // optional
   classificationCategory: ..., // optional
-  classificationSource: ..., 
-  classificationConfidence: ..., 
-  classificationStatus: ..., 
-  aiNotes: ..., 
+  classificationSource: ...,
+  classificationConfidence: ...,
+  classificationStatus: ...,
+  aiNotes: ...,
   processingStatus: ..., // optional
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
@@ -12095,27 +12217,27 @@ import { connectorConfig, updateInvoiceIntakeAiResultRef, UpdateInvoiceIntakeAiR
 
 // The `UpdateInvoiceIntakeAiResult` mutation requires an argument of type `UpdateInvoiceIntakeAiResultVariables`:
 const updateInvoiceIntakeAiResultVars: UpdateInvoiceIntakeAiResultVariables = {
-  receiptId: ..., 
-  aiModel: ..., 
-  aiConfidence: ..., 
-  extractedVendor: ..., 
+  receiptId: ...,
+  aiModel: ...,
+  aiConfidence: ...,
+  extractedVendor: ...,
   extractedInvoiceNumber: ..., // optional
   extractedInvoiceDate: ..., // optional
-  extractedSubtotalCents: ..., 
-  extractedTpsCents: ..., 
-  extractedTvqCents: ..., 
-  extractedTotalCents: ..., 
-  extractedLineItems: ..., 
-  extractedCurrency: ..., 
+  extractedSubtotalCents: ...,
+  extractedTpsCents: ...,
+  extractedTvqCents: ...,
+  extractedTotalCents: ...,
+  extractedLineItems: ...,
+  extractedCurrency: ...,
   extractedSku: ..., // optional
   extractedCategory: ..., // optional
   extractedProjectId: ..., // optional
   classificationAccountCode: ..., // optional
   classificationCategory: ..., // optional
-  classificationSource: ..., 
-  classificationConfidence: ..., 
-  classificationStatus: ..., 
-  aiNotes: ..., 
+  classificationSource: ...,
+  classificationConfidence: ...,
+  classificationStatus: ...,
+  aiNotes: ...,
   processingStatus: ..., // optional
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
@@ -12218,8 +12340,8 @@ import { connectorConfig, markInvoiceIntakeAiError, MarkInvoiceIntakeAiErrorVari
 
 // The `MarkInvoiceIntakeAiError` mutation requires an argument of type `MarkInvoiceIntakeAiErrorVariables`:
 const markInvoiceIntakeAiErrorVars: MarkInvoiceIntakeAiErrorVariables = {
-  receiptId: ..., 
-  error: ..., 
+  receiptId: ...,
+  error: ...,
   aiErrorCode: ..., // optional
   accountingStatus: ..., // optional
   decisionExceptions: ..., // optional
@@ -12260,8 +12382,8 @@ import { connectorConfig, markInvoiceIntakeAiErrorRef, MarkInvoiceIntakeAiErrorV
 
 // The `MarkInvoiceIntakeAiError` mutation requires an argument of type `MarkInvoiceIntakeAiErrorVariables`:
 const markInvoiceIntakeAiErrorVars: MarkInvoiceIntakeAiErrorVariables = {
-  receiptId: ..., 
-  error: ..., 
+  receiptId: ...,
+  error: ...,
   aiErrorCode: ..., // optional
   accountingStatus: ..., // optional
   decisionExceptions: ..., // optional
@@ -12360,10 +12482,10 @@ import { connectorConfig, markInvoiceIntakeAiMaxAttempts, MarkInvoiceIntakeAiMax
 
 // The `MarkInvoiceIntakeAiMaxAttempts` mutation requires an argument of type `MarkInvoiceIntakeAiMaxAttemptsVariables`:
 const markInvoiceIntakeAiMaxAttemptsVars: MarkInvoiceIntakeAiMaxAttemptsVariables = {
-  receiptId: ..., 
-  currentAttempts: ..., 
-  decisionExceptions: ..., 
-  decisionChecks: ..., 
+  receiptId: ...,
+  currentAttempts: ...,
+  decisionExceptions: ...,
+  decisionChecks: ...,
   actorUid: ..., // optional
   actorRole: ..., // optional
   writeAudit: ..., // optional
@@ -12400,10 +12522,10 @@ import { connectorConfig, markInvoiceIntakeAiMaxAttemptsRef, MarkInvoiceIntakeAi
 
 // The `MarkInvoiceIntakeAiMaxAttempts` mutation requires an argument of type `MarkInvoiceIntakeAiMaxAttemptsVariables`:
 const markInvoiceIntakeAiMaxAttemptsVars: MarkInvoiceIntakeAiMaxAttemptsVariables = {
-  receiptId: ..., 
-  currentAttempts: ..., 
-  decisionExceptions: ..., 
-  decisionChecks: ..., 
+  receiptId: ...,
+  currentAttempts: ...,
+  decisionExceptions: ...,
+  decisionChecks: ...,
   actorUid: ..., // optional
   actorRole: ..., // optional
   writeAudit: ..., // optional
@@ -12498,8 +12620,8 @@ import { connectorConfig, markInvoiceIntakeAutoPostingError, MarkInvoiceIntakeAu
 
 // The `MarkInvoiceIntakeAutoPostingError` mutation requires an argument of type `MarkInvoiceIntakeAutoPostingErrorVariables`:
 const markInvoiceIntakeAutoPostingErrorVars: MarkInvoiceIntakeAutoPostingErrorVariables = {
-  receiptId: ..., 
-  error: ..., 
+  receiptId: ...,
+  error: ...,
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
   actorUid: ..., // optional
@@ -12538,8 +12660,8 @@ import { connectorConfig, markInvoiceIntakeAutoPostingErrorRef, MarkInvoiceIntak
 
 // The `MarkInvoiceIntakeAutoPostingError` mutation requires an argument of type `MarkInvoiceIntakeAutoPostingErrorVariables`:
 const markInvoiceIntakeAutoPostingErrorVars: MarkInvoiceIntakeAutoPostingErrorVariables = {
-  receiptId: ..., 
-  error: ..., 
+  receiptId: ...,
+  error: ...,
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
   actorUid: ..., // optional
@@ -12654,33 +12776,33 @@ import { connectorConfig, updateInvoiceIntakeReview, UpdateInvoiceIntakeReviewVa
 
 // The `UpdateInvoiceIntakeReview` mutation requires an argument of type `UpdateInvoiceIntakeReviewVariables`:
 const updateInvoiceIntakeReviewVars: UpdateInvoiceIntakeReviewVariables = {
-  receiptId: ..., 
-  status: ..., 
-  extractedVendor: ..., 
+  receiptId: ...,
+  status: ...,
+  extractedVendor: ...,
   extractedInvoiceNumber: ..., // optional
   extractedInvoiceDate: ..., // optional
-  extractedSubtotalCents: ..., 
-  extractedTpsCents: ..., 
-  extractedTvqCents: ..., 
-  extractedTotalCents: ..., 
-  extractedLineItems: ..., 
-  extractedCurrency: ..., 
+  extractedSubtotalCents: ...,
+  extractedTpsCents: ...,
+  extractedTvqCents: ...,
+  extractedTotalCents: ...,
+  extractedLineItems: ...,
+  extractedCurrency: ...,
   extractedSku: ..., // optional
   extractedCategory: ..., // optional
   extractedProjectId: ..., // optional
   classificationAccountCode: ..., // optional
   classificationCategory: ..., // optional
-  classificationSource: ..., 
-  classificationConfidence: ..., 
-  classificationStatus: ..., 
-  aiNotes: ..., 
+  classificationSource: ...,
+  classificationConfidence: ...,
+  classificationStatus: ...,
+  aiNotes: ...,
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
   writeAudit: ..., // optional
   auditEventId: ..., // optional
   auditDetails: ..., // optional
   expectedReviewRevision: ..., // optional
-  nextReviewRevision: ..., 
+  nextReviewRevision: ...,
 };
 
 // Call the `updateInvoiceIntakeReview()` function to execute the mutation.
@@ -12712,33 +12834,33 @@ import { connectorConfig, updateInvoiceIntakeReviewRef, UpdateInvoiceIntakeRevie
 
 // The `UpdateInvoiceIntakeReview` mutation requires an argument of type `UpdateInvoiceIntakeReviewVariables`:
 const updateInvoiceIntakeReviewVars: UpdateInvoiceIntakeReviewVariables = {
-  receiptId: ..., 
-  status: ..., 
-  extractedVendor: ..., 
+  receiptId: ...,
+  status: ...,
+  extractedVendor: ...,
   extractedInvoiceNumber: ..., // optional
   extractedInvoiceDate: ..., // optional
-  extractedSubtotalCents: ..., 
-  extractedTpsCents: ..., 
-  extractedTvqCents: ..., 
-  extractedTotalCents: ..., 
-  extractedLineItems: ..., 
-  extractedCurrency: ..., 
+  extractedSubtotalCents: ...,
+  extractedTpsCents: ...,
+  extractedTvqCents: ...,
+  extractedTotalCents: ...,
+  extractedLineItems: ...,
+  extractedCurrency: ...,
   extractedSku: ..., // optional
   extractedCategory: ..., // optional
   extractedProjectId: ..., // optional
   classificationAccountCode: ..., // optional
   classificationCategory: ..., // optional
-  classificationSource: ..., 
-  classificationConfidence: ..., 
-  classificationStatus: ..., 
-  aiNotes: ..., 
+  classificationSource: ...,
+  classificationConfidence: ...,
+  classificationStatus: ...,
+  aiNotes: ...,
   decisionExceptions: ..., // optional
   decisionChecks: ..., // optional
   writeAudit: ..., // optional
   auditEventId: ..., // optional
   auditDetails: ..., // optional
   expectedReviewRevision: ..., // optional
-  nextReviewRevision: ..., 
+  nextReviewRevision: ...,
 };
 
 // Call the `updateInvoiceIntakeReviewRef()` function to get a reference to the mutation.
@@ -12824,11 +12946,11 @@ import { connectorConfig, discardInvoiceIntake, DiscardInvoiceIntakeVariables } 
 
 // The `DiscardInvoiceIntake` mutation requires an argument of type `DiscardInvoiceIntakeVariables`:
 const discardInvoiceIntakeVars: DiscardInvoiceIntakeVariables = {
-  receiptId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  receiptId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `discardInvoiceIntake()` function to execute the mutation.
@@ -12860,11 +12982,11 @@ import { connectorConfig, discardInvoiceIntakeRef, DiscardInvoiceIntakeVariables
 
 // The `DiscardInvoiceIntake` mutation requires an argument of type `DiscardInvoiceIntakeVariables`:
 const discardInvoiceIntakeVars: DiscardInvoiceIntakeVariables = {
-  receiptId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  receiptId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `discardInvoiceIntakeRef()` function to get a reference to the mutation.
@@ -12956,15 +13078,15 @@ import { connectorConfig, deletePostedInvoice, DeletePostedInvoiceVariables } fr
 
 // The `DeletePostedInvoice` mutation requires an argument of type `DeletePostedInvoiceVariables`:
 const deletePostedInvoiceVars: DeletePostedInvoiceVariables = {
-  invoiceId: ..., 
-  transactionId: ..., 
-  receiptId: ..., 
-  writeIntake: ..., 
-  reason: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  invoiceId: ...,
+  transactionId: ...,
+  receiptId: ...,
+  writeIntake: ...,
+  reason: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `deletePostedInvoice()` function to execute the mutation.
@@ -13000,15 +13122,15 @@ import { connectorConfig, deletePostedInvoiceRef, DeletePostedInvoiceVariables }
 
 // The `DeletePostedInvoice` mutation requires an argument of type `DeletePostedInvoiceVariables`:
 const deletePostedInvoiceVars: DeletePostedInvoiceVariables = {
-  invoiceId: ..., 
-  transactionId: ..., 
-  receiptId: ..., 
-  writeIntake: ..., 
-  reason: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  invoiceId: ...,
+  transactionId: ...,
+  receiptId: ...,
+  writeIntake: ...,
+  reason: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `deletePostedInvoiceRef()` function to get a reference to the mutation.
@@ -13093,7 +13215,7 @@ import { connectorConfig, markInvoiceIntakePostingError, MarkInvoiceIntakePostin
 
 // The `MarkInvoiceIntakePostingError` mutation requires an argument of type `MarkInvoiceIntakePostingErrorVariables`:
 const markInvoiceIntakePostingErrorVars: MarkInvoiceIntakePostingErrorVariables = {
-  receiptId: ..., 
+  receiptId: ...,
 };
 
 // Call the `markInvoiceIntakePostingError()` function to execute the mutation.
@@ -13123,7 +13245,7 @@ import { connectorConfig, markInvoiceIntakePostingErrorRef, MarkInvoiceIntakePos
 
 // The `MarkInvoiceIntakePostingError` mutation requires an argument of type `MarkInvoiceIntakePostingErrorVariables`:
 const markInvoiceIntakePostingErrorVars: MarkInvoiceIntakePostingErrorVariables = {
-  receiptId: ..., 
+  receiptId: ...,
 };
 
 // Call the `markInvoiceIntakePostingErrorRef()` function to get a reference to the mutation.
@@ -13202,7 +13324,7 @@ import { connectorConfig, retryInvoiceIntakeAi, RetryInvoiceIntakeAiVariables } 
 
 // The `RetryInvoiceIntakeAi` mutation requires an argument of type `RetryInvoiceIntakeAiVariables`:
 const retryInvoiceIntakeAiVars: RetryInvoiceIntakeAiVariables = {
-  receiptId: ..., 
+  receiptId: ...,
 };
 
 // Call the `retryInvoiceIntakeAi()` function to execute the mutation.
@@ -13232,7 +13354,7 @@ import { connectorConfig, retryInvoiceIntakeAiRef, RetryInvoiceIntakeAiVariables
 
 // The `RetryInvoiceIntakeAi` mutation requires an argument of type `RetryInvoiceIntakeAiVariables`:
 const retryInvoiceIntakeAiVars: RetryInvoiceIntakeAiVariables = {
-  receiptId: ..., 
+  receiptId: ...,
 };
 
 // Call the `retryInvoiceIntakeAiRef()` function to get a reference to the mutation.
@@ -13311,7 +13433,7 @@ import { connectorConfig, retryInvoiceIntakeAiTransient, RetryInvoiceIntakeAiTra
 
 // The `RetryInvoiceIntakeAiTransient` mutation requires an argument of type `RetryInvoiceIntakeAiTransientVariables`:
 const retryInvoiceIntakeAiTransientVars: RetryInvoiceIntakeAiTransientVariables = {
-  receiptId: ..., 
+  receiptId: ...,
 };
 
 // Call the `retryInvoiceIntakeAiTransient()` function to execute the mutation.
@@ -13341,7 +13463,7 @@ import { connectorConfig, retryInvoiceIntakeAiTransientRef, RetryInvoiceIntakeAi
 
 // The `RetryInvoiceIntakeAiTransient` mutation requires an argument of type `RetryInvoiceIntakeAiTransientVariables`:
 const retryInvoiceIntakeAiTransientVars: RetryInvoiceIntakeAiTransientVariables = {
-  receiptId: ..., 
+  receiptId: ...,
 };
 
 // Call the `retryInvoiceIntakeAiTransientRef()` function to get a reference to the mutation.
@@ -13422,9 +13544,9 @@ import { connectorConfig, retryInvoiceIntakeAiTransientV2, RetryInvoiceIntakeAiT
 
 // The `RetryInvoiceIntakeAiTransientV2` mutation requires an argument of type `RetryInvoiceIntakeAiTransientV2Variables`:
 const retryInvoiceIntakeAiTransientV2Vars: RetryInvoiceIntakeAiTransientV2Variables = {
-  receiptId: ..., 
-  invoiceId: ..., 
-  storageFolder: ..., 
+  receiptId: ...,
+  invoiceId: ...,
+  storageFolder: ...,
 };
 
 // Call the `retryInvoiceIntakeAiTransientV2()` function to execute the mutation.
@@ -13454,9 +13576,9 @@ import { connectorConfig, retryInvoiceIntakeAiTransientV2Ref, RetryInvoiceIntake
 
 // The `RetryInvoiceIntakeAiTransientV2` mutation requires an argument of type `RetryInvoiceIntakeAiTransientV2Variables`:
 const retryInvoiceIntakeAiTransientV2Vars: RetryInvoiceIntakeAiTransientV2Variables = {
-  receiptId: ..., 
-  invoiceId: ..., 
-  storageFolder: ..., 
+  receiptId: ...,
+  invoiceId: ...,
+  storageFolder: ...,
 };
 
 // Call the `retryInvoiceIntakeAiTransientV2Ref()` function to get a reference to the mutation.
@@ -13537,9 +13659,9 @@ import { connectorConfig, retryInvoiceIntakeAiReviewV2, RetryInvoiceIntakeAiRevi
 
 // The `RetryInvoiceIntakeAiReviewV2` mutation requires an argument of type `RetryInvoiceIntakeAiReviewV2Variables`:
 const retryInvoiceIntakeAiReviewV2Vars: RetryInvoiceIntakeAiReviewV2Variables = {
-  receiptId: ..., 
-  currentAttempts: ..., 
-  maxAttempts: ..., 
+  receiptId: ...,
+  currentAttempts: ...,
+  maxAttempts: ...,
 };
 
 // Call the `retryInvoiceIntakeAiReviewV2()` function to execute the mutation.
@@ -13569,9 +13691,9 @@ import { connectorConfig, retryInvoiceIntakeAiReviewV2Ref, RetryInvoiceIntakeAiR
 
 // The `RetryInvoiceIntakeAiReviewV2` mutation requires an argument of type `RetryInvoiceIntakeAiReviewV2Variables`:
 const retryInvoiceIntakeAiReviewV2Vars: RetryInvoiceIntakeAiReviewV2Variables = {
-  receiptId: ..., 
-  currentAttempts: ..., 
-  maxAttempts: ..., 
+  receiptId: ...,
+  currentAttempts: ...,
+  maxAttempts: ...,
 };
 
 // Call the `retryInvoiceIntakeAiReviewV2Ref()` function to get a reference to the mutation.
@@ -13658,14 +13780,14 @@ import { connectorConfig, adminReprocessInvoiceIntakeAi, AdminReprocessInvoiceIn
 
 // The `AdminReprocessInvoiceIntakeAi` mutation requires an argument of type `AdminReprocessInvoiceIntakeAiVariables`:
 const adminReprocessInvoiceIntakeAiVars: AdminReprocessInvoiceIntakeAiVariables = {
-  receiptId: ..., 
-  currentProcessingStatus: ..., 
-  currentProcessingState: ..., 
-  currentProcessingAttempts: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  receiptId: ...,
+  currentProcessingStatus: ...,
+  currentProcessingState: ...,
+  currentProcessingAttempts: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `adminReprocessInvoiceIntakeAi()` function to execute the mutation.
@@ -13697,14 +13819,14 @@ import { connectorConfig, adminReprocessInvoiceIntakeAiRef, AdminReprocessInvoic
 
 // The `AdminReprocessInvoiceIntakeAi` mutation requires an argument of type `AdminReprocessInvoiceIntakeAiVariables`:
 const adminReprocessInvoiceIntakeAiVars: AdminReprocessInvoiceIntakeAiVariables = {
-  receiptId: ..., 
-  currentProcessingStatus: ..., 
-  currentProcessingState: ..., 
-  currentProcessingAttempts: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  auditEventId: ..., 
-  auditDetails: ..., 
+  receiptId: ...,
+  currentProcessingStatus: ...,
+  currentProcessingState: ...,
+  currentProcessingAttempts: ...,
+  actorUid: ...,
+  actorRole: ...,
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `adminReprocessInvoiceIntakeAiRef()` function to get a reference to the mutation.
@@ -13841,54 +13963,54 @@ import { connectorConfig, materializeInvoiceIntakeV2, MaterializeInvoiceIntakeV2
 
 // The `MaterializeInvoiceIntakeV2` mutation requires an argument of type `MaterializeInvoiceIntakeV2Variables`:
 const materializeInvoiceIntakeV2Vars: MaterializeInvoiceIntakeV2Variables = {
-  receiptId: ..., 
-  transactionId: ..., 
-  invoiceId: ..., 
-  vendor: ..., 
+  receiptId: ...,
+  transactionId: ...,
+  invoiceId: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
-  invoiceDate: ..., 
-  subtotalCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  lineItems: ..., 
-  currency: ..., 
+  invoiceDate: ...,
+  subtotalCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  lineItems: ...,
+  currency: ...,
   sku: ..., // optional
-  category: ..., 
+  category: ...,
   account: ..., // optional
-  cardId: ..., 
+  cardId: ...,
   statementPeriod: ..., // optional
   project: ..., // optional
-  storageFolder: ..., 
-  classificationNote: ..., 
-  expectedProcessingStatus: ..., 
-  classificationSource: ..., 
-  classificationStatus: ..., 
+  storageFolder: ...,
+  classificationNote: ...,
+  expectedProcessingStatus: ...,
+  classificationSource: ...,
+  classificationStatus: ...,
   actorUid: ..., // optional
   actorRole: ..., // optional
   writeAudit: ..., // optional
   auditEventId: ..., // optional
   auditDetails: ..., // optional
-  photoCount: ..., 
-  photo1Id: ..., 
-  photo1StoragePath: ..., 
-  photo1ContentType: ..., 
-  hasPhoto2: ..., 
-  photo2Id: ..., 
-  photo2StoragePath: ..., 
-  photo2ContentType: ..., 
-  hasPhoto3: ..., 
-  photo3Id: ..., 
-  photo3StoragePath: ..., 
-  photo3ContentType: ..., 
-  hasPhoto4: ..., 
-  photo4Id: ..., 
-  photo4StoragePath: ..., 
-  photo4ContentType: ..., 
-  hasPhoto5: ..., 
-  photo5Id: ..., 
-  photo5StoragePath: ..., 
-  photo5ContentType: ..., 
+  photoCount: ...,
+  photo1Id: ...,
+  photo1StoragePath: ...,
+  photo1ContentType: ...,
+  hasPhoto2: ...,
+  photo2Id: ...,
+  photo2StoragePath: ...,
+  photo2ContentType: ...,
+  hasPhoto3: ...,
+  photo3Id: ...,
+  photo3StoragePath: ...,
+  photo3ContentType: ...,
+  hasPhoto4: ...,
+  photo4Id: ...,
+  photo4StoragePath: ...,
+  photo4ContentType: ...,
+  hasPhoto5: ...,
+  photo5Id: ...,
+  photo5StoragePath: ...,
+  photo5ContentType: ...,
 };
 
 // Call the `materializeInvoiceIntakeV2()` function to execute the mutation.
@@ -13936,54 +14058,54 @@ import { connectorConfig, materializeInvoiceIntakeV2Ref, MaterializeInvoiceIntak
 
 // The `MaterializeInvoiceIntakeV2` mutation requires an argument of type `MaterializeInvoiceIntakeV2Variables`:
 const materializeInvoiceIntakeV2Vars: MaterializeInvoiceIntakeV2Variables = {
-  receiptId: ..., 
-  transactionId: ..., 
-  invoiceId: ..., 
-  vendor: ..., 
+  receiptId: ...,
+  transactionId: ...,
+  invoiceId: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
-  invoiceDate: ..., 
-  subtotalCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  lineItems: ..., 
-  currency: ..., 
+  invoiceDate: ...,
+  subtotalCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  lineItems: ...,
+  currency: ...,
   sku: ..., // optional
-  category: ..., 
+  category: ...,
   account: ..., // optional
-  cardId: ..., 
+  cardId: ...,
   statementPeriod: ..., // optional
   project: ..., // optional
-  storageFolder: ..., 
-  classificationNote: ..., 
-  expectedProcessingStatus: ..., 
-  classificationSource: ..., 
-  classificationStatus: ..., 
+  storageFolder: ...,
+  classificationNote: ...,
+  expectedProcessingStatus: ...,
+  classificationSource: ...,
+  classificationStatus: ...,
   actorUid: ..., // optional
   actorRole: ..., // optional
   writeAudit: ..., // optional
   auditEventId: ..., // optional
   auditDetails: ..., // optional
-  photoCount: ..., 
-  photo1Id: ..., 
-  photo1StoragePath: ..., 
-  photo1ContentType: ..., 
-  hasPhoto2: ..., 
-  photo2Id: ..., 
-  photo2StoragePath: ..., 
-  photo2ContentType: ..., 
-  hasPhoto3: ..., 
-  photo3Id: ..., 
-  photo3StoragePath: ..., 
-  photo3ContentType: ..., 
-  hasPhoto4: ..., 
-  photo4Id: ..., 
-  photo4StoragePath: ..., 
-  photo4ContentType: ..., 
-  hasPhoto5: ..., 
-  photo5Id: ..., 
-  photo5StoragePath: ..., 
-  photo5ContentType: ..., 
+  photoCount: ...,
+  photo1Id: ...,
+  photo1StoragePath: ...,
+  photo1ContentType: ...,
+  hasPhoto2: ...,
+  photo2Id: ...,
+  photo2StoragePath: ...,
+  photo2ContentType: ...,
+  hasPhoto3: ...,
+  photo3Id: ...,
+  photo3StoragePath: ...,
+  photo3ContentType: ...,
+  hasPhoto4: ...,
+  photo4Id: ...,
+  photo4StoragePath: ...,
+  photo4ContentType: ...,
+  hasPhoto5: ...,
+  photo5Id: ...,
+  photo5StoragePath: ...,
+  photo5ContentType: ...,
 };
 
 // Call the `materializeInvoiceIntakeV2Ref()` function to get a reference to the mutation.
@@ -14102,26 +14224,26 @@ import { connectorConfig, correctPostedInvoice, CorrectPostedInvoiceVariables } 
 
 // The `CorrectPostedInvoice` mutation requires an argument of type `CorrectPostedInvoiceVariables`:
 const correctPostedInvoiceVars: CorrectPostedInvoiceVariables = {
-  correctionId: ..., 
-  invoiceId: ..., 
-  transactionId: ..., 
-  actorUserId: ..., 
-  fieldName: ..., 
+  correctionId: ...,
+  invoiceId: ...,
+  transactionId: ...,
+  actorUserId: ...,
+  fieldName: ...,
   previousValue: ..., // optional
-  correctedValue: ..., 
-  note: ..., 
-  vendor: ..., 
+  correctedValue: ...,
+  note: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
-  invoiceDate: ..., 
-  subtotalCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  lineItems: ..., 
-  category: ..., 
+  invoiceDate: ...,
+  subtotalCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  lineItems: ...,
+  category: ...,
   account: ..., // optional
-  auditEventId: ..., 
-  auditDetails: ..., 
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `correctPostedInvoice()` function to execute the mutation.
@@ -14157,26 +14279,26 @@ import { connectorConfig, correctPostedInvoiceRef, CorrectPostedInvoiceVariables
 
 // The `CorrectPostedInvoice` mutation requires an argument of type `CorrectPostedInvoiceVariables`:
 const correctPostedInvoiceVars: CorrectPostedInvoiceVariables = {
-  correctionId: ..., 
-  invoiceId: ..., 
-  transactionId: ..., 
-  actorUserId: ..., 
-  fieldName: ..., 
+  correctionId: ...,
+  invoiceId: ...,
+  transactionId: ...,
+  actorUserId: ...,
+  fieldName: ...,
   previousValue: ..., // optional
-  correctedValue: ..., 
-  note: ..., 
-  vendor: ..., 
+  correctedValue: ...,
+  note: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
-  invoiceDate: ..., 
-  subtotalCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  lineItems: ..., 
-  category: ..., 
+  invoiceDate: ...,
+  subtotalCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  lineItems: ...,
+  category: ...,
   account: ..., // optional
-  auditEventId: ..., 
-  auditDetails: ..., 
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `correctPostedInvoiceRef()` function to get a reference to the mutation.
@@ -14285,28 +14407,28 @@ import { connectorConfig, serverCorrectPostedInvoice, ServerCorrectPostedInvoice
 
 // The `ServerCorrectPostedInvoice` mutation requires an argument of type `ServerCorrectPostedInvoiceVariables`:
 const serverCorrectPostedInvoiceVars: ServerCorrectPostedInvoiceVariables = {
-  correctionId: ..., 
-  invoiceId: ..., 
-  transactionId: ..., 
-  actorUserId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  fieldName: ..., 
+  correctionId: ...,
+  invoiceId: ...,
+  transactionId: ...,
+  actorUserId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  fieldName: ...,
   previousValue: ..., // optional
-  correctedValue: ..., 
-  note: ..., 
-  vendor: ..., 
+  correctedValue: ...,
+  note: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
-  invoiceDate: ..., 
-  subtotalCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  lineItems: ..., 
-  category: ..., 
+  invoiceDate: ...,
+  subtotalCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  lineItems: ...,
+  category: ...,
   account: ..., // optional
-  auditEventId: ..., 
-  auditDetails: ..., 
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `serverCorrectPostedInvoice()` function to execute the mutation.
@@ -14342,28 +14464,28 @@ import { connectorConfig, serverCorrectPostedInvoiceRef, ServerCorrectPostedInvo
 
 // The `ServerCorrectPostedInvoice` mutation requires an argument of type `ServerCorrectPostedInvoiceVariables`:
 const serverCorrectPostedInvoiceVars: ServerCorrectPostedInvoiceVariables = {
-  correctionId: ..., 
-  invoiceId: ..., 
-  transactionId: ..., 
-  actorUserId: ..., 
-  actorUid: ..., 
-  actorRole: ..., 
-  fieldName: ..., 
+  correctionId: ...,
+  invoiceId: ...,
+  transactionId: ...,
+  actorUserId: ...,
+  actorUid: ...,
+  actorRole: ...,
+  fieldName: ...,
   previousValue: ..., // optional
-  correctedValue: ..., 
-  note: ..., 
-  vendor: ..., 
+  correctedValue: ...,
+  note: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
-  invoiceDate: ..., 
-  subtotalCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  lineItems: ..., 
-  category: ..., 
+  invoiceDate: ...,
+  subtotalCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  lineItems: ...,
+  category: ...,
   account: ..., // optional
-  auditEventId: ..., 
-  auditDetails: ..., 
+  auditEventId: ...,
+  auditDetails: ...,
 };
 
 // Call the `serverCorrectPostedInvoiceRef()` function to get a reference to the mutation.
@@ -14469,25 +14591,25 @@ import { connectorConfig, commitInvoiceIntake, CommitInvoiceIntakeVariables } fr
 
 // The `CommitInvoiceIntake` mutation requires an argument of type `CommitInvoiceIntakeVariables`:
 const commitInvoiceIntakeVars: CommitInvoiceIntakeVariables = {
-  receiptId: ..., 
-  transactionId: ..., 
-  invoiceId: ..., 
-  vendor: ..., 
+  receiptId: ...,
+  transactionId: ...,
+  invoiceId: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
-  invoiceDate: ..., 
-  subtotalCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  currency: ..., 
+  invoiceDate: ...,
+  subtotalCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  currency: ...,
   sku: ..., // optional
-  category: ..., 
-  accountId: ..., 
-  cardId: ..., 
-  statementPeriodId: ..., 
-  projectId: ..., 
-  storageFolder: ..., 
-  classificationNote: ..., 
+  category: ...,
+  accountId: ...,
+  cardId: ...,
+  statementPeriodId: ...,
+  projectId: ...,
+  storageFolder: ...,
+  classificationNote: ...,
 };
 
 // Call the `commitInvoiceIntake()` function to execute the mutation.
@@ -14523,25 +14645,25 @@ import { connectorConfig, commitInvoiceIntakeRef, CommitInvoiceIntakeVariables }
 
 // The `CommitInvoiceIntake` mutation requires an argument of type `CommitInvoiceIntakeVariables`:
 const commitInvoiceIntakeVars: CommitInvoiceIntakeVariables = {
-  receiptId: ..., 
-  transactionId: ..., 
-  invoiceId: ..., 
-  vendor: ..., 
+  receiptId: ...,
+  transactionId: ...,
+  invoiceId: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
-  invoiceDate: ..., 
-  subtotalCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  currency: ..., 
+  invoiceDate: ...,
+  subtotalCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  currency: ...,
   sku: ..., // optional
-  category: ..., 
-  accountId: ..., 
-  cardId: ..., 
-  statementPeriodId: ..., 
-  projectId: ..., 
-  storageFolder: ..., 
-  classificationNote: ..., 
+  category: ...,
+  accountId: ...,
+  cardId: ...,
+  statementPeriodId: ...,
+  projectId: ...,
+  storageFolder: ...,
+  classificationNote: ...,
 };
 
 // Call the `commitInvoiceIntakeRef()` function to get a reference to the mutation.
@@ -14646,24 +14768,24 @@ import { connectorConfig, commitInvoiceIntakeWithoutProject, CommitInvoiceIntake
 
 // The `CommitInvoiceIntakeWithoutProject` mutation requires an argument of type `CommitInvoiceIntakeWithoutProjectVariables`:
 const commitInvoiceIntakeWithoutProjectVars: CommitInvoiceIntakeWithoutProjectVariables = {
-  receiptId: ..., 
-  transactionId: ..., 
-  invoiceId: ..., 
-  vendor: ..., 
+  receiptId: ...,
+  transactionId: ...,
+  invoiceId: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
-  invoiceDate: ..., 
-  subtotalCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  currency: ..., 
+  invoiceDate: ...,
+  subtotalCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  currency: ...,
   sku: ..., // optional
-  category: ..., 
-  accountId: ..., 
-  cardId: ..., 
-  statementPeriodId: ..., 
-  storageFolder: ..., 
-  classificationNote: ..., 
+  category: ...,
+  accountId: ...,
+  cardId: ...,
+  statementPeriodId: ...,
+  storageFolder: ...,
+  classificationNote: ...,
 };
 
 // Call the `commitInvoiceIntakeWithoutProject()` function to execute the mutation.
@@ -14699,24 +14821,24 @@ import { connectorConfig, commitInvoiceIntakeWithoutProjectRef, CommitInvoiceInt
 
 // The `CommitInvoiceIntakeWithoutProject` mutation requires an argument of type `CommitInvoiceIntakeWithoutProjectVariables`:
 const commitInvoiceIntakeWithoutProjectVars: CommitInvoiceIntakeWithoutProjectVariables = {
-  receiptId: ..., 
-  transactionId: ..., 
-  invoiceId: ..., 
-  vendor: ..., 
+  receiptId: ...,
+  transactionId: ...,
+  invoiceId: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
-  invoiceDate: ..., 
-  subtotalCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  currency: ..., 
+  invoiceDate: ...,
+  subtotalCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  currency: ...,
   sku: ..., // optional
-  category: ..., 
-  accountId: ..., 
-  cardId: ..., 
-  statementPeriodId: ..., 
-  storageFolder: ..., 
-  classificationNote: ..., 
+  category: ...,
+  accountId: ...,
+  cardId: ...,
+  statementPeriodId: ...,
+  storageFolder: ...,
+  classificationNote: ...,
 };
 
 // Call the `commitInvoiceIntakeWithoutProjectRef()` function to get a reference to the mutation.
@@ -14822,25 +14944,25 @@ import { connectorConfig, autoCommitInvoiceIntake, AutoCommitInvoiceIntakeVariab
 
 // The `AutoCommitInvoiceIntake` mutation requires an argument of type `AutoCommitInvoiceIntakeVariables`:
 const autoCommitInvoiceIntakeVars: AutoCommitInvoiceIntakeVariables = {
-  receiptId: ..., 
-  transactionId: ..., 
-  invoiceId: ..., 
-  vendor: ..., 
+  receiptId: ...,
+  transactionId: ...,
+  invoiceId: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
-  invoiceDate: ..., 
-  subtotalCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  currency: ..., 
+  invoiceDate: ...,
+  subtotalCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  currency: ...,
   sku: ..., // optional
-  category: ..., 
-  accountId: ..., 
-  cardId: ..., 
-  statementPeriodId: ..., 
-  projectId: ..., 
-  storageFolder: ..., 
-  classificationNote: ..., 
+  category: ...,
+  accountId: ...,
+  cardId: ...,
+  statementPeriodId: ...,
+  projectId: ...,
+  storageFolder: ...,
+  classificationNote: ...,
 };
 
 // Call the `autoCommitInvoiceIntake()` function to execute the mutation.
@@ -14876,25 +14998,25 @@ import { connectorConfig, autoCommitInvoiceIntakeRef, AutoCommitInvoiceIntakeVar
 
 // The `AutoCommitInvoiceIntake` mutation requires an argument of type `AutoCommitInvoiceIntakeVariables`:
 const autoCommitInvoiceIntakeVars: AutoCommitInvoiceIntakeVariables = {
-  receiptId: ..., 
-  transactionId: ..., 
-  invoiceId: ..., 
-  vendor: ..., 
+  receiptId: ...,
+  transactionId: ...,
+  invoiceId: ...,
+  vendor: ...,
   invoiceNumber: ..., // optional
-  invoiceDate: ..., 
-  subtotalCents: ..., 
-  tpsCents: ..., 
-  tvqCents: ..., 
-  totalCents: ..., 
-  currency: ..., 
+  invoiceDate: ...,
+  subtotalCents: ...,
+  tpsCents: ...,
+  tvqCents: ...,
+  totalCents: ...,
+  currency: ...,
   sku: ..., // optional
-  category: ..., 
-  accountId: ..., 
-  cardId: ..., 
-  statementPeriodId: ..., 
-  projectId: ..., 
-  storageFolder: ..., 
-  classificationNote: ..., 
+  category: ...,
+  accountId: ...,
+  cardId: ...,
+  statementPeriodId: ...,
+  projectId: ...,
+  storageFolder: ...,
+  classificationNote: ...,
 };
 
 // Call the `autoCommitInvoiceIntakeRef()` function to get a reference to the mutation.
