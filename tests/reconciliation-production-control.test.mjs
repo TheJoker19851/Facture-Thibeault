@@ -40,6 +40,10 @@ test("la navigation expose le rapprochement sans rediriger vers les factures à 
   assert.match(source, /view === "reconciliation".*<ReconciliationPage/);
   assert.doesNotMatch(source, /nextView === "dashboard" \|\| nextView === "reconciliation"/);
   assert.match(source, /isProductionDataSource \|\| isLocalEmulatorMode/);
+  assert.match(source, /accept="\.pdf,\.json,\.csv/);
+  assert.match(source, /\/api\/reconciliation\/parse-pdf/);
+  assert.match(source, /Aperçu avant écriture/);
+  assert.match(source, /Enregistrer le relevé/);
 });
 
 test("l'import serveur conserve la preuve puis finalise le relevé sans toucher au workflow IA", async () => {
@@ -64,11 +68,12 @@ test("l'import serveur conserve la preuve puis finalise le relevé sans toucher 
     histories: [{ id: "HISTORY-1", card: { id: "CARD-1" }, holder: { id: "PROFILE-1", displayName: "Kim" }, validFrom: "2026-01-01", validTo: null, status: "ACTIVE" }],
     profiles: [{ id: "PROFILE-1", firebaseUid: "UID-1" }],
   };
+  const trustedPdfHash = "a".repeat(64);
   const result = await importStatementBatch({
     dataConnect,
     context,
     identity: { uid: "UID-1", role: "KIM" },
-    imports: [{ sourceText, originalFilename: "releve.json", cardId: "CARD-1", periodStart: "2026-08-01", periodEnd: "2026-08-31" }],
+    imports: [{ sourceText, originalFilename: "releve.pdf", cardId: "CARD-1", periodStart: "2026-08-01", periodEnd: "2026-08-31", trustedStatementHash: trustedPdfHash }],
     evidenceWriter: async (input) => {
       evidenceWrites.push(input);
       return `statements/${input.statementHash}.json`;
@@ -77,6 +82,7 @@ test("l'import serveur conserve la preuve puis finalise le relevé sans toucher 
 
   assert.equal(result.imported, 1);
   assert.equal(evidenceWrites.length, 1);
+  assert.equal(evidenceWrites[0].statementHash, trustedPdfHash);
   assert.deepEqual(operations.map(({ operation }) => operation), [
     "UpsertCreditCardStatement",
     "UpsertCreditCardStatementLine",
@@ -84,6 +90,7 @@ test("l'import serveur conserve la preuve puis finalise le relevé sans toucher 
     "FinalizeCreditCardStatementImport",
   ]);
   assert.equal(operations[0].variables.status, "IMPORTING");
+  assert.equal(operations[0].variables.statementHash, trustedPdfHash);
   assert.match(operations[0].variables.originalStoragePath, /^statements\//);
   assert.equal(operations.some(({ operation }) => /InvoiceIntake|Ai/i.test(operation)), false);
 });

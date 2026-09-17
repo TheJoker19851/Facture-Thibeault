@@ -2402,7 +2402,7 @@ function ReconciliationPage({ period, onPeriodChange, isProductionDataSource }: 
   const [selectedCandidateId, setSelectedCandidateId] = useState("");
   const [manualReconciliation, setManualReconciliation] = useState<ReconciliationView | null>(null);
   const [statementImportPlan, setStatementImportPlan] = useState<StatementImportPlan | null>(null);
-  const [pendingServerImports, setPendingServerImports] = useState<Array<{ sourceText: string; originalFilename: string; cardId: string; periodStart: string; periodEnd: string }>>([]);
+  const [pendingServerImports, setPendingServerImports] = useState<Array<{ sourceText: string; analysisId?: string; originalFilename: string; cardId: string; periodStart: string; periodEnd: string }>>([]);
   const [importCardId, setImportCardId] = useState("");
   const [persistedContext, setPersistedContext] = useState<PersistedReconciliationContext | null>(null);
   const [workflowLoading, setWorkflowLoading] = useState(false);
@@ -2465,24 +2465,73 @@ function ReconciliationPage({ period, onPeriodChange, isProductionDataSource }: 
     if (!files.length) return;
     setStatementError("");
     setStatementNotice("");
-    if (!effectiveImportCardId) {
+    const includesPdf = files.some((file) => file.type === "application/pdf" || /\.pdf$/i.test(file.name));
+    const includesStructuredFile = files.some((file) => file.type !== "application/pdf" && !/\.pdf$/i.test(file.name));
+    if (includesStructuredFile && !effectiveImportCardId) {
       setStatementError("Sélectionnez une carte active avant d’importer le relevé.");
+      return;
+    }
+    if (includesPdf && (!useServerWorkflow || !identity.user)) {
+      setStatementError("L’analyse IA des relevés PDF exige une session KIM ou ADMIN connectée au service persistant.");
       return;
     }
     const parsedStatements: CreditCardStatement[] = [];
     const errors: string[] = [];
-    const serverImports: Array<{ sourceText: string; originalFilename: string; cardId: string; periodStart: string; periodEnd: string }> = [];
-    for (const file of files) {
-      try {
-        const source = await file.text();
-        const importMetadata = { cardId: effectiveImportCardId, periodStart: period.start, periodEnd: period.end };
-        serverImports.push({ sourceText: source, originalFilename: file.name, ...importMetadata });
-        const parsed = parseStatementImport(source, { originalFilename: file.name, originalStoragePath: `pending://${file.name}`, importedBy: identity.user?.uid ?? "DEMO-USER-KIM", ...importMetadata });
-        if (parsed.errors.length || !parsed.statement) errors.push(`${file.name} : ${parsed.errors.join(" ")}`);
-        else parsedStatements.push(await finalizeStatementImport(parsed.statement, source) as CreditCardStatement);
-      } catch (reason) {
-        errors.push(`${file.name} : ${reason instanceof Error ? reason.message : "fichier invalide"}`);
+    const serverImports: Array<{ sourceText: string; analysisId?: string; originalFilename: string; cardId: string; periodStart: string; periodEnd: string }> = [];
+    setWorkflowLoading(true);
+    if (includesPdf) setStatementNotice("Analyse IA du relevé PDF en cours…");
+    try {
+      const token = includesPdf ? await identity.user?.getIdToken() : null;
+      for (const file of files) {
+        try {
+          const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+          let source: string;
+          let analysisId: string | undefined;
+          let originalFilename = file.name;
+          let importMetadata: { cardId: string; periodStart: string; periodEnd: string };
+          let originalStoragePath = `pending://${file.name}`;
+
+          if (isPdf) {
+            const form = new FormData();
+            form.append("file", file, file.name);
+            const response = await fetch("/api/reconciliation/parse-pdf", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}`, "x-invoice-client-version": INVOICE_CLIENT_VERSION },
+              body: form,
+            });
+            const payload = await response.json() as {
+              error?: string;
+              sourceText?: string;
+              analysisId?: string;
+              originalFilename?: string;
+              originalStoragePath?: string;
+              cardId?: string;
+              periodStart?: string;
+              periodEnd?: string;
+            };
+            if (!response.ok || !payload.sourceText || !payload.analysisId || !payload.cardId || !payload.periodStart || !payload.periodEnd) {
+              throw new Error(payload.error ?? "L’analyse IA du relevé PDF est incomplète.");
+            }
+            source = payload.sourceText;
+            analysisId = payload.analysisId;
+            originalFilename = payload.originalFilename ?? file.name;
+            originalStoragePath = payload.originalStoragePath ?? `pending://${file.name}`;
+            importMetadata = { cardId: payload.cardId, periodStart: payload.periodStart, periodEnd: payload.periodEnd };
+          } else {
+            source = await file.text();
+            importMetadata = { cardId: effectiveImportCardId, periodStart: period.start, periodEnd: period.end };
+          }
+
+          serverImports.push({ sourceText: source, analysisId, originalFilename, ...importMetadata });
+          const parsed = parseStatementImport(source, { originalFilename, originalStoragePath, importedBy: identity.user?.uid ?? "DEMO-USER-KIM", ...importMetadata });
+          if (parsed.errors.length || !parsed.statement) errors.push(`${file.name} : ${parsed.errors.join(" ")}`);
+          else parsedStatements.push(await finalizeStatementImport(parsed.statement, source) as CreditCardStatement);
+        } catch (reason) {
+          errors.push(`${file.name} : ${reason instanceof Error ? reason.message : "fichier invalide"}`);
+        }
       }
+    } finally {
+      setWorkflowLoading(false);
     }
     const plan = buildStatementImportBatch(statements, parsedStatements) as StatementImportPlan;
     setPendingServerImports(serverImports);
@@ -2625,18 +2674,18 @@ function ReconciliationPage({ period, onPeriodChange, isProductionDataSource }: 
 
   const summary = reconciliation?.summary ?? {};
   return <>
-    <PageHeading eyebrow="Contrôle des relevés" title="Rapprochement" description="Le relevé conserve l’ordre des lignes. Le contrôle comptable traite seulement les ambiguïtés, absences et doublons." action={<div className="reconciliation-actions"><button className="primary-button" type="button" onClick={() => importInputRef.current?.click()} disabled={workflowLoading || !effectiveImportCardId}><span>↑</span> Importer des relevés</button>{useServerWorkflow && reconciliation && <button className="secondary-button" type="button" onClick={() => void autoMatchPersisted()} disabled={workflowLoading}>Enregistrer les jumelages sûrs</button>}<button className="secondary-button" type="button" onClick={downloadExcel} disabled={!reconciliation}>Exporter Excel</button><input ref={importInputRef} hidden type="file" accept=".json,.csv,application/json,text/csv" multiple onChange={(event) => void handleStatementFiles(event)} /></div>} />
+    <PageHeading eyebrow="Contrôle des relevés" title="Rapprochement" description="Le relevé conserve l’ordre des lignes. Le contrôle comptable traite seulement les ambiguïtés, absences et doublons." action={<div className="reconciliation-actions"><button className="primary-button" type="button" onClick={() => importInputRef.current?.click()} disabled={workflowLoading}><span>↑</span> {workflowLoading ? "Analyse en cours…" : "Importer des relevés"}</button>{useServerWorkflow && reconciliation && <button className="secondary-button" type="button" onClick={() => void autoMatchPersisted()} disabled={workflowLoading}>Enregistrer les jumelages sûrs</button>}<button className="secondary-button" type="button" onClick={downloadExcel} disabled={!reconciliation}>Exporter Excel</button><input ref={importInputRef} hidden type="file" accept=".pdf,.json,.csv,application/pdf,application/json,text/csv" multiple onChange={(event) => void handleStatementFiles(event)} /></div>} />
     <div className="reconciliation-toolbar"><PeriodSelector period={period} onChange={onPeriodChange} /><div className="period-card"><span className="card-icon teal">▤</span><div><span>Relevés disponibles</span><strong>{statements.length} relevé(s) · {activeCards.length} cartes actives</strong></div></div></div>
     {statementError && <p className="intake-review-message error">{statementError}</p>}
     {statementNotice && <p className="intake-review-message saved">{statementNotice}</p>}
-    <section className="panel statement-import-panel"><div className="panel-header"><div><p className="eyebrow">{isProductionDataSource ? "Import persistant Production" : useServerWorkflow ? "Import persistant émulateur" : "Import local synthétique"}</p><h2>Relevés importés</h2></div><span className={`badge badge-${useServerWorkflow ? "success" : "neutral"}`}>{useServerWorkflow ? "Écriture auditée" : "Scénario local"}</span></div><div className="statement-import-toolbar"><label className="field"><span>Carte du relevé à importer</span><select value={effectiveImportCardId} onChange={(event) => setImportCardId(event.target.value)}><option value="">Sélectionner une carte</option>{activeCards.map((card) => <option key={card.id} value={card.id}>•••• {card.lastFour} · {card.holder}</option>)}</select><small>Période appliquée : {period.start} → {period.end}</small></label><label className="field"><span>Relevé actif</span><select value={selectedStatement?.id ?? ""} onChange={(event) => selectStatement(event.target.value)}><option value="">Sélectionner un relevé</option>{statements.map((statement) => <option key={statement.id} value={statement.id}>{statement.originalFilename} · •••• {cards.find((card) => card.id === statement.cardId)?.lastFour ?? statement.cardId} · {statement.periodStart} → {statement.periodEnd}</option>)}</select></label><div className="directory-help">{useServerWorkflow ? "Le fichier JSON ou CSV est relu, hashé et conservé côté serveur. L’import est reprenable et idempotent; les jumelages modifient uniquement l’état de rapprochement des transactions déjà comptabilisées." : "Le fichier JSON ou CSV est analysé localement. Le PDF reste une extension future."}</div></div>{statementImportPlan && <div className="statement-import-preview"><strong>Aperçu avant écriture</strong><span>{statementImportPlan.additions.length} ajout(s) · {statementImportPlan.duplicates.length} rejeu(x) idempotent(s) · {statementImportPlan.warnings.length} avertissement(s)</span>{statementImportPlan.warnings.map((warning) => <small key={warning}>{warning}</small>)}{statementImportPlan.errors.length === 0 && <button className="primary-button" type="button" onClick={() => void applyStatementImport()} disabled={workflowLoading}>{useServerWorkflow ? "Enregistrer le relevé" : "Appliquer l’import local"}</button>}</div>}</section>
+    <section className="panel statement-import-panel"><div className="panel-header"><div><p className="eyebrow">{isProductionDataSource ? "Import persistant Production" : useServerWorkflow ? "Import persistant émulateur" : "Import local synthétique"}</p><h2>Relevés importés</h2></div><span className={`badge badge-${useServerWorkflow ? "success" : "neutral"}`}>{useServerWorkflow ? "Écriture auditée" : "Scénario local"}</span></div><div className="statement-import-toolbar"><label className="field"><span>Carte des imports JSON/CSV</span><select value={effectiveImportCardId} onChange={(event) => setImportCardId(event.target.value)}><option value="">Sélectionner une carte</option>{activeCards.map((card) => <option key={card.id} value={card.id}>•••• {card.lastFour} · {card.holder}</option>)}</select><small>Les PDF détectent automatiquement la carte et la période.</small></label><label className="field"><span>Relevé actif</span><select value={selectedStatement?.id ?? ""} onChange={(event) => selectStatement(event.target.value)}><option value="">Sélectionner un relevé</option>{statements.map((statement) => <option key={statement.id} value={statement.id}>{statement.originalFilename} · •••• {cards.find((card) => card.id === statement.cardId)?.lastFour ?? statement.cardId} · {statement.periodStart} → {statement.periodEnd}</option>)}</select></label><div className="directory-help">{useServerWorkflow ? "Le PDF est analysé par l’IA, puis présenté en aperçu. Rien n’est écrit avant votre confirmation. Le fichier original et son résultat validé sont conservés côté serveur pour un import reprenable et idempotent." : "Les fichiers JSON ou CSV sont analysés localement. L’analyse PDF exige le service persistant."}</div></div>{statementImportPlan && <div className="statement-import-preview"><strong>Aperçu avant écriture</strong><span>{statementImportPlan.additions.length} ajout(s) · {statementImportPlan.duplicates.length} rejeu(x) idempotent(s) · {statementImportPlan.warnings.length} avertissement(s)</span>{statementImportPlan.additions.map((statement) => <small key={statement.id}>{statement.originalFilename} · {statement.lines.length} ligne(s) · {statement.periodStart} → {statement.periodEnd}</small>)}{statementImportPlan.warnings.map((warning) => <small key={warning}>{warning}</small>)}{statementImportPlan.errors.map((error, index) => <small key={`${index}:${error}`}>{error}</small>)}{statementImportPlan.errors.length === 0 && <button className="primary-button" type="button" onClick={() => void applyStatementImport()} disabled={workflowLoading}>{useServerWorkflow ? "Enregistrer le relevé" : "Appliquer l’import local"}</button>}</div>}</section>
     {reconciliation ? <>
       <div className="card-roster">{activeCards.map((card) => <span className="card-chip" key={card.id}><b>•••• {card.lastFour}</b><span>{card.holder}</span></span>)}</div>
       <div className="reconciliation-stats"><StatTile label="Lignes du relevé" value={String(reconciliation.lineResults.length)} /><StatTile label="Jumelées" value={String(summary.MATCHED ?? 0)} tone="success" /><StatTile label="À vérifier" value={String((summary.REVIEW ?? 0) + (summary.DUPLICATE ?? 0))} tone="warning" /><StatTile label="Factures manquantes" value={String(summary.MISSING_INVOICE ?? 0)} tone="danger" /></div>
       <section className="panel reconciliation-panel"><div className="panel-header"><div><p className="eyebrow">{reconciliation.statement.originalFilename} · {reconciliation.statement.periodStart} → {reconciliation.statement.periodEnd}</p><h2>Correspondances et exceptions</h2></div><span className="badge badge-neutral">sequence immuable</span></div><div className="reconciliation-explainer"><span className="summary-icon rose">!</span><div><strong>Le relevé est la source de vérité de l’ordre.</strong><span>Montants comparés au cent; date tolérée de ±2 jours; deux candidats équivalents restent à vérifier.</span></div></div><div className="reconciliation-table-wrap"><table className="reconciliation-detail-table"><thead><tr><th>#</th><th>Date</th><th>Marchand relevé</th><th>Montant</th><th>Facture / projet / compte</th><th>Statut</th></tr></thead><tbody>{reconciliation.lineResults.map((result) => { const transaction = result.match ? activeReconciliationTransactions.find((candidate) => candidate.id === result.match?.expenseTransactionId) : null; const selected = selectedResult?.line.id === result.line.id; return <tr key={result.line.id} className={selected ? "selected" : ""} onClick={() => selectLine(result)}><td>{result.line.sequence}</td><td>{formatDate(result.line.transactionDate)}</td><td><strong>{result.line.merchantRaw}</strong><small>{result.line.merchantNormalized}</small></td><td><strong>{formatCurrency(result.line.amountCents / 100)}</strong></td><td><strong>{transaction?.invoiceNumber ?? "—"}</strong><small>{transaction ? `${transaction.projectNumber ?? "—"} · ${transaction.accountNumber ?? "—"}` : result.candidates.length ? `${result.candidates.length} candidate(s)` : "Aucune candidate"}</small></td><td><span className={`badge badge-${reconciliationStatusTone(result.status)}`}>{reconciliationStatusLabel(result.status)}</span></td></tr>; })}</tbody></table></div></section>
       {selectedResult && <section className="panel reconciliation-detail-card"><div className="panel-header"><div><p className="eyebrow">Détail de la ligne {selectedResult.line.sequence}</p><h2>{selectedResult.line.merchantRaw} · {formatCurrency(selectedResult.line.amountCents / 100)}</h2></div><span className={`badge badge-${reconciliationStatusTone(selectedResult.status)}`}>{reconciliationStatusLabel(selectedResult.status)}</span></div><div className="reconciliation-detail-grid"><div><span>Date relevé</span><strong>{formatDate(selectedResult.line.transactionDate)}</strong></div><div><span>Motif du score</span><strong>{selectedResult.reason}</strong></div><div><span>Carte / titulaire</span><strong>{cards.find((card) => card.id === reconciliation.statement.cardId)?.lastFour ?? reconciliation.statement.cardId} · {reconciliation.statement.holderNameSnapshot ?? "titulaire snapshot"}</strong></div></div>{selectedResult.candidates.length > 0 && <div className="reconciliation-candidate-actions"><label className="field"><span>Facture candidate</span><select value={selectedCandidate?.transaction.id ?? ""} onChange={(event) => setSelectedCandidateId(event.target.value)}>{selectedResult.candidates.map((candidate) => <option key={candidate.transaction.id} value={candidate.transaction.id}>{candidate.transaction.invoiceNumber ?? candidate.transaction.id} · {candidate.score.score}/100 · {candidate.transaction.vendor}</option>)}</select></label><button className="primary-button" type="button" onClick={() => void confirmSelectedMatch()} disabled={workflowLoading}>Confirmer le jumelage</button></div>}<div className="reconciliation-detail-actions"><button className="secondary-button" type="button" onClick={() => void updateSelectedStatus(RECONCILIATION_STATUSES.MISSING_INVOICE)} disabled={workflowLoading}>Marquer facture manquante</button><button className="secondary-button" type="button" onClick={() => void updateSelectedStatus(RECONCILIATION_STATUSES.IGNORED)} disabled={workflowLoading}>Ignorer</button>{selectedResult.match && <button className="secondary-button" type="button" onClick={() => void unlinkSelectedMatch()} disabled={workflowLoading}>Dissocier</button>}<button className="text-button" type="button" onClick={() => void updateSelectedStatus(RECONCILIATION_STATUSES.REVIEW)} disabled={workflowLoading}>Rouvrir pour vérification</button></div></section>}
       {reconciliation.outsideTransactions.length > 0 && <section className="panel reconciliation-outside"><div className="panel-header"><div><p className="eyebrow">Contrôle inverse</p><h2>Hors relevé</h2></div><span className="badge badge-warning">{reconciliation.outsideTransactions.length}</span></div><div className="directory-list">{reconciliation.outsideTransactions.map(({ transaction, reason, controlId }) => <div className="directory-row" key={transaction.id}><div><strong>{transaction.vendor} · {formatCurrency(transaction.totalCents / 100)}</strong><small>{transaction.date} · {transaction.invoiceNumber ?? transaction.id}</small></div><span className="badge badge-neutral">Hors relevé</span><small>{reason}</small>{controlId && useServerWorkflow && <button className="text-button" type="button" onClick={() => void resolveOutside(controlId)} disabled={workflowLoading}>Résoudre</button>}</div>)}</div></section>}
-    </> : <section className="panel data-source-card"><p className="eyebrow">Aucun relevé sélectionné</p><h2>Importez un relevé JSON ou CSV</h2><p className="muted">Choisissez la carte et la période, puis importez le relevé pour comparer ses lignes aux factures déjà comptabilisées.</p></section>}
+    </> : <section className="panel data-source-card"><p className="eyebrow">Aucun relevé sélectionné</p><h2>Importez un relevé PDF, JSON ou CSV</h2><p className="muted">Importez un PDF pour détecter automatiquement la carte, la période et les lignes, puis confirmez l’aperçu avant l’écriture.</p></section>}
   </>;
 }
 

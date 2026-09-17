@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { firebaseAdminConfigured, getFirebaseAdminAuth, getFirebaseAdminDataConnect, getFirebaseAdminStorage } from "../../../../firebase/admin";
+import { parseStatementImport } from "../../../../lib/reconciliation.mjs";
 import { importStatementBatch, loadReconciliationContext } from "../../../../lib/reconciliation-server.mjs";
 import { reconciliationServerAvailable } from "../../../../lib/reconciliation-access.mjs";
 
@@ -8,12 +9,13 @@ export const maxDuration = 300;
 
 const importSchema = z.object({
   imports: z.array(z.object({
-    sourceText: z.string().min(1).max(5_000_000),
+    sourceText: z.string().max(5_000_000).optional(),
+    analysisId: z.string().regex(/^[a-f0-9]{64}$/).optional(),
     originalFilename: z.string().trim().min(1).max(255),
     cardId: z.string().trim().min(1).max(128).optional(),
     periodStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     periodEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  })).min(1).max(10),
+  }).refine((item) => Boolean(item.analysisId || item.sourceText?.length), { message: "sourceText ou analysisId est requis." })).min(1).max(10),
 });
 
 async function authenticate(request: Request) {
@@ -70,6 +72,29 @@ async function persistStatementEvidence({ sourceText, originalFilename, statemen
   return storagePath;
 }
 
+async function prepareStatementImport(item: z.infer<typeof importSchema>["imports"][number]) {
+  if (!item.analysisId) return { ...item, sourceText: item.sourceText ?? "" };
+  const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+  if (!bucketName) throw new Error("Le bucket Storage des relevés n’est pas configuré.");
+  const cachePath = `statement-analysis-cache/${item.analysisId.slice(0, 2)}/${item.analysisId}.json`;
+  const [bytes] = await (await getFirebaseAdminStorage()).bucket(bucketName).file(cachePath).download();
+  const artifact = JSON.parse(bytes.toString("utf8")) as Record<string, unknown>;
+  const sourceText = typeof artifact.sourceText === "string" ? artifact.sourceText : "";
+  const fileHash = typeof artifact.fileHash === "string" ? artifact.fileHash : "";
+  const cardId = typeof artifact.cardId === "string" ? artifact.cardId : "";
+  const periodStart = typeof artifact.periodStart === "string" ? artifact.periodStart : "";
+  const periodEnd = typeof artifact.periodEnd === "string" ? artifact.periodEnd : "";
+  const originalFilename = typeof artifact.originalFilename === "string" ? artifact.originalFilename : item.originalFilename;
+  const originalStoragePath = typeof artifact.originalStoragePath === "string" ? artifact.originalStoragePath : "";
+  const expectedStoragePath = `statements/original/${fileHash.slice(0, 2)}/${fileHash}.pdf`;
+  if (artifact.status !== "COMPLETE" || artifact.analysisId !== item.analysisId || !/^[a-f0-9]{64}$/.test(fileHash) || originalStoragePath !== expectedStoragePath) {
+    throw new Error("L’analyse PDF persistée est absente ou invalide; relancez l’import du relevé.");
+  }
+  const parsed = parseStatementImport(sourceText, { originalFilename, originalStoragePath, cardId, periodStart, periodEnd });
+  if (parsed.errors.length || !parsed.statement) throw new Error(parsed.errors.join(" ") || "Le relevé PDF analysé est invalide.");
+  return { sourceText, originalFilename, originalStoragePath, cardId, periodStart, periodEnd, trustedStatementHash: fileHash };
+}
+
 export async function GET(request: Request) {
   if (!reconciliationServerAvailable() || !firebaseAdminConfigured()) return Response.json({ error: "Le service de rapprochement n’est pas configuré pour cet environnement." }, { status: 503 });
   const identity = await authenticate(request);
@@ -91,14 +116,18 @@ export async function POST(request: Request) {
   const identity = await authenticate(request);
   if (!identity) return Response.json({ error: "Le rôle KIM ou ADMIN est requis." }, { status: 403 });
   const parsed = importSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return Response.json({ error: "Le batch doit contenir de 1 à 10 fichiers JSON/CSV valides." }, { status: 400 });
+  if (!parsed.success) return Response.json({ error: "Le batch doit contenir de 1 à 10 relevés PDF analysés ou fichiers JSON/CSV valides." }, { status: 400 });
   try {
     const dataConnect = await getFirebaseAdminDataConnect();
+    const preparedImports = await Promise.all(parsed.data.imports.map(prepareStatementImport));
+    const analyzedEvidencePaths = new Map(preparedImports
+      .filter((item) => item.trustedStatementHash && item.originalStoragePath)
+      .map((item) => [item.trustedStatementHash, item.originalStoragePath]));
     const result = await importStatementBatch({
       dataConnect,
-      imports: parsed.data.imports,
+      imports: preparedImports,
       identity,
-      evidenceWriter: persistStatementEvidence,
+      evidenceWriter: async (input) => analyzedEvidencePaths.get(input.statementHash) ?? persistStatementEvidence(input),
     });
     return Response.json(result, { status: result.rejected ? 207 : 200 });
   } catch (error) {
