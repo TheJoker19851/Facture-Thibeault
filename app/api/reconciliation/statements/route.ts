@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { z } from "zod";
 import { firebaseAdminConfigured, getFirebaseAdminAuth, getFirebaseAdminDataConnect, getFirebaseAdminStorage } from "../../../../firebase/admin";
 import { parseStatementImport } from "../../../../lib/reconciliation.mjs";
@@ -81,18 +82,20 @@ async function prepareStatementImport(item: z.infer<typeof importSchema>["import
   const artifact = JSON.parse(bytes.toString("utf8")) as Record<string, unknown>;
   const sourceText = typeof artifact.sourceText === "string" ? artifact.sourceText : "";
   const fileHash = typeof artifact.fileHash === "string" ? artifact.fileHash : "";
+  const statementHash = typeof artifact.statementHash === "string" ? artifact.statementHash : "";
   const cardId = typeof artifact.cardId === "string" ? artifact.cardId : "";
   const periodStart = typeof artifact.periodStart === "string" ? artifact.periodStart : "";
   const periodEnd = typeof artifact.periodEnd === "string" ? artifact.periodEnd : "";
   const originalFilename = typeof artifact.originalFilename === "string" ? artifact.originalFilename : item.originalFilename;
   const originalStoragePath = typeof artifact.originalStoragePath === "string" ? artifact.originalStoragePath : "";
   const expectedStoragePath = `statements/original/${fileHash.slice(0, 2)}/${fileHash}.pdf`;
-  if (artifact.status !== "COMPLETE" || artifact.analysisId !== item.analysisId || !/^[a-f0-9]{64}$/.test(fileHash) || originalStoragePath !== expectedStoragePath) {
+  const expectedStatementHash = createHash("sha256").update(`${fileHash}|${cardId}`).digest("hex");
+  if (artifact.status !== "COMPLETE" || artifact.analysisId !== item.analysisId || !/^[a-f0-9]{64}$/.test(fileHash) || statementHash !== expectedStatementHash || originalStoragePath !== expectedStoragePath) {
     throw new Error("L’analyse PDF persistée est absente ou invalide; relancez l’import du relevé.");
   }
   const parsed = parseStatementImport(sourceText, { originalFilename, originalStoragePath, cardId, periodStart, periodEnd });
   if (parsed.errors.length || !parsed.statement) throw new Error(parsed.errors.join(" ") || "Le relevé PDF analysé est invalide.");
-  return { sourceText, originalFilename, originalStoragePath, cardId, periodStart, periodEnd, trustedStatementHash: fileHash };
+  return { sourceText, originalFilename, originalStoragePath, cardId, periodStart, periodEnd, trustedStatementHash: statementHash };
 }
 
 export async function GET(request: Request) {

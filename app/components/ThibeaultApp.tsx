@@ -1098,7 +1098,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
         <header className="topbar"><div className="breadcrumbs"><span>Maçonnerie Thibeault</span><span>/</span><strong>{navItems.find((item) => item.id === view)?.label ?? (view === "transaction" ? "Transaction" : "Factures à vérifier")}</strong></div><div className="topbar-actions"><span className="demo-note">{dataSourceLabel}</span><button className="icon-button" aria-label="Notifications">♧<span className="notification-dot" /></button><button className="avatar avatar-gold small" onClick={() => goTo("capture")} aria-label="Ouvrir le mode dépôt">{accountRole === "ADMIN" ? "A" : "K"}</button></div></header>
         <div className="page-content">
           {view === "transactions" && <TransactionsPage items={filteredTransactions} query={query} setQuery={setQuery} statusFilter={statusFilter} statusCounts={transactionStatusCounts} setStatusFilter={setStatusFilter} onOpen={(id) => { setSelectedId(id); setView("transaction" as View); }} />}
-          {view === "reconciliation" && canUseAccounting && <ReconciliationPage period={selectedPeriod} onPeriodChange={setSelectedPeriod} isProductionDataSource={isProductionDataSource} />}
+          {view === "reconciliation" && canUseAccounting && <ReconciliationPage isProductionDataSource={isProductionDataSource} />}
           {view === "reports" && canUseAccounting && <KimAccountingReport key={`${selectedPeriod.id}:${selectedPeriod.start}:${selectedPeriod.end}`} period={selectedPeriod} onPeriodChange={setSelectedPeriod} />}
           {view === "archives" && <ArchivesPage onNotify={notify} isProductionDataSource={isProductionDataSource} />}
           {view === "settings" && <AdminDirectoryPage onDataChange={(patch) => setAppData((current) => ({ ...current, ...patch }))} role={accountRole ?? "ADMIN"} />}
@@ -2389,7 +2389,7 @@ function reconciliationStatusTone(status: string) {
   return "neutral";
 }
 
-function ReconciliationPage({ period, onPeriodChange, isProductionDataSource }: { period: CardPeriod; onPeriodChange: (period: CardPeriod) => void; isProductionDataSource: boolean }) {
+function ReconciliationPage({ isProductionDataSource }: { isProductionDataSource: boolean }) {
   const { cards, transactions } = useAppData();
   const identity = useFirebaseIdentity();
   const isLocalEmulatorMode = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID === "demo-facture-thibeault" && process.env.NEXT_PUBLIC_FIREBASE_USE_EMULATORS === "true";
@@ -2479,12 +2479,6 @@ function ReconciliationPage({ period, onPeriodChange, isProductionDataSource }: 
       for (const file of files) {
         try {
           const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
-          let source: string;
-          let analysisId: string | undefined;
-          let originalFilename = file.name;
-          let importMetadata: { cardId: string; periodStart: string; periodEnd: string };
-          let originalStoragePath = `pending://${file.name}`;
-
           if (isPdf) {
             const form = new FormData();
             form.append("file", file, file.name);
@@ -2493,30 +2487,36 @@ function ReconciliationPage({ period, onPeriodChange, isProductionDataSource }: 
               headers: { Authorization: `Bearer ${token}`, "x-invoice-client-version": INVOICE_CLIENT_VERSION },
               body: form,
             });
-            const payload = await response.json() as {
-              error?: string;
-              sourceText?: string;
-              analysisId?: string;
+            type PdfAnalysis = {
+              sourceText: string;
+              analysisId: string;
               originalFilename?: string;
               originalStoragePath?: string;
-              cardId?: string;
-              periodStart?: string;
-              periodEnd?: string;
+              cardId: string;
+              periodStart: string;
+              periodEnd: string;
             };
-            if (!response.ok || !payload.sourceText || !payload.analysisId || !payload.cardId || !payload.periodStart || !payload.periodEnd) {
+            const payload = await response.json() as Partial<PdfAnalysis> & {
+              error?: string;
+              analyses?: PdfAnalysis[];
+            };
+            if (!response.ok) {
               throw new Error(payload.error ?? "L’analyse IA du relevé PDF est incomplète.");
             }
-            source = payload.sourceText;
-            analysisId = payload.analysisId;
-            originalFilename = payload.originalFilename ?? file.name;
-            originalStoragePath = payload.originalStoragePath ?? `pending://${file.name}`;
-            importMetadata = { cardId: payload.cardId, periodStart: payload.periodStart, periodEnd: payload.periodEnd };
+            const analyses = payload.analyses?.length ? payload.analyses : payload.sourceText && payload.analysisId && payload.cardId && payload.periodStart && payload.periodEnd
+              ? [payload as PdfAnalysis]
+              : [];
+            if (!analyses.length) throw new Error(payload.error ?? "L’analyse IA du relevé PDF est incomplète.");
+            for (const analysis of analyses) {
+              const originalFilename = analysis.originalFilename ?? file.name;
+              const originalStoragePath = analysis.originalStoragePath ?? `pending://${file.name}`;
+              const importMetadata = { cardId: analysis.cardId, periodStart: analysis.periodStart, periodEnd: analysis.periodEnd };
+              serverImports.push({ sourceText: analysis.sourceText, analysisId: analysis.analysisId, originalFilename, ...importMetadata });
+              const parsed = parseStatementImport(analysis.sourceText, { originalFilename, originalStoragePath, importedBy: identity.user?.uid ?? "DEMO-USER-KIM", ...importMetadata });
+              if (parsed.errors.length || !parsed.statement) errors.push(`${file.name} · carte ${analysis.cardId} : ${parsed.errors.join(" ")}`);
+              else parsedStatements.push(await finalizeStatementImport(parsed.statement, analysis.sourceText) as CreditCardStatement);
+            }
           } else throw new Error("Seuls les relevés PDF sont acceptés dans cet écran.");
-
-          serverImports.push({ sourceText: source, analysisId, originalFilename, ...importMetadata });
-          const parsed = parseStatementImport(source, { originalFilename, originalStoragePath, importedBy: identity.user?.uid ?? "DEMO-USER-KIM", ...importMetadata });
-          if (parsed.errors.length || !parsed.statement) errors.push(`${file.name} : ${parsed.errors.join(" ")}`);
-          else parsedStatements.push(await finalizeStatementImport(parsed.statement, source) as CreditCardStatement);
         } catch (reason) {
           errors.push(`${file.name} : ${reason instanceof Error ? reason.message : "fichier invalide"}`);
         }
@@ -2527,8 +2527,10 @@ function ReconciliationPage({ period, onPeriodChange, isProductionDataSource }: 
     const plan = buildStatementImportBatch(statements, parsedStatements) as StatementImportPlan;
     setPendingServerImports(serverImports);
     setStatementImportPlan({ ...plan, errors: [...errors, ...plan.errors] });
-    if (errors.length || plan.errors.length) setStatementError("L’aperçu contient des erreurs; aucun relevé ne sera ajouté.");
-    else setStatementNotice(`${plan.additions.length} nouveau(x) relevé(s) prêt(s) à importer; ${plan.duplicates.length} rejeu(x) idempotent(s).`);
+    if (errors.length || plan.errors.length) {
+      setStatementNotice("");
+      setStatementError([...errors, ...plan.errors].join(" ") || "L’aperçu contient des erreurs; aucun relevé ne sera ajouté.");
+    } else setStatementNotice(`${plan.additions.length} nouveau(x) relevé(s) prêt(s) à importer; ${plan.duplicates.length} rejeu(x) idempotent(s).`);
   };
 
   const applyStatementImport = async () => {
@@ -2672,7 +2674,7 @@ function ReconciliationPage({ period, onPeriodChange, isProductionDataSource }: 
   const summary = reconciliation?.summary ?? {};
   return <>
     <PageHeading eyebrow="Contrôle des relevés" title="Rapprochement" description="Le relevé conserve l’ordre des lignes. Le contrôle comptable traite seulement les ambiguïtés, absences et doublons." action={<div className="reconciliation-actions"><button className="primary-button" type="button" onClick={() => importInputRef.current?.click()} disabled={workflowLoading}><span>↑</span> {workflowLoading ? "Analyse en cours…" : "Importer des relevés"}</button>{useServerWorkflow && reconciliation && <button className="secondary-button" type="button" onClick={() => void autoMatchPersisted()} disabled={workflowLoading}>Enregistrer les jumelages sûrs</button>}<button className="secondary-button" type="button" onClick={downloadExcel} disabled={!reconciliation}>Exporter Excel</button><input ref={importInputRef} hidden type="file" accept=".pdf,application/pdf" multiple onChange={(event) => void handleStatementFiles(event)} /></div>} />
-    <div className="reconciliation-toolbar"><PeriodSelector period={period} onChange={onPeriodChange} /><div className="period-card"><span className="card-icon teal">▤</span><div><span>Relevés disponibles</span><strong>{statements.length} relevé(s) · {activeCards.length} cartes actives</strong></div></div></div>
+    <div className="reconciliation-toolbar"><div className="period-card"><span className="card-icon teal">▤</span><div><span>Relevés disponibles</span><strong>{statements.length} relevé(s) · {activeCards.length} cartes actives</strong></div></div></div>
     {statementError && <p className="intake-review-message error">{statementError}</p>}
     {statementNotice && <p className="intake-review-message saved">{statementNotice}</p>}
     <section className="panel statement-import-panel"><div className="panel-header"><div><p className="eyebrow">{isProductionDataSource ? "Import persistant Production" : useServerWorkflow ? "Import persistant émulateur" : "Import local synthétique"}</p><h2>Relevés importés</h2></div><span className={`badge badge-${useServerWorkflow ? "success" : "neutral"}`}>{useServerWorkflow ? "Écriture auditée" : "Scénario local"}</span></div><div className="directory-help">{useServerWorkflow ? "Importez simplement le PDF. L’IA lit le numéro de carte et la période, le serveur valide la carte active correspondante, puis le relevé est automatiquement rapproché avec les transactions de cette carte. Rien n’est écrit avant votre confirmation." : "L’analyse automatique des relevés PDF exige le service persistant."}</div>{statementImportPlan && <div className="statement-import-preview"><strong>Aperçu avant écriture</strong><span>{statementImportPlan.additions.length} ajout(s) · {statementImportPlan.duplicates.length} rejeu(x) idempotent(s) · {statementImportPlan.warnings.length} avertissement(s)</span>{statementImportPlan.additions.map((statement) => <small key={statement.id}>{statement.originalFilename} · {statement.lines.length} ligne(s) · {statement.periodStart} → {statement.periodEnd}</small>)}{statementImportPlan.warnings.map((warning) => <small key={warning}>{warning}</small>)}{statementImportPlan.errors.map((error, index) => <small key={`${index}:${error}`}>{error}</small>)}{statementImportPlan.errors.length === 0 && <button className="primary-button" type="button" onClick={() => void applyStatementImport()} disabled={workflowLoading}>{useServerWorkflow ? "Enregistrer le relevé" : "Appliquer l’import local"}</button>}</div>}</section>

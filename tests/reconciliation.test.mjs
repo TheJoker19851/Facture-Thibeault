@@ -11,6 +11,7 @@ import {
   reconcileStatement,
   setLineReconciliationStatus,
   sha256Hex,
+  splitStatementPdfExtractionByCard,
   statementSourceFromPdfExtraction,
   validateStatementPdfExtraction,
 } from "../lib/reconciliation.mjs";
@@ -94,6 +95,32 @@ test("refuse une extraction PDF ambiguë ou qui brise l’ordre des lignes", () 
   ]);
   assert.equal(ambiguous.cardId, null);
   assert.match(ambiguous.error, /Plusieurs cartes actives/i);
+});
+
+test("scinde un relevé maître par carte à partir de chaque transaction", () => {
+  const validated = validateStatementPdfExtraction({
+    cardLastFour: "9290",
+    holderName: "Compte maître",
+    periodStart: "2026-08-01",
+    periodEnd: "2026-08-31",
+    confidence: 0.98,
+    notes: "",
+    lines: [
+      { sequence: 1, cardLastFour: "9291", holderName: "Kim", transactionDate: "2026-08-11", postedDate: null, merchantRaw: "Marchand A", amountCents: 1000, externalReference: null },
+      { sequence: 2, cardLastFour: "9294", holderName: "Alex", transactionDate: "2026-08-12", postedDate: null, merchantRaw: "Marchand B", amountCents: 2000, externalReference: null },
+      { sequence: 3, cardLastFour: "9291", holderName: "Kim", transactionDate: "2026-08-13", postedDate: null, merchantRaw: "Marchand C", amountCents: 3000, externalReference: null },
+    ],
+  });
+  assert.deepEqual(validated.errors, []);
+  const split = splitStatementPdfExtractionByCard(validated.extraction, [
+    { id: "CARD-1", lastFour: "9291", status: "Actif", holder: { displayName: "Kim" } },
+    { id: "CARD-2", lastFour: "9294", status: "Actif", holder: { displayName: "Alex" } },
+  ]);
+  assert.deepEqual(split.errors, []);
+  assert.deepEqual(split.statements.map((item) => [item.cardId, item.extraction.lines.map((line) => [line.sequence, line.merchantRaw])]), [
+    ["CARD-1", [[1, "Marchand A"], [2, "Marchand C"]]],
+    ["CARD-2", [[1, "Marchand B"]]],
+  ]);
 });
 
 test("normalise seulement les alias marchands explicitement configurés", () => {

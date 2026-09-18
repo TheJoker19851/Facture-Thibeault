@@ -5,14 +5,14 @@ import { z } from "zod";
 import { firebaseAdminConfigured, getFirebaseAdminAuth, getFirebaseAdminDataConnect, getFirebaseAdminStorage } from "../../../../firebase/admin";
 import { clientUpdateRequiredResponse, isCurrentInvoiceClientVersion } from "../../../../lib/invoice-client-version.mjs";
 import { transientGeminiErrorCode } from "../../../../lib/gemini-retry.mjs";
-import { matchStatementPdfCard, statementSourceFromPdfExtraction, validateStatementPdfExtraction } from "../../../../lib/reconciliation.mjs";
+import { splitStatementPdfExtractionByCard, statementSourceFromPdfExtraction, validateStatementPdfExtraction } from "../../../../lib/reconciliation.mjs";
 import { reconciliationServerAvailable } from "../../../../lib/reconciliation-access.mjs";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
 const MAX_PDF_BYTES = 20 * 1024 * 1024;
-const PROMPT_VERSION = "statement-pdf-v1";
+const PROMPT_VERSION = "statement-pdf-v2-per-line-card";
 const MODEL_TIMEOUT_MS = 55_000;
 
 const statementPdfExtractionSchema = z.object({
@@ -24,6 +24,8 @@ const statementPdfExtractionSchema = z.object({
   notes: z.string(),
   lines: z.array(z.object({
     sequence: z.number().int().positive(),
+    cardLastFour: z.string(),
+    holderName: z.string().nullable(),
     transactionDate: z.string(),
     postedDate: z.string().nullable(),
     merchantRaw: z.string(),
@@ -75,11 +77,12 @@ async function activeCards(identity: Identity) {
 
 function modelInstructions(cards: Array<{ id: string; lastFour?: string | null; holder?: { displayName?: string | null } | null }>) {
   const roster = cards.map((card) => `${card.id} | •••• ${card.lastFour ?? "inconnu"} | ${card.holder?.displayName ?? "titulaire inconnu"}`).join("\n");
-  return `You extract one Canadian business credit-card statement for Maçonnerie Thibeault.
+  return `You extract a Canadian business credit-card statement for Maçonnerie Thibeault. A PDF can be a consolidated master statement containing several employee-card sections.
 Read the complete PDF and return only transactions that belong in invoice reconciliation: purchases, merchant credits/refunds, interest and card fees. Exclude payments, balance summaries, rewards summaries and carried balances.
 Preserve the exact source order with sequence starting at 1. Use ISO dates YYYY-MM-DD. Return signed integer Canadian cents: purchases and fees are positive, merchant credits/refunds are negative.
-Never invent a date, merchant, amount, card number or holder. cardLastFour must contain the four digits printed on the statement. Extract the statement period exactly as printed.
-The server will match the result against this active-card roster; use it only to disambiguate visible evidence:
+For every transaction, cardLastFour and holderName must come from the nearest card section or cardholder heading that governs that transaction. Repeat them on every line. Do not assign the master account number to transactions when an employee-card section is visible. The top-level cardLastFour and holderName describe the statement heading and may therefore be the master account.
+Never invent a date, merchant, amount, card number or holder. Extract the statement period exactly as printed.
+The server will match each transaction against this active-card roster; use it only to disambiguate visible evidence, never to guess:
 ${roster}
 Set confidence below 0.7 and explain the uncertainty in notes when the card, holder, period or any transaction is unclear.`;
 }
@@ -141,7 +144,7 @@ export async function POST(request: Request) {
     try {
       const [cachedBytes] = await cacheFile.download();
       const cached = JSON.parse(cachedBytes.toString("utf8"));
-      if (cached?.status === "COMPLETE" && cached.fileHash === fileHash && typeof cached.sourceText === "string" && cached.cardId) {
+      if (cached?.status === "COMPLETE" && cached.fileHash === fileHash && Array.isArray(cached.analyses) && cached.analyses.length > 0) {
         console.info("[statement-pdf] phase=cache_hit", { analysisId, fileHash });
         return Response.json({ ...cached, cached: true });
       }
@@ -165,7 +168,7 @@ export async function POST(request: Request) {
           instructions: modelInstructions(cards),
           output: Output.object({
             name: "credit_card_statement_extraction",
-            description: "Structured transaction rows extracted from one Canadian credit-card statement PDF.",
+            description: "Structured transaction rows, including the governing card for every row, extracted from a Canadian consolidated credit-card statement PDF.",
             schema: statementPdfExtractionSchema,
           }),
           messages: [{
@@ -179,10 +182,25 @@ export async function POST(request: Request) {
         });
         const validated = validateStatementPdfExtraction(result.output);
         if (validated.errors.length || !validated.extraction) throw new Error(validated.errors.join(" ") || "L’analyse structurée du PDF est invalide.");
-        const matched = matchStatementPdfCard(validated.extraction, cards);
-        if (!matched.cardId) throw new Error(matched.error ?? "La carte du relevé n’a pas pu être identifiée.");
         if (validated.extraction.confidence < 0.7) throw new Error(`La confiance de l’analyse PDF est trop faible (${Math.round(validated.extraction.confidence * 100)} %). ${validated.extraction.notes}`.trim());
-        const sourceText = statementSourceFromPdfExtraction(validated.extraction, { cardId: matched.cardId });
+        const split = splitStatementPdfExtractionByCard(validated.extraction, cards);
+        if (split.errors.length || !split.statements.length) throw new Error(split.errors.join(" ") || "Aucune carte active n’a pu être associée aux transactions du relevé.");
+        const analyses = split.statements.map(({ cardId, extraction }) => {
+          const partAnalysisId = hash(`${analysisId}|${cardId}`);
+          return {
+            analysisId: partAnalysisId,
+            fileHash,
+            statementHash: hash(`${fileHash}|${cardId}`),
+            status: "COMPLETE",
+            originalFilename,
+            originalStoragePath,
+            cardId,
+            periodStart: extraction.periodStart,
+            periodEnd: extraction.periodEnd,
+            sourceText: statementSourceFromPdfExtraction(extraction, { cardId }),
+            extraction,
+          };
+        });
         const completed = {
           generationId,
           analysisId,
@@ -191,16 +209,24 @@ export async function POST(request: Request) {
           status: "COMPLETE",
           originalFilename,
           originalStoragePath,
-          cardId: matched.cardId,
           periodStart: validated.extraction.periodStart,
           periodEnd: validated.extraction.periodEnd,
-          sourceText,
           extraction: validated.extraction,
+          analyses,
           usage: result.usage,
           createdAt: new Date().toISOString(),
         };
-        await Promise.all([saveJson(generationFile, completed), saveJson(cacheFile, completed)]);
-        console.info("[statement-pdf] phase=complete", { generationId, analysisId, modelId, lineCount: validated.extraction.lines.length });
+        await Promise.all([
+          saveJson(generationFile, completed),
+          saveJson(cacheFile, completed),
+          ...analyses.map((analysis) => saveJson(bucket.file(`statement-analysis-cache/${analysis.analysisId.slice(0, 2)}/${analysis.analysisId}.json`), {
+            ...analysis,
+            generationId,
+            model: modelId,
+            createdAt: completed.createdAt,
+          })),
+        ]);
+        console.info("[statement-pdf] phase=complete", { generationId, analysisId, modelId, lineCount: validated.extraction.lines.length, cardCount: analyses.length });
         return Response.json({ ...completed, cached: false });
       } catch (error) {
         let normalizedError: unknown = error;

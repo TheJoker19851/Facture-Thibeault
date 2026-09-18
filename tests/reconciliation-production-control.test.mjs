@@ -48,6 +48,9 @@ test("la navigation expose le rapprochement sans rediriger vers les factures à 
   assert.doesNotMatch(source, />Relevé actif</);
   assert.doesNotMatch(source, /setImportCardId/);
   assert.match(source, /aucun choix manuel n’est requis/i);
+  const reconciliationPage = source.slice(source.indexOf("function ReconciliationPage"), source.indexOf("function StatTile"));
+  assert.doesNotMatch(reconciliationPage, /<PeriodSelector/);
+  assert.match(reconciliationPage, /payload\.analyses/);
 });
 
 test("l'import serveur conserve la preuve puis finalise le relevé sans toucher au workflow IA", async () => {
