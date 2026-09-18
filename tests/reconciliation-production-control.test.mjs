@@ -40,10 +40,14 @@ test("la navigation expose le rapprochement sans rediriger vers les factures à 
   assert.match(source, /view === "reconciliation".*<ReconciliationPage/);
   assert.doesNotMatch(source, /nextView === "dashboard" \|\| nextView === "reconciliation"/);
   assert.match(source, /isProductionDataSource \|\| isLocalEmulatorMode/);
-  assert.match(source, /accept="\.pdf,\.json,\.csv/);
+  assert.match(source, /accept="\.pdf,application\/pdf"/);
   assert.match(source, /\/api\/reconciliation\/parse-pdf/);
   assert.match(source, /Aperçu avant écriture/);
   assert.match(source, /Enregistrer le relevé/);
+  assert.doesNotMatch(source, />Carte des imports JSON\/CSV</);
+  assert.doesNotMatch(source, />Relevé actif</);
+  assert.doesNotMatch(source, /setImportCardId/);
+  assert.match(source, /aucun choix manuel n’est requis/i);
 });
 
 test("l'import serveur conserve la preuve puis finalise le relevé sans toucher au workflow IA", async () => {
