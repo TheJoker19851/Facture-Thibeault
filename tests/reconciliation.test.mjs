@@ -123,6 +123,40 @@ test("scinde un relevé maître par carte à partir de chaque transaction", () =
   ]);
 });
 
+test("ne transforme pas un numéro de compte complet en suffixe de carte", () => {
+  const validated = validateStatementPdfExtraction({
+    cardLastFour: "5258 819200 339290",
+    holderName: "Keven Tremblay",
+    periodStart: "2026-08-01",
+    periodEnd: "2026-08-31",
+    confidence: 0.98,
+    notes: "",
+    lines: [
+      { sequence: 1, cardLastFour: null, holderName: "Keven Tremblay", transactionDate: "2026-08-11", postedDate: null, merchantRaw: "BUREAU EN GROS", amountCents: 45413, externalReference: "U726021898" },
+    ],
+  });
+  assert.deepEqual(validated.errors, []);
+  assert.equal(validated.extraction.cardLastFour, "");
+  assert.equal(validated.extraction.lines[0].cardLastFour, "");
+});
+
+test("utilise le titulaire actif unique quand le compte maître 9290 est pris pour une carte", () => {
+  const match = matchStatementPdfCard({ cardLastFour: "9290", holderName: "Keven Tremblay" }, [
+    { id: "CARD-KEVEN", lastFour: "2481", status: "Actif", holder: { displayName: "Keven Tremblay" } },
+    { id: "CARD-KIM", lastFour: "7310", status: "Actif", holder: { displayName: "Kim Thibeault" } },
+  ]);
+  assert.equal(match.cardId, "CARD-KEVEN");
+  assert.equal(match.card.lastFour, "2481");
+});
+
+test("refuse le faux suffixe 9290 lorsque le titulaire ne permet pas une association sûre", () => {
+  const match = matchStatementPdfCard({ cardLastFour: "9290", holderName: null }, [
+    { id: "CARD-KEVEN", lastFour: "2481", status: "Actif", holder: { displayName: "Keven Tremblay" } },
+  ]);
+  assert.equal(match.cardId, null);
+  assert.match(match.error, /9290.*n’est pas active/i);
+});
+
 test("normalise seulement les alias marchands explicitement configurés", () => {
   assert.equal(normalizeMerchant("CDN TIRE STORE 174"), "Canadian Tire");
   assert.equal(normalizeMerchant("Marchand jamais configuré"), "Marchand jamais configuré");

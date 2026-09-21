@@ -12,11 +12,11 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 const MAX_PDF_BYTES = 20 * 1024 * 1024;
-const PROMPT_VERSION = "statement-pdf-v2-per-line-card";
+const PROMPT_VERSION = "statement-pdf-v3-account-vs-card";
 const MODEL_TIMEOUT_MS = 55_000;
 
 const statementPdfExtractionSchema = z.object({
-  cardLastFour: z.string(),
+  cardLastFour: z.string().nullable(),
   holderName: z.string().nullable(),
   periodStart: z.string(),
   periodEnd: z.string(),
@@ -24,7 +24,7 @@ const statementPdfExtractionSchema = z.object({
   notes: z.string(),
   lines: z.array(z.object({
     sequence: z.number().int().positive(),
-    cardLastFour: z.string(),
+    cardLastFour: z.string().nullable(),
     holderName: z.string().nullable(),
     transactionDate: z.string(),
     postedDate: z.string().nullable(),
@@ -80,7 +80,9 @@ function modelInstructions(cards: Array<{ id: string; lastFour?: string | null; 
   return `You extract a Canadian business credit-card statement for Maçonnerie Thibeault. A PDF can be a consolidated master statement containing several employee-card sections.
 Read the complete PDF and return only transactions that belong in invoice reconciliation: purchases, merchant credits/refunds, interest and card fees. Exclude payments, balance summaries, rewards summaries and carried balances.
 Preserve the exact source order with sequence starting at 1. Use ISO dates YYYY-MM-DD. Return signed integer Canadian cents: purchases and fees are positive, merchant credits/refunds are negative.
-For every transaction, cardLastFour and holderName must come from the nearest card section or cardholder heading that governs that transaction. Repeat them on every line. Do not assign the master account number to transactions when an employee-card section is visible. The top-level cardLastFour and holderName describe the statement heading and may therefore be the master account.
+For every transaction, cardLastFour and holderName must come from the nearest employee-card section or cardholder heading that governs that transaction. Repeat them on every line. cardLastFour must contain exactly the four digits printed beside a masked card number, for example **** **** ****2481 means 2481.
+ACCOUNT NO., ACCOUNT NUMBER, NUMÉRO DE COMPTE and NO DE COMPTE identify the master account, not a credit card. Never turn a complete account number such as 5258 819200 339290 into cardLastFour=9290. If no masked employee-card suffix is visible for a line, return null for cardLastFour and preserve the visible holderName; never guess.
+The top-level cardLastFour is null for a consolidated/master statement unless its heading explicitly prints a masked credit-card suffix. A master account number must never appear in cardLastFour at either level.
 Never invent a date, merchant, amount, card number or holder. Extract the statement period exactly as printed.
 The server will match each transaction against this active-card roster; use it only to disambiguate visible evidence, never to guess:
 ${roster}
@@ -181,10 +183,18 @@ export async function POST(request: Request) {
           abortSignal: AbortSignal.timeout(MODEL_TIMEOUT_MS),
         });
         const validated = validateStatementPdfExtraction(result.output);
-        if (validated.errors.length || !validated.extraction) throw new Error(validated.errors.join(" ") || "L’analyse structurée du PDF est invalide.");
+        if (validated.errors.length || !validated.extraction) {
+          const validationError = new Error(validated.errors.join(" ") || "L’analyse structurée du PDF est invalide.");
+          Object.assign(validationError, { retryWithFallbackModel: true });
+          throw validationError;
+        }
         if (validated.extraction.confidence < 0.7) throw new Error(`La confiance de l’analyse PDF est trop faible (${Math.round(validated.extraction.confidence * 100)} %). ${validated.extraction.notes}`.trim());
         const split = splitStatementPdfExtractionByCard(validated.extraction, cards);
-        if (split.errors.length || !split.statements.length) throw new Error(split.errors.join(" ") || "Aucune carte active n’a pu être associée aux transactions du relevé.");
+        if (split.errors.length || !split.statements.length) {
+          const cardMatchError = new Error(split.errors.join(" ") || "Aucune carte active n’a pu être associée aux transactions du relevé.");
+          Object.assign(cardMatchError, { retryWithFallbackModel: true });
+          throw cardMatchError;
+        }
         const analyses = split.statements.map(({ cardId, extraction }) => {
           const partAnalysisId = hash(`${analysisId}|${cardId}`);
           return {
@@ -237,8 +247,9 @@ export async function POST(request: Request) {
         }
         lastError = normalizedError;
         const transient = transientGeminiErrorCode("GEMINI", normalizedError) === "GEMINI_TRANSIENT";
-        console.error("[statement-pdf] phase=model_failed", { generationId, analysisId, modelId, transient, message: normalizedError instanceof Error ? normalizedError.message : "unknown" });
-        if (!transient || index === modelIds.length - 1) throw normalizedError;
+        const retryWithFallbackModel = Boolean((normalizedError as { retryWithFallbackModel?: boolean } | null)?.retryWithFallbackModel);
+        console.error("[statement-pdf] phase=model_failed", { generationId, analysisId, modelId, transient, retryWithFallbackModel, message: normalizedError instanceof Error ? normalizedError.message : "unknown" });
+        if ((!transient && !retryWithFallbackModel) || index === modelIds.length - 1) throw normalizedError;
       }
     }
     throw lastError;
