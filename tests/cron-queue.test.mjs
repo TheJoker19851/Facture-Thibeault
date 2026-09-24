@@ -94,6 +94,33 @@ test("le cron reprend une erreur technique sans extraction avant la limite", () 
   );
 });
 
+test("le cron retente une seule fois une sortie IA entièrement invalide, y compris l'ancien état sans code", () => {
+  const invalidOutput = {
+    receiptId: "INVALID-OUTPUT-001",
+    processingStatus: "NEEDS_REVIEW",
+    processingState: "FAILED",
+    processingAttempts: 1,
+    accountingStatus: "NOT_POSTED",
+    lastError: "La lecture IA doit être vérifiée manuellement.",
+    aiModel: null,
+    aiErrorCode: "AI_OUTPUT_REQUIRES_REVIEW",
+    decisionExceptions: JSON.stringify([{
+      code: "MISSING_REQUIRED_FIELD",
+      fieldName: "vendor",
+      message: "Le fournisseur est requis.",
+    }]),
+  };
+
+  assert.equal(isRetryableUnextractedAiFailure(invalidOutput, 12), true);
+  assert.equal(isRetryableUnextractedAiFailure({ ...invalidOutput, aiErrorCode: null }, 12), true);
+  assert.equal(isRetryableUnextractedAiFailure({ ...invalidOutput, processingAttempts: 2 }, 12), false);
+  assert.equal(isRetryableUnextractedAiFailure({ ...invalidOutput, aiModel: "gemini-result" }, 12), false);
+  assert.deepEqual(
+    selectInvoiceIntakesForAutomaticProcessing([invalidOutput], 2, 12).map((intake) => intake.receiptId),
+    ["INVALID-OUTPUT-001"],
+  );
+});
+
 test("le cron reprend une approbation automatique orpheline avant la limite de tentatives", () => {
   const orphaned = {
     receiptId: "AUTO-ORPHANED",

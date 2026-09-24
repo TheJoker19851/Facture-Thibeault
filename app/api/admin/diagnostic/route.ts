@@ -1,4 +1,4 @@
-import { firebaseAdminConfigured, getFirebaseAdminAuth, getFirebaseAdminDataConnect, getFirebaseAdminStorage } from "../../../../firebase/admin";
+import { firebaseAdminConfigured, getFirebaseAdminDataConnect, getFirebaseAdminStorage, verifyFirebaseIdToken } from "../../../../firebase/admin";
 import { inferApplicationEnvironment } from "../../../../lib/environment.mjs";
 import { INVOICE_CLIENT_VERSION } from "../../../../lib/invoice-client-version.mjs";
 import { listAllExpenseTransactions, listAllInvoiceIntakes, listAllInvoicesToReview } from "../../../../firebase/accounting-pagination.server";
@@ -9,7 +9,8 @@ async function authenticateAdmin(request: Request) {
   const token = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return null;
   try {
-    const decoded = await (await getFirebaseAdminAuth()).verifyIdToken(token);
+    const decoded = await verifyFirebaseIdToken(token, "admin_diagnostic");
+    if (!decoded) return null;
     return decoded.role === "ADMIN" ? decoded : null;
   } catch {
     return null;

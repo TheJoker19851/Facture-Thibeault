@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { firebaseAdminConfigured, getFirebaseAdminAuth, getFirebaseAdminDataConnect } from "../../../../firebase/admin";
+import { firebaseAdminConfigured, getFirebaseAdminAuth, getFirebaseAdminDataConnect, verifyFirebaseIdToken } from "../../../../firebase/admin";
 import { listAllUserProfiles } from "../../../../firebase/accounting-pagination.server";
 import { auditDetails, auditEventId } from "../../../../lib/audit-events.mjs";
 import { sendTransactionalEmail } from "../../../../lib/transactional-email.mjs";
@@ -70,7 +70,8 @@ async function authenticateAdmin(request: Request): Promise<AdminIdentity | null
   const token = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return null;
   try {
-    const decoded = await (await getFirebaseAdminAuth()).verifyIdToken(token);
+    const decoded = await verifyFirebaseIdToken(token, "admin_invitations");
+    if (!decoded) return null;
     return isAdminRole(decoded.role) ? { uid: decoded.uid, role: "ADMIN" } : null;
   } catch {
     return null;

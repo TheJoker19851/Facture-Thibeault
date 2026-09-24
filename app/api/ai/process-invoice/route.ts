@@ -1,7 +1,7 @@
 import { generateText, Output } from "ai";
 import { createGoogle } from "@ai-sdk/google";
 import { z } from "zod";
-import { firebaseAdminConfigured, getFirebaseAdminAuth, getFirebaseAdminDataConnect } from "../../../../firebase/admin";
+import { firebaseAdminConfigured, getFirebaseAdminDataConnect, verifyFirebaseIdToken } from "../../../../firebase/admin";
 import { materializeInvoiceIntake, readInvoiceIntakeStoragePhotos } from "../../../../firebase/invoice-intake-commit.server";
 import {
   listAllCreditCards,
@@ -135,7 +135,8 @@ async function authenticate(request: Request): Promise<AuthenticatedIdentity | n
   const token = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return null;
   try {
-    const decoded = await (await getFirebaseAdminAuth()).verifyIdToken(token);
+    const decoded = await verifyFirebaseIdToken(token, "invoice_process");
+    if (!decoded) return null;
     if (typeof decoded.role !== "string" || !ALLOWED_ROLES.has(decoded.role)) return null;
     return { uid: decoded.uid, role: decoded.role as AuthenticatedIdentity["role"] };
   } catch {
@@ -759,7 +760,7 @@ export async function POST(request: Request) {
       await dataConnect.executeMutation("MarkInvoiceIntakeAiError", {
         receiptId,
         error,
-        aiErrorCode: null,
+        aiErrorCode: "AI_OUTPUT_REQUIRES_REVIEW",
         accountingStatus: "NOT_POSTED",
         decisionExceptions: serializeDecisionExceptions(decision.exceptions),
         decisionChecks: serializeDecisionChecks(decision.checks),

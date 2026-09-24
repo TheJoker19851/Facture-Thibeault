@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { firebaseAdminConfigured, getFirebaseAdminAuth, getFirebaseAdminDataConnect } from "../../../../firebase/admin";
+import { firebaseAdminConfigured, getFirebaseAdminDataConnect, verifyFirebaseIdToken } from "../../../../firebase/admin";
 import { listAllInvoiceIntakes } from "../../../../firebase/accounting-pagination.server";
 import { clientUpdateRequiredResponse, isCurrentInvoiceClientVersion } from "../../../../lib/invoice-client-version.mjs";
 
@@ -12,7 +12,8 @@ async function identity(request: Request) {
   const token = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return null;
   try {
-    const decoded = await (await getFirebaseAdminAuth()).verifyIdToken(token);
+    const decoded = await verifyFirebaseIdToken(token, "invoice_intake_status");
+    if (!decoded) return null;
     if (typeof decoded.role !== "string" || !ALLOWED_ROLES.has(decoded.role)) return null;
     return decoded;
   } catch {

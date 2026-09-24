@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { createGoogle } from "@ai-sdk/google";
 import { generateText, Output } from "ai";
 import { z } from "zod";
-import { firebaseAdminConfigured, getFirebaseAdminAuth, getFirebaseAdminDataConnect, getFirebaseAdminStorage } from "../../../../firebase/admin";
+import { firebaseAdminConfigured, getFirebaseAdminDataConnect, getFirebaseAdminStorage, verifyFirebaseIdToken } from "../../../../firebase/admin";
 import { clientUpdateRequiredResponse, isCurrentInvoiceClientVersion } from "../../../../lib/invoice-client-version.mjs";
 import { transientGeminiErrorCode } from "../../../../lib/gemini-retry.mjs";
 import { splitStatementPdfExtractionByCard, statementSourceFromPdfExtraction, validateStatementPdfExtraction } from "../../../../lib/reconciliation.mjs";
@@ -40,7 +40,8 @@ async function authenticate(request: Request): Promise<Identity | null> {
   const token = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return null;
   try {
-    const decoded = await (await getFirebaseAdminAuth()).verifyIdToken(token);
+    const decoded = await verifyFirebaseIdToken(token, "reconciliation_parse_pdf");
+    if (!decoded) return null;
     return decoded.role === "KIM" || decoded.role === "ADMIN" ? { uid: decoded.uid, role: decoded.role } : null;
   } catch {
     return null;

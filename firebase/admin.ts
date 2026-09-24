@@ -1,5 +1,6 @@
 import type { App } from "firebase-admin/app";
 import type { Auth } from "firebase-admin/auth";
+import type { DecodedIdToken } from "firebase-admin/auth";
 import type { DataConnect } from "firebase-admin/data-connect";
 import type { Storage } from "firebase-admin/storage";
 import { validateFirebaseEnvironment } from "../lib/environment.mjs";
@@ -71,6 +72,41 @@ export async function getFirebaseAdminAuth() {
   const { getAuth } = await import("firebase-admin/auth");
   adminAuth = getAuth(await getFirebaseAdminApp());
   return adminAuth;
+}
+
+function safeFirebaseAdminError(error: unknown) {
+  const candidate = error && typeof error === "object"
+    ? error as { code?: unknown; name?: unknown }
+    : null;
+  return {
+    code: typeof candidate?.code === "string" ? candidate.code : "UNKNOWN",
+    name: typeof candidate?.name === "string" ? candidate.name : "Error",
+  };
+}
+
+/**
+ * Verify a browser ID token without ever logging the token or credentials.
+ * Authentication failures used to be swallowed by every route, leaving a
+ * generic 403 and no production evidence about a broken Admin runtime.
+ */
+export async function verifyFirebaseIdToken(token: string, context: string): Promise<DecodedIdToken | null> {
+  try {
+    return await (await getFirebaseAdminAuth()).verifyIdToken(token);
+  } catch (error) {
+    const validation = serverEnvironmentValidation();
+    console.error("[firebase-admin-auth] phase=verify_failed", {
+      context,
+      ...safeFirebaseAdminError(error),
+      environment: validation.environment ?? "unknown",
+      environmentValid: validation.ok,
+      adminConfigured: firebaseAdminConfigured(),
+      projectMatch: Boolean(
+        process.env.FIREBASE_ADMIN_PROJECT_ID &&
+        process.env.FIREBASE_ADMIN_PROJECT_ID === process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+      ),
+    });
+    return null;
+  }
 }
 
 export async function getFirebaseAdminDataConnect() {

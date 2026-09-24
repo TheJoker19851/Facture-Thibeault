@@ -1,4 +1,4 @@
-import { firebaseAdminConfigured, getFirebaseAdminAuth } from "../../../../firebase/admin";
+import { firebaseAdminConfigured, getFirebaseAdminAuth, verifyFirebaseIdToken } from "../../../../firebase/admin";
 
 export const runtime = "nodejs";
 
@@ -7,7 +7,8 @@ async function isAuthorizedAdmin(request: Request) {
   if (!token) return false;
 
   try {
-    const decoded = await (await getFirebaseAdminAuth()).verifyIdToken(token);
+    const decoded = await verifyFirebaseIdToken(token, "admin_users");
+    if (!decoded) return false;
     return decoded.role === "ADMIN";
   } catch {
     return false;

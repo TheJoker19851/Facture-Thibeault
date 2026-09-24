@@ -1,4 +1,4 @@
-import { getFirebaseAdminAuth, getFirebaseAdminDataConnect } from "../../../../firebase/admin";
+import { getFirebaseAdminDataConnect, verifyFirebaseIdToken } from "../../../../firebase/admin";
 
 export const runtime = "nodejs";
 
@@ -6,7 +6,8 @@ async function authenticatePrivileged(request: Request) {
   const token = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return null;
   try {
-    const decoded = await (await getFirebaseAdminAuth()).verifyIdToken(token);
+    const decoded = await verifyFirebaseIdToken(token, "admin_audit");
+    if (!decoded) return null;
     return decoded.role === "ADMIN" || decoded.role === "KIM" ? decoded : null;
   } catch {
     return null;

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { firebaseAdminConfigured, getFirebaseAdminAuth, getFirebaseAdminDataConnect } from "../../../../firebase/admin";
+import { firebaseAdminConfigured, getFirebaseAdminDataConnect, verifyFirebaseIdToken } from "../../../../firebase/admin";
 import { materializeInvoiceIntake, readInvoiceIntakeStoragePhotos } from "../../../../firebase/invoice-intake-commit.server";
 import { listAllExpenseAccounts, listAllInvoiceIntakes } from "../../../../firebase/accounting-pagination.server";
 import { InvoiceStorageValidationError } from "../../../../lib/invoice-storage.mjs";
@@ -32,7 +32,8 @@ async function privilegedIdentity(request: Request) {
   const token = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return null;
   try {
-    const decoded = await (await getFirebaseAdminAuth()).verifyIdToken(token);
+    const decoded = await verifyFirebaseIdToken(token, "invoice_commit");
+    if (!decoded) return null;
     return decoded.role === "KIM" || decoded.role === "ADMIN" ? decoded : null;
   } catch {
     return null;

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { firebaseAdminConfigured, getFirebaseAdminAuth, getFirebaseAdminDataConnect } from "../../../../firebase/admin";
+import { firebaseAdminConfigured, getFirebaseAdminDataConnect, verifyFirebaseIdToken } from "../../../../firebase/admin";
 import { loadReconciliationContext, upsertHolderHistory, upsertMerchantAlias } from "../../../../lib/reconciliation-server.mjs";
 import { reconciliationServerAvailable } from "../../../../lib/reconciliation-access.mjs";
 
@@ -14,7 +14,8 @@ async function authenticate(request: Request) {
   const token = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return null;
   try {
-    const decoded = await (await getFirebaseAdminAuth()).verifyIdToken(token);
+    const decoded = await verifyFirebaseIdToken(token, "reconciliation_config");
+    if (!decoded) return null;
     return decoded.role === "KIM" || decoded.role === "ADMIN" ? decoded : null;
   } catch {
     return null;

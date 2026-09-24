@@ -1,4 +1,4 @@
-import { firebaseAdminConfigured, getFirebaseAdminAuth, getFirebaseAdminDataConnect, getFirebaseAdminStorage } from "../../../../firebase/admin";
+import { firebaseAdminConfigured, getFirebaseAdminDataConnect, getFirebaseAdminStorage, verifyFirebaseIdToken } from "../../../../firebase/admin";
 import { listAllAdminInvoices, type ServerAdminInvoice } from "../../../../firebase/accounting-pagination.server";
 import { AUDIT_ACTIONS, auditDetails, auditEventId } from "../../../../lib/audit-events.mjs";
 import { ARCHIVE_CRITERIA, ARCHIVE_PURGE_CONFIRMATION, ARCHIVE_SCHEMA_VERSION, buildArchiveId, buildArchiveManifestHash, normalizeArchiveStoragePath, sortArchiveFiles } from "../../../../lib/archive-manifest.mjs";
@@ -67,7 +67,8 @@ async function authenticatePrivileged(request: Request): Promise<ArchiveIdentity
   const token = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return null;
   try {
-    const decoded = await (await getFirebaseAdminAuth()).verifyIdToken(token);
+    const decoded = await verifyFirebaseIdToken(token, "admin_archive");
+    if (!decoded) return null;
     if (decoded.role !== "KIM" && decoded.role !== "ADMIN") return null;
     return { uid: decoded.uid, role: decoded.role };
   } catch {
