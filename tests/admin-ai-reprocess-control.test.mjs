@@ -45,3 +45,19 @@ test("la reprise technique efface aussi l'ancienne empreinte de doublon", async 
   const mutation = mutationSource.slice(mutationStart, mutationEnd);
   assert.match(mutation, /aiErrorCode: null\s+duplicateFingerprint: null\s+decisionExceptions:/);
 });
+
+test("une sortie IA invalide essaie le modèle de secours avant de suspendre la facture", async () => {
+  const routeSource = await readFile(routePath, "utf8");
+  const extractionStart = routeSource.indexOf("async function extractInvoice(");
+  const extractionEnd = routeSource.indexOf("export async function POST", extractionStart);
+
+  assert.ok(extractionStart >= 0, "La fonction d’extraction doit exister.");
+  assert.ok(extractionEnd > extractionStart, "La fin de la fonction d’extraction doit être détectable.");
+  const extraction = routeSource.slice(extractionStart, extractionEnd);
+  assert.match(extraction, /const candidateValidation = validateInvoiceExtraction\(result\.output\);/);
+  assert.match(extraction, /if \(!candidateValidation\.ok\)[\s\S]*reason: "INVALID_OUTPUT"[\s\S]*continue;/);
+  assert.ok(
+    extraction.indexOf("candidateValidation") < extraction.indexOf("return { model: modelId, extraction: result.output }"),
+    "La validation métier doit précéder le retour du résultat IA.",
+  );
+});

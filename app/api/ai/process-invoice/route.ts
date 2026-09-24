@@ -146,6 +146,7 @@ async function authenticate(request: Request): Promise<AuthenticatedIdentity | n
 
 const baseInstructions = `You are the production invoice intake agent for Maçonnerie Thibeault.
 Read all supplied photos as pages of one invoice. Extract only information visible in the document.
+Inspect each photo at its original resolution. Mentally rotate or straighten it when needed, then re-check the merchant header, invoice date and printed totals before returning the result.
 Never invent a value: use null for a missing invoice number, date, SKU or project.
 Return monetary values as integer Canadian cents. Use ISO date YYYY-MM-DD when the date is readable.
 The subtotal plus TPS plus TVQ must equal the total; if a value is unclear, lower confidence and explain it in notes.
@@ -331,6 +332,23 @@ async function extractInvoice(receiptId: string, files: File[], accountLabels: s
         }],
         abortSignal: AbortSignal.timeout(perModelTimeoutMs),
       });
+      const candidateValidation = validateInvoiceExtraction(result.output);
+      if (!candidateValidation.ok) {
+        console.warn("[invoice-ai] phase=model_output_invalid", {
+          receiptId,
+          modelId,
+          errors: candidateValidation.errors.slice(0, 10),
+        });
+        if (index < modelIds.length - 1) {
+          console.warn("[invoice-ai] phase=model_fallback", {
+            receiptId,
+            fromModelId: modelId,
+            toModelId: modelIds[index + 1],
+            reason: "INVALID_OUTPUT",
+          });
+          continue;
+        }
+      }
       return { model: modelId, extraction: result.output };
     } catch (error) {
       let normalizedError: unknown = error;
@@ -757,6 +775,11 @@ export async function POST(request: Request) {
 
     if (!validation.ok) {
       const error = "La lecture IA doit être vérifiée manuellement.";
+      console.warn("[invoice-ai] phase=extraction_validation_failed", {
+        receiptId,
+        model,
+        errors: validation.errors.slice(0, 10),
+      });
       await dataConnect.executeMutation("MarkInvoiceIntakeAiError", {
         receiptId,
         error,
