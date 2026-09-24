@@ -99,6 +99,25 @@ test("normalise une ligne de carburant taxes incluses vers le sous-total comptab
   });
 });
 
+test("conserve une extraction lisible dont les totaux exigent une correction manuelle", () => {
+  const extraction = validateInvoiceExtraction({
+    vendor: "FOURNISSEUR TEST",
+    invoiceNumber: "INV-42",
+    invoiceDate: "2026-09-22",
+    subtotalCents: 10000,
+    tpsCents: 500,
+    tvqCents: 998,
+    totalCents: 12000,
+    currency: "CAD",
+    lineItems: [{ description: "Matériaux", quantity: 1, amountCents: 10000 }],
+  });
+
+  assert.equal(extraction.ok, true);
+  assert.deepEqual(extraction.warnings, ["Le total ne correspond pas au sous-total et aux taxes."]);
+  assert.equal(extraction.value.vendor, "FOURNISSEUR TEST");
+  assert.equal(extraction.value.totalCents, 12000);
+});
+
 test("conserve une ligne négative dans la ventilation du rapport", () => {
   const allocations = transactionAccountAllocations({
     lineItems: receiptLineItems,
