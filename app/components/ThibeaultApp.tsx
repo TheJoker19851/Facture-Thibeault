@@ -1187,6 +1187,7 @@ function DebugPage({ dataSourceState, onRetry, role }: { dataSourceState: "demo"
 function intakeStatusLabel(status: string) {
   if (status === "AUTO_APPROVED") return "Approuvée automatiquement";
   if (status === "DUPLICATE") return "Doublon éliminé";
+  if (status === "SPLIT_RECOVERED") return "Photos reprises séparément";
   if (status === "NEEDS_REVIEW" || status === "AI_REVIEW" || status === "AI_ERROR") return "À vérifier";
   if (status === "PROCESSING" || status === "RECEIVED") return "En traitement";
   if (status === "VALIDATED" || status === "READY_FOR_ACCOUNTING" || status === "COMMITTED") return "Validée";
@@ -1479,6 +1480,7 @@ function auditActionLabel(action: string) {
     HUMAN_VALIDATION: "Validation humaine",
     TRANSACTION_CREATED: "Transaction créée",
     INVOICE_DUPLICATE_REJECTED: "Doublon éliminé",
+    INVOICE_SPLIT_RECOVERED: "Photos reprises séparément",
     INVOICE_DISCARDED: "Facture supprimée",
     POSTED_INVOICE_DELETED: "Écriture publiée supprimée",
     RECONCILIATION_UPDATED: "Rapprochement mis à jour",
@@ -1507,6 +1509,7 @@ function auditActionDescription(action: string) {
     HUMAN_VALIDATION: "Les informations obligatoires ont été confirmées par un membre autorisé.",
     TRANSACTION_CREATED: "La facture a été transformée en écriture comptable.",
     INVOICE_DUPLICATE_REJECTED: "Un second dépôt identique a été écarté avant toute création d’écriture comptable.",
+    INVOICE_SPLIT_RECOVERED: "Le dépôt regroupé a été retiré de la file après la reprise individuelle de ses photos, sans supprimer les originaux.",
     INVOICE_DISCARDED: "La facture a été retirée de la file et sa photo Storage a été supprimée.",
     POSTED_INVOICE_DELETED: "L’écriture publiée a été retirée des vues opérationnelles; la trace d’audit est conservée.",
     RECONCILIATION_UPDATED: "Le lien entre la facture et le relevé de carte a été mis à jour.",

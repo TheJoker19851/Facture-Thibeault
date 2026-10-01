@@ -4,6 +4,7 @@ import { materializeInvoiceIntake, readInvoiceIntakeStoragePhotos } from "../../
 import { listAllExpenseAccounts, listAllInvoiceIntakes } from "../../../../firebase/accounting-pagination.server";
 import { InvoiceStorageValidationError } from "../../../../lib/invoice-storage.mjs";
 import { clientUpdateRequiredResponse, isCurrentInvoiceClientVersion } from "../../../../lib/invoice-client-version.mjs";
+import { MULTI_PHOTO_REVIEW_MESSAGE, requiresSinglePhotoReview } from "../../../../lib/invoice-photo-policy.mjs";
 import { validateInvoiceLineItemsForCommit } from "../../../../lib/invoice-processing.mjs";
 
 export const runtime = "nodejs";
@@ -63,6 +64,9 @@ export async function POST(request: Request) {
   if (!intake) return Response.json({ error: "Le dépôt de facture n'existe pas." }, { status: 404 });
   if (intake.accountingStatus === "POSTED") {
     return Response.json({ ok: true, idempotent: true, receiptId: intake.receiptId });
+  }
+  if (requiresSinglePhotoReview(intake.photoCount)) {
+    return Response.json({ error: MULTI_PHOTO_REVIEW_MESSAGE, code: "MULTI_PHOTO_INTAKE" }, { status: 422 });
   }
   if (intake.processingStatus !== "VALIDATED" || intake.accountingStatus !== "NOT_POSTED") {
     return Response.json({ error: "L'intake n'est pas validée ou est déjà en cours de comptabilisation." }, { status: 409 });
