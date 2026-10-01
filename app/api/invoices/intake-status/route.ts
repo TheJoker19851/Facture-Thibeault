@@ -46,6 +46,8 @@ export async function GET(request: Request) {
   return Response.json({
     ok: true,
     receiptId: intake.receiptId,
+    photoCount: intake.photoCount,
+    storageFolder: intake.storageFolder,
     state: {
       processingStatus: intake.processingStatus ?? "PROCESSING",
       processingState: intake.processingState ?? "QUEUED",

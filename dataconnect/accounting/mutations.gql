@@ -815,20 +815,16 @@ mutation CreateInvoiceIntakeV2(
   $auditEventId: String = ""
   $auditDetails: String = "{}"
 ) @auth(expr: "(auth.token.role == 'WORKER' || auth.token.role == 'KIM' || auth.token.role == 'ADMIN') && vars.clientVersion == 'invoice-photo-v2'") @transaction {
+  query @redact @check(expr: "response.query.invoiceIntakes.size() == 0 || (response.query.invoiceIntakes[0].uploaderUid == auth.uid && response.query.invoiceIntakes[0].storageFolder == vars.storageFolder && response.query.invoiceIntakes[0].photoCount == vars.photoCount)", message: "Ce dépôt existe déjà avec une autre identité ou un autre original.") {
+    invoiceIntakes(where: { receiptId: { eq: $receiptId } }, limit: 1) { uploaderUid storageFolder photoCount }
+  }
+  # On insert, schema defaults initialize the queue. On replay, preserve all
+  # processing and accounting state (including RUNNING and POSTED).
   invoiceIntake_upsert(data: {
     receiptId: $receiptId
     uploaderUid_expr: "auth.uid"
     storageFolder: $storageFolder
     photoCount: $photoCount
-    status: "PROCESSING"
-    processingStatus: "PROCESSING"
-    processingState: "QUEUED"
-    processingAttempts: 0
-    reviewRevision: 0
-    lastAttemptAt: null
-    accountingStatus: "NOT_POSTED"
-    lastError: null
-    aiErrorCode: null
   })
   auditEvent_upsert(data: {
     id: $auditEventId

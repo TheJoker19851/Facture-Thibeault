@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { demoUsers } from "./fixtures/demo-data.mjs";
 import { LOCAL_FIREBASE_PROJECT_ID } from "../lib/environment.mjs";
 import { INVOICE_CLIENT_VERSION } from "../lib/invoice-client-version.mjs";
 import { buildAccountingTemplateReport } from "../lib/accounting-template-report.mjs";
 import { DATA_CONNECT_PAGE_SIZE } from "./lib/data-connect-pages.mjs";
 import { selectInvoiceIntakesForAutomaticProcessing } from "../lib/invoice-queue.mjs";
+import { runCaptureBatch } from "../lib/invoice-capture-batch.mjs";
+import { verifyStoredCapturePhoto } from "../lib/capture-upload-recovery.server.mjs";
 
 function aiVariables(receiptId, processingStatus, vendor = "Idempotence Démo") {
   return {
@@ -269,6 +273,47 @@ export async function verifyInvoiceIdempotence() {
     }, app);
     const bucket = getAdminStorage(app).bucket(`${LOCAL_FIREBASE_PROJECT_ID}.appspot.com`);
 
+    const replayId = testId("UPLOAD-REPLAY");
+    await createIntake(dataConnect, workerClaims, replayId);
+    await claimIntake(dataConnect, replayId);
+    const beforeReplay = await readIntake(dataConnect, replayId);
+    await createIntake(dataConnect, workerClaims, replayId);
+    const afterReplay = await readIntake(dataConnect, replayId);
+    assert.deepEqual(afterReplay, beforeReplay, "A repeated upload acknowledgement must not reset a running analysis.");
+    await assert.rejects(createIntake(dataConnect, kimClaims, replayId));
+    await assert.rejects(createIntake(dataConnect, workerClaims, replayId, 2));
+    await assert.rejects(createIntake(dataConnect, workerClaims, replayId, 1, "receipts/demo/OTHER"));
+
+    // The same orchestrator used by capture sends three separate originals.
+    // Each gets its own intake, single attachment and atomic accounting entry.
+    const batchIds = [1, 2, 3].map((index) => testId(`BATCH-${index}`));
+    const batchOriginal = await readFile(new URL("../public/icons/thibeault-192.png", import.meta.url));
+    const batchHash = createHash("sha256").update(batchOriginal).digest("hex");
+    const batchResult = await runCaptureBatch(batchIds, async (receiptId) => {
+      const path = `receipts/demo/${receiptId}/original-01.png`;
+      await bucket.file(path).save(batchOriginal, {
+        contentType: "image/png",
+        metadata: { metadata: { receiptId, ownerUid: worker.uid, sequence: "1", invoiceClientVersion: INVOICE_CLIENT_VERSION } },
+      });
+      assert.equal(await verifyStoredCapturePhoto(bucket, { receiptId, storageFolder: `receipts/demo/${receiptId}`, uploaderUid: worker.uid }, batchHash), true);
+      await createIntake(dataConnect, workerClaims, receiptId, 1);
+      await claimIntake(dataConnect, receiptId);
+      await dataConnect.executeMutation("UpdateInvoiceIntakeAiResult", aiVariables(receiptId, "AUTO_APPROVED"));
+      await dataConnect.executeMutation("MaterializeInvoiceIntakeV2", autoPostingVariables(receiptId, 1));
+      const intake = await readIntake(dataConnect, receiptId);
+      assert.equal(intake.photoCount, 1);
+      assert.equal(intake.accountingStatus, "POSTED");
+      return intake;
+    });
+    assert.deepEqual(batchResult.map((result) => result.ok), [true, true, true]);
+    const batchPhotos = (await queryAllData(dataConnect, "AdminListInvoicePhotos", "invoicePhotos")).data.invoicePhotos;
+    for (const receiptId of batchIds) {
+      const linked = batchPhotos.filter((photo) => photo.invoice.id === `INV-${receiptId}`);
+      assert.equal(linked.length, 1);
+      assert.equal(linked[0].sequence, 1);
+      assert.equal(linked[0].storagePath, `receipts/demo/${receiptId}/original-01.png`);
+    }
+
     // Full local E2E: a real private Storage object is acknowledged into an
     // intake, processed through the guarded AI/review states, posted once with
     // its structured line and photo, then corrected with an auditable snapshot.
@@ -290,6 +335,9 @@ export async function verifyInvoiceIdempotence() {
     assert.equal((await dataConnect.executeMutation("UpdateInvoiceIntakeReview", reviewVariables(completeE2eId), { impersonate: { authClaims: kimClaims } })).data.invoiceIntake_updateMany, 1);
     const completePosting = humanPostingVariables(completeE2eId, 1);
     await dataConnect.executeMutation("MaterializeInvoiceIntakeV2", completePosting);
+    const postedBeforeReplay = await readIntake(dataConnect, completeE2eId);
+    await createIntake(dataConnect, workerClaims, completeE2eId);
+    assert.deepEqual(await readIntake(dataConnect, completeE2eId), postedBeforeReplay, "An upload retry must preserve a posted invoice and its accounting link.");
     const completeInvoiceResult = await queryAllData(dataConnect, "ListInvoicesToReview", "invoices");
     const completeTransactionResult = await queryAllData(dataConnect, "ListExpenseTransactions", "expenseTransactions");
     const completePhotoResult = await queryAllData(dataConnect, "AdminListInvoicePhotos", "invoicePhotos");

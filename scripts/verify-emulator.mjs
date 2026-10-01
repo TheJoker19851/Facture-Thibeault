@@ -109,6 +109,7 @@ export async function verifyEmulatorPermissions() {
       const kimClaims = { sub: kim.credential.user.uid, role: "KIM" };
       const blockedV1ReceiptId = `DEMO-PERMISSION-V1-${Date.now()}`;
       const blockedStaleV2ReceiptId = `DEMO-PERMISSION-STALE-${Date.now()}`;
+      const permissionReceiptId = `DEMO-PERMISSION-INTAKE-${Date.now()}`;
       await assert.rejects(
         () => dataConnect.executeQuery("ListExpenseAccounts", undefined, { impersonate: { authClaims: workerClaims } }),
         /permission|unauthorized|auth/i,
@@ -123,8 +124,8 @@ export async function verifyEmulatorPermissions() {
       const afterV1 = await dataConnect.executeQuery("ListInvoiceIntakes", { limit: 200, offset: 0 });
       assert.equal(afterV1.data.invoiceIntakes.some((intake) => intake.receiptId === blockedV1ReceiptId), false);
       await dataConnect.executeMutation("CreateInvoiceIntakeV2", {
-        receiptId: "DEMO-PERMISSION-INTAKE",
-        storageFolder: "receipts/demo/DEMO-PERMISSION-INTAKE",
+        receiptId: permissionReceiptId,
+        storageFolder: `receipts/demo/${permissionReceiptId}`,
         photoCount: 1,
         clientVersion: INVOICE_CLIENT_VERSION,
       }, { impersonate: { authClaims: workerClaims } });

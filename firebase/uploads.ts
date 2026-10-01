@@ -6,13 +6,14 @@ import { SUPPORTED_INVOICE_MEDIA_TYPES } from "../lib/invoice-storage.mjs";
 import { INVOICE_CLIENT_VERSION } from "../lib/invoice-client-version.mjs";
 import { AUDIT_ACTIONS, auditDetails, auditEventId } from "../lib/audit-events.mjs";
 import { createClientId } from "../lib/client-id.mjs";
+import { capturePhotoIdentity } from "../lib/invoice-capture-batch.mjs";
+import { findInvoiceIntakeStatus, type InvoiceIntakeStatus } from "./ai";
 
 export type InvoicePhotoUpload = {
   file: File;
   sequence: number;
 };
 
-const MAX_PHOTOS = 5;
 const MAX_PHOTO_BYTES = 12 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 40 * 1024 * 1024;
 
@@ -33,7 +34,8 @@ export function invoicePhotoFileError(file: File) {
 export async function uploadInvoicePhotos(
   photos: InvoicePhotoUpload[],
   receiptId = createClientId(),
-): Promise<{ receiptId: string; paths: string[] }> {
+  storageFolder = capturePhotoIdentity(receiptId).storageFolder,
+): Promise<{ receiptId: string; paths: string[]; status?: InvoiceIntakeStatus }> {
   if (!firebaseStorage) throw new Error("Firebase Storage n'est pas configure.");
   if (!firebaseDataConnect || !sqlConnectConfigured) {
     throw new Error("Le connecteur SQL Connect est requis pour enregistrer le depot.");
@@ -41,15 +43,14 @@ export async function uploadInvoicePhotos(
   const user = firebaseAuth?.currentUser;
   if (!user) throw new Error("Une session Firebase Authentication est requise.");
   if (!photos.length) throw new Error("Ajoutez au moins une photo avant l'envoi.");
-  if (photos.length > MAX_PHOTOS) throw new Error(`Une facture accepte au maximum ${MAX_PHOTOS} photos.`);
+  if (photos.length !== 1) throw new Error("Chaque photo doit être envoyée dans un dépôt distinct.");
 
   if (!/^[a-zA-Z0-9_-]{8,128}$/.test(receiptId)) {
     throw new Error("Identifiant de facture invalide.");
   }
-  const now = new Date();
-  const year = String(now.getFullYear());
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const storageFolder = `receipts/${year}/${month}/${receiptId}`;
+  if (!/^receipts\/\d{4}\/\d{2}\/[a-zA-Z0-9_-]{8,128}$/.test(storageFolder) || !storageFolder.endsWith(`/${receiptId}`)) {
+    throw new Error("Dossier de dépôt invalide.");
+  }
   const paths: string[] = [];
 
   let totalBytes = 0;
@@ -61,11 +62,18 @@ export async function uploadInvoicePhotos(
   }
   if (totalBytes > MAX_TOTAL_BYTES) throw new Error("La facture complète doit faire au maximum 40 Mo.");
 
+  const existing = await findInvoiceIntakeStatus(receiptId);
+  if (existing) {
+    if (existing.photoCount !== 1 || existing.storageFolder !== storageFolder) throw new Error("Ce dépôt existe avec un autre original.");
+    return { receiptId, paths: [], status: existing };
+  }
+
   for (const photo of photos) {
     const extension = SUPPORTED_INVOICE_MEDIA_TYPES[photo.file.type as keyof typeof SUPPORTED_INVOICE_MEDIA_TYPES];
 
     const path = `${storageFolder}/original-${String(photo.sequence).padStart(2, "0")}.${extension}`;
-    await uploadBytes(ref(firebaseStorage, path), photo.file, {
+    try {
+      await uploadBytes(ref(firebaseStorage, path), photo.file, {
       contentType: photo.file.type || "application/octet-stream",
       customMetadata: {
         receiptId,
@@ -74,7 +82,19 @@ export async function uploadInvoicePhotos(
         invoiceClientVersion: INVOICE_CLIENT_VERSION,
         ...(receiptId.startsWith("DEMO-") ? { demo: "true" } : {}),
       },
-    });
+      });
+    } catch (uploadError) {
+      // A successful immutable upload can outlive a lost client response.
+      // Recovery acknowledges the identical file; it never replaces it.
+      const digest = await crypto.subtle.digest("SHA-256", await photo.file.arrayBuffer());
+      const sha256 = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+      const proof = await fetch("/api/invoices/verify-upload", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${await user.getIdToken()}`, "x-invoice-client-version": INVOICE_CLIENT_VERSION, "content-type": "application/json" },
+        body: JSON.stringify({ receiptId, storageFolder, sha256 }),
+      });
+      if (!proof.ok || !(await proof.json().catch(() => null))?.ok) throw uploadError;
+    }
     paths.push(path);
   }
 

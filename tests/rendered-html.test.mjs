@@ -143,6 +143,13 @@ test("rejects unauthenticated direct access to privileged API routes", async () 
   }), context);
   assert.equal(intakeStatusResponse.status, 403);
 
+  const verifyUploadResponse = await worker.fetch(new Request("http://localhost/api/invoices/verify-upload", {
+    method: "POST",
+    headers: { "x-invoice-client-version": "invoice-photo-v2", "content-type": "application/json" },
+    body: "{}",
+  }), context);
+  assert.equal(verifyUploadResponse.status, 403);
+
   const discardResponse = await worker.fetch(new Request("http://localhost/api/invoices/discard-intake", {
     method: "POST",
     headers: {

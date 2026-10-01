@@ -3,7 +3,7 @@
 import { ChangeEvent, createContext, FormEvent, Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getDownloadURL, ref } from "firebase/storage";
 import { AdminUserActionError, accountingReadSource, commitInvoiceIntake, correctPostedInvoice, deleteExpenseAccount, deleteProject, deletePostedInvoice, discardInvoiceIntake, loadAccountingSnapshot, loadAdminUserAccess, loadReportAdjustments, loadTransactionCorrections, mapAccountingSnapshot, removeDemoAccountingData, runAdminUserAction, saveCreditCard, saveExpenseAccount, saveInvoiceIntakeReview, saveProject, saveReportAdjustments, saveStatementPeriod, type AccountingLineItem, type ManualAdjustmentRow } from "../../firebase/accounting";
-import { getInvoiceIntakeStatus, retryInvoiceIntakeAi, startInvoiceIntakeProcessing, type InvoiceIntakeStatus } from "../../firebase/ai";
+import { getInvoiceIntakeStatus, retryInvoiceIntakeAi, startInvoiceIntakeProcessing, processCapturedInvoices, type InvoiceIntakeStatus } from "../../firebase/ai";
 import { appCheckConfigured, firebaseAuth, firebaseConfigured, firebaseStorage } from "../../firebase/client";
 import { sqlConnectConfigured } from "../../firebase/data-connect";
 import { invoicePhotoFileError, uploadInvoicePhotos } from "../../firebase/uploads";
@@ -14,6 +14,7 @@ import { INVOICE_CLIENT_VERSION } from "../../lib/invoice-client-version.mjs";
 import { canAdminReprocessInvoiceIntake } from "../../lib/invoice-queue.mjs";
 import { AUDIT_ACTIONS, auditDetails, parseAuditDetails } from "../../lib/audit-events.mjs";
 import { clearCaptureDraft, loadCaptureDraft, saveCaptureDraft } from "../../lib/capture-queue.mjs";
+import { capturePhotoIdentity, MAX_CAPTURE_PHOTOS, MAX_CAPTURE_TOTAL_BYTES, restoreCapturePhotos, runCaptureBatch } from "../../lib/invoice-capture-batch.mjs";
 import { buildProjectImportPlan, parseProjectImportJson, PROJECT_IMPORT_MAX_BYTES } from "../../lib/project-import.mjs";
 import { buildStatementImportBatch, confirmManualMatch, finalizeStatementImport, normalizeMerchantAliasRows, parseStatementImport, reconcileStatement, RECONCILIATION_STATUSES, setLineReconciliationStatus } from "../../lib/reconciliation.mjs";
 import { buildPersistedReconciliation } from "../../lib/reconciliation-server.mjs";
@@ -108,15 +109,19 @@ type Transaction = {
 
 // One captured image is one accounting document. Multiple selected receipts
 // must never be submitted as pages of a single intake.
-const MAX_CAPTURE_PHOTOS = 1;
-const MAX_CAPTURE_TOTAL_BYTES = 40 * 1024 * 1024;
-
 type PhotoItem = {
   id: string;
+  receiptId: string;
+  storageFolder: string;
   url: string;
   name: string;
   file: File;
+  error?: string;
 };
+
+function draftPhotos(photos: PhotoItem[]) {
+  return photos.map(({ id, receiptId, storageFolder, name, file, error }) => ({ id, receiptId, storageFolder, name, file, error }));
+}
 
 type AccountCategory = {
   id: string;
@@ -704,7 +709,11 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [draftReceiptId, setDraftReceiptId] = useState<string | null>(null);
   const [queueState, setQueueState] = useState<"idle" | "uploading" | "sent">("idle");
-  const [submittedReceipt, setSubmittedReceipt] = useState<InvoiceIntakeStatus | null>(null);
+  const [submittedReceipts, setSubmittedReceipts] = useState<Array<InvoiceIntakeStatus & { name?: string }>>([]);
+  const [captureHydrated, setCaptureHydrated] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
+  const sendingRef = useRef(false);
+  const submittedReceiptIds = submittedReceipts.map((receipt) => receipt.receiptId).join(",");
   // Node 22 exposes a navigator object during SSR, but navigator.onLine can be
   // undefined there. Treat only an explicit false as offline so the server
   // render does not incorrectly show a disconnected capture screen.
@@ -760,11 +769,9 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
   useEffect(() => {
     let active = true;
     void loadCaptureDraft().then(async (draft) => {
-      if (!active || !draft?.receiptId || !Array.isArray(draft.photos) || !draft.photos.length) return;
-      const restored = await Promise.all(draft.photos.map(async (photo: { id: string; name: string; file: File }) => ({
-        id: photo.id,
-        name: photo.name,
-        file: photo.file,
+      if (!active || !draft || !Array.isArray(draft.photos)) return;
+      const restored = await Promise.all(restoreCapturePhotos(draft).map(async (photo: PhotoItem) => ({
+        ...photo,
         url: await new Promise<string>((resolve) => {
           const reader = new FileReader();
           reader.onload = () => resolve(String(reader.result));
@@ -772,32 +779,43 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
         }),
       })));
       if (!active) return;
-      setDraftReceiptId(draft.receiptId);
+      setDraftReceiptId(draft.receiptId ?? createClientId());
       setPhotos(restored);
-      setToast("Brouillon de facture restauré sur cet appareil.");
-    }).catch(() => undefined);
+      setSubmittedReceipts(draft.submittedReceipts ?? []);
+      if (restored.length) setToast("Photos en attente restaurées sur cet appareil.");
+    }).catch(() => undefined).finally(() => { if (active) setCaptureHydrated(true); });
     return () => { active = false; };
   }, []);
 
   useEffect(() => {
-    if (!photos.length || !draftReceiptId) {
-      if (!photos.length) void clearCaptureDraft();
+    if (!captureHydrated) return;
+    if (!photos.length && !submittedReceipts.length) {
+      void clearCaptureDraft();
       return;
     }
-    void saveCaptureDraft(draftReceiptId, photos.map(({ id, name, file }) => ({ id, name, file }))).catch(() => undefined);
-  }, [draftReceiptId, photos]);
+    void saveCaptureDraft(draftReceiptId, draftPhotos(photos), submittedReceipts).catch(() => undefined);
+  }, [captureHydrated, draftReceiptId, photos, submittedReceipts]);
 
   useEffect(() => {
-    const receiptId = submittedReceipt?.receiptId;
-    if (!isProductionDataSource || !receiptId || !firebaseAuth?.currentUser) return;
+    const receiptIds = submittedReceiptIds ? submittedReceiptIds.split(",") : [];
+    if (!isAccountingDataSource || !receiptIds.length || !firebaseAuth?.currentUser) return;
     let active = true;
     let timer: number | undefined;
     const poll = async () => {
       try {
-        const next = await getInvoiceIntakeStatus(receiptId);
+        const next = await Promise.allSettled(receiptIds.map(getInvoiceIntakeStatus));
         if (!active) return;
-        setSubmittedReceipt(next);
-        const terminal = next.state.accountingStatus === "POSTED" || ["NEEDS_REVIEW", "AI_ERROR", "REJECTED", "VALIDATED"].includes(next.state.processingStatus);
+        setSubmittedReceipts((current) => {
+          let changed = false;
+          const updated = current.map((receipt) => {
+            const result = next.find((item) => item.status === "fulfilled" && item.value.receiptId === receipt.receiptId);
+            if (result?.status !== "fulfilled" || JSON.stringify(result.value.state) === JSON.stringify(receipt.state)) return receipt;
+            changed = true;
+            return { ...result.value, name: receipt.name };
+          });
+          return changed ? updated : current;
+        });
+        const terminal = next.every((result) => result.status === "fulfilled" && (result.value.state.accountingStatus === "POSTED" || ["NEEDS_REVIEW", "AI_ERROR", "REJECTED", "VALIDATED", "DUPLICATE", "DELETED", "SPLIT_RECOVERED"].includes(result.value.state.processingStatus)));
         if (!terminal) timer = window.setTimeout(() => void poll(), 5000);
       } catch {
         if (active) timer = window.setTimeout(() => void poll(), 10000);
@@ -808,7 +826,8 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
       active = false;
       if (timer !== undefined) window.clearTimeout(timer);
     };
-  }, [isProductionDataSource, submittedReceipt?.receiptId]);
+  // Status changes must not restart polling; only a new batch changes the IDs.
+  }, [isAccountingDataSource, submittedReceiptIds]);
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
@@ -903,11 +922,11 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
     const input = event.currentTarget;
     const selectedFiles = Array.from(input.files ?? []);
     input.value = "";
-    if (!selectedFiles.length) return;
+    if (!selectedFiles.length || sendingRef.current || !captureHydrated) return;
 
     const availableSlots = MAX_CAPTURE_PHOTOS - photos.length;
     if (availableSlots <= 0) {
-      notify("Une seule photo par facture. Envoyez les autres reçus séparément.");
+      notify(`Un envoi accepte au maximum ${MAX_CAPTURE_PHOTOS} photos.`);
       return;
     }
 
@@ -936,7 +955,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
 
     const nextPhotos = await Promise.all(acceptedFiles.map((file) => new Promise<PhotoItem | null>((resolve) => {
       const reader = new FileReader();
-      reader.onload = () => resolve({ id: `${file.name}-${file.lastModified}-${createClientId()}`, url: String(reader.result), name: file.name, file });
+      reader.onload = () => resolve({ id: createClientId(), ...capturePhotoIdentity(), url: String(reader.result), name: file.name, file });
       reader.onerror = () => resolve(null);
       reader.readAsDataURL(file);
     })));
@@ -949,19 +968,14 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
     const notices = [
       invalidCount ? `${invalidCount} fichier${invalidCount > 1 ? "s" : ""} ignoré${invalidCount > 1 ? "s" : ""} : format non pris en charge.` : "",
       tooLargeCount ? `${tooLargeCount} fichier${tooLargeCount > 1 ? "s" : ""} ignoré${tooLargeCount > 1 ? "s" : ""} : limite totale de 40 Mo dépassée.` : "",
-      skippedCount ? `${skippedCount} fichier${skippedCount > 1 ? "s" : ""} ignoré${skippedCount > 1 ? "s" : ""} : envoyez une photo par facture.` : "",
+      skippedCount ? `${skippedCount} fichier${skippedCount > 1 ? "s" : ""} ignoré${skippedCount > 1 ? "s" : ""} : limite de ${MAX_CAPTURE_PHOTOS} photos par envoi.` : "",
     ].filter(Boolean);
     if (notices.length) notify(notices.join(" "));
     if (!readyPhotos.length && !notices.length) notify("Aucune photo n’a pu être ajoutée.");
   };
 
   const sendPhotos = async () => {
-    if (!photos.length) return;
-    if (photos.length !== 1) {
-      notify("Envoyez une seule facture à la fois. Retirez les autres photos du brouillon.");
-      return;
-    }
-    if (queueState === "uploading") return;
+    if (!photos.length || !captureHydrated || sendingRef.current) return;
     if (isProductionDataSource && clientVersionState !== "current") {
       notify("Actualisez l’application avant d’envoyer cette facture.");
       return;
@@ -970,36 +984,43 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
       notify("En attente d'envoi — les photos restent sur cet appareil.");
       return;
     }
-    if (isProductionDataSource && firebaseConfigured) {
+    if (isAccountingDataSource && firebaseConfigured) {
+      sendingRef.current = true;
       setQueueState("uploading");
       try {
-        const receipt = await uploadInvoicePhotos(
-          photos.map((photo, index) => ({ file: photo.file, sequence: index + 1 })),
-          draftReceiptId ?? createClientId(),
-        );
-        setPhotos([]);
-        setDraftReceiptId(null);
-        await clearCaptureDraft();
-        setSubmittedReceipt({
-          ok: true,
-          receiptId: receipt.receiptId,
-          state: {
-            processingStatus: "PROCESSING",
-            processingState: "QUEUED",
-            processingAttempts: 0,
-            lastAttemptAt: null,
-            accountingStatus: "NOT_POSTED",
-            lastError: null,
-            aiErrorCode: null,
-          },
+        await saveCaptureDraft(draftReceiptId, draftPhotos(photos), submittedReceipts);
+        const received = [...submittedReceipts];
+        let remaining = [...photos];
+        const results = await runCaptureBatch(photos, async (photo: PhotoItem, index: number) => {
+          setUploadProgress(`Envoi ${index + 1}/${photos.length} · ${photo.name}`);
+          return uploadInvoicePhotos([{ file: photo.file, sequence: 1 }], photo.receiptId, photo.storageFolder);
+        }, async (result) => {
+          const photo: PhotoItem = result.item;
+          if (result.ok) {
+            const receipt = result.value;
+            const status: InvoiceIntakeStatus = receipt.status ?? {
+              ok: true, receiptId: receipt.receiptId,
+              state: { processingStatus: "PROCESSING", processingState: "QUEUED", processingAttempts: 0, lastAttemptAt: null, accountingStatus: "NOT_POSTED", lastError: null, aiErrorCode: null },
+            };
+            remaining = remaining.filter((item) => item.id !== photo.id);
+            if (!received.some((item) => item.receiptId === status.receiptId)) received.push({ ...status, name: photo.name });
+          } else {
+            remaining = remaining.map((item) => item.id === photo.id ? { ...item, error: result.error } : item);
+          }
+          setPhotos([...remaining]);
+          setSubmittedReceipts([...received]);
+          await saveCaptureDraft(draftReceiptId, draftPhotos(remaining), received);
         });
-        void startInvoiceIntakeProcessing(receipt.receiptId).catch(() => undefined);
-        setQueueState("idle");
-        notify(`Facture reçue · ${receipt.receiptId.slice(0, 8)} ✓ Vous pouvez en déposer une autre.`);
-        notify(`Facture ${receipt.receiptId.slice(0, 8)} reçue · analyse IA planifiée côté serveur.`);
+        const receiptIds = results.filter((result) => result.ok).map((result) => result.value.receiptId);
+        void processCapturedInvoices(receiptIds);
+        const failures = results.length - receiptIds.length;
+        notify(`${receiptIds.length} facture(s) reçue(s), analyse une à une.${failures ? ` ${failures} photo(s) à renvoyer : originales conservées.` : ""}`);
       } catch (error) {
-        setQueueState("idle");
         notify(error instanceof Error ? error.message : "L’envoi Firebase a échoué.");
+      } finally {
+        sendingRef.current = false;
+        setQueueState("idle");
+        setUploadProgress("");
       }
       return;
     }
@@ -1054,27 +1075,28 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
           <div className="camera-card">
             <div className="camera-placeholder">
               <div className="camera-reticle"><span>＋</span></div>
-              <p>{photos.length ? "1 facture prête" : "Prêt pour une facture"}</p>
-              <span className="camera-hint">Envoyez une photo par facture. Pour plusieurs reçus, faites un envoi distinct pour chacun.</span>
+              <p>{photos.length ? `${photos.length} facture(s) prête(s)` : "Prêt pour vos factures"}</p>
+              <span className="camera-hint">Sélectionnez plusieurs photos : une photo = une facture, analysée séparément. Maximum 10 photos et 40 Mo par envoi.</span>
             </div>
             <input ref={inputRef} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={handleFiles} />
-            <input ref={galleryInputRef} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFiles} />
+            <input ref={galleryInputRef} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleFiles} />
             <div className="capture-actions">
-              <button className="capture-button" onClick={() => inputRef.current?.click()} disabled={photos.length >= MAX_CAPTURE_PHOTOS} aria-label="Photographier une facture"><span>⌾</span> Prendre une photo</button>
-              <button className="gallery-button" onClick={() => galleryInputRef.current?.click()} disabled={photos.length >= MAX_CAPTURE_PHOTOS} aria-label="Choisir une photo dans la galerie"><span>▧</span> Ajouter depuis la galerie</button>
+              <button className="capture-button" onClick={() => inputRef.current?.click()} disabled={!captureHydrated || queueState === "uploading" || photos.length >= MAX_CAPTURE_PHOTOS} aria-label="Photographier une facture"><span>⌾</span> Prendre une photo</button>
+              <button className="gallery-button" onClick={() => galleryInputRef.current?.click()} disabled={!captureHydrated || queueState === "uploading" || photos.length >= MAX_CAPTURE_PHOTOS} aria-label="Choisir plusieurs photos dans la galerie"><span>▧</span> Ajouter depuis la galerie</button>
             </div>
           </div>
           {photos.length > 0 && (
             <div className="photo-tray">
-              <div className="tray-heading"><span>Photo de cette facture</span><button className="text-button" onClick={() => { setPhotos([]); setDraftReceiptId(null); }}>Recommencer</button></div>
+              <div className="tray-heading"><span>{photos.length} photo(s) · {photos.length} facture(s) distincte(s)</span><button className="text-button" disabled={queueState === "uploading"} onClick={() => { setPhotos([]); setDraftReceiptId(null); }}>Recommencer</button></div>
               <div className="photo-grid">
-                {photos.map((photo, index) => <div className="photo-thumb" key={photo.id}><PhotoPreview url={photo.url} alt={`Page ${index + 1}`} /><span>{index + 1}</span><button onClick={() => setPhotos((current) => { const next = current.filter((item) => item.id !== photo.id); if (!next.length) setDraftReceiptId(null); return next; })} aria-label={`Supprimer la photo ${index + 1}`}>×</button></div>)}
+                {photos.map((photo, index) => <div className="photo-thumb" key={photo.id}><PhotoPreview url={photo.url} alt={`Facture ${index + 1} · ${photo.name}`} /><span>{index + 1}</span><button disabled={queueState === "uploading"} onClick={() => setPhotos((current) => current.filter((item) => item.id !== photo.id))} aria-label={`Supprimer la photo ${index + 1}`}>×</button></div>)}
               </div>
-              <button className="send-button" onClick={sendPhotos} disabled={queueState === "uploading" || clientVersionState !== "current"}>{queueState === "uploading" ? "Envoi de la facture…" : isOnline ? "Envoyer la facture" : "Mettre en attente"}</button>
+              {photos.filter((photo) => photo.error).map((photo) => <p className="muted" role="alert" key={photo.id}>{photo.name} : {photo.error} · Photo conservée pour un nouvel essai.</p>)}
+              <button className="send-button" onClick={sendPhotos} disabled={!captureHydrated || queueState === "uploading" || clientVersionState !== "current"}>{queueState === "uploading" ? uploadProgress || "Préparation de l’envoi…" : isOnline ? `Envoyer ${photos.length} facture(s)` : "Conserver en attente"}</button>
             </div>
           )}
-          {!isOnline && <div className="offline-notice"><span className="notice-icon">↯</span><div><strong>En attente d’envoi</strong><p>Vos photos restent sur cet appareil et seront reprises dès que le réseau revient.</p></div></div>}
-          {submittedReceipt && <div className="offline-notice" aria-live="polite"><span className="notice-icon">✓</span><div><strong>Facture {submittedReceipt.receiptId.slice(0, 8)} · {intakeStatusLabel(submittedReceipt.state.processingStatus)}</strong><p>{submittedReceipt.state.accountingStatus === "POSTED" ? "Écriture comptable créée." : submittedReceipt.state.lastError ?? `Traitement serveur · tentative ${submittedReceipt.state.processingAttempts}.`}</p></div></div>}
+          {!isOnline && <div className="offline-notice"><span className="notice-icon">↯</span><div><strong>En attente d’envoi</strong><p>Vos photos restent sur cet appareil. Envoyez-les lorsque la connexion revient.</p></div></div>}
+          {submittedReceipts.map((receipt) => <div className="offline-notice" key={receipt.receiptId} aria-live="polite"><span className="notice-icon">✓</span><div><strong>{receipt.name ?? `Facture ${receipt.receiptId.slice(0, 8)}`} · {intakeStatusLabel(receipt.state.processingStatus)}</strong><p>{receipt.state.accountingStatus === "POSTED" ? "Écriture comptable créée." : receipt.state.lastError ?? `Traitement serveur · tentative ${receipt.state.processingAttempts}.`}</p></div></div>)}
         </section>
         {toast && <div className="toast">{toast}</div>}
       </main>
