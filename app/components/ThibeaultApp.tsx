@@ -106,7 +106,9 @@ type Transaction = {
   correctionField?: "subtotal" | "account" | "attachment";
 };
 
-const MAX_CAPTURE_PHOTOS = 5;
+// One captured image is one accounting document. Multiple selected receipts
+// must never be submitted as pages of a single intake.
+const MAX_CAPTURE_PHOTOS = 1;
 const MAX_CAPTURE_TOTAL_BYTES = 40 * 1024 * 1024;
 
 type PhotoItem = {
@@ -905,7 +907,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
 
     const availableSlots = MAX_CAPTURE_PHOTOS - photos.length;
     if (availableSlots <= 0) {
-      notify(`Maximum ${MAX_CAPTURE_PHOTOS} photos par facture.`);
+      notify("Une seule photo par facture. Envoyez les autres reçus séparément.");
       return;
     }
 
@@ -947,7 +949,7 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
     const notices = [
       invalidCount ? `${invalidCount} fichier${invalidCount > 1 ? "s" : ""} ignoré${invalidCount > 1 ? "s" : ""} : format non pris en charge.` : "",
       tooLargeCount ? `${tooLargeCount} fichier${tooLargeCount > 1 ? "s" : ""} ignoré${tooLargeCount > 1 ? "s" : ""} : limite totale de 40 Mo dépassée.` : "",
-      skippedCount ? `${skippedCount} fichier${skippedCount > 1 ? "s" : ""} ignoré${skippedCount > 1 ? "s" : ""} : maximum de ${MAX_CAPTURE_PHOTOS} photos.` : "",
+      skippedCount ? `${skippedCount} fichier${skippedCount > 1 ? "s" : ""} ignoré${skippedCount > 1 ? "s" : ""} : envoyez une photo par facture.` : "",
     ].filter(Boolean);
     if (notices.length) notify(notices.join(" "));
     if (!readyPhotos.length && !notices.length) notify("Aucune photo n’a pu être ajoutée.");
@@ -955,6 +957,10 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
 
   const sendPhotos = async () => {
     if (!photos.length) return;
+    if (photos.length !== 1) {
+      notify("Envoyez une seule facture à la fois. Retirez les autres photos du brouillon.");
+      return;
+    }
     if (queueState === "uploading") return;
     if (isProductionDataSource && clientVersionState !== "current") {
       notify("Actualisez l’application avant d’envoyer cette facture.");
@@ -1048,19 +1054,19 @@ export function ThibeaultApp({ initialRole = "ADMIN" }: { initialRole?: Role }) 
           <div className="camera-card">
             <div className="camera-placeholder">
               <div className="camera-reticle"><span>＋</span></div>
-              <p>{photos.length ? `${photos.length} page${photos.length > 1 ? "s" : ""} prête${photos.length > 1 ? "s" : ""}` : "Prêt pour la première page"}</p>
-              <span className="camera-hint">Prenez une photo maintenant ou ajoutez des photos déjà prises. Vous pouvez sélectionner jusqu’à {MAX_CAPTURE_PHOTOS} pages avant l’envoi.</span>
+              <p>{photos.length ? "1 facture prête" : "Prêt pour une facture"}</p>
+              <span className="camera-hint">Envoyez une photo par facture. Pour plusieurs reçus, faites un envoi distinct pour chacun.</span>
             </div>
             <input ref={inputRef} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={handleFiles} />
-            <input ref={galleryInputRef} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleFiles} />
+            <input ref={galleryInputRef} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFiles} />
             <div className="capture-actions">
-              <button className="capture-button" onClick={() => inputRef.current?.click()} disabled={photos.length >= MAX_CAPTURE_PHOTOS} aria-label={photos.length ? "Ajouter une page avec la caméra" : "Prendre la première photo"}><span>⌾</span> {photos.length ? "Ajouter avec la caméra" : "Prendre une photo"}</button>
-              <button className="gallery-button" onClick={() => galleryInputRef.current?.click()} disabled={photos.length >= MAX_CAPTURE_PHOTOS} aria-label="Choisir plusieurs photos dans la galerie"><span>▧</span> Ajouter depuis la galerie</button>
+              <button className="capture-button" onClick={() => inputRef.current?.click()} disabled={photos.length >= MAX_CAPTURE_PHOTOS} aria-label="Photographier une facture"><span>⌾</span> Prendre une photo</button>
+              <button className="gallery-button" onClick={() => galleryInputRef.current?.click()} disabled={photos.length >= MAX_CAPTURE_PHOTOS} aria-label="Choisir une photo dans la galerie"><span>▧</span> Ajouter depuis la galerie</button>
             </div>
           </div>
           {photos.length > 0 && (
             <div className="photo-tray">
-              <div className="tray-heading"><span>Pages de cette facture</span><button className="text-button" onClick={() => { setPhotos([]); setDraftReceiptId(null); }}>Recommencer</button></div>
+              <div className="tray-heading"><span>Photo de cette facture</span><button className="text-button" onClick={() => { setPhotos([]); setDraftReceiptId(null); }}>Recommencer</button></div>
               <div className="photo-grid">
                 {photos.map((photo, index) => <div className="photo-thumb" key={photo.id}><PhotoPreview url={photo.url} alt={`Page ${index + 1}`} /><span>{index + 1}</span><button onClick={() => setPhotos((current) => { const next = current.filter((item) => item.id !== photo.id); if (!next.length) setDraftReceiptId(null); return next; })} aria-label={`Supprimer la photo ${index + 1}`}>×</button></div>)}
               </div>

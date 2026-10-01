@@ -40,6 +40,7 @@ import {
   serializeDecisionExceptions,
 } from "../../../../lib/invoice-decision-engine.mjs";
 import { canAdminReprocessInvoiceIntake, isAutomaticPostingSettled, isRetryableUnextractedAiFailure } from "../../../../lib/invoice-queue.mjs";
+import { MULTI_PHOTO_REVIEW_MESSAGE, requiresSinglePhotoReview } from "../../../../lib/invoice-photo-policy.mjs";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -625,6 +626,32 @@ export async function POST(request: Request) {
       ]),
     ]);
     console.info("[invoice-ai] phase=references_and_storage_ready", { photoCount: storedPhotos.length });
+    if (requiresSinglePhotoReview(storedPhotos.length)) {
+      await dataConnect.executeMutation("MarkInvoiceIntakeAiError", {
+        receiptId,
+        error: MULTI_PHOTO_REVIEW_MESSAGE,
+        aiErrorCode: "MULTI_PHOTO_INTAKE",
+        accountingStatus: "NOT_POSTED",
+        decisionExceptions: serializeDecisionExceptions([{
+          code: "MULTI_PHOTO_INTAKE",
+          fieldName: "photoCount",
+          message: MULTI_PHOTO_REVIEW_MESSAGE,
+          aiValue: String(storedPhotos.length),
+          status: "OPEN",
+        }]),
+        decisionChecks: serializeDecisionChecks([{
+          code: "SINGLE_DOCUMENT_PER_INTAKE",
+          passed: false,
+          message: MULTI_PHOTO_REVIEW_MESSAGE,
+        }]),
+        actorUid: identity.uid,
+        actorRole: identity.role,
+        writeAudit: true,
+        auditEventId: auditEventId(receiptId, AUDIT_ACTIONS.AI_PROCESSING_FAILED, "multi-photo"),
+        auditDetails: auditDetails({ reason: "MULTI_PHOTO_INTAKE", photoCount: storedPhotos.length }),
+      });
+      return Response.json({ error: MULTI_PHOTO_REVIEW_MESSAGE, code: "MULTI_PHOTO_INTAKE" }, { status: 422 });
+    }
     const sourceHash = await buildInvoiceSourceHash(storedPhotos.map((photo) => photo.file));
     if (intake.sourceHash && intake.sourceHash !== sourceHash) {
       throw new Error("L’empreinte des photos ne correspond plus au dépôt déjà enregistré.");
