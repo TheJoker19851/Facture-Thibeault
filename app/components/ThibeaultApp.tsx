@@ -1748,6 +1748,8 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
     identity.role === "ADMIN" &&
     canAdminReprocessInvoiceIntake(selectedIntake),
   );
+  const queuedForFirstAnalysis = selectedIntake?.processingStatus === "PROCESSING" &&
+    (selectedIntake.processingState === "QUEUED" || selectedIntake.processingState === "RETRY");
   const adminReanalysisUnavailable = selectedIntake?.processingState === "RUNNING"
     ? "Une analyse est déjà en cours. Si elle demeure bloquée, actualisez cette page après quelques minutes pour permettre la récupération."
     : "La relance IA est bloquée pour une facture comptabilisée, supprimée ou marquée comme doublon.";
@@ -1755,13 +1757,14 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
 
   const reanalyzeAsAdmin = async () => {
     if (!selectedIntake || !canAdminReanalyze) return;
-    if (!window.confirm("Réanalyser cette facture avec l’IA ? Cette action de test effacera la proposition IA actuelle et ne sera disponible que tant que la facture n’est pas comptabilisée.")) return;
+    if (!queuedForFirstAnalysis && !window.confirm("Réanalyser cette facture avec l’IA ? Cette action de test effacera la proposition IA actuelle et ne sera disponible que tant que la facture n’est pas comptabilisée.")) return;
     setRetryState("saving");
     setRetryMessage("");
     try {
-      await retryInvoiceIntakeAi(selectedIntake.receiptId, { forceReprocess: true });
+      if (queuedForFirstAnalysis) await startInvoiceIntakeProcessing(selectedIntake.receiptId);
+      else await retryInvoiceIntakeAi(selectedIntake.receiptId, { forceReprocess: true });
       setRetryState("saved");
-      setRetryMessage("Réanalyse IA lancée; actualisation de la facture…");
+      setRetryMessage(queuedForFirstAnalysis ? "Analyse IA lancée; actualisation de la facture…" : "Réanalyse IA lancée; actualisation de la facture…");
       window.setTimeout(() => window.location.reload(), 500);
     } catch (error) {
       setRetryState("error");
@@ -2070,7 +2073,7 @@ function IntakeQueuePage({ items, period, onSaved }: { items: InvoiceIntake[]; p
       </section>
       {selectedIntake ? <form className="panel intake-review" onSubmit={(event) => void saveReview(event, "save")}>
         <div className="panel-header"><div><p className="eyebrow">{processingStatusOf(selectedIntake) === "VALIDATED" ? "Prête pour comptabilisation" : transientGeminiPending ? "En attente de Gemini" : "Exception à résoudre"}</p><h2>{draft.vendor || "Facture sélectionnée"}</h2></div><span className={intakeStatusClass(processingStatusOf(selectedIntake))}>{intakeQueueStatusLabel(selectedIntake)}</span></div>
-        {identity.role === "ADMIN" && <div className="detail-alert"><div><p className="eyebrow">Outil de récupération ADMIN</p><span>{canAdminReanalyze ? "Relance l’analyse IA de cette facture non comptabilisée. La proposition actuelle sera remplacée et l’action sera auditée." : adminReanalysisUnavailable}</span><button className="secondary-button" type="button" onClick={() => void reanalyzeAsAdmin()} disabled={!canAdminReanalyze || retryState === "saving"}>{retryState === "saving" ? "Relance en cours…" : "Relancer l’IA"}</button>{retryMessage && <p className={`intake-review-message ${retryState}`}>{retryMessage}</p>}</div></div>}
+        {identity.role === "ADMIN" && <div className="detail-alert"><div><p className="eyebrow">Outil de récupération ADMIN</p><span>{queuedForFirstAnalysis ? "Lance l’analyse de ce dépôt en attente sans effacer de proposition IA." : canAdminReanalyze ? "Relance l’analyse IA de cette facture non comptabilisée. La proposition actuelle sera remplacée et l’action sera auditée." : adminReanalysisUnavailable}</span><button className="secondary-button" type="button" onClick={() => void reanalyzeAsAdmin()} disabled={!canAdminReanalyze || retryState === "saving"}>{retryState === "saving" ? "Analyse en cours…" : queuedForFirstAnalysis ? "Traiter maintenant" : "Relancer l’IA"}</button>{retryMessage && <p className={`intake-review-message ${retryState}`}>{retryMessage}</p>}</div></div>}
         {visibleReviewMessages.length > 0 && <div className="detail-alert"><div className="detail-alert-icon">!</div><div><p className="eyebrow">{transientGeminiPending ? "Nouvelle tentative automatique" : "À corriger"}</p>{visibleReviewMessages.map((message) => <span key={message}>{message}</span>)}</div></div>}
         <InvoiceIntakeEvidence key={selectedIntake.receiptId} intake={selectedIntake} />
         <AuditTrailView events={auditEvents} role={identity.role} state={auditState} cards={cards} projects={projects} />
